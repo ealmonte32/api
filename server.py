@@ -1,6 +1,7 @@
 import os
 import cfssl
 import redis
+import uuid
 from flask import Flask, request, jsonify
 
 __author__ = "Viktor Petersson"
@@ -46,6 +47,23 @@ def root_ca():
     return jsonify({'ca': ca})
 
 
+@app.route('/v0.1/generate-cert', methods=['GET'])
+def generate_device_id():
+    """
+    Returns a random new device ID.
+    We're using Redis for this for now.
+    This needs to be moved to a proper database later.
+    """
+
+    cert_in_use = True
+    while cert_in_use:
+        device_id = '{}.d.wott.local'.format(uuid.uuid4().hex)
+        if not r.get(device_id):
+            cert_in_use = False
+
+    return jsonify({'device_id': device_id})
+
+
 @app.route('/v0.1/cert-db/<device_uuid>', methods=['GET'])
 def get_device_cert(device_uuid):
     """
@@ -59,16 +77,13 @@ def get_device_cert(device_uuid):
         return 'Device not found.', 404
 
 
-@app.route('/v0.1/sign/<device_uuid>', methods=['POST'])
-def sign_device_cert(device_uuid):
+
+
+@app.route('/v0.1/sign', methods=['POST'])
+def sign_device_cert():
     """
     Signs a certificate.
     """
-
-    # Basic check to only allow signing of certificates
-    # under the domain d.wott.io
-    if not device_uuid.endswith('.d.wott.io'):
-        return 'Invalid device uuid', 400
 
     content = request.get_json()
     if not content:
@@ -76,6 +91,18 @@ def sign_device_cert(device_uuid):
 
     if not content.get('csr'):
         return 'Missing key "csr" in payload.', 400
+
+    if not content.get('device_id'):
+        return 'Missing key "device_id" in payload.', 400
+
+    # Basic check to only allow signing of certificates
+    # under the domain d.wott.io
+    if not content['device_id'].endswith('.d.wott.io'):
+        return 'Invalid device uuid', 400
+
+    # Only allow certificate to be signed once
+    if r.get(content['device_id']):
+        return 'Certificate already exist.', 400
 
     cf = cfssl.cfssl.CFSSL(
             host=CFSSL_SERVER,
@@ -85,10 +112,10 @@ def sign_device_cert(device_uuid):
 
     certificate = cf.sign(
             certificate_request=content['csr'],
-            hosts=['{}'.format(device_uuid)]
+            hosts=['{}'.format(content['device_id'])]
             )
 
-    r.set(device_uuid, certificate)
+    r.set(content['device_id'], certificate)
 
     return jsonify({
         'crt': certificate,
