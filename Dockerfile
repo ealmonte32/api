@@ -12,4 +12,4 @@ COPY requirements.txt ./
 COPY server.py ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD FLASK_APP=server.py flask run
+CMD FLASK_APP=server.py flask run --host 0.0.0.0 --port 5000
