@@ -1,7 +1,7 @@
 import os
 import cfssl
 import redis
-from flask import Flask, request
+from flask import Flask, request, jsonify
 
 __author__ = "Viktor Petersson"
 __version__ = "0.1.0"
@@ -30,7 +30,9 @@ def root_ca():
     """
     # Try to use cache for cert retrieval
     if r.get('ca_cert'):
-        return r.get('ca_cert')
+        return jsonify({
+            'ca': str(r.get('ca_cert'))
+            })
 
     print('Fetching root cert from CA...')
     cf = cfssl.cfssl.CFSSL(
@@ -41,7 +43,7 @@ def root_ca():
 
     ca = cf.info(label='primary')['certificate']
     r.set('ca_cert', ca)
-    return ca
+    return jsonify({'ca': ca})
 
 
 @app.route('/v0.1/cert-db/<device_uuid>', methods=['GET'])
@@ -50,7 +52,11 @@ def get_device_cert(device_uuid):
     Retrieves the certificate for a given device.
     """
     if r.get(device_uuid):
-        return r.get(device_uuid)
+        return jsonify({
+            'crt': str(r.get(device_uuid)),
+           })
+    else:
+        return 'Device not found.', 404
 
 
 @app.route('/v0.1/sign/<device_uuid>', methods=['POST'])
@@ -62,14 +68,14 @@ def sign_device_cert(device_uuid):
     # Basic check to only allow signing of certificates
     # under the domain d.wott.io
     if not device_uuid.endswith('.d.wott.io'):
-        return 'Invalid device uuid'
+        return 'Invalid device uuid', 400
 
     content = request.get_json()
     if not content:
-        return 'Invalid payload.'
+        return 'Invalid payload.', 400
 
     if not content.get('csr'):
-        return 'Missing key "csr" in payload.'
+        return 'Missing key "csr" in payload.', 400
 
     cf = cfssl.cfssl.CFSSL(
             host=CFSSL_SERVER,
@@ -82,6 +88,8 @@ def sign_device_cert(device_uuid):
             hosts=['{}'.format(device_uuid)]
             )
 
-    r.set(device_id, certificate)
+    r.set(device_uuid, certificate)
 
-    return certificate
+    return jsonify({
+        'crt': certificate,
+        })
