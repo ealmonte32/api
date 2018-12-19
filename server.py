@@ -11,7 +11,11 @@ CFSSL_SERVER = os.getenv('CFSSL_SERVER', '127.0.0.1')
 CFSSL_PORT = int(os.getenv('CFSSL_PORT', 8888))
 
 app = Flask(__name__)
-r = redis.Redis(host='localhost', port=6379, db=0)
+r = redis.Redis(
+        host=os.getenv('REDIS_SERVER', '127.0.0.1'),
+        port=int(os.getenv('REDIS_PORT', 6379)),
+        db=0
+        )
 
 
 @app.route('/')
