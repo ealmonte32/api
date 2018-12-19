@@ -53,6 +53,10 @@ def generate_device_id():
     Returns a random new device ID.
     We're using Redis for this for now.
     This needs to be moved to a proper database later.
+
+    There's also a potential race condition here because
+    two devices could the same device_id before the CSR has
+    been signed and hence not locked.
     """
 
     cert_in_use = True
@@ -77,8 +81,6 @@ def get_device_cert(device_uuid):
         return 'Device not found.', 404
 
 
-
-
 @app.route('/v0.1/sign', methods=['POST'])
 def sign_device_cert():
     """
@@ -97,7 +99,7 @@ def sign_device_cert():
 
     # Basic check to only allow signing of certificates
     # under the domain d.wott.io
-    if not content['device_id'].endswith('.d.wott.io'):
+    if not content['device_id'].endswith('.d.wott.local'):
         return 'Invalid device uuid', 400
 
     # Only allow certificate to be signed once
