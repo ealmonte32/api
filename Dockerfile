@@ -9,7 +9,8 @@ RUN apt-get update && \
     apt-get clean
 
 COPY requirements.txt ./
-COPY server.py ./
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY server.py ./
 
 CMD FLASK_APP=server.py flask run --host 0.0.0.0 --port 5000
