@@ -31,7 +31,7 @@ def root_ca():
     # Try to use cache for cert retrieval
     if r.get('ca_cert'):
         return jsonify({
-            'ca': str(r.get('ca_cert'))
+            'ca': r.get('ca_cert').decode(),
             })
 
     print('Fetching root cert from CA...')
@@ -53,7 +53,7 @@ def get_device_cert(device_uuid):
     """
     if r.get(device_uuid):
         return jsonify({
-            'crt': str(r.get(device_uuid)),
+            'crt': r.get(device_uuid).decode(),
            })
     else:
         return 'Device not found.', 404
