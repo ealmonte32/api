@@ -2,7 +2,6 @@ import os
 import cfssl
 import redis
 import uuid
-import logging
 from flask import Flask, request, jsonify
 
 __author__ = "Viktor Petersson"
@@ -13,7 +12,6 @@ CFSSL_SERVER = os.getenv('CFSSL_SERVER', '127.0.0.1')
 CFSSL_PORT = int(os.getenv('CFSSL_PORT', 8888))
 
 app = Flask(__name__)
-log = logging.getLogger('werkzeug')
 r = redis.Redis(
         host=os.getenv('REDIS_SERVER', '127.0.0.1'),
         port=int(os.getenv('REDIS_PORT', 6379)),
@@ -85,8 +83,51 @@ def get_device_cert(device_uuid):
 
 @app.route('/renew/v0.1/sign', methods=['POST'])
 def renew_device_cert():
-    log(request.headers)
-    return "test"
+    """
+    This function should probably be merged with regular
+    sign function to keep things DRY.
+    """
+
+    if not request.headers.get('SSL_Client'):
+        return 'Missing certificate in request.', 400
+
+    # Parse out the requester. Response should look something like this:
+    # '/C=UK/ST=London/O=Web of Trusted Things/CN=x.d.wott.local'
+    requester_fqdn = request.headers.get('SSL_Client').split('/')[-1].split('=')[-1]
+
+    if not requester_fqdn.endswith('d.wott.local'):
+        return 'Invalid client certificate.', 400
+
+    content = request.get_json()
+
+    if not content:
+        return 'Invalid payload.', 400
+
+    if not content.get('csr'):
+        return 'Missing key "csr" in payload.', 400
+
+    if not content.get('device_id'):
+        return 'Missing key "device_id" in payload.', 400
+
+    if not content['device_id'].endswith('.d.wott.local'):
+        return 'Invalid device uuid', 400
+
+    cf = cfssl.cfssl.CFSSL(
+            host=CFSSL_SERVER,
+            port=CFSSL_PORT,
+            ssl=False
+    )
+
+    certificate = cf.sign(
+            certificate_request=content['csr'],
+            hosts=['{}'.format(content['device_id'])]
+            )
+
+    r.set(content['device_id'], certificate)
+
+    return jsonify({
+        'crt': certificate,
+        })
 
 
 @app.route('/v0.1/sign', methods=['POST'])
