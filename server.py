@@ -2,6 +2,7 @@ import os
 import cfssl
 import redis
 import uuid
+import logging
 from flask import Flask, request, jsonify
 
 __author__ = "Viktor Petersson"
@@ -12,6 +13,7 @@ CFSSL_SERVER = os.getenv('CFSSL_SERVER', '127.0.0.1')
 CFSSL_PORT = int(os.getenv('CFSSL_PORT', 8888))
 
 app = Flask(__name__)
+log = logging.getLogger('werkzeug')
 r = redis.Redis(
         host=os.getenv('REDIS_SERVER', '127.0.0.1'),
         port=int(os.getenv('REDIS_PORT', 6379)),
@@ -83,9 +85,8 @@ def get_device_cert(device_uuid):
 
 @app.route('/renew/v0.1/sign', methods=['POST'])
 def renew_device_cert():
-    for h in request.headers:
-        print(h)
-    return
+    log(request.headers)
+    return "test"
 
 
 @app.route('/v0.1/sign', methods=['POST'])
