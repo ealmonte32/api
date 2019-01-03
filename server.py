@@ -47,7 +47,7 @@ def root_ca():
     return jsonify({'ca': ca})
 
 
-@app.route('/v0.1/generate-cert', methods=['GET'])
+@app.route('/v0.1/generate-id', methods=['GET'])
 def generate_device_id():
     """
     Returns a random new device ID.
@@ -79,6 +79,11 @@ def get_device_cert(device_uuid):
            })
     else:
         return 'Device not found.', 404
+
+
+@app.route('/renew/v0.1/sign', methods=['POST'])
+def renew_device_cert():
+    return ' '.join(request.headers)
 
 
 @app.route('/v0.1/sign', methods=['POST'])
