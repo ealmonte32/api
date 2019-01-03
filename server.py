@@ -83,7 +83,9 @@ def get_device_cert(device_uuid):
 
 @app.route('/renew/v0.1/sign', methods=['POST'])
 def renew_device_cert():
-    return str(' '.join(request.headers))
+    for h in request.headers:
+        print(h)
+    return
 
 
 @app.route('/v0.1/sign', methods=['POST'])
