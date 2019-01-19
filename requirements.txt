@@ -1,4 +1,5 @@
 Django==2.1.5
+coreapi==2.3.3
 cfssl==0.0.3b243
 djangorestframework==3.9.1
 pytz==2018.9

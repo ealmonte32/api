@@ -101,6 +101,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAdminUser',
+    )
+}
+
+# App configurations
+CFSSL_SERVER = os.getenv('CFSSL_SERVER', '127.0.0.1')
+CFSSL_PORT = int(os.getenv('CFSSL_PORT', 8888))
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/

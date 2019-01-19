@@ -6,7 +6,7 @@ import uuid
 class Device(models.Model):
     device_id = models.CharField(
         max_length=128,
-        primary_key=True
+        unique=True,
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -24,11 +24,16 @@ class Device(models.Model):
         null=True,
         blank=True
     )
+    comment = models.CharField(blank=True, null=True, max_length=512)
     claim_token = models.CharField(editable=False, max_length=128)
 
     def save(self, *args, **kwargs):
         """
         Automatically append a random claim token to each device.
+
+        @TODO:
+         * Add cryptographic verification that cert matches hostname
+         * Ensure hostname matches requirements.
         """
         self.claim_token = uuid.uuid4()
         super(Device, self).save(*args, **kwargs)
@@ -38,6 +43,9 @@ class Device(models.Model):
 
     def claimed(self):
         return bool(self.owner)
+
+    def has_valid_hostname(self):
+        self.device_id.endswith('d.wott.local')
 
     class Meta:
         ordering = ('created',)
