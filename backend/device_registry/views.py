@@ -1,13 +1,20 @@
-from device_registry.models import Device
-from device_registry.serializers import DeviceSerializer
-from rest_framework import status
-from rest_framework import permissions
-from rest_framework.renderers import JSONRenderer
-from rest_framework.response import Response
-from rest_framework.decorators import api_view, renderer_classes, permission_classes
-from backend import settings
+import logging
 import cfssl
 import uuid
+
+from backend import settings
+from device_registry import csr_helper
+from device_registry.models import Device
+from device_registry.serializers import DeviceSerializer
+from django.db import IntegrityError
+from rest_framework import permissions
+from rest_framework import status
+from rest_framework.decorators import api_view, renderer_classes, permission_classes
+from rest_framework.renderers import JSONRenderer
+from rest_framework.response import Response
+
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['GET'])
@@ -47,7 +54,10 @@ def generate_device_id_view(request, format=None):
 
     cert_in_use = True
     while cert_in_use:
-        device_id = '{}.d.wott.local'.format(uuid.uuid4().hex)
+        device_id = '{}.{}'.format(
+            uuid.uuid4().hex,
+            settings.COMMON_NAME_PREFIX
+        )
         if not Device.objects.filter(device_id=device_id):
             return Response({'device_id': device_id})
     return Response(
@@ -100,26 +110,24 @@ def sign_new_device_view(request, format=None):
             status=status.HTTP_409_CONFLICT
         )
 
+    if not csr_helper.csr_is_valid(csr=csr, device_id=device_id):
+        return Response(
+            'Invalid CSR.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
+    try:
+        Device.objects.create(
+            device_id=device_id,
+            certificate_csr=csr
+        )
+    except IntegrityError:
+        return Response(
+            'Device already exist.',
+            status=status.HTTP_409_CONFLICT
+        )
 
     return Response({
-        'csr': request.data['csr'],
-        'device_id': request.data['device_id'],
+        'csr': csr,
+        'device_id': device_id,
     })
-
-
-
-def sign_csr(csr, hostname):
-    """
-    Takes a CSR and signs it on the CA server.
-    """
-    cf = cfssl.cfssl.CFSSL(
-        host=settings.CFSSL_SERVER,
-        port=settings.CFSSL_PORT,
-        ssl=False
-    )
-
-    return cf.sign(
-        certificate_request=csr,
-        hosts=['{}'.format(hostname)]
-    )
