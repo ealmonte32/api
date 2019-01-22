@@ -1,5 +1,5 @@
 from django.test import TestCase
-from device_registry import csr_helper
+from device_registry import ca_helper
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -57,7 +57,7 @@ class CsrHelperTests(TestCase):
         cert = generate_cert(common_name=device_id, subject_alt_name=device_id)
 
         self.assertIs(
-            csr_helper.csr_is_valid(csr=cert['csr'], device_id=device_id),
+            ca_helper.csr_is_valid(csr=cert['csr'], device_id=device_id),
             True
         )
 
@@ -74,7 +74,7 @@ class CsrHelperTests(TestCase):
         )
 
         self.assertIs(
-            csr_helper.csr_is_valid(csr=cert['csr'], device_id=device_id),
+            ca_helper.csr_is_valid(csr=cert['csr'], device_id=device_id),
             False
         )
 
@@ -91,6 +91,6 @@ class CsrHelperTests(TestCase):
         )
 
         self.assertIs(
-            csr_helper.csr_is_valid(csr=cert['csr'], device_id=device_id),
+            ca_helper.csr_is_valid(csr=cert['csr'], device_id=device_id),
             False
         )

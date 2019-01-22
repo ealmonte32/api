@@ -3,7 +3,7 @@ import cfssl
 import uuid
 
 from backend import settings
-from device_registry import csr_helper
+from device_registry import ca_helper
 from device_registry.models import Device
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
@@ -110,7 +110,7 @@ def sign_new_device_view(request, format=None):
             status=status.HTTP_409_CONFLICT
         )
 
-    if not csr_helper.csr_is_valid(csr=csr, device_id=device_id):
+    if not ca_helper.csr_is_valid(csr=csr, device_id=device_id):
         return Response(
             'Invalid CSR.',
             status=status.HTTP_400_BAD_REQUEST
@@ -127,7 +127,14 @@ def sign_new_device_view(request, format=None):
             status=status.HTTP_409_CONFLICT
         )
 
+    signed_cert = csr_helper.sign_csr(csr, device_id)
+
+    Device.objects.update(
+        device_id=device_id,
+        certificate=signed_cert
+    )
+
     return Response({
-        'csr': csr,
+        'certificate': signed_cert,
         'device_id': device_id,
     })
