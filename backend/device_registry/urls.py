@@ -25,6 +25,9 @@ urlpatterns = [
     path('api/{}/sign-csr'.format(api_version),
          views.sign_new_device_view,
          name='sign-device-cert'),
+    path('api/{}/mtls/sign-csr'.format(api_version),
+         views.mtls_renew_cert_view,
+         name='mtls-sign-device-cert'),
 ]
 
 #urlpatterns += router.urls

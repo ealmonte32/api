@@ -148,3 +148,24 @@ def sign_new_device_view(request, format=None):
         'certificate_expires': certificate_expires,
         'device_id': device_id,
     })
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def mtls_renew_cert_view(request, format=None):
+    """
+    Renewal of certificate.
+    """
+
+    csr = request.data.get('csr')
+    device_id = request.data.get('device_id')
+
+    for i in request.META:
+        print(i)
+
+
+    if not request.META.get('HTTP_SSL_Client'):
+        return Response(
+            'Invalid CSR.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
