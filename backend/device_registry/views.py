@@ -127,14 +127,17 @@ def sign_new_device_view(request, format=None):
             status=status.HTTP_409_CONFLICT
         )
 
-    signed_cert = csr_helper.sign_csr(csr, device_id)
+    signed_cert = ca_helper.sign_csr(csr, device_id)
+    certificate_expires = ca_helper.get_certificate_expiration_date(signed_cert)
 
     Device.objects.update(
         device_id=device_id,
-        certificate=signed_cert
+        certificate=signed_cert,
+        certificate_expires=certificate_expires,
     )
 
     return Response({
         'certificate': signed_cert,
+        'certificate_expires': certificate_expires,
         'device_id': device_id,
     })

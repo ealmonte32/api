@@ -10,6 +10,15 @@ from cryptography.x509.oid import NameOID, ExtensionOID
 logger = logging.getLogger(__name__)
 
 
+def get_certificate_expiration_date(certificate):
+    """
+    Returns the expiration date of the certificate.
+    """
+
+    cert = x509.load_pem_x509_certificate(certificate.encode(), default_backend())
+    return cert.not_valid_after
+
+
 def sign_csr(csr, hostname):
     """
     Takes a CSR and signs it on the CA server.
