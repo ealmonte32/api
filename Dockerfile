@@ -10,8 +10,9 @@ RUN apt-get update && \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ ./
+COPY backend ./
 
 RUN python manage.py collectstatic --noinput
 
+USER nobody
 CMD gunicorn --workers 4 --bind 0.0.0.0:8000 backend.wsgi
