@@ -78,6 +78,7 @@ def get_device_cert_view(request, device_id, format=None):
         return Response({
             'certificate': device_info[0].certificate,
             'certificate_expires': device_info[0].certificate_expires,
+            'device_id': device_id,
         })
     return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
 
@@ -128,6 +129,12 @@ def sign_new_device_view(request, format=None):
         )
 
     signed_cert = ca_helper.sign_csr(csr, device_id)
+    if not signed_cert:
+        return Response(
+            'Unknown error',
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
     certificate_expires = ca_helper.get_certificate_expiration_date(signed_cert)
 
     Device.objects.update(

@@ -1,5 +1,6 @@
 import cfssl
 import logging
+import pytz
 
 from backend import settings
 from cryptography import x509
@@ -13,10 +14,11 @@ logger = logging.getLogger(__name__)
 def get_certificate_expiration_date(certificate):
     """
     Returns the expiration date of the certificate.
+    (The timezone from the x509 library is always in UTC)
     """
 
     cert = x509.load_pem_x509_certificate(certificate.encode(), default_backend())
-    return cert.not_valid_after
+    return cert.not_valid_after.replace(tzinfo=pytz.utc)
 
 
 def sign_csr(csr, hostname):
