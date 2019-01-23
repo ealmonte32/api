@@ -15,17 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
-# Determine the role based on the 'PROFILE' env varible
-def is_dev():
-    return os.getenv('PROFILE').lower() == 'dev'
-
-def is_prod():
-    return os.getenv('PROFILE').lower() == 'prod'
-
-def is_stage():
-    return os.getenv('PROFILE').lower() == 'stage'
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
@@ -33,14 +22,9 @@ def is_stage():
 SECRET_KEY = '3y(yuq&dt*2nhl_)iv9^a_&-d97zw3)*btf(ano43p=krwcfe4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = is_dev()
+DEBUG = False
 
 ALLOWED_HOSTS = []
-if is_stage:
-    ALLOWED_HOSTS += ['api-stage.wott.io', 'mtls-stage.stage.wott.io']
-
-if is_prod:
-    ALLOWED_HOSTS += ['api.wott.io', 'mtls.wott.io']
 
 # Application definition
 
@@ -90,25 +74,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-if is_dev:
-     DATABASES = {
-         'default': {
-             'ENGINE': 'django.db.backends.sqlite3',
-             'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-         }
-     }
-elif (is_stage or is_prod):
-     DATABASES = {
-         'default': {
-             'ENGINE': 'django.db.backends.postgresql',
-             'NAME': os.getenv('DB_NAME', 'wott-backend'),
-             'USER': os.getenv('DB_USER', 'wott-backend'),
-             'PASSWORD': os.getenv('DB_PASSWORD'),
-             'HOST': os.getenv('DB_HOST', 'psql'),
-             'PORT': os.getenv('DB_PORT', '5432'),
-         }
-     }
-
+# Configured in overrides
 
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
@@ -137,14 +103,6 @@ REST_FRAMEWORK = {
 # App configurations
 CFSSL_SERVER = os.getenv('CFSSL_SERVER', '127.0.0.1')
 CFSSL_PORT = int(os.getenv('CFSSL_PORT', 8888))
-
-if is_prod:
-    COMMON_NAME_PREFIX = 'd.wott.local'
-if is_stage:
-    COMMON_NAME_PREFIX = 'd.wott-stage.local'
-if is_dev:
-    COMMON_NAME_PREFIX = 'd.wott-dev.local'
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
