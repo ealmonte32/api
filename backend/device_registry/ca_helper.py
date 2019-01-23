@@ -2,7 +2,7 @@ import cfssl
 import logging
 import pytz
 
-from backend import settings
+from django.conf import settings
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509.oid import NameOID, ExtensionOID

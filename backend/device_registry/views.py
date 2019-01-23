@@ -2,7 +2,7 @@ import logging
 import cfssl
 import uuid
 
-from backend import settings
+from django.conf import settings
 from device_registry import ca_helper
 from device_registry.models import Device
 from device_registry.serializers import DeviceSerializer
