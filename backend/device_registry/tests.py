@@ -1,12 +1,12 @@
-from django.test import TestCase
-from device_registry import ca_helper
-
+from backend import settings
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
+from device_registry import ca_helper
+from django.test import TestCase
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -53,7 +53,7 @@ class CsrHelperTests(TestCase):
         device_id matches the common name and subject alt name.
         """
 
-        device_id = 'foobar.d.wott.local'
+        device_id = 'foobar.{}'.format(settings.COMMON_NAME_PREFIX)
         cert = generate_cert(common_name=device_id, subject_alt_name=device_id)
 
         self.assertIs(
@@ -67,7 +67,7 @@ class CsrHelperTests(TestCase):
         does not match the subject alt name.
         """
 
-        device_id = 'foobar.d.wott.local'
+        device_id = 'foobar.{}'.format(settings.COMMON_NAME_PREFIX)
         cert = generate_cert(
             common_name=device_id,
             subject_alt_name='foobar2.d.wott.local'

@@ -16,6 +16,15 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def is_dev():
+    return os.getenv('PROFILE').lower() == 'dev'
+
+def is_prod():
+    return os.getenv('PROFILE').lower() == 'prod'
+
+def is_stage():
+    return os.getenv('PROFILE').lower() == 'stage'
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
@@ -23,10 +32,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '3y(yuq&dt*2nhl_)iv9^a_&-d97zw3)*btf(ano43p=krwcfe4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = is_dev()
 
 ALLOWED_HOSTS = []
+if is_stage:
+    ALLOWED_HOSTS += ['api-stage.wott.io', 'mtls-stage.stage.wott.io']
 
+if is_prod:
+    ALLOWED_HOSTS += ['api.wott.io', 'mtls.wott.io']
 
 # Application definition
 
@@ -111,7 +124,13 @@ REST_FRAMEWORK = {
 # App configurations
 CFSSL_SERVER = os.getenv('CFSSL_SERVER', '127.0.0.1')
 CFSSL_PORT = int(os.getenv('CFSSL_PORT', 8888))
-COMMON_NAME_PREFIX = 'd.wott.local'
+
+if is_prod:
+    COMMON_NAME_PREFIX = 'd.wott.local'
+if is_stage:
+    COMMON_NAME_PREFIX = 'd.wott-stage.local'
+if is_dev:
+    COMMON_NAME_PREFIX = 'd.wott-dev.local'
 
 
 # Internationalization
