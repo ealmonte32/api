@@ -150,6 +150,25 @@ def sign_new_device_view(request, format=None):
     })
 
 
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def mtls_tester_view(request, format=None):
+    """
+    Simply returns the Device ID of the sender.
+    """
+    device_id = request.META.get('HTTP_SSL_Client')
+
+    if not device_id:
+        return Response(
+            'Invalid request.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    return Response({
+        'message': 'Hello {}'.format(device_id)
+    })
+
+
 @api_view(['POST'])
 @permission_classes((permissions.AllowAny,))
 def mtls_renew_cert_view(request, format=None):
@@ -159,10 +178,6 @@ def mtls_renew_cert_view(request, format=None):
 
     csr = request.data.get('csr')
     device_id = request.data.get('device_id')
-
-    for i in request.META:
-        print(i)
-
 
     if not request.META.get('HTTP_SSL_Client'):
         return Response(
