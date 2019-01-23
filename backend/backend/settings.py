@@ -16,6 +16,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+# Determine the role based on the 'PROFILE' env varible
 def is_dev():
     return os.getenv('PROFILE').lower() == 'dev'
 
@@ -89,12 +90,24 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
+if is_dev:
+     DATABASES = {
+         'default': {
+             'ENGINE': 'django.db.backends.sqlite3',
+             'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+         }
+     }
+elif (is_stage or is_prod):
+     DATABASES = {
+         'default': {
+             'ENGINE': 'django.db.backends.postgresql',
+             'NAME': os.getenv('DB_NAME', 'wott-backend'),
+             'USER': os.getenv('DB_USER', 'wott-backend'),
+             'PASSWORD': os.getenv('DB_PASSWORD'),
+             'HOST': os.getenv('DB_HOST', 'psql'),
+             'PORT': os.getenv('DB_PORT', '5432'),
+         }
+     }
 
 
 # Password validation
