@@ -13,8 +13,8 @@ api_version = 'v0.2'
 urlpatterns = [
     path('api/{}/list-devices'.format(api_version),
          views.device_list_view),
-    path('api/{}/ca'.format(api_version),
-         views.get_ca_view,
+    path('api/{}/ca-bundle'.format(api_version),
+         views.get_ca_bundle_view,
          name='get-ca'),
     path('api/{}/generate-id'.format(api_version),
          views.generate_device_id_view,

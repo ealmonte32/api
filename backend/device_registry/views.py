@@ -30,19 +30,15 @@ def device_list_view(request, format=None):
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))
 @permission_classes((permissions.AllowAny,))
-def get_ca_view(request, format=None):
+def get_ca_bundle_view(request, format=None):
     """
-    Returns the root cert from the CA
+    Returns the root cert bundle
     """
 
-    cf = cfssl.cfssl.CFSSL(
-            host=settings.CFSSL_SERVER,
-            port=settings.CFSSL_PORT,
-            ssl=False
-    )
+    with open('files/cert-bundle.crt') as f:
+        ca_bundle = f.read()
 
-    ca = cf.info(label='primary')['certificate']
-    return Response({'ca_certificate': ca})
+    return Response({'ca_bundle': ca_bundle})
 
 
 @api_view(['GET'])
