@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from django.utils import timezone
 from django.conf import settings
 from device_registry import ca_helper
 from device_registry.models import Device
@@ -147,6 +148,29 @@ def sign_new_device_view(request, format=None):
         'certificate': signed_certificate,
         'certificate_expires': certificate_expires,
         'claim_token': device_object.claim_token,
+    })
+
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def mtls_ping_view(request, format=None):
+    """
+    Endpoint for sending a heartbeat.
+    """
+    device_id = request.META.get('HTTP_SSL_Client')
+
+    if not device_id:
+        return Response(
+            'Invalid request.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    device_object = Device.objects.get(device_id=device_id)
+    device_object.last_ping = timezone.now()
+    device_object.save()
+
+    return Response({
+        'message': 'pong',
     })
 
 
