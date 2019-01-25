@@ -256,6 +256,7 @@ def mtls_renew_cert_view(request, format=None):
     certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
 
     device_object = Device.objects.get(device_id=device_id)
+    device_object.certificate_csr = csr
     device_object.certificate = signed_certificate
     device_object.certificate_expires = certificate_expires
     device_object.claim_token = uuid.uuid4()
