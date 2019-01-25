@@ -180,7 +180,7 @@ def mtls_ping_view(request, format=None):
     Endpoint for sending a heartbeat.
     """
 
-    device_id = is_mtls_authenticated()
+    device_id = is_mtls_authenticated(request)
 
     if not device_id:
         return Response(
@@ -204,7 +204,7 @@ def mtls_tester_view(request, format=None):
     Simply returns the Device ID of the sender.
     """
 
-    device_id = is_mtls_authenticated()
+    device_id = is_mtls_authenticated(request)
 
     if not device_id:
         return Response(
