@@ -151,13 +151,30 @@ def sign_new_device_view(request, format=None):
     })
 
 
+def parse_device_id_from_header(header):
+    cn = header.split('/')[-1].split('=')[-1]
+    if cn.endswith(settings.COMMON_NAME_PREFIX):
+        return cn
+    else:
+        return False
+
+
 @api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def mtls_ping_view(request, format=None):
     """
     Endpoint for sending a heartbeat.
     """
-    device_id = request.META.get('HTTP_SSL_Client')
+
+    if not request.META.get('HTTP_SSL_CLIENT_SUCCESS') == 'SUCCESS':
+        return Response(
+            'You shall not pass!',
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    device_id = parse_device_id_from_header(
+        request.META.get('HTTP_SSL_CLIENT')
+    )
 
     if not device_id:
         return Response(
