@@ -15,3 +15,4 @@ DATABASES = {
 
 COMMON_NAME_PREFIX = 'd.wott.local'
 
+DEBUG = bool(int(os.getenv('DEBUG', "0")))
