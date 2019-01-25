@@ -151,8 +151,22 @@ def sign_new_device_view(request, format=None):
     })
 
 
-def parse_device_id_from_header(header):
-    cn = header.split('/')[-1].split('=')[-1]
+def is_mtls_authenticated(request):
+    """
+    Returns the device id if authenticated properly
+    through MTLS.
+
+    This should probably be moved to a permission class.
+    """
+
+    if not request.META.get('HTTP_SSL_CLIENT_VERIFY') == 'SUCCESS':
+        return Response(
+            'You shall not pass!',
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # @TODO clean up this as it will likely break
+    cn = request.META.get('HTTP_SSL_CLIENT').split('/')[-1].split('=')[-1]
     if cn.endswith(settings.COMMON_NAME_PREFIX):
         return cn
     else:
@@ -166,15 +180,7 @@ def mtls_ping_view(request, format=None):
     Endpoint for sending a heartbeat.
     """
 
-    if not request.META.get('HTTP_SSL_CLIENT_VERIFY') == 'SUCCESS':
-        return Response(
-            'You shall not pass!',
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
-    device_id = parse_device_id_from_header(
-        request.META.get('HTTP_SSL_CLIENT')
-    )
+    device_id = is_mtls_authenticated()
 
     if not device_id:
         return Response(
@@ -197,7 +203,8 @@ def mtls_tester_view(request, format=None):
     """
     Simply returns the Device ID of the sender.
     """
-    device_id = request.META.get('HTTP_SSL_Client')
+
+    device_id = is_mtls_authenticated()
 
     if not device_id:
         return Response(
