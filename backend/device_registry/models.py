@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.db import models
-import uuid
 
 
 class Device(models.Model):
@@ -30,17 +29,6 @@ class Device(models.Model):
     comment = models.CharField(blank=True, null=True, max_length=512)
     claim_token = models.CharField(editable=False, max_length=128)
 
-    def save(self, *args, **kwargs):
-        """
-        Automatically append a random claim token to each device.
-
-        @TODO:
-         * Add cryptographic verification that cert matches hostname
-         * Ensure hostname matches requirements.
-        """
-        self.claim_token = uuid.uuid4()
-        super(Device, self).save(*args, **kwargs)
-
     def __str__(self):
         return self.device_id
 
@@ -48,7 +36,7 @@ class Device(models.Model):
         return bool(self.owner)
 
     def has_valid_hostname(self):
-        self.device_id.endswith('d.wott.local')
+        self.device_id.endswith(settings.COMMON_NAME_PREFIX)
 
     class Meta:
         ordering = ('created',)

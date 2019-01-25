@@ -1,5 +1,4 @@
 import logging
-import cfssl
 import uuid
 
 from django.conf import settings
@@ -123,26 +122,31 @@ def sign_new_device_view(request, format=None):
             'Device already exist.',
             status=status.HTTP_409_CONFLICT
         )
+    except:
+        return Response(
+            'Unknown error.',
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
-    signed_cert = ca_helper.sign_csr(csr, device_id)
-    if not signed_cert:
+    signed_certificate = ca_helper.sign_csr(csr, device_id)
+    if not signed_certificate:
         return Response(
             'Unknown error',
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-    certificate_expires = ca_helper.get_certificate_expiration_date(signed_cert)
+    certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
 
-    Device.objects.update(
-        device_id=device_id,
-        certificate=signed_cert,
-        certificate_expires=certificate_expires,
-    )
+    device_object = Device.objects.get(device_id=device_id)
+    device_object.certificate = signed_certificate
+    device_object.certificate_expires = certificate_expires
+    device_object.claim_token = uuid.uuid4()
+    device_object.save()
 
     return Response({
-        'certificate': signed_cert,
+        'certificate': signed_certificate,
         'certificate_expires': certificate_expires,
-        'device_id': device_id,
+        'claim_token': device_object.claim_token,
     })
 
 
