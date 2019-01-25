@@ -226,9 +226,43 @@ def mtls_renew_cert_view(request, format=None):
 
     csr = request.data.get('csr')
     device_id = request.data.get('device_id')
+    tls_device_id = is_mtls_authenticated(request)
 
-    if not request.META.get('HTTP_SSL_Client'):
+    if not tls_device_id:
+        return Response(
+            'You shall not pass!.',
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    if not tls_device_id == device_id:
+        return Response(
+            'Invalid request.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if not ca_helper.csr_is_valid(csr=csr, device_id=device_id):
         return Response(
             'Invalid CSR.',
             status=status.HTTP_400_BAD_REQUEST
         )
+
+    signed_certificate = ca_helper.sign_csr(csr, device_id)
+    if not signed_certificate:
+        return Response(
+            'Unknown error',
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
+
+    device_object = Device.objects.get(device_id=device_id)
+    device_object.certificate = signed_certificate
+    device_object.certificate_expires = certificate_expires
+    device_object.claim_token = uuid.uuid4()
+    device_object.save()
+
+    return Response({
+        'certificate': signed_certificate,
+        'certificate_expires': certificate_expires,
+        'claim_token': device_object.claim_token,
+    })
