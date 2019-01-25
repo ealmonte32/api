@@ -1,6 +1,9 @@
 FROM python:3.7-slim-stretch
 WORKDIR /usr/src/app
 
+ENV CFSSL_SERVER wott-ca
+ENV REDIS_SERVER redis
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential libssl-dev libffi-dev libltdl-dev && \
     apt-get clean
@@ -8,16 +11,6 @@ RUN apt-get update && \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend ./
+COPY server.py ./
 
-ENV CFSSL_SERVER wott-ca
-ENV DJANGO_SETTINGS_MODULE backend.settings.prod
-
-RUN python manage.py collectstatic --noinput
-
-USER nobody
-CMD gunicorn \
-    --workers 4 \
-    --access-logfile '-' \
-    --bind 0.0.0.0:8000 \
-    backend.wsgi
+CMD FLASK_APP=server.py flask run --host 0.0.0.0 --port 5000
