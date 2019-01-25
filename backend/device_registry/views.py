@@ -166,7 +166,7 @@ def mtls_ping_view(request, format=None):
     Endpoint for sending a heartbeat.
     """
 
-    if not request.META.get('HTTP_SSL_CLIENT_SUCCESS') == 'SUCCESS':
+    if not request.META.get('HTTP_SSL_CLIENT_VERIFY') == 'SUCCESS':
         return Response(
             'You shall not pass!',
             status=status.HTTP_403_FORBIDDEN,
