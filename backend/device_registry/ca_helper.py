@@ -31,10 +31,14 @@ def sign_csr(csr, hostname):
         ssl=False
     )
 
-    return cf.sign(
-        certificate_request=csr,
-        hosts=['{}'.format(hostname)]
-    )
+    try:
+        return cf.sign(
+            certificate_request=csr,
+            hosts=['{}'.format(hostname)]
+        )
+    except cfssl.exceptions.CFSSLRemoteException as e:
+        logging.error('[CSR] CFSSL Remote Exception: {}.'.format(e))
+        return False
 
 
 def csr_is_valid(csr=None, device_id=None):
