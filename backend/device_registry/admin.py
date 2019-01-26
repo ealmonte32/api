@@ -10,7 +10,12 @@ class DeviceAdmin(admin.ModelAdmin):
         'created',
         'last_ping',
         'owner',
+        'claimed',
     ]
+
+    list_filter = (
+        'last_ping',
+    )
 
     ordering = ('-last_ping',)
     readonly_fields = (
