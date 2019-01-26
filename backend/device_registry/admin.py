@@ -27,7 +27,7 @@ class DeviceInfoAdmin(admin.ModelAdmin):
     model = DeviceInfo
 
     list_display = [
-        'device_id',
+        'device',
         'device_manufacturer',
         'device_model',
         'device_architecture',
