@@ -144,15 +144,14 @@ def sign_new_device_view(request, format=None):
     device_object.claim_token = uuid.uuid4()
     device_object.save()
 
-    device_info_object = DeviceInfo(
+    DeviceInfo(
         device=device_object,
         device_manufacturer=request.data.get('device_manufacturer'),
         device_model=request.data.get('device_model'),
         device_operating_system=request.data.get('device_operating_system'),
         device_operating_system_version=request.data.get('device_operating_system_version'),
         device_architecture=request.data.get('device_architecture'),
-    )
-    device_info_object.save()
+    ).save()
 
     return Response({
         'certificate': signed_certificate,
