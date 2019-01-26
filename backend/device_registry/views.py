@@ -145,7 +145,7 @@ def sign_new_device_view(request, format=None):
     device_object.save()
 
     device_info_object = DeviceInfo(
-        device_id=device_object,
+        device=device_object,
         device_manufacturer=request.data.get('device_manufacturer'),
         device_model=request.data.get('device_model'),
         device_operating_system=request.data.get('device_operating_system'),
