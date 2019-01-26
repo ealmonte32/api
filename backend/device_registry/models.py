@@ -21,11 +21,6 @@ class Device(models.Model):
     certificate = models.TextField(blank=True, null=True)
     certificate_csr = models.TextField(blank=True, null=True)
     certificate_expires = models.DateTimeField(blank=True, null=True)
-    ipv4_address = models.GenericIPAddressField(
-        protocol="IPv4",
-        null=True,
-        blank=True
-    )
     comment = models.CharField(blank=True, null=True, max_length=512)
     claim_token = models.CharField(editable=False, max_length=128)
 
@@ -49,6 +44,11 @@ class DeviceInfo(models.Model):
     device_architecture = models.CharField(blank=True, null=True, max_length=32)
     device_operating_system = models.CharField(blank=True, null=True, max_length=128)
     device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)
+    ipv4_address = models.GenericIPAddressField(
+        protocol="IPv4",
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return self.device.device_id
