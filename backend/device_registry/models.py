@@ -40,3 +40,12 @@ class Device(models.Model):
 
     class Meta:
         ordering = ('created',)
+
+
+class DeviceInfo(models.Model):
+    device_id = models.OneToOneField(Device, on_delete=models.CASCADE)
+    device_manufacturer = models.CharField(blank=True, null=True, max_length=128)
+    device_model = models.CharField(blank=True, null=True, max_length=128)
+    device_architecture = models.CharField(blank=True, null=True, max_length=32)
+    device_operating_system = models.CharField(blank=True, null=True, max_length=128)
+    device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)

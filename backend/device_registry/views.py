@@ -4,7 +4,7 @@ import uuid
 from django.utils import timezone
 from django.conf import settings
 from device_registry import ca_helper
-from device_registry.models import Device
+from device_registry.models import Device, DeviceInfo
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from rest_framework import permissions
@@ -143,6 +143,15 @@ def sign_new_device_view(request, format=None):
     device_object.certificate_expires = certificate_expires
     device_object.claim_token = uuid.uuid4()
     device_object.save()
+
+    DeviceInfo.objects.create(
+        device_id=device_object,
+        device_manufacturer=request.data.get('device_manufacturer'),
+        device_model=request.data.get('device_model'),
+        device_operating_system=request.data.get('device_operating_system'),
+        device_operating_system_version=request.data.get('device_operating_system_version'),
+        device_architecture=request.data.get('device_architecture'),
+    )
 
     return Response({
         'certificate': signed_certificate,

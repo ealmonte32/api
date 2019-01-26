@@ -1,5 +1,5 @@
 from django.contrib import admin
-from device_registry.models import Device
+from device_registry.models import Device, DeviceInfo
 
 
 class DeviceAdmin(admin.ModelAdmin):
@@ -23,4 +23,18 @@ class DeviceAdmin(admin.ModelAdmin):
     )
 
 
+class DeviceInfoAdmin(admin.ModelAdmin):
+    model = DeviceInfo
+
+    list_display = [
+        'device_id',
+        'device_manufacturer',
+        'device_model',
+        'device_architecture',
+        'device_operating_system',
+        'device_operating_system_version',
+    ]
+
+
 admin.site.register(Device, DeviceAdmin)
+admin.site.register(DeviceInfo, DeviceInfoAdmin)
