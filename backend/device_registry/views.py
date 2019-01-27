@@ -42,6 +42,16 @@ def get_ca_bundle_view(request, format=None):
 
 
 @api_view(['GET'])
+@renderer_classes((JSONRenderer,))
+@permission_classes((permissions.AllowAny,))
+def get_ca_view(request, format=None):
+    """
+    Returns the CA cert
+    """
+    return Response({'ca_certificate': ca_helper.get_ca_certificate()})
+
+
+@api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def generate_device_id_view(request, format=None):
     """

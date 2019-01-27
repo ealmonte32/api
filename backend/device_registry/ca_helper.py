@@ -93,6 +93,12 @@ def csr_is_valid(csr=None, device_id=None):
             device_id
         ))
         return False
-
-
     return True
+
+
+def get_ca_certificate():
+    return cfssl.cfssl.CFSSL(
+                    host=settings.CFSSL_SERVER,
+                    port=settings.CFSSL_PORT,
+                    ssl=False
+    )
