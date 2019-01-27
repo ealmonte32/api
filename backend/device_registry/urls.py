@@ -10,6 +10,7 @@ api_version = 'v0.2'
 #router = DefaultRouter()
 #router.register(r'device_registry', views.DeviceViewSet)
 
+# API
 urlpatterns = [
     path('api/{}/list-devices'.format(api_version),
          api_views.device_list_view),
@@ -40,9 +41,14 @@ urlpatterns = [
     path('api/mtls/{}/hello'.format(api_version),
          api_views.mtls_tester_view,
          name='mtls-tester'),
-    path('claim-device',
+]
+
+# Front-end
+urlpatterns += [
+    path('',
+         views.root_view,
+         name='root'),
+    path('claim-device/',
          views.claim_device_view,
          name='claim-device'),
 ]
-
-#urlpatterns += router.urls

@@ -9,6 +9,11 @@ from django.contrib.auth.decorators import login_required
 
 
 @login_required
+def root_view(request):
+    return render(request, 'root.html')
+
+
+@login_required
 def claim_device_view(request):
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -34,15 +39,3 @@ def claim_device_view(request):
         form = ClaimDeviceForm()
 
     return render(request, 'claim-device.html', {'form': form})
-
-
-class ClaimDeviceView(LoginRequiredMixin, FormView):
-    template_name = 'claim-device.html'
-    form_class = ClaimDeviceForm
-    success_url = '/'
-
-    def form_valid(self, form):
-        # This method is called when valid form data has been POSTed.
-        # It should return an HttpResponse.
-        form.token_is_valid()
-        return super().form_valid(form)
