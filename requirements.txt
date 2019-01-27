@@ -2,6 +2,8 @@ Django==2.1.5
 cfssl==0.0.3b243
 coreapi==2.3.3
 cryptography==2.4.2
+django-crispy-forms==1.7.2
+django-registration-redux==2.5
 djangorestframework==3.9.1
 gunicorn==19.9.0
 psycopg2-binary==2.7.7
