@@ -97,8 +97,9 @@ def csr_is_valid(csr=None, device_id=None):
 
 
 def get_ca_certificate():
-    return cfssl.cfssl.CFSSL(
+    ca = cfssl.cfssl.CFSSL(
                     host=settings.CFSSL_SERVER,
                     port=settings.CFSSL_PORT,
                     ssl=False
     )
+    return ca.info(label='primary')['certificate']
