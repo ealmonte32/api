@@ -215,7 +215,9 @@ def mtls_ping_view(request, format=None):
         device_object.last_ping = timezone.now()
         device_object.save()
     elif request.method == 'POST':
-        device_info_object = DeviceInfo.objects.get(device__device_id=device_id)
+        device_info_object, created = DeviceInfo.objects.update_or_create(
+            device=Device.objects.get(device_id=device_id)
+        )
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
         device_info_object.fqdn = request.data.get('fqdn')

@@ -39,5 +39,9 @@
       <th scope="row">IP Address (IPv4)</th>
       <td>{{ device_info.ip4v_address|default_if_none:"N/A" }}</td>
     </tr>
+    <tr>
+      <th scope="row">Comment</th>
+      <td>{{ device.comment|default_if_none:"N/A" }}</td>
+    </tr>
 </table>
 {% endblock %}
