@@ -152,6 +152,7 @@ def sign_new_device_view(request, format=None):
     device_object = Device.objects.get(device_id=device_id)
     device_object.certificate = signed_certificate
     device_object.certificate_expires = certificate_expires
+    device_object.last_ping = timezone.now()
     device_object.claim_token = uuid.uuid4()
     device_object.save()
 
@@ -295,6 +296,7 @@ def mtls_renew_cert_view(request, format=None):
     device_object.certificate_csr = csr
     device_object.certificate = signed_certificate
     device_object.certificate_expires = certificate_expires
+    device_object.last_ping = timezone.now()
     device_object.claim_token = uuid.uuid4()
     device_object.save()
 
