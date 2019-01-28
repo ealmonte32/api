@@ -1,6 +1,10 @@
 from backend.settings.base import *
 
-ALLOWED_HOSTS += ['api-stage.wott.io', 'mtls-stage.stage.wott.io']
+ALLOWED_HOSTS += [
+    'dash-stage.wott.io',
+    'api-stage.wott.io',
+    'mtls-stage.stage.wott.io'
+]
 
 DATABASES = {
     'default': {
