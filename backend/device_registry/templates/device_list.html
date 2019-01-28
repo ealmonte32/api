@@ -1,20 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="table-responsive">
-<table class="table">
+<table class="table table-striped">
+<thead>
     <tr>
-        <th>Device ID</th>
-        <th>Last Ping</th>
+        <th scope="col">Device ID</th>
+        <th scope="col">Last Ping</th>
+        <th scope="col">Comment</th>
     </tr>
+</thead>
+<tbody>
 {% for device in object_list %}
     <tr>
         <td><a href="/devices/{{ device.id }}">{{ device.device_id }}</a></td>
         <td>{{ device.last_ping|date:"c" }}</td>
+        <td>{{ device.comment|default_if_none:"N/A" }}</td>
     <tr>
 {% empty %}
     <p>No devices associated with account.</p>
 {% endfor %}
+</tbody>
 </table>
-</div>
 {% endblock %}
