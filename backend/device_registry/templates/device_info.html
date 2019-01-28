@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+<table class="table table-striped">
+  <tbody>
+    <tr>
+      <th scope="row">WoTT Device ID</th>
+      <td>{{ device.device_id }}</td>
+    </tr>
+    <tr>
+      <th scope="row">Last Ping</th>
+      <td>{{ device.last_ping|date:"c" }}</td>
+    </tr>
+    <tr>
+      <th scope="row">Manufacturer</th>
+      <td>{{ device_info.device_manufacturer|default_if_none:"N/A" }}</td>
+    </tr>
+    <tr>
+      <th scope="row">Model</th>
+      <td>{{ device_info.device_model|default_if_none:"N/A" }}</td>
+    </tr>
+    <tr>
+      <th scope="row">Architecture</th>
+      <td>{{ device_info.device_architecture|default_if_none:"N/A" }}</td>
+    </tr>
+    <tr>
+      <th scope="row">Operating System</th>
+      <td>{{ device_info.device_operating_system|default_if_none:"N/A" }}</td>
+    </tr>
+    <tr>
+      <th scope="row">Operating System Version</th>
+      <td>{{ device_info.device_operating_system_version|default_if_none:"N/A" }}</td>
+    </tr>
+    <tr>
+      <th scope="row">Hostname (FQDN)</th>
+      <td>{{ device_info.fqdn|default_if_none:"N/A" }}</td>
+    </tr>
+    <tr>
+      <th scope="row">IP Address (IPv4)</th>
+      <td>{{ device_info.ip4v_address|default_if_none:"N/A" }}</td>
+    </tr>
+</table>
+{% endblock %}
