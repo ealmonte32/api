@@ -162,6 +162,7 @@ def sign_new_device_view(request, format=None):
         device_operating_system=request.data.get('device_operating_system'),
         device_operating_system_version=request.data.get('device_operating_system_version'),
         device_architecture=request.data.get('device_architecture'),
+        fqdn=request.data.get('fqdn'),
     ).save()
 
     return Response({
@@ -289,6 +290,7 @@ def mtls_renew_cert_view(request, format=None):
     device_info_object.device_operating_system = request.data.get('device_operating_system'),
     device_info_object.device_operating_system_version = request.data.get('device_operating_system_version'),
     device_info_object.device_architecture = request.data.get('device_architecture'),
+    device_info_object.fqdn = request.data.get('fqdn'),
     device_info_object.save()
 
     return Response({

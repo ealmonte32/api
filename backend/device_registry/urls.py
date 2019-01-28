@@ -51,4 +51,6 @@ urlpatterns += [
     path('claim-device/',
          views.claim_device_view,
          name='claim-device'),
+    path('devices/', views.DeviceListView.as_view(), name='device-list'),
+    path('devices/<int:pk>/', views.DeviceDetailView.as_view(), name='device-detail'),
 ]

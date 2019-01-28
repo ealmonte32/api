@@ -1,8 +1,8 @@
 from device_registry.forms import ClaimDeviceForm
-from django.views.generic.edit import FormView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect, HttpResponse
-from device_registry.models import Device
+from django.views.generic.list import ListView
+from django.views.generic import View
+from django.http import HttpResponse
+from device_registry.models import Device, DeviceInfo
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -38,4 +38,27 @@ def claim_device_view(request):
     else:
         form = ClaimDeviceForm()
 
-    return render(request, 'claim-device.html', {'form': form})
+    return render(request, 'claim_device.html', {'form': form})
+
+
+class DeviceListView(ListView):
+    model = Device
+    paginate_by = 100  # if pagination is desired
+    template_name = 'device_list.html'
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return Device.objects.filter(owner=self.request.user)
+        else:
+            return Device.objects.none()
+
+
+class DeviceDetailView(View):
+    def get(self, request, *args, **kwargs):
+        device = get_object_or_404(
+            DeviceInfo,
+            device__id=kwargs['pk'],
+            device__owner=request.user
+        )
+        context = {'device_info': device}
+        return render(request, 'device_info.html', context)

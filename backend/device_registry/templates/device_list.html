@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="table-responsive">
+<table class="table">
+    <tr>
+        <th>Device ID</th>
+        <th>Last Ping</th>
+    </tr>
+{% for device in object_list %}
+    <tr>
+        <td><a href="/devices/{{ device.id }}">{{ device.device_id }}</a></td>
+        <td>{{ device.last_ping|date:"c" }}</td>
+    <tr>
+{% empty %}
+    <p>No devices associated with account.</p>
+{% endfor %}
+</table>
+</div>
+{% endblock %}
