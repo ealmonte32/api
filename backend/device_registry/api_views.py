@@ -163,6 +163,7 @@ def sign_new_device_view(request, format=None):
         device_operating_system_version=request.data.get('device_operating_system_version'),
         device_architecture=request.data.get('device_architecture'),
         fqdn=request.data.get('fqdn'),
+        ipv4_address=request.data.get('ipv4_address'),
     ).save()
 
     return Response({
@@ -175,7 +176,7 @@ def sign_new_device_view(request, format=None):
 def is_mtls_authenticated(request):
     """
     Returns the device id if authenticated properly
-    through MTLS.
+    through mTLS.
 
     This should probably be moved to a permission class.
     """
@@ -291,6 +292,7 @@ def mtls_renew_cert_view(request, format=None):
     device_info_object.device_operating_system_version = request.data.get('device_operating_system_version'),
     device_info_object.device_architecture = request.data.get('device_architecture'),
     device_info_object.fqdn = request.data.get('fqdn'),
+    device_info_object.ipv4_address = request.data.get('ipv4_address'),
     device_info_object.save()
 
     return Response({
