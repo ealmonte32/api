@@ -195,7 +195,7 @@ def is_mtls_authenticated(request):
         return False
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes((permissions.AllowAny,))
 def mtls_ping_view(request, format=None):
     """
@@ -210,9 +210,21 @@ def mtls_ping_view(request, format=None):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    device_object = Device.objects.get(device_id=device_id)
-    device_object.last_ping = timezone.now()
-    device_object.save()
+    if request.method == 'GET':
+        device_object = Device.objects.get(device_id=device_id)
+        device_object.last_ping = timezone.now()
+        device_object.save()
+    elif request.method == 'POST':
+        device_info_object = DeviceInfo.objects.get(device_id=device_id)
+        device_info_object.device__last_ping = timezone.now()
+        device_info_object.device_operating_system_version = request.data.get('device_operating_system_version'),
+        device_info_object.fqdn = request.data.get('fqdn'),
+        device_info_object.ipv4_address = request.data.get('ipv4_address'),
+        device_info_object.save()
+    else:
+        return Response({
+            'message': 'ping failed.',
+        })
 
     return Response({
         'message': 'pong',
