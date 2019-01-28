@@ -55,10 +55,15 @@ class DeviceListView(ListView):
 
 class DeviceDetailView(View):
     def get(self, request, *args, **kwargs):
-        device = get_object_or_404(
+        device_info = get_object_or_404(
             DeviceInfo,
             device__id=kwargs['pk'],
             device__owner=request.user
         )
-        context = {'device_info': device}
+        device = get_object_or_404(
+            Device,
+            id=kwargs['pk'],
+            owner=request.user
+        )
+        context = {'device_info': device_info, 'device': device}
         return render(request, 'device_info.html', context)
