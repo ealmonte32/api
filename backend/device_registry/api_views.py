@@ -216,14 +216,17 @@ def mtls_ping_view(request, format=None):
         device_object.last_ping = timezone.now()
         device_object.save()
     elif request.method == 'POST':
+        device_object = Device.objects.get(device_id=device_id)
+        device_object.last_ping = timezone.now()
         device_info_object, created = DeviceInfo.objects.update_or_create(
-            device=Device.objects.get(device_id=device_id)
+            device=device_object
         )
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
         device_info_object.fqdn = request.data.get('fqdn')
         device_info_object.ipv4_address = request.data.get('ipv4_address')
         device_info_object.save()
+        device_object.save()
     else:
         return Response({
             'message': 'ping failed.',
