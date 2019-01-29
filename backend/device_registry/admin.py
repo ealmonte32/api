@@ -17,7 +17,7 @@ class DeviceAdmin(admin.ModelAdmin):
         'last_ping',
     )
 
-    ordering = ('-last_ping',)
+    ordering = ('last_ping',)
     readonly_fields = (
         'claim_token',
     )

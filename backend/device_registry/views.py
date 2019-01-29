@@ -2,6 +2,7 @@ from device_registry.forms import ClaimDeviceForm
 from django.views.generic.list import ListView
 from django.views.generic import View
 from django.http import HttpResponse
+from django.db.models import F
 from device_registry.models import Device, DeviceInfo
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -48,7 +49,8 @@ class DeviceListView(ListView):
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
-            return Device.objects.filter(owner=self.request.user)
+            return Device.objects.filter(
+                owner=self.request.user).order_by(F('last_ping').desc(nulls_last=True))
         else:
             return Device.objects.none()
 
