@@ -306,7 +306,7 @@ def mtls_renew_cert_view(request, format=None):
     # @TODO: Log changes
     device_info_object, created = DeviceInfo.objects.update_or_create(device=device_object)
     device_info_object.device_manufacturer = request.data.get('device_manufacturer')
-    device_info_object.device_model = request.data.get('device_model'),
+    device_info_object.device_model = request.data.get('device_model')
     device_info_object.device_operating_system = request.data.get('device_operating_system')
     device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
     device_info_object.device_architecture = request.data.get('device_architecture')
