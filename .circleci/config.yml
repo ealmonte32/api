@@ -45,7 +45,9 @@ jobs:
           name: Push application Docker image
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              echo $GCR_CREDS | docker login -u _json_key --password-stdin https://gcr.io
-              docker tag app "gcr.io/wott-prod/wott-api:git-$(git rev-parse --short HEAD)"
-              docker push "gcr.io/wott-prod/wott-api:git-$(git rev-parse --short HEAD)"
+                export GITHASH="git-$(git rev-parse --short HEAD)"
+                echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
+                docker tag app "gcr.io/wott-prod/wott-api:${GITHASH}"
+                docker push "gcr.io/wott-prod/wott-api:${GITHASH}"
+                echo "Pushed gcr.io/wott-prod/wott-api:${GITHASH}"
             fi
