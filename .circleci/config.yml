@@ -8,8 +8,10 @@ jobs:
           password: $GCR_CREDS
         environment:
           DJANGO_SETTINGS_MODULE: backend.settings.dev
+    working_directory: /tmp
     steps:
       - run:
           name: Run tests
           command: |
+            cd /usr/src/app
             python manage.py test
