@@ -1,0 +1,16 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: gcr.io/wott-prod/wott-api
+        auth:
+            username: _json_key
+            password: $GCR_CREDS
+        environment:
+          DJANGO_SETTINGS_MODULE: backend.settings.dev
+    steps:
+      - checkout
+      - run:
+          name: Run tests
+          command: |
+            python manage.py test
