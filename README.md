@@ -4,13 +4,12 @@
 
 ## Development server
 
-
 ```
-$ DJANGO_SETTINGS_MODULE=backend.settings.dev python manage.py runserver
+$ docker-compose up
 ```
 
 ## Tests
 
 ```
-$ DJANGO_SETTINGS_MODULE=backend.settings.dev python manage.py test device_registry
+$ docker-compose -f ./docker-compose.tests.yml up
 ```
