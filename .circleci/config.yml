@@ -9,7 +9,6 @@ jobs:
         environment:
           DJANGO_SETTINGS_MODULE: backend.settings.dev
     steps:
-      - checkout
       - run:
           name: Run tests
           command: |
