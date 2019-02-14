@@ -41,3 +41,11 @@ jobs:
           name: Run tests
           command: |
             docker-compose -f docker-compose.tests.yml up
+      - deploy:
+          name: Push application Docker image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              echo $GCR_CREDS | docker login -u _json_key --password-stdin https://gcr.io
+              docker tag app "gcr.io/wott-prod/wott-api:${CIRCLE_SHA1}"
+              docker push "gcr.io/wott-prod/wott-api:${CIRCLE_SHA1}"
+            fi
