@@ -1,6 +1,7 @@
 from backend.settings.base import *
 
 ALLOWED_HOSTS += [
+    'localhost',
     'dash.wott.io',
     'api.wott.io',
     'mtls.wott.io'
