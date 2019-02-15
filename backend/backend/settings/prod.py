@@ -16,7 +16,9 @@ DATABASES = {
         'HOST': os.getenv('DB_HOST', 'psql'),
         'PORT': os.getenv('DB_PORT', '5432'),
         'OPTIONS': {
-            'connect_timeout': 3,}
+            'connect_timeout': 3,
+        },
+    }
 }
 
 COMMON_NAME_PREFIX = 'd.wott.local'
