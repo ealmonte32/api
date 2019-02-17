@@ -1,11 +1,25 @@
 from backend.settings.base import *
 
-ALLOWED_HOSTS += [
-    'localhost',
-    'dash.wott.io',
-    'api.wott.io',
-    'mtls.wott.io'
-]
+if DEBUG:
+    ALLOWED_HOSTS += [
+        'localhost'
+    ]
+
+if IS_DASH or DEBUG:
+    ALLOWED_HOSTS += [
+        'dash.wott.io'
+    ]
+
+if IS_API or DEBUG:
+    ALLOWED_HOSTS += [
+        'api.wott.io'
+    ]
+
+if IS_MTLS_API or DEBUG:
+    ALLOWED_HOSTS += [
+        'mtls.wott.io'
+    ]
+
 
 DATABASES = {
     'default': {
@@ -22,5 +36,3 @@ DATABASES = {
 }
 
 COMMON_NAME_PREFIX = 'd.wott.local'
-
-DEBUG = bool(int(os.getenv('DEBUG', "0")))

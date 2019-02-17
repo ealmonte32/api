@@ -19,4 +19,3 @@ DATABASES = {
 }
 
 COMMON_NAME_PREFIX = 'd.wott-stage.local'
-DEBUG = bool(int(os.getenv('DEBUG', "0")))
