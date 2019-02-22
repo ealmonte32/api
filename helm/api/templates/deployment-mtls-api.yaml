@@ -1,0 +1,71 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Values.service.mtlsApi.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.service.mtlsApi.name }}
+    chart: {{ include "api.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.service.mtlsApi.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.service.mtlsApi.name }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.service.mtlsApi.name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: {{ .Values.service.mtlsApi.name }}
+              containerPort: {{ .Values.service.mtlsApi.internalPort }}
+              protocol: TCP
+          env:
+            - name: RELEASE_TRIGGER
+              value: "{{ .Values.releaseTimeStamp }}"
+            - name: DEBUG
+              value: "{{ .Values.service.mtlsApi.debug }}"
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: djangoSecretKey
+            - name: DB_HOST
+              value: "{{ .Values.databaseHost }}"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: databasePassword
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.mtlsApi.internalPort }}
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: {{ .Values.service.mtlsApi.internalPort }}
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

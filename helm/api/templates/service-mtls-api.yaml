@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.mtlsApi.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.service.mtlsApi.name }}
+    chart: {{ include "api.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.mtlsApi.externalPort }}
+      targetPort: {{ .Values.service.mtlsApi.internalPort }}
+      protocol: TCP
+      name: {{ .Values.service.mtlsApi.name }}
+  selector:
+    app: {{ .Values.service.mtlsApi.name }}
+    release: {{ .Release.Name }}
