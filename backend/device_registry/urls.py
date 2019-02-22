@@ -47,7 +47,7 @@ if settings.IS_MTLS_API:
 
 # Front-end
 if settings.IS_DASH:
-    urlpatterns += [
+    urlpatterns = [
         path('',
              views.root_view,
              name='root'),
