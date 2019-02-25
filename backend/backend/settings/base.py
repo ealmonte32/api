@@ -135,6 +135,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Role definition based on hostnames
-IS_API = socket.gethostname().startswith('api-') or DEBUG
-IS_MTLS_API = socket.gethostname().startswith('mtls-api-') or DEBUG
-IS_DASH = socket.gethostname().startswith('dash-') or DEBUG
+IS_API = socket.gethostname().startswith('api-')
+IS_MTLS_API = socket.gethostname().startswith('mtls-api-')
+IS_DASH = socket.gethostname().startswith('dash-')
