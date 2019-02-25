@@ -6,9 +6,11 @@ from rest_framework.schemas import get_schema_view
 schema_view = get_schema_view(title='WoTT API')
 api_version = 'v0.2'
 
+urlpatterns = []
+
 # API
 if settings.IS_API:
-    urlpatterns = [
+    urlpatterns += [
         path('api/{}/list-devices'.format(api_version),
              api_views.device_list_view),
         path('api/{}/ca-bundle'.format(api_version),
@@ -30,7 +32,7 @@ if settings.IS_API:
 
 # Only load if mTLS
 if settings.IS_MTLS_API:
-    urlpatterns = [
+    urlpatterns += [
         path('api/{}/sign-csr'.format(api_version),
              api_views.mtls_renew_cert_view,
              name='mtls-sign-device-cert'),
@@ -47,7 +49,7 @@ if settings.IS_MTLS_API:
 
 # Front-end
 if settings.IS_DASH:
-    urlpatterns = [
+    urlpatterns += [
         path('',
              views.root_view,
              name='root'),
