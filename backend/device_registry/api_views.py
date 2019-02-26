@@ -203,9 +203,8 @@ def is_mtls_authenticated(request):
     if cn.endswith(settings.COMMON_NAME_PREFIX):
         return cn
     else:
-        logging.error('[MTLS-Auth] CN does not match {}'.format(settings.COMMON_NAME_PREFIX.))
+        logging.error('[MTLS-Auth] CN does not match {}'.format(settings.COMMON_NAME_PREFIX))
         return False
-
 
 @api_view(['GET', 'POST'])
 @permission_classes((permissions.AllowAny,))
