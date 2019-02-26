@@ -1,5 +1,6 @@
 import logging
 import uuid
+import re
 
 from django.utils import timezone
 from django.conf import settings
@@ -189,11 +190,20 @@ def is_mtls_authenticated(request):
         )
 
     # @TODO clean up this as it will likely break
-    print(request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'))
-    cn = request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN').split(',')[-1].split('=')[-1]
+    matchObj = re.match(
+        r'.*CN=(.*.wott.local)',
+        request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'),
+        re.M|re.I
+    )
+    if not matchObj:
+        logging.error('[MTLS-Auth] No valid CN found in header HTTP_SSL_CLIENT_SUBJECT_DN.')
+        return False
+
+    cn = matchObj.group(1)
     if cn.endswith(settings.COMMON_NAME_PREFIX):
         return cn
     else:
+        logging.error('[MTLS-Auth] CN does not match {}'.format(settings.COMMON_NAME_PREFIX.))
         return False
 
 
