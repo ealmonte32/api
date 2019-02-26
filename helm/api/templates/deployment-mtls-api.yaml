@@ -40,6 +40,8 @@ spec:
                   key: djangoSecretKey
             - name: DB_HOST
               value: "{{ .Values.databaseHost }}"
+            - name: CFSSL_SERVER
+              value: "{{ .Values.caHost }}"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

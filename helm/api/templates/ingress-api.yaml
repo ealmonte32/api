@@ -1,0 +1,32 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "api.fullname" . -}}
+{{- $ingressPath := .Values.ingress.path -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.service.api.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.service.api.name }}
+    chart: {{ include "api.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- with .Values.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+    nginx.ingress.kubernetes.io/rewrite-target: /api/$1
+spec:
+  tls:
+    - hosts:
+      - "api.wott.io"
+      secretName: le-secret-api
+  rules:
+    - host: "api.wott.io"
+      http:
+        paths:
+          - path: /?(.*)
+            backend:
+              serviceName: {{ .Values.service.api.name }}
+              servicePort: {{ .Values.service.api.externalPort }}
+{{- end }}

@@ -15,3 +15,9 @@ docker tag wott-api gcr.io/wott-prod/wott-api:${GITHASH}
 docker tag wott-api gcr.io/wott-prod/wott-api:latest
 docker push gcr.io/wott-prod/wott-api:${GITHASH}
 docker push gcr.io/wott-prod/wott-api:latest
+
+helm upgrade \
+    -i api helm/api \
+    --set image.tag=${GITHASH} \
+    --set releaseTimeStamp="$(date +%s)" \
+    --reuse-values

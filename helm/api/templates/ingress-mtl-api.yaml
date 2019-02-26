@@ -1,0 +1,36 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "api.fullname" . -}}
+{{- $ingressPath := .Values.ingress.path -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.service.mtlsApi.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.service.mtlsApi.name }}
+    chart: {{ include "api.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- with .Values.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "2"
+    nginx.ingress.kubernetes.io/auth-tls-secret: "api/wott-ca"
+    nginx.ingress.kubernetes.io/rewrite-target: /api/$1
+    nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: "true"
+spec:
+  tls:
+    - hosts:
+      - "mtls.wott.io"
+      secretName: le-secret-mtls-api
+  rules:
+    - host: "mtls.wott.io"
+      http:
+        paths:
+          - path: /?(.*)
+            backend:
+              serviceName: {{ .Values.service.mtlsApi.name }}
+              servicePort: {{ .Values.service.mtlsApi.externalPort }}
+{{- end }}
