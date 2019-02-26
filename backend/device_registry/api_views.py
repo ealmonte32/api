@@ -189,8 +189,8 @@ def is_mtls_authenticated(request):
         )
 
     # @TODO clean up this as it will likely break
-    print(request.META)
-    cn = request.META.get('HTTP_SSL_CLIENT').split('/')[-1].split('=')[-1]
+    print(request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'))
+    cn = request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN').split(',')[-1].split('=')[-1]
     if cn.endswith(settings.COMMON_NAME_PREFIX):
         return cn
     else:
