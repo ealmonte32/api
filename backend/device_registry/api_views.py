@@ -235,8 +235,8 @@ def mtls_ping_view(request, format=None):
         device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
         device_info_object.fqdn = request.data.get('fqdn')
         device_info_object.ipv4_address = request.data.get('ipv4_address')
-        device_info_object.device_manufacturer = request.data.get('device_manufacturer'),
-        device_info_object.device_model = request.data.get('device_model'),
+        device_info_object.device_manufacturer = request.data.get('device_manufacturer')
+        device_info_object.device_model = request.data.get('device_model')
         device_info_object.save()
         device_object.save()
     else:
