@@ -1,6 +1,7 @@
 version: '3'
 services:
-  app:
+  dash-dev:
+    hostname: dash-dev0
     environment:
     - DJANGO_SETTINGS_MODULE=backend.settings.dev
     build:
@@ -9,3 +10,23 @@ services:
       - .:/app
     ports:
       - '8000:8000'
+  api-dev:
+    hostname: api-dev0
+    environment:
+    - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    build:
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - '8001:8000'
+  mtls-api-dev:
+    hostname: mtls-api-dev0
+    environment:
+    - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    build:
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - '8002:8000'

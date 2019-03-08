@@ -5,8 +5,15 @@
 ## Development server
 
 ```
+$ docker-compose build
 $ docker-compose up
 ```
+
+You should now have three servers up and running:
+
+ * localhost:8000 - dashboard
+ * localhost:8001 - api
+ * localhost:8002 - mtls-api
 
 ## Tests
 
