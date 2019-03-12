@@ -19,32 +19,36 @@
                       <label for="username">Username</label>
                       <input class="form-control form-control-lg" type="text" name="username"
                              placeholder="Username" id="username"/>
+                      {% if form.username.errors %}
+                        {% for error in form.username.errors %}
+                          <label class="error form-text invalid-feedback small"
+                                 style="display: block">{{ error | escape }}</label>
+                        {% endfor %}
+                      {% endif %}
                     </div>
                     <div class="form-group">
                       <label>Password</label>
                       <input class="form-control form-control-lg" type="password" name="password"
                              placeholder="Enter your password"/>
+                      {% if form.password.errors %}
+                        {% for error in form.password.errors %}
+                          <label class="error form-text invalid-feedback small"
+                                 style="display: block">{{ error | escape }}</label>
+                        {% endfor %}
+                      {% endif %}
                     </div>
                     <div class="form-group">
                       <small>
                         <a href="{% url 'auth_password_reset' %}">Forgot password?</a>
                       </small>
-                    <div class="form-group">
-                      <small>
-                        <a href="{% url 'registration_register' %}">Register</a>
-                      </small>
-                    </div>
-{#                    <div>#}
-{#                      <div class="custom-control custom-checkbox align-items-center">#}
-{#                        <input type="checkbox" class="custom-control-input" value="remember-me"#}
-{#                               name="remember-me" checked>#}
-{#                        <label class="custom-control-label text-small">Remember me next#}
-{#                          time</label>#}
-{#                      </div>#}
-{#                    </div>#}
-                    <div class="text-center mt-3">
-                      <input type="submit" class="btn btn-lg btn-primary" value="Sign In" />
-                    </div>
+                      <div class="form-group">
+                        <small>
+                          <a href="{% url 'registration_register' %}">Register</a>
+                        </small>
+                      </div>
+                      <div class="text-center mt-3">
+                        <input type="submit" class="btn btn-lg btn-primary" value="Sign In"/>
+                      </div>
                   </form>
                 </div>
               </div>
