@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -7,6 +9,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 from device_registry import ca_helper
 from django.test import TestCase
+from rest_framework.test import APIRequestFactory
+from .api_views import mtls_ping_view
+from .models import Device, DeviceInfo, PortScan
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -94,3 +99,48 @@ class CsrHelperTests(TestCase):
             ca_helper.csr_is_valid(csr=cert['csr'], device_id=device_id),
             False
         )
+
+
+class APIPingTest(TestCase):
+    def setUp(self):
+        self.api = APIRequestFactory()
+        self.device0 = Device.objects.create(device_id='device0.d.wott.local')
+        scan_info = [
+                {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
+            ]
+        self.ping_payload = {
+            'device_operating_system_version': 'linux',
+            'fqdn': 'test-device',
+            'ipv4_address': '127.0.0.1',
+            'uptime': '0',
+            'scan_info': json.dumps(scan_info)
+        }
+        self.ping_headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_ping_endpoint(self):
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers
+        )
+        response = mtls_ping_view(request)
+        self.assertEqual(response.status_code, 200)
+
+    def test_ping_creates_models(self):
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers
+        )
+        devinfo_obj_count_before = DeviceInfo.objects.count()
+        portscan_obj_count_before = PortScan.objects.count()
+        mtls_ping_view(request)
+        devinfo_obj_count_after = DeviceInfo.objects.count()
+        portscan_obj_count_after = PortScan.objects.count()
+        self.assertEqual(devinfo_obj_count_before, 0)
+        self.assertEqual(portscan_obj_count_before, 0)
+        self.assertEqual(devinfo_obj_count_after, 1)
+        self.assertEqual(portscan_obj_count_after, 1)

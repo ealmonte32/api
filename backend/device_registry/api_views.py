@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 import re
@@ -5,7 +6,7 @@ import re
 from django.utils import timezone
 from django.conf import settings
 from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo
+from .models import Device, DeviceInfo, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from rest_framework import permissions
@@ -239,6 +240,12 @@ def mtls_ping_view(request, format=None):
         device_info_object.device_model = request.data.get('device_model')
         device_info_object.save()
         device_object.save()
+        portscan_data = {
+            'device': device_object,
+            'scan_info': json.loads(request.data.get('scan_info')),
+        }
+        portscan_obj = PortScan.objects.create(**portscan_data)
+        portscan_obj.save()
     else:
         return Response({
             'message': 'ping failed.',
