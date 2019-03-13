@@ -144,3 +144,13 @@ class APIPingTest(TestCase):
         self.assertEqual(portscan_obj_count_before, 0)
         self.assertEqual(devinfo_obj_count_after, 1)
         self.assertEqual(portscan_obj_count_after, 1)
+
+    def test_ping_writes_scan_info(self):
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers
+        )
+        mtls_ping_view(request)
+        portscan = PortScan.objects.get(device=self.device0)
+        self.assertJSONEqual(self.ping_payload['scan_info'], portscan.scan_info)
