@@ -15,7 +15,7 @@ ENV DJANGO_SETTINGS_MODULE backend.settings.prod
 
 RUN python manage.py collectstatic --noinput
 
-USER nobody
+#USER nobody
 CMD gunicorn \
     --workers 4 \
     --access-logfile '-' \
