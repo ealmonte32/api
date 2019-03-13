@@ -133,6 +133,9 @@ STATIC_URL = '/static/'
 # For Whitenoise
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
 
 # Role definition based on hostnames
 IS_API = socket.gethostname().startswith('api-')
