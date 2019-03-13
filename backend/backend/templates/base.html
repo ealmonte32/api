@@ -8,21 +8,7 @@
     <title>WoTT</title>
   </head>
   <body>
-    <div class="container">
-  <div class="page-header">
-    <h1>Web of Trusted Things</h1>
-    <nav class="nav">
-        <a class="nav-link" href="/">Home</a>
-        <a class="nav-link" href="/accounts/logout/">Logout</a>
-    </nav>
-  </div>
-      <div class="row justify-content-center">
-        <div class="col-8 col-sm-12">
-          <hr class="mt-0 mb-4">
-          {% block content %}
-          {% endblock %}
-        </div>
-      </div>
-    </div>
+  {% block content %}
+  {% endblock content %}
   </body>
 </html>
