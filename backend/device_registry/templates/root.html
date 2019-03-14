@@ -35,7 +35,7 @@
               </a>
 
               <a class="nav-link dropdown-toggle d-none d-sm-inline-block" href="#" data-toggle="dropdown">
-                <span class="text-dark">User Name</span>
+                <span class="text-dark">{{ user.username }}</span>
               </a>
               <div class="dropdown-menu dropdown-menu-right">
                 <a class="dropdown-item" href="#"><i class="align-middle mr-1" data-feather="user"></i>Profile</a>
@@ -51,7 +51,7 @@
       <main class="content">
         <div class="container-fluid p-0">
           <div class="row">
-            <div class="col-12 col-sm-12 d-none d-xl-flex col-xl d-flex">
+            <div class="col-12 col-sm-12 col-md-6 col-lg-6  d-none d-xl-flex col-xl d-flex">
               <div class="card flex-fill w-100">
                 <div class="card-header">
                   <h5 class="card-title mb-0">Active Devices:</h5>
@@ -68,43 +68,90 @@
               </div>
 
               <script>
-                  document.addEventListener("DOMContentLoaded", function () {
-                      // Pie chart
-                      new Chart(document.getElementById("chartjs-dashboard-pie"), {
-                          type: 'pie',
-                          data: {
-                              labels: ["Direct", "Affiliate", "E-mail", "Other"],
-                              datasets: [{
-                                  data: [2602, 1253, 541, 1465],
-                                  backgroundColor: ["#47BAC1", "#fcc100", "#f44455", "#E8EAED"],
-                                  borderColor: "transparent"
-                              }]
-                          },
-                          options: {
-                              responsive: !window.MSInputMethodContext,
-                              maintainAspectRatio: false,
-                              legend: {
-                                  display: false
-                              }
-                          }
-                      });
+                document.addEventListener("DOMContentLoaded", function () {
+                  // Pie chart
+                  new Chart(document.getElementById("chartjs-dashboard-pie"), {
+                    type: 'pie',
+                    data: {
+                      labels: ["Direct", "Affiliate", "E-mail", "Other"],
+                      datasets: [{
+                        data: [2602, 1253, 541, 1465],
+                        backgroundColor: ["#47BAC1", "#fcc100", "#f44455", "#E8EAED"],
+                        borderColor: "transparent"
+                      }]
+                    },
+                    options: {
+                      responsive: !window.MSInputMethodContext,
+                      maintainAspectRatio: false,
+                      legend: {
+                        display: false
+                      }
+                    }
                   });
+                });
               </script>
             </div>
 
-            <div class="col-12 col-sm-12 d-none d-xl-flex col-xl d-flex">
+            <div class="col-12 col-sm-12 col-md-6 col-lg-6 d-none d-xl-flex col-xl d-flex">
               <div class="card flex-fill">
                 <div class="card-header">
                   <h5 class="card-title mb-0">Average Trust Store:</h5>
                 </div>
                 <div class="card-body py-4" style="display: flex; align-items: center">
-                  <h1 style="font-size: 70px; margin: auto">4.5</h1>
+                  <h1 style="font-size: 70px; margin: auto">0.5</h1>
                 </div>
               </div>
             </div>
+          </div>
 
-            {# Table #}
+          {# Table #}
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title">Device List</h5>
+                  <h6 class="card-subtitle text-muted">View registered devices.</h6>
+                </div>
+                <div class="card-body">
+                  <table id="datatables-basic" class="table table-striped" style="width:100%">
+                    <thead>
+                    <tr>
+                      <th>Device ID</th>
+                      <th>Hostname</th>
+                      <th>Last Ping</th>
+                      <th>Trust Score</th>
+                      <th>Comment</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                      <td>a.d.wott.local</td>
+                      <td>test1</td>
+                      <td>2019-01-12</td>
+                      <td>0.6</td>
+                      <td>Test</td>
+                    </tr>
+                    <tr>
+                      <td>b.d.woot.local</td>
+                      <td>test2</td>
+                      <td>2019-01-13</td>
+                      <td>0.4</td>
+                      <td>Testor</td>
+                    </tr>
+                    </tbody>
+                  </table>
 
+                  <script>
+                    document.addEventListener("DOMContentLoaded", function () {
+                      // Datatables basic
+                      $('#datatables-basic').DataTable({
+                        responsive: true
+                      });
+                    });
+                  </script>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
