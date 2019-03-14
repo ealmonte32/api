@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-run-release-{{ randAlpha 6 | lower }}"
+  namespace: core
+  labels:
+    app: {{ template "fullname" . }}-run-post-hook
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+spec:
+  template:
+    metadata:
+      name: {{ .Release.Name }}-run-release
+    spec:
+      restartPolicy: "OnFailure"
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: [ 'python', 'manage.py', 'migrate' ]
+          env:
+            - name: DEBUG
+              value: "{{ .Values.service.api.debug }}"
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: djangoSecretKey
+            - name: DB_HOST
+              value: "{{ .Values.databaseHost }}"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: databasePassword
