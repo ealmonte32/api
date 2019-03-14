@@ -1,11 +1,11 @@
-staticVersion: apps/v1beta2
+apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: {{ .Values.service.static.name}}
+  name: {{ .Values.service.static.name }}
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.service.static.name }}
-    chart: {{ include "static.chart" . }}
+    chart: {{ include "api.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.service.static.name }}
-          image: "{{ .Values.service.static.image }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: {{ .Values.service.static.name }}

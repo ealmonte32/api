@@ -1,14 +1,14 @@
 {{- if .Values.ingress.enabled -}}
-{{- $fullName := include "static.fullname" . -}}
+{{- $fullName := include "api.fullname" . -}}
 {{- $ingressPath := .Values.ingress.path -}}
-staticVersion: extensions/v1beta1
+apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: {{ .Values.service.static.name }}
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.service.static.name }}
-    chart: {{ include "static.chart" . }}
+    chart: {{ include "api.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 {{- with .Values.ingress.annotations }}
@@ -24,7 +24,7 @@ spec:
     - host: "static.wott.io"
       http:
         paths:
-          - path: /?(.*)
+          - path: /
             backend:
               serviceName: {{ .Values.service.static.name }}
               servicePort: {{ .Values.service.static.externalPort }}
