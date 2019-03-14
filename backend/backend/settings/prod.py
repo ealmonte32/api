@@ -36,4 +36,4 @@ DATABASES = {
 }
 
 COMMON_NAME_PREFIX = 'd.wott.local'
-STATIC_URL = 'https://static.wott.io'
+STATIC_URL = 'https://static.wott.io/'
