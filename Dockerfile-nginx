@@ -1,4 +1,4 @@
-FROM python:3.7-slim-stretch
+FROM python:3.7-slim-stretch as build
 WORKDIR /usr/src/app
 
 RUN apt-get update && \
@@ -10,12 +10,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend ./
 
-ENV CFSSL_SERVER wott-ca
 ENV DJANGO_SETTINGS_MODULE backend.settings.prod
 
-USER nobody
-CMD gunicorn \
-    --workers 4 \
-    --access-logfile '-' \
-    --bind 0.0.0.0:8000 \
-    backend.wsgi
+RUN python manage.py collectstatic --noinput
+
+FROM nginx:alpine
+
+COPY ./conf/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /usr/src/app/backend/static/ /usr/share/nginx/html/
+COPY --from=build /usr/src/app/backend/staticfiles/ /usr/share/nginx/html/
+

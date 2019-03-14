@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 import re
@@ -5,7 +6,7 @@ import re
 from django.utils import timezone
 from django.conf import settings
 from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo
+from .models import Device, DeviceInfo, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from rest_framework import permissions
@@ -188,10 +189,11 @@ def is_mtls_authenticated(request):
             'You shall not pass!',
             status=status.HTTP_403_FORBIDDEN,
         )
+    cn_domain = re.match(r'.{1}\.(?P<domain>.*)', settings.COMMON_NAME_PREFIX).groupdict()['domain']
 
     # @TODO clean up this as it will likely break
     matchObj = re.match(
-        r'.*CN=(.*.wott.local)',
+        r'.*CN=(.*.{cn_domain})'.format(cn_domain=cn_domain),
         request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'),
         re.M|re.I
     )
@@ -239,6 +241,11 @@ def mtls_ping_view(request, format=None):
         device_info_object.device_model = request.data.get('device_model')
         device_info_object.save()
         device_object.save()
+        portscan_data = {
+            'device': device_object,
+            'scan_info': json.loads(request.data.get('scan_info')),
+        }
+        PortScan.objects.create(**portscan_data)
     else:
         return Response({
             'message': 'ping failed.',
