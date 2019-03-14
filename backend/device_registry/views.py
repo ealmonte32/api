@@ -10,8 +10,6 @@ from django.contrib.auth.decorators import login_required
 
 @login_required
 def root_view(request):
-    # peint(get_device_list(request.user))
-
     return render(request, 'root.html', {
         'devices': get_device_list(request.user)
     })
