@@ -1,10 +1,110 @@
-{% extends "app_base.html" %}
+{% extends "admin_base.html" %}
 
 {% block title %}WoTT - Dashboard{% endblock title %}
 
-{% block app_content %}
-<ul class="list-group">
-    <li class="list-group"><a href="/devices/">List Devices</a></li>
-    <li class="list-group"><a href="/claim-device/">Claim Device</a></li>
-</ul>
+{% block dashboard_title %}
+  <h1>Dashboard</h1>
+{% endblock dashboard_title %}
+
+{% block admin_content %}
+  <div class="container-fluid p-0">
+    <div class="row">
+      <div class="col-12 col-sm-12 col-md-6 col-lg-6  d-none d-xl-flex col-xl d-flex">
+        <div class="card flex-fill w-100">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Active Devices:</h5>
+          </div>
+          <div class="card-body d-flex">
+            <div class="align-self-center w-100">
+              <div class="py-3">
+                <div class="chart chart-xs">
+                  <canvas id="chartjs-dashboard-pie"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          document.addEventListener("DOMContentLoaded", function () {
+            // Pie chart
+            new Chart(document.getElementById("chartjs-dashboard-pie"), {
+              type: 'pie',
+              data: {
+                labels: ["Raspberry Pi", "Arduino", "Zigbee", "Other"],
+                datasets: [{
+                  data: [2602, 1253, 541, 1465],
+                  backgroundColor: ["#47BAC1", "#fcc100", "#f44455", "#E8EAED"],
+                  borderColor: "transparent"
+                }]
+              },
+              options: {
+                responsive: !window.MSInputMethodContext,
+                maintainAspectRatio: false,
+                legend: {
+                  display: false
+                }
+              }
+            });
+          });
+        </script>
+      </div>
+
+      <div class="col-12 col-sm-12 col-md-6 col-lg-6 d-none d-xl-flex col-xl d-flex">
+        <div class="card flex-fill">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Average Trust Store:</h5>
+          </div>
+          <div class="card-body py-4" style="display: flex; align-items: center">
+            <h1 style="font-size: 70px; margin: auto">0.5</h1>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Table #}
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Device List</h5>
+            <h6 class="card-subtitle text-muted">View registered devices.</h6>
+          </div>
+          <div class="card-body">
+            <table id="datatables-basic" class="table table-striped" style="width:100%">
+              <thead>
+              <tr>
+                <th>Device ID</th>
+                <th>Hostname</th>
+                <th>Last Ping</th>
+                <th>Trust Score</th>
+                <th>Comment</th>
+              </tr>
+              </thead>
+              <tbody>
+              {% for device in devices %}
+                <tr>
+                  <td>{{ device.device_id }}</td>
+                  <td>hostname</td>
+                  <td>{{ device.last_ping | date:'Y-m-d' }}</td>
+                  <td>0.6</td>
+                  <td>{{ device.comment }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+
+            <script>
+              document.addEventListener("DOMContentLoaded", function () {
+                // Datatables basic
+                $('#datatables-basic').DataTable({
+                  responsive: true
+                });
+              });
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}

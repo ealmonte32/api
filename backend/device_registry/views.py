@@ -2,8 +2,7 @@ from device_registry.forms import ClaimDeviceForm
 from django.views.generic.list import ListView
 from django.views.generic import View
 from django.http import HttpResponse
-from django.db.models import F
-from device_registry.models import Device, DeviceInfo
+from device_registry.models import Device, DeviceInfo, get_device_list
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -11,7 +10,9 @@ from django.contrib.auth.decorators import login_required
 
 @login_required
 def root_view(request):
-    return render(request, 'root.html')
+    return render(request, 'root.html', {
+        'devices': get_device_list(request.user)
+    })
 
 
 @login_required
@@ -49,8 +50,7 @@ class DeviceListView(ListView):
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
-            return Device.objects.filter(
-                owner=self.request.user).order_by(F('last_ping').desc(nulls_last=True))
+            return get_device_list(self.request.user)
         else:
             return Device.objects.none()
 

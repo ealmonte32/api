@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import F
 from jsonfield import JSONField
 
 
@@ -60,3 +61,9 @@ class PortScan(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now_add=True)
     scan_info = JSONField()
+
+
+def get_device_list(user):
+    """Get list of devices ordered by last ping.
+    """
+    return Device.objects.filter(owner=user).order_by(F('last_ping').desc(nulls_last=True))
