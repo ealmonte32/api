@@ -1,10 +1,11 @@
-{% extends "app_base.html" %}
+{% extends "admin_base.html" %}
 
 {% block title %}WoTT - Claim Device{% endblock title %}
 
-{% block app_content %}
+{% block dashboard_title %}<h1>Claim Device</h1>{% endblock dashboard_title %}
+
+{% block admin_content %}
   <!-- claim_device.html -->
-  <main>
     <div class="row h-100">
       <div class="col-sm-10 col-md-8 col-lg-6 mx-auto d-table h-100">
         <div class="align-middle">
@@ -50,5 +51,4 @@
         </div>
       </div>
     </div>
-  </main>
-{% endblock app_content %}
+{% endblock admin_content %}
