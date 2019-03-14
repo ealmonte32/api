@@ -73,7 +73,7 @@
                   new Chart(document.getElementById("chartjs-dashboard-pie"), {
                     type: 'pie',
                     data: {
-                      labels: ["Direct", "Affiliate", "E-mail", "Other"],
+                      labels: ["Raspberry Pi", "Arduino", "Zigbee", "Other"],
                       datasets: [{
                         data: [2602, 1253, 541, 1465],
                         backgroundColor: ["#47BAC1", "#fcc100", "#f44455", "#E8EAED"],
@@ -124,20 +124,15 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                      <td>a.d.wott.local</td>
-                      <td>test1</td>
-                      <td>2019-01-12</td>
-                      <td>0.6</td>
-                      <td>Test</td>
-                    </tr>
-                    <tr>
-                      <td>b.d.woot.local</td>
-                      <td>test2</td>
-                      <td>2019-01-13</td>
-                      <td>0.4</td>
-                      <td>Testor</td>
-                    </tr>
+                    {% for device in devices %}
+                      <tr>
+                        <td>{{ device.device_id }}</td>
+                        <td>hostname</td>
+                        <td>{{ device.last_ping }}</td>
+                        <td>0.6</td>
+                        <td>{{ device.comment }}</td>
+                      </tr>
+                    {% endfor %}
                     </tbody>
                   </table>
 

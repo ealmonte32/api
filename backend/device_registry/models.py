@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import F
 
 
 class Device(models.Model):
@@ -53,3 +54,9 @@ class DeviceInfo(models.Model):
 
     def __str__(self):
         return self.device.device_id
+
+
+def get_device_list(user):
+    """Get list of devices ordered by last ping.
+    """
+    return Device.objects.filter(owner=user).order_by(F('last_ping').desc(nulls_last=True))
