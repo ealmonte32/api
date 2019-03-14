@@ -1,0 +1,31 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "static.fullname" . -}}
+{{- $ingressPath := .Values.ingress.path -}}
+staticVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.service.static.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.service.static.name }}
+    chart: {{ include "static.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- with .Values.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  tls:
+    - hosts:
+      - "static.wott.io"
+      secretName: le-secret-static
+  rules:
+    - host: "static.wott.io"
+      http:
+        paths:
+          - path: /?(.*)
+            backend:
+              serviceName: {{ .Values.service.static.name }}
+              servicePort: {{ .Values.service.static.externalPort }}
+{{- end }}

@@ -9,12 +9,17 @@ IFS=$'\n\t'
 GITBRANCH=$(git rev-parse --abbrev-ref HEAD)
 GITHASH="git-$(git rev-parse --short HEAD)"
 
-docker build . -t wott-api
+docker-compose build
 
-docker tag wott-api gcr.io/wott-prod/wott-api:${GITHASH}
-docker tag wott-api gcr.io/wott-prod/wott-api:latest
+docker tag api_api-dev gcr.io/wott-prod/wott-api:${GITHASH}
+docker tag api_api-dev gcr.io/wott-prod/wott-api:latest
+docker tag api_nginx-static gcr.io/wott-prod/wott-static:${GITHASH}
+docker tag api_nginx-static gcr.io/wott-prod/wott-static:latest
+
 docker push gcr.io/wott-prod/wott-api:${GITHASH}
 docker push gcr.io/wott-prod/wott-api:latest
+docker push gcr.io/wott-prod/wott-static:${GITHASH}
+docker push gcr.io/wott-prod/wott-static:latest
 
 helm upgrade \
     -i api helm/api \

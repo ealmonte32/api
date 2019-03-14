@@ -30,6 +30,11 @@ service:
     externalPort: 80
     internalPort: 8000
     debug: 0
+  static:
+    name: "static"
+    externalPort: 80
+    internalPort: 80
+    image: gcr.io/wott-prod/wott-static
 
 apiSecrets: api-secrets
 

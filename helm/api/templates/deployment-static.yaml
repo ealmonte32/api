@@ -1,0 +1,57 @@
+staticVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Values.service.static.name}}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.service.static.name }}
+    chart: {{ include "static.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.service.static.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.service.static.name }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.service.static.name }}
+          image: "{{ Values.service.static.image }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: {{ .Values.service.static.name }}
+              containerPort: {{ .Values.service.static.internalPort }}
+              protocol: TCP
+          env:
+            - name: RELEASE_TRIGGER
+              value: "{{ .Values.releaseTimeStamp }}"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.static.internalPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.static.internalPort }}
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

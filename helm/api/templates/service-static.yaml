@@ -1,0 +1,20 @@
+staticVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.static.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ include "static.name" . }}
+    chart: {{ include "static.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.static.externalPort }}
+      targetPort: {{ .Values.service.static.internalPort }}
+      protocol: TCP
+      name: {{ .Values.service.static.name }}
+  selector:
+    app: {{ .Values.service.static.name }}
+    release: {{ .Release.Name }}
