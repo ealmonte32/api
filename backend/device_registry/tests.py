@@ -104,7 +104,7 @@ class CsrHelperTests(TestCase):
 class APIPingTest(TestCase):
     def setUp(self):
         self.api = APIRequestFactory()
-        self.device0 = Device.objects.create(device_id='device0.d.wott.local')
+        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
         scan_info = [
                 {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
             ]
@@ -116,7 +116,7 @@ class APIPingTest(TestCase):
             'scan_info': json.dumps(scan_info)
         }
         self.ping_headers = {
-            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott.local',
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
             'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
         }
 

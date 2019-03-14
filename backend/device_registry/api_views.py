@@ -189,10 +189,11 @@ def is_mtls_authenticated(request):
             'You shall not pass!',
             status=status.HTTP_403_FORBIDDEN,
         )
+    cn_domain = re.match(r'.{1}\.(?P<domain>.*)', settings.COMMON_NAME_PREFIX).groupdict()['domain']
 
     # @TODO clean up this as it will likely break
     matchObj = re.match(
-        r'.*CN=(.*.wott.local)',
+        r'.*CN=(.*.{cn_domain})'.format(cn_domain=cn_domain),
         request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'),
         re.M|re.I
     )
