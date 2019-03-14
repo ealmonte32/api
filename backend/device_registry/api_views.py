@@ -244,8 +244,7 @@ def mtls_ping_view(request, format=None):
             'device': device_object,
             'scan_info': json.loads(request.data.get('scan_info')),
         }
-        portscan_obj = PortScan.objects.create(**portscan_data)
-        portscan_obj.save()
+        PortScan.objects.create(**portscan_data)
     else:
         return Response({
             'message': 'ping failed.',
