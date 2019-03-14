@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: "{{ .Release.Name }}-run-release-{{ randAlpha 6 | lower }}"
-  namespace: core
+  namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.service.api.name }}
     chart: {{ include "api.chart" . }}
