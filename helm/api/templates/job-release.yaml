@@ -4,10 +4,10 @@ metadata:
   name: "{{ .Release.Name }}-run-release-{{ randAlpha 6 | lower }}"
   namespace: core
   labels:
-    app: {{ template "fullname" . }}-run-post-hook
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    release: "{{ .Release.Name }}"
-    heritage: "{{ .Release.Service }}"
+    app: {{ .Values.service.api.name }}
+    chart: {{ include "api.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
 spec:
