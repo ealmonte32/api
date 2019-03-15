@@ -132,7 +132,7 @@
               </tr>
               <tr>
                 <th scope="row">Model</th>
-                <td>{{ device_info.device_model|default_if_none:'N/A' }}</td>
+                <td>{{ device_info.get_model|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Architecture</th>
