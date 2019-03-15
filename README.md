@@ -1,6 +1,5 @@
 # WoTT Backend/API
-
-[![CircleCI](https://circleci.com/gh/WoTTsecurity/api.svg?style=svg)](https://circleci.com/gh/WoTTsecurity/api)
+[![CircleCI](https://circleci.com/gh/WoTTsecurity/api.svg?style=svg&circle-token=e0dc7fa4c2ca6e748dec621be90da21e0a4ef8a6)](https://circleci.com/gh/WoTTsecurity/api)
 
 ## Development server
 
