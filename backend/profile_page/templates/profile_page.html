@@ -1,0 +1,11 @@
+{% extends "app_base.html" %}
+
+{% block title %}WoTT - {{user.username}} Profile{% endblock title %}
+
+{% block dashboard_title %}
+  <h1>Dashboard</h1>
+{% endblock dashboard_title %}
+
+{% block content %}
+<h1>Welcome, {{user.username}}</h1>
+{% endblock content %}
