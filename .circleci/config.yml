@@ -41,6 +41,7 @@ jobs:
           name: Build container
           command: |
             docker-compose -f ./docker-compose.tests.yml build
+      - run:
           name: Run tests
           command: |
             docker-compose -f ./docker-compose.tests.yml up
