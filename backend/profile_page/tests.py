@@ -10,5 +10,6 @@ class APIPingTest(TestCase):
 
     def test_profile_page(self):
         request = self.api.get(f'/user/{self.user.id}')
+        request.user = self.user
         response = profile_page(request, self.user.id)
         self.assertEqual(response.status_code, 200)
