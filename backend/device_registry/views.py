@@ -43,18 +43,6 @@ def claim_device_view(request):
     return render(request, 'claim_device.html', {'form': form})
 
 
-class DeviceListView(ListView):
-    model = Device
-    paginate_by = 100  # if pagination is desired
-    template_name = 'device_list.html'
-
-    def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return get_device_list(self.request.user)
-        else:
-            return Device.objects.none()
-
-
 class DeviceDetailView(View):
     def get(self, request, *args, **kwargs):
         device_info = get_object_or_404(
