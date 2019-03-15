@@ -14,6 +14,10 @@ def root_view(request):
         'devices': get_device_list(request.user)
     })
 
+@login_required
+def profile_view(request):
+    return render(request, 'profile.html')
+
 
 @login_required
 def claim_device_view(request):
