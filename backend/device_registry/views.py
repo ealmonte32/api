@@ -1,10 +1,11 @@
-from device_registry.forms import ClaimDeviceForm
+from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm
 from django.views.generic.list import ListView
 from django.views.generic import View
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from device_registry.models import Device, DeviceInfo, get_device_list
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 
 
@@ -57,6 +58,29 @@ class DeviceListView(ListView):
 
 class DeviceDetailView(View):
     def get(self, request, *args, **kwargs):
+        device_info = get_object_or_404(
+            DeviceInfo,
+            device__id=kwargs['pk'],
+            device__owner=request.user
+        )
+        device = get_object_or_404(
+            Device,
+            id=kwargs['pk'],
+            owner=request.user
+        )
+        context = {'device_info': device_info, 'device': device}
+        return render(request, 'device_info.html', context)
+
+    def post(self, request, *args, **kwargs):
+        if request.method == 'POST':
+            form = DeviceCommentsForm(request.POST)
+            if form.is_valid():
+                device = get_object_or_404(Device, id=kwargs['pk'], owner=request.user)
+                device.comment = form.cleaned_data['comment']
+                device.save()
+
+                return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
+
         device_info = get_object_or_404(
             DeviceInfo,
             device__id=kwargs['pk'],
