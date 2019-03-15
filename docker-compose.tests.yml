@@ -1,16 +1,9 @@
 version: '3'
 services:
-  migrate:
-    entrypoint: ["echo", "Service disabled"]
-  mtls-api-dev:
-    entrypoint: ["echo", "Service disabled"]
-  nginx-static:
-    entrypoint: ["echo", "Service disabled"]
-  dash-dev:
-    entrypoint: ["echo", "Service disabled"]
-  psql:
-    entrypoint: ["echo", "Service disabled"]
   api-dev:
     command: python manage.py test
+    hostname: api-test
     environment:
     - DJANGO_SETTINGS_MODULE=backend.settings.tests
+    build:
+      context: .
