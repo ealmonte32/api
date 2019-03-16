@@ -5,7 +5,7 @@
 {% block dashboard_title %}<h1>Device Profile</h1>{% endblock dashboard_title %}
 
 {% block admin_content %}
-  <div class="row justify-content-md-center">
+  <div class="row">
     <div class="col col-lg-2">
       <h2>{{ device.device_id }}</h2>
     </div>
@@ -52,7 +52,16 @@
               </tr>
               <tr>
                 <th scope="row">Comment</th>
-                <td>{{ device.comment|default_if_none:'N/A' }}</td>
+                <td>
+                  <form method="POST" action="">
+                    {% csrf_token %}
+                    <div class="form-group">
+                      <textarea class="form-control" rows="4" placeholder="Comment"
+                                name="comment">{{ device.comment|default_if_none:'N/A' }}</textarea>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Save</button>
+                  </form>
+                </td>
               </tr>
               </tbody>
             </table>
