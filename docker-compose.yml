@@ -1,35 +1,66 @@
 version: '3'
 services:
+  migrate:
+    command: python manage.py migrate --noinput
+    environment:
+    - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DB_PASSWORD=SuperSecurePassword
+    - DB_USER=postgres
+    build:
+      context: .
+    volumes:
+      - ./backend:/usr/src/app
+    depends_on:
+    - psql
+
   dash-dev:
     hostname: dash-dev0
     environment:
     - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DB_PASSWORD=SuperSecurePassword
+    - DB_USER=postgres
     build:
       context: .
     volumes:
       - ./backend:/usr/src/app
     ports:
       - '8000:8000'
+    depends_on:
+    - psql
+    - migrate
+
   api-dev:
     hostname: api-dev0
     environment:
     - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DB_PASSWORD=SuperSecurePassword
+    - DB_USER=postgres
     build:
       context: .
     volumes:
       - ./backend:/usr/src/app
     ports:
       - '8001:8000'
+    depends_on:
+    - psql
+    - migrate
+
   mtls-api-dev:
     hostname: mtls-api-dev0
     environment:
     - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DB_PASSWORD=SuperSecurePassword
+    - DB_USER=postgres
     build:
       context: .
     volumes:
       - ./backend:/usr/src/app
     ports:
       - '8002:8000'
+    depends_on:
+    - psql
+    - migrate
+
   nginx-static:
     hostname: wott-static
     build:
@@ -37,3 +68,14 @@ services:
       dockerfile: Dockerfile-nginx
     ports:
       - '8003:80'
+
+  psql:
+    environment:
+    - POSTGRES_DB=wott-backend
+    - POSTGRES_PASSWORD=SuperSecurePassword
+    image: postgres:alpine
+    volumes:
+    - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:

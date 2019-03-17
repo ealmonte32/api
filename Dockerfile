@@ -1,6 +1,8 @@
 FROM python:3.7-slim-stretch
 WORKDIR /usr/src/app
 
+ENV PYTHONUNBUFFERED 1
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential libssl-dev libffi-dev libltdl-dev && \
     apt-get clean

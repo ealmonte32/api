@@ -52,9 +52,44 @@ class DeviceInfo(models.Model):
         null=True,
         blank=True
     )
+    RASPBERRY_MODEL_MAP = {
+        '0002': 'Model B Rev 1',
+        '0003': 'Model B Rev 1',
+        '0004': 'Model B Rev 2',
+        '0005': 'Model B Rev 2',
+        '0006': 'Model B Rev 2',
+        '0007': 'Model A',
+        '0008': 'Model A',
+        '0009': 'Model A',
+        '000d': 'Model B Rev 2',
+        '000e': 'Model B Rev 2',
+        '000f': 'Model B Rev 2',
+        '0010': 'Model B+',
+        '0013': 'Model B+',
+        '900032': 'Model B+',
+        '0011': 'Compute Module',
+        '0014': 'Compute Module',
+        '0012': 'Model A+',
+        '0015': 'Model A+',
+        'a01041': 'Pi 2 Model B v1.1',
+        'a21041': 'Pi 2 Model B v1.1',
+        'a22042': 'Pi 2 Model B v1.2',
+        '900092': 'Pi Zero v1.2',
+        '900093': 'Pi Zero v1.3',
+        '9000C1': 'Pi Zero W',
+        'a02082': 'Pi 3 Model B',
+        'a22082': 'Pi 3 Model B',
+        'a020d3': 'Pi 3 Model B+'
+    }
 
     def __str__(self):
         return self.device.device_id
+
+    def get_model(self):
+        model = None
+        if self.device_manufacturer == 'Raspberry Pi':
+            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model, None)
+        return model
 
 
 class PortScan(models.Model):
