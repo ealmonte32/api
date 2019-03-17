@@ -91,6 +91,10 @@ class DeviceInfo(models.Model):
             model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model, None)
         return model
 
+    def get_hardware_type(self):
+        if self.device_manufacturer == 'Raspberry Pi':
+            return 'Raspberry Pi'
+
 
 class PortScan(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
