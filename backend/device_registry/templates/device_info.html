@@ -47,7 +47,7 @@
               </tr>
               <tr>
                 <th scope="row">Hardware Type</th>
-                <td>N/A</td>
+                <td>{{ device_info.get_hardware_type|default_if_none:'Unknown'}}</td>
               </tr>
               <tr>
                 <th scope="row">Last Ping</th>
