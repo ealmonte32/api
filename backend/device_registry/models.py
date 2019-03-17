@@ -35,6 +35,11 @@ class Device(models.Model):
     def has_valid_hostname(self):
         self.device_id.endswith(settings.COMMON_NAME_PREFIX)
 
+    def get_latest_portscan(self):
+        latest = self.portscan_set.order_by('-scan_date')
+        if latest.exists():
+            return latest[0].scan_info
+
     class Meta:
         ordering = ('created',)
 
