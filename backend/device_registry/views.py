@@ -15,6 +15,10 @@ def root_view(request):
         'devices': get_device_list(request.user)
     })
 
+@login_required
+def profile_view(request):
+    return render(request, 'profile.html')
+
 
 @login_required
 def claim_device_view(request):
@@ -42,18 +46,6 @@ def claim_device_view(request):
         form = ClaimDeviceForm()
 
     return render(request, 'claim_device.html', {'form': form})
-
-
-class DeviceListView(ListView):
-    model = Device
-    paginate_by = 100  # if pagination is desired
-    template_name = 'device_list.html'
-
-    def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return get_device_list(self.request.user)
-        else:
-            return Device.objects.none()
 
 
 class DeviceDetailView(View):

@@ -61,4 +61,5 @@ if settings.IS_DASH:
             views.DeviceDetailView.as_view(),
             name='device-detail'
         ),
+        path('profile/', views.profile_view, name='profile')
     ]
