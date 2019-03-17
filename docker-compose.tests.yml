@@ -1,9 +1,9 @@
 version: '3'
 services:
-  app:
+  api-dev:
+    command: python manage.py test
+    hostname: api-test
     environment:
-    - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DJANGO_SETTINGS_MODULE=backend.settings.tests
     build:
       context: .
-    image: app
-    command: python manage.py test

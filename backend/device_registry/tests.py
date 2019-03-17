@@ -154,3 +154,17 @@ class APIPingTest(TestCase):
         mtls_ping_view(request)
         portscan = PortScan.objects.get(device=self.device0)
         self.assertJSONEqual(self.ping_payload['scan_info'], portscan.scan_info)
+
+
+class DeviceModelTest(TestCase):
+    def setUp(self):
+        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
+        self.device_info0 = DeviceInfo.objects.create(
+            device=self.device0,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092'
+        )
+
+    def test_get_model(self):
+        model = self.device_info0.get_model()
+        self.assertEqual(model, 'Pi Zero v1.2')

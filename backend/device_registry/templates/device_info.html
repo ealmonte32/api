@@ -55,7 +55,16 @@
               </tr>
               <tr>
                 <th scope="row">Comment</th>
-                <td>{{ device.comment|default_if_none:'N/A' }}</td>
+                <td>
+                  <form method="POST" action="">
+                    {% csrf_token %}
+                    <div class="form-group">
+                      <textarea class="form-control" rows="4" placeholder="Comment"
+                                name="comment">{{ device.comment|default_if_none:'N/A' }}</textarea>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Save</button>
+                  </form>
+                </td>
               </tr>
               </tbody>
             </table>
@@ -135,7 +144,7 @@
               </tr>
               <tr>
                 <th scope="row">Model</th>
-                <td>{{ device_info.device_model|default_if_none:'N/A' }}</td>
+                <td>{{ device_info.get_model|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Architecture</th>
