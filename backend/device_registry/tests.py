@@ -168,3 +168,7 @@ class DeviceModelTest(TestCase):
     def test_get_model(self):
         model = self.device_info0.get_model()
         self.assertEqual(model, 'Pi Zero v1.2')
+
+    def test_get_hardware_type(self):
+        hw_type = self.device_info0.get_hardware_type()
+        self.assertEqual(hw_type, 'Raspberry Pi')
