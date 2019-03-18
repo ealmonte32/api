@@ -60,7 +60,7 @@
                     {% csrf_token %}
                     <div class="form-group">
                       <textarea class="form-control" rows="4" placeholder="Comment"
-                                name="comment">{{ device.comment }}</textarea>
+                                name="comment">{{ device.comment |default_if_none:'' }}</textarea>
                     </div>
                     <button class="btn btn-primary" type="submit">Save</button>
                   </form>

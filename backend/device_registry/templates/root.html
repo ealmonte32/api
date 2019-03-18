@@ -88,7 +88,7 @@
                   <td>{{ device.deviceinfo.fqdn }}</td>
                   <td>{{ device.last_ping | timesince }} ago</td>
                   <td>0.6</td>
-                  <td>{{ device.comment }}</td>
+                  <td>{{ device.comment | default_if_none:'' }}</td>
                 </tr>
               {% endfor %}
               </tbody>
