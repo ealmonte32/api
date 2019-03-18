@@ -51,7 +51,7 @@
               </tr>
               <tr>
                 <th scope="row">Last Ping</th>
-                <td>{{ device.last_ping|date:"c" }}</td>
+                <td>{{ device.last_ping | timesince }} ago</td>
               </tr>
               <tr>
                 <th scope="row">Comment</th>
