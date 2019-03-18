@@ -85,7 +85,7 @@
               {% for device in devices %}
                 <tr>
                   <td><a href="{% url 'device-detail' device.id %}">{{ device.device_id | truncatechars:30 }}</a></td>
-                  <td>hostname</td>
+                  <td>{{ device.deviceinfo.fqdn }}</td>
                   <td>{{ device.last_ping | date:'Y-m-d' }}</td>
                   <td>0.6</td>
                   <td>{{ device.comment }}</td>
