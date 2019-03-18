@@ -101,10 +101,6 @@
                 <td>N/A</td>
               </tr>
               <tr>
-                <th scope="row">Last Ping</th>
-                <td>N/A</td>
-              </tr>
-              <tr>
                 <th scope="row">Download Certificate</th>
                 <td>N/A</td>
               </tr>
@@ -130,6 +126,10 @@
               <tr>
                 <th scope="row">IP</th>
                 <td>{{ device_info.ipv4_address|default_if_none:'N/A' }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Last Ping</th>
+                <td>{{ device.last_ping|timesince }}</td>
               </tr>
               </tbody>
             </table>
