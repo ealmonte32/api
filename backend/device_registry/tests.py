@@ -164,6 +164,16 @@ class DeviceModelTest(TestCase):
             device_manufacturer='Raspberry Pi',
             device_model='900092'
         )
+        portscan0 = [
+            {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"},
+            {"host": "localhost", "port": 25, "proto": "tcp", "state": "open"}
+        ]
+        portscan1 = [
+            {"host": "localhost", "port": 80, "proto": "tcp", "state": "open"},
+            {"host": "localhost", "port": 110, "proto": "tcp", "state": "open"}
+        ]
+        PortScan.objects.create(device=self.device0, scan_info=portscan0)
+        PortScan.objects.create(device=self.device0, scan_info=portscan1)
 
     def test_get_model(self):
         model = self.device_info0.get_model()
@@ -172,3 +182,8 @@ class DeviceModelTest(TestCase):
     def test_get_hardware_type(self):
         hw_type = self.device_info0.get_hardware_type()
         self.assertEqual(hw_type, 'Raspberry Pi')
+
+    def test_latest_portscan(self):
+        latest_portscan = self.device0.get_latest_portscan()
+        scans = set([si['port'] for si in latest_portscan])
+        self.assertSetEqual({80, 110}, scans)
