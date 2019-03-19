@@ -108,7 +108,7 @@
               </tr>
               <tr>
                 <th scope="row">Certificate Expires</th>
-                <td>{{ device.get_cert_expiration_date|default_if_none:'N/A' }}</td>
+                <td>In {{ device.get_cert_expiration_date|timeuntil|default_if_none:'N/A' }}</td>
               </tr>
               </tbody>
             </table>
