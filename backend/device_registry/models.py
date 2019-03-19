@@ -5,6 +5,7 @@ from django.db import models
 from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
+from device_registry import ca_helper
 
 
 class Device(models.Model):
@@ -29,6 +30,15 @@ class Device(models.Model):
     comment = models.CharField(blank=True, null=True, max_length=512)
     claim_token = models.CharField(editable=False, max_length=128)
 
+    @staticmethod
+    def get_active_inactive(user):
+        devices = get_device_list(user)
+        device_count = devices.count()
+        day_ago = timezone.now() - datetime.timedelta(hours=24)
+        active = devices.filter(last_ping__gte=day_ago).count()
+        inactive = device_count - active
+        return [active, inactive]
+
     def __str__(self):
         return self.device_id
 
@@ -43,14 +53,18 @@ class Device(models.Model):
         if latest.exists():
             return latest[0].scan_info
 
-    @staticmethod
-    def get_active_inactive(user):
-        devices = get_device_list(user)
-        device_count = devices.count()
-        day_ago = timezone.now() - datetime.timedelta(hours=24)
-        active = devices.filter(last_ping__gte=day_ago).count()
-        inactive = device_count - active
-        return [active, inactive]
+    def get_cert_expiration_date(self):
+        try:
+            return ca_helper.get_certificate_expiration_date(self.certificate)
+        except ValueError:
+            pass
+
+    def get_cert_url(self):
+        if settings.IS_DEV:
+            cert_url = f'http://localhost:8001/api/v0.2/device-cert/{self.device_id}?format=json'
+        else:
+            cert_url = f'https://api.wott.io/api/v0.2/device-cert/{self.device_id}?format=json'
+        return cert_url
 
     class Meta:
         ordering = ('created',)
