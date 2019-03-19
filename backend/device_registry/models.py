@@ -63,7 +63,7 @@ class Device(models.Model):
         if settings.IS_DEV:
             cert_url = f'http://localhost:8001/api/v0.2/device-cert/{self.device_id}?format=json'
         else:
-            cert_url = f'https://api.wott.io/api/v0.2/device-cert/{self.device_id}?format=json'
+            cert_url = f'https://api.wott.io/v0.2/device-cert/{self.device_id}?format=json'
         return cert_url
 
     class Meta:
