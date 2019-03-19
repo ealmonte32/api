@@ -13,9 +13,9 @@
     </div>
   </div>
   <div class="row">
-    <div class="mb-3 mt-3 w-100">
+    <div class="mb-3 mt-3 w-100" id="alert-container">
       {% for action in actions %}
-        <div class="alert alert-primary alert-outline alert-dismissible" role="alert">
+        <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
           <button type="button" class="close" data-dismiss="alert" aria-label="Close"
                   onclick="dismissAction({{ action.id }})">
             <span aria-hidden="true">×</span>
@@ -34,6 +34,16 @@
           </div>
         </div>
       {% endfor %}
+    </div>
+  </div>
+  <div class="row" style="display: none; margin-top: -1rem;" id="success-card">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Well Done!</h5>
+      </div>
+      <div class="card-body">
+        <p><i class="align-middle mr-2" data-feather="check"></i>No recommended tasks.</p>
+      </div>
     </div>
   </div>
 {% endblock admin_content %}
@@ -70,6 +80,36 @@
     function dismissAction(actionId) {
       submitAction(actionId, 'DISMISS')
     }
+  </script>
+  <script>
+    // Listen to mutations to the DOM. If there are no alerts then show a message.
+    var targetNode = document.getElementById( 'alert-container');
+    var successNode = document.getElementById('success-card');
+    var config = {
+      childList: true
+    };
+
+    /**
+     * Show the Success message.
+     */
+    function showSuccessCard() {
+      successNode.style.display = 'block'
+    }
+
+    /**
+     * Callback to count number of alerts on page and display success message.
+     */
+    function countAlerts() {
+      var alertCount = targetNode.childElementCount;
+      if (alertCount === 0) {
+        showSuccessCard()
+      }
+    }
+
+    var observer = new MutationObserver(countAlerts);
+    observer.observe(targetNode, config);
+    // Initial count on load
+    countAlerts();
   </script>
 {% endblock scripts %}
 
