@@ -338,3 +338,13 @@ def mtls_renew_cert_view(request, format=None):
         'certificate_expires': certificate_expires,
         'claim_token': device_object.claim_token,
     })
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def action_view(request, action_id, action_name):
+    # Perform action
+    return Response({
+        'id': action_id,
+        'name': action_name
+    })

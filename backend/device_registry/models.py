@@ -107,6 +107,22 @@ class PortScan(models.Model):
     scan_info = JSONField()
 
 
+# Temporary POJO to showcase recommended actions template.
+class Action:
+    def __init__(self, action_id, title, description, actions):
+        """
+        Args:
+            action_id: Action Id.
+            title: Actions title.
+            description: Action description.
+            actions (str[]): List of available actions.
+        """
+        self.id = action_id
+        self.title = title
+        self.description = description
+        self.actions = actions
+
+
 def get_device_list(user):
     """Get list of devices ordered by last ping.
     """
