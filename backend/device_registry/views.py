@@ -94,20 +94,20 @@ def actions_view(request):
             'Abnormal network connection',
             'foobar.d.wott.local attempted to connect to a.b.c.d which is a known end-point for the Marai botnet. What '
             'do you want to do?',
-            [(1, 'Ignore', 'warning'), (2, 'Block', 'success')]
+            [('Ignore', 'warning'), ('Block', 'success')]
         ),
         Action(
             2,
             'Suspicious process detected',
             'foobar2.d.woot.local executed the command "nc" which is often used by attackers (but can also be used '
             'for legitimate purposes). Is this expected?',
-            [(1, 'Expected', 'info'), (2, 'Snooze', 'warning')]
+            [('Expected', 'info'), ('Snooze', 'warning')]
         ),
         Action(
             3,
             'Insecure port open',
             'foobar0.d.woot.local has port 22/tcp (telnet) open. This is usually a security risk.',
-            [(1, 'Ignore', 'danger'), (2, 'Block', 'success')]
+            [('Ignore', 'danger'), ('Block', 'success')]
         )
     ]
 

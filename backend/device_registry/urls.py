@@ -45,8 +45,8 @@ if settings.IS_MTLS_API:
         path('api/{}/hello'.format(api_version),
              api_views.mtls_tester_view,
              name='mtls-tester'),
-        path('api/{}/action/<int:action_id>/<str:action>'.format(api_version),
-             api_views.action_view)
+        path('api/{}/action/<int:action_id>/<str:action_name>'.format(api_version),
+             api_views.action_view, name='action')
     ]
 
 # Front-end
