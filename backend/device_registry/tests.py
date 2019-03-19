@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from django.conf import settings
@@ -8,7 +9,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 from device_registry import ca_helper
+from django.contrib.auth.models import User
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 from .api_views import mtls_ping_view
 from .models import Device, DeviceInfo, PortScan
@@ -158,7 +161,29 @@ class APIPingTest(TestCase):
 
 class DeviceModelTest(TestCase):
     def setUp(self):
-        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
+        self.user0 = User.objects.create_user('test')
+        week_ago = timezone.now() - datetime.timedelta(days=7)
+        hour_ago = timezone.now() - datetime.timedelta(hours=1)
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            last_ping=week_ago,
+            owner=self.user0
+        )
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            last_ping=hour_ago,
+            owner=self.user0
+        )
+        self.device2 = Device.objects.create(
+            device_id='device2.d.wott-dev.local',
+            last_ping=hour_ago,
+            owner=self.user0
+        )
+        self.device3 = Device.objects.create(
+            device_id='device3.d.wott-dev.local',
+            last_ping=hour_ago,
+            owner=self.user0
+        )
         self.device_info0 = DeviceInfo.objects.create(
             device=self.device0,
             device_manufacturer='Raspberry Pi',
@@ -187,3 +212,7 @@ class DeviceModelTest(TestCase):
         latest_portscan = self.device0.get_latest_portscan()
         scans = set([si['port'] for si in latest_portscan])
         self.assertSetEqual({80, 110}, scans)
+
+    def test_active_inactive(self):
+        active_inactive = Device.get_active_inactive(self.user0)
+        self.assertListEqual(active_inactive, [3, 1])

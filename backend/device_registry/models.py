@@ -1,6 +1,9 @@
+import datetime
+
 from django.conf import settings
 from django.db import models
 from django.db.models import F
+from django.utils import timezone
 from jsonfield import JSONField
 
 
@@ -39,6 +42,15 @@ class Device(models.Model):
         latest = self.portscan_set.order_by('-scan_date')
         if latest.exists():
             return latest[0].scan_info
+
+    @staticmethod
+    def get_active_inactive(user):
+        devices = get_device_list(user)
+        device_count = devices.count()
+        day_ago = timezone.now() - datetime.timedelta(hours=24)
+        active = devices.filter(last_ping__gte=day_ago).count()
+        inactive = device_count - active
+        return [active, inactive]
 
     class Meta:
         ordering = ('created',)
