@@ -28,6 +28,9 @@ if settings.IS_API:
         path('api/{}/sign-csr'.format(api_version),
              api_views.sign_new_device_view,
              name='sign-device-cert'),
+        path('api/{}/claim-device'.format(api_version),
+             api_views.claim_by_link,
+             name='claim-by-link'),
     ]
 
 # Only load if mTLS

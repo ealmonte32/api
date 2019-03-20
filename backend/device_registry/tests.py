@@ -13,7 +13,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.test import TestCase, RequestFactory
 from rest_framework.test import APIRequestFactory
-from .api_views import mtls_ping_view
+from .api_views import mtls_ping_view, claim_by_link
 from .models import Device, DeviceInfo, PortScan
 
 
@@ -242,3 +242,29 @@ class DeviceModelTest(TestCase):
     def test_get_expiration_date(self):
         exp_date = self.device0.get_cert_expiration_date()
         self.assertEqual(exp_date.date(), datetime.date(2019, 4, 4))
+
+
+class ClaimLinkTest(TestCase):
+    def setUp(self):
+        self.api = RequestFactory()
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            claim_token='token'
+        )
+        self.user0 = User.objects.create_user('test')
+
+    def test_claim_get_view(self):
+        request = self.api.get(f'/api/v0.2/claim-device/?device-id={self.device0.device_id}&claim-token={self.device0.claim_token}')
+        request.user = self.user0
+        self.assertFalse(self.device0.claimed())
+        response = claim_by_link(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, f'Device {self.device0.device_id} claimed!')
+        self.device0.refresh_from_db()
+        self.assertTrue(self.device0.claimed())
+
+    def test_claim_get_404(self):
+        request = self.api.get(f'/claim-device/?device-id=none&claim-token=none')
+        request.user = self.user0
+        response = claim_by_link(request)
+        self.assertEqual(response.status_code, 404)
