@@ -222,7 +222,7 @@ class DeviceModelTest(TestCase):
         self.device_info0 = DeviceInfo.objects.create(
             device=self.device0,
             device_manufacturer='Raspberry Pi',
-            device_model='900092'
+            device_model='000d'
         )
         portscan0 = [
             {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"},
@@ -237,7 +237,9 @@ class DeviceModelTest(TestCase):
 
     def test_get_model(self):
         model = self.device_info0.get_model()
-        self.assertEqual(model, 'Pi Zero v1.2')
+        self.assertEqual(model, 'Model B Rev 2')
+        self.device_info0.device_model = '000D'  # case insensitive
+        self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
 
     def test_get_hardware_type(self):
         hw_type = self.device_info0.get_hardware_type()
