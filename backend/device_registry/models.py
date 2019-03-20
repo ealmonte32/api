@@ -77,6 +77,8 @@ class DeviceInfo(models.Model):
     device_architecture = models.CharField(blank=True, null=True, max_length=32)
     device_operating_system = models.CharField(blank=True, null=True, max_length=128)
     device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)
+    distr_id = models.CharField(blank=True, null=True, max_length=32)
+    distr_release = models.CharField(blank=True, null=True, max_length=32)
     fqdn = models.CharField(blank=True, null=True, max_length=128)
     ipv4_address = models.GenericIPAddressField(
         protocol="IPv4",

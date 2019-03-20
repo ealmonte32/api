@@ -108,7 +108,7 @@ class APIPingTest(TestCase):
     def setUp(self):
         self.api = APIRequestFactory()
         self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
-        scan_info = [
+        self.scan_info = [
                 {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
             ]
         self.ping_payload = {
@@ -116,7 +116,9 @@ class APIPingTest(TestCase):
             'fqdn': 'test-device0',
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
-            'scan_info': json.dumps(scan_info)
+            'distr_id': 'Raspbian',
+            'distr_release': '9.4',
+            'scan_info': json.dumps(self.scan_info)
         }
         self.ping_headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -156,7 +158,18 @@ class APIPingTest(TestCase):
         )
         mtls_ping_view(request)
         portscan = PortScan.objects.get(device=self.device0)
-        self.assertJSONEqual(self.ping_payload['scan_info'], portscan.scan_info)
+        scan_info = portscan.scan_info
+        self.assertListEqual(scan_info, self.scan_info)
+
+    def test_ping_distr_info(self):
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers
+        )
+        mtls_ping_view(request)
+        self.assertEqual(self.device0.deviceinfo.distr_id, 'Raspbian')
+        self.assertEqual(self.device0.deviceinfo.distr_release, '9.4')
 
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
