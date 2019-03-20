@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 @login_required
 def root_view(request):
     return render(request, 'root.html', {
+        'active_inactive': Device.get_active_inactive(request.user),
         'devices': get_device_list(request.user)
     })
 

@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from django.conf import settings
@@ -8,9 +9,11 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 from device_registry import ca_helper
-from django.test import TestCase
+from django.contrib.auth.models import User
+from django.utils import timezone
+from django.test import TestCase, RequestFactory
 from rest_framework.test import APIRequestFactory
-from .api_views import mtls_ping_view
+from .api_views import mtls_ping_view, claim_by_link
 from .models import Device, DeviceInfo, PortScan
 
 
@@ -105,7 +108,7 @@ class APIPingTest(TestCase):
     def setUp(self):
         self.api = APIRequestFactory()
         self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
-        scan_info = [
+        self.scan_info = [
                 {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
             ]
         self.ping_payload = {
@@ -113,7 +116,9 @@ class APIPingTest(TestCase):
             'fqdn': 'test-device0',
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
-            'scan_info': json.dumps(scan_info)
+            'distr_id': 'Raspbian',
+            'distr_release': '9.4',
+            'scan_info': json.dumps(self.scan_info)
         }
         self.ping_headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -153,16 +158,71 @@ class APIPingTest(TestCase):
         )
         mtls_ping_view(request)
         portscan = PortScan.objects.get(device=self.device0)
-        self.assertJSONEqual(self.ping_payload['scan_info'], portscan.scan_info)
+        scan_info = portscan.scan_info
+        self.assertListEqual(scan_info, self.scan_info)
+
+    def test_ping_distr_info(self):
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers
+        )
+        mtls_ping_view(request)
+        self.assertEqual(self.device0.deviceinfo.distr_id, 'Raspbian')
+        self.assertEqual(self.device0.deviceinfo.distr_release, '9.4')
+
+
+TEST_CERT = """-----BEGIN CERTIFICATE-----
+MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
+BAMMCWxvY2FsaG9zdDAeFw0xOTAzMDUyMDE5MjRaFw0xOTA0MDQyMDE5MjRaMBQx
+EjAQBgNVBAMMCWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAOgfhzltW1Bx/PLve7sk228G9FeBQmTVkEwiU1tgagvIzM8fhoeDnXoMVRf5
+GPWZr4h0E4BtDRQUO7NqgW+r3RQMq4nJljTV9f8Om3Owx41BM5M5w5YH75JZzcZ1
+OVBmJRPOG06I3Hk/uQjCGo1YN7ZggAdUmFQqQ03GdstqQhd6UzbV2dPphq+R2npV
+oAjByawBwuxi+NJXxz20dUVkXrrxGgDUKcUn4NPsIUGf9hSHZcDMZ3XQcQQ/ykD9
+i/zeVU6jGnsMOO+YZUguBlq/GKI2fzezfG7fv394oAJP9mV0T8k9ArciTigUehuv
+a8sHA+vrvRXCNbpV8vEQbRh/+0sCAwEAAaM6MDgwFAYDVR0RBA0wC4IJbG9jYWxo
+b3N0MAsGA1UdDwQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDATANBgkqhkiG9w0B
+AQsFAAOCAQEAL+KRDdqbbAFiMROy7eNkbMUj3Dp4S24y5QnGjFl4eSFLWu9UhBT+
+FcElSbo1vKaW5DJi+XG9snyZfqEuknQlBEDTuBlOEqguGpmzYE/+T0wt9zLTByN8
+N44fGr4f9ORj6Y6HJkzdlp+XCDdzHb2+3ienNle6bWlmBpbQaMVrayDxJ5yxldgJ
+czUUClEc0OJDMw8PsHyYvrl+jk0JFXgDqBgAutPzSiC+pWL3H/5DO8t/NcccNNlR
+2UZyh8r3qmVWo1jROR98z/J59ytNgMfYTmVI+ClUWKF5OWEOneKTf7dvic0Bqiyb
+1lti7kgwF5QeRU2eEn3VC2F5JreBMpTkeA==
+-----END CERTIFICATE-----
+"""
 
 
 class DeviceModelTest(TestCase):
     def setUp(self):
-        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
+        self.user0 = User.objects.create_user('test')
+        week_ago = timezone.now() - datetime.timedelta(days=7)
+        hour_ago = timezone.now() - datetime.timedelta(hours=1)
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            last_ping=week_ago,
+            owner=self.user0,
+            certificate=TEST_CERT
+        )
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            last_ping=hour_ago,
+            owner=self.user0
+        )
+        self.device2 = Device.objects.create(
+            device_id='device2.d.wott-dev.local',
+            last_ping=hour_ago,
+            owner=self.user0
+        )
+        self.device3 = Device.objects.create(
+            device_id='device3.d.wott-dev.local',
+            last_ping=hour_ago,
+            owner=self.user0
+        )
         self.device_info0 = DeviceInfo.objects.create(
             device=self.device0,
             device_manufacturer='Raspberry Pi',
-            device_model='900092'
+            device_model='000d'
         )
         portscan0 = [
             {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"},
@@ -177,7 +237,9 @@ class DeviceModelTest(TestCase):
 
     def test_get_model(self):
         model = self.device_info0.get_model()
-        self.assertEqual(model, 'Pi Zero v1.2')
+        self.assertEqual(model, 'Model B Rev 2')
+        self.device_info0.device_model = '000D'  # case insensitive
+        self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
 
     def test_get_hardware_type(self):
         hw_type = self.device_info0.get_hardware_type()
@@ -187,3 +249,37 @@ class DeviceModelTest(TestCase):
         latest_portscan = self.device0.get_latest_portscan()
         scans = set([si['port'] for si in latest_portscan])
         self.assertSetEqual({80, 110}, scans)
+
+    def test_active_inactive(self):
+        active_inactive = Device.get_active_inactive(self.user0)
+        self.assertListEqual(active_inactive, [3, 1])
+
+    def test_get_expiration_date(self):
+        exp_date = self.device0.get_cert_expiration_date()
+        self.assertEqual(exp_date.date(), datetime.date(2019, 4, 4))
+
+
+class ClaimLinkTest(TestCase):
+    def setUp(self):
+        self.api = RequestFactory()
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            claim_token='token'
+        )
+        self.user0 = User.objects.create_user('test')
+
+    def test_claim_get_view(self):
+        request = self.api.get(f'/api/v0.2/claim-device/?device-id={self.device0.device_id}&claim-token={self.device0.claim_token}')
+        request.user = self.user0
+        self.assertFalse(self.device0.claimed())
+        response = claim_by_link(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, f'Device {self.device0.device_id} claimed!')
+        self.device0.refresh_from_db()
+        self.assertTrue(self.device0.claimed())
+
+    def test_claim_get_404(self):
+        request = self.api.get(f'/claim-device/?device-id=none&claim-token=none')
+        request.user = self.user0
+        response = claim_by_link(request)
+        self.assertEqual(response.status_code, 404)

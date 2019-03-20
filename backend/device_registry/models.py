@@ -1,7 +1,11 @@
+import datetime
+
 from django.conf import settings
 from django.db import models
 from django.db.models import F
+from django.utils import timezone
 from jsonfield import JSONField
+from device_registry import ca_helper
 
 
 class Device(models.Model):
@@ -26,6 +30,15 @@ class Device(models.Model):
     comment = models.CharField(blank=True, null=True, max_length=512)
     claim_token = models.CharField(editable=False, max_length=128)
 
+    @staticmethod
+    def get_active_inactive(user):
+        devices = get_device_list(user)
+        device_count = devices.count()
+        day_ago = timezone.now() - datetime.timedelta(hours=24)
+        active = devices.filter(last_ping__gte=day_ago).count()
+        inactive = device_count - active
+        return [active, inactive]
+
     def __str__(self):
         return self.device_id
 
@@ -40,6 +53,19 @@ class Device(models.Model):
         if latest.exists():
             return latest[0].scan_info
 
+    def get_cert_expiration_date(self):
+        try:
+            return ca_helper.get_certificate_expiration_date(self.certificate)
+        except ValueError:
+            pass
+
+    def get_cert_url(self):
+        if settings.IS_DEV:
+            cert_url = f'http://localhost:8001/api/v0.2/device-cert/{self.device_id}?format=json'
+        else:
+            cert_url = f'https://api.wott.io/v0.2/device-cert/{self.device_id}?format=json'
+        return cert_url
+
     class Meta:
         ordering = ('created',)
 
@@ -51,6 +77,8 @@ class DeviceInfo(models.Model):
     device_architecture = models.CharField(blank=True, null=True, max_length=32)
     device_operating_system = models.CharField(blank=True, null=True, max_length=128)
     device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)
+    distr_id = models.CharField(blank=True, null=True, max_length=32)
+    distr_release = models.CharField(blank=True, null=True, max_length=32)
     fqdn = models.CharField(blank=True, null=True, max_length=128)
     ipv4_address = models.GenericIPAddressField(
         protocol="IPv4",
@@ -81,7 +109,7 @@ class DeviceInfo(models.Model):
         'a22042': 'Pi 2 Model B v1.2',
         '900092': 'Pi Zero v1.2',
         '900093': 'Pi Zero v1.3',
-        '9000C1': 'Pi Zero W',
+        '9000c1': 'Pi Zero W',
         'a02082': 'Pi 3 Model B',
         'a22082': 'Pi 3 Model B',
         'a020d3': 'Pi 3 Model B+'
@@ -93,7 +121,7 @@ class DeviceInfo(models.Model):
     def get_model(self):
         model = None
         if self.device_manufacturer == 'Raspberry Pi':
-            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model, None)
+            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model.lower(), None)
         return model
 
     def get_hardware_type(self):

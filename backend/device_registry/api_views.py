@@ -9,6 +9,7 @@ from device_registry import ca_helper
 from .models import Device, DeviceInfo, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
@@ -239,6 +240,8 @@ def mtls_ping_view(request, format=None):
         device_info_object.ipv4_address = request.data.get('ipv4_address')
         device_info_object.device_manufacturer = request.data.get('device_manufacturer')
         device_info_object.device_model = request.data.get('device_model')
+        device_info_object.distr_id = request.data.get('distr_id', None)
+        device_info_object.distr_release = request.data.get('distr_release', None)
         device_info_object.save()
         device_object.save()
         portscan_data = {
@@ -348,3 +351,21 @@ def action_view(request, action_id, action_name):
         'id': action_id,
         'name': action_name
     })
+
+
+@api_view(['GET'])
+@permission_classes((permissions.IsAuthenticated,))
+def claim_by_link(request):
+    params = request.query_params
+    device = get_object_or_404(
+        Device,
+        claim_token=params['claim-token'],
+        device_id=params['device-id'],
+        owner__isnull=True
+    )
+    if device:
+        device.owner = request.user
+        device.save()
+        return Response(f'Device {device.device_id} claimed!')
+    return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
+

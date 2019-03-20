@@ -2,7 +2,9 @@
 
 {% block title %}WoTT - Device Info{% endblock title %}
 
-{% block dashboard_title %}<h1>Device Profile</h1>{% endblock dashboard_title %}
+{% block dashboard_title %}
+  <h1 style="margin-bottom: 0">Device Profile</h1>
+{% endblock dashboard_title %}
 
 {% block admin_content %}
   <div class="row">
@@ -102,11 +104,11 @@
               </tr>
               <tr>
                 <th scope="row">Download Certificate</th>
-                <td>N/A</td>
+                <td><a href="{{ device.get_cert_url }}">{{ device.device_id }}.crt</a></td>
               </tr>
               <tr>
                 <th scope="row">Certificate Expires</th>
-                <td>N/A</td>
+                <td>In {{ device.get_cert_expiration_date|timeuntil|default_if_none:'N/A' }}</td>
               </tr>
               </tbody>
             </table>

@@ -138,3 +138,5 @@ STATICFILES_DIRS = (
 IS_API = socket.gethostname().startswith('api-')
 IS_MTLS_API = socket.gethostname().startswith('mtls-api-')
 IS_DASH = socket.gethostname().startswith('dash-')
+
+IS_DEV = False

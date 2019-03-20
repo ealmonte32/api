@@ -3,7 +3,7 @@
 {% block title %}WoTT - Dashboard{% endblock title %}
 
 {% block dashboard_title %}
-  <h1>Dashboard</h1>
+  <h1 style="margin-bottom: 0">Dashboard</h1>
 {% endblock dashboard_title %}
 
 {% block admin_content %}
@@ -31,10 +31,10 @@
             new Chart(document.getElementById("chartjs-dashboard-pie"), {
               type: 'pie',
               data: {
-                labels: ["Raspberry Pi", "Arduino", "Zigbee", "Other"],
+                labels: ["Active", "Inactive"],
                 datasets: [{
-                  data: [2602, 1253, 541, 1465],
-                  backgroundColor: ["#47BAC1", "#fcc100", "#f44455", "#E8EAED"],
+                  data: [{{ active_inactive|first }}, {{ active_inactive|last }}],
+                  backgroundColor: ["#47BAC1", "#fcc100"],
                   borderColor: "transparent"
                 }]
               },
