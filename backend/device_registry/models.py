@@ -137,6 +137,7 @@ class DeviceInfo(models.Model):
 class PortScan(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now_add=True)
+    firewall_enabled = models.BooleanField(null=True, blank=True)
     scan_info = JSONField()
     GOOD_PORTS = [22, 443]
     BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
