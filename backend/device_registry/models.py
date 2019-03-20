@@ -107,7 +107,7 @@ class DeviceInfo(models.Model):
         'a22042': 'Pi 2 Model B v1.2',
         '900092': 'Pi Zero v1.2',
         '900093': 'Pi Zero v1.3',
-        '9000C1': 'Pi Zero W',
+        '9000c1': 'Pi Zero W',
         'a02082': 'Pi 3 Model B',
         'a22082': 'Pi 3 Model B',
         'a020d3': 'Pi 3 Model B+'
@@ -119,7 +119,7 @@ class DeviceInfo(models.Model):
     def get_model(self):
         model = None
         if self.device_manufacturer == 'Raspberry Pi':
-            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model, None)
+            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model.lower(), None)
         return model
 
     def get_hardware_type(self):
