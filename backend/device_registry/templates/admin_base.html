@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}WoTT - Dashboard{% endblock title %}
 
@@ -18,6 +19,7 @@
             </a>
             <ul id="dashboards" class="sidebar-dropdown list-unstyled collapse show">
               <li class="sidebar-item"><a class="sidebar-link" href="{% url 'claim-device' %}">Claim Device</a></li>
+              <li class="sidebar-item"><a class="sidebar-link" href="{% url 'actions' %}">Recommended Actions</a></li>
             </ul>
           </li>
         </ul>
@@ -70,4 +72,9 @@
       </footer>
     </div>
   </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static '/js/csrf.js' %}"></script>
 {% endblock %}

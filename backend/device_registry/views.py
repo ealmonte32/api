@@ -2,7 +2,7 @@ from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm
 from django.views.generic.list import ListView
 from django.views.generic import View
 from django.http import HttpResponse, HttpResponseRedirect
-from device_registry.models import Device, DeviceInfo, get_device_list
+from device_registry.models import Action, Device, DeviceInfo, get_device_list
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -86,3 +86,32 @@ class DeviceDetailView(View):
         )
         context = {'device_info': device_info, 'device': device}
         return render(request, 'device_info.html', context)
+
+
+def actions_view(request):
+    actions = [
+        Action(
+            1,
+            'Abnormal network connection',
+            'foobar.d.wott.local attempted to connect to a.b.c.d which is a known end-point for the Marai botnet. What '
+            'do you want to do?',
+            [('Ignore', 'warning'), ('Block', 'success')]
+        ),
+        Action(
+            2,
+            'Suspicious process detected',
+            'foobar2.d.woot.local executed the command "nc" which is often used by attackers (but can also be used '
+            'for legitimate purposes). Is this expected?',
+            [('Expected', 'info'), ('Snooze', 'warning')]
+        ),
+        Action(
+            3,
+            'Insecure port open',
+            'foobar0.d.woot.local has port 22/tcp (telnet) open. This is usually a security risk.',
+            [('Ignore', 'danger'), ('Block', 'success')]
+        )
+    ]
+
+    return render(request, 'actions.html', {
+        'actions': actions
+    })

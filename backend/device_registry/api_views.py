@@ -343,6 +343,16 @@ def mtls_renew_cert_view(request, format=None):
     })
 
 
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
+def action_view(request, action_id, action_name):
+    # Perform action
+    return Response({
+        'id': action_id,
+        'name': action_name
+    })
+
+
 @api_view(['GET'])
 @permission_classes((permissions.IsAuthenticated,))
 def claim_by_link(request):
@@ -358,3 +368,4 @@ def claim_by_link(request):
         device.save()
         return Response(f'Device {device.device_id} claimed!')
     return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
+

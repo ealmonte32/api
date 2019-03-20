@@ -48,6 +48,8 @@ if settings.IS_MTLS_API:
         path('api/{}/hello'.format(api_version),
              api_views.mtls_tester_view,
              name='mtls-tester'),
+        path('api/{}/action/<int:action_id>/<str:action_name>'.format(api_version),
+             api_views.action_view, name='action')
     ]
 
 # Front-end
@@ -64,5 +66,6 @@ if settings.IS_DASH:
             views.DeviceDetailView.as_view(),
             name='device-detail'
         ),
-        path('profile/', views.profile_view, name='profile')
+        path('profile/', views.profile_view, name='profile'),
+        path('actions/', views.actions_view, name='actions'),
     ]
