@@ -232,8 +232,8 @@ class DeviceModelTest(TestCase):
             {"host": "localhost", "port": 80, "proto": "tcp", "state": "open"},
             {"host": "localhost", "port": 110, "proto": "tcp", "state": "open"}
         ]
-        PortScan.objects.create(device=self.device0, scan_info=portscan0)
-        PortScan.objects.create(device=self.device0, scan_info=portscan1)
+        self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
+        self.portscan1 = PortScan.objects.create(device=self.device0, scan_info=portscan1)
 
     def test_get_model(self):
         model = self.device_info0.get_model()
@@ -257,6 +257,12 @@ class DeviceModelTest(TestCase):
     def test_get_expiration_date(self):
         exp_date = self.device0.get_cert_expiration_date()
         self.assertEqual(exp_date.date(), datetime.date(2019, 4, 4))
+
+    def test_bad_ports_score(self):
+        score0 = self.portscan0.get_score()
+        score1 = self.portscan1.get_score()
+        self.assertEqual(score0, 0.6)
+        self.assertEqual(score1, 0.7)
 
 
 class ClaimLinkTest(TestCase):
