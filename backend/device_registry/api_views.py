@@ -9,6 +9,7 @@ from device_registry import ca_helper
 from .models import Device, DeviceInfo, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
@@ -338,3 +339,20 @@ def mtls_renew_cert_view(request, format=None):
         'certificate_expires': certificate_expires,
         'claim_token': device_object.claim_token,
     })
+
+
+@api_view(['GET'])
+@permission_classes((permissions.IsAuthenticated,))
+def claim_by_link(request):
+    params = request.query_params
+    device = get_object_or_404(
+        Device,
+        claim_token=params['claim-token'],
+        device_id=params['device-id'],
+        owner__isnull=True
+    )
+    if device:
+        device.owner = request.user
+        device.save()
+        return Response(f'Device {device.device_id} claimed!')
+    return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
