@@ -85,6 +85,10 @@ class DeviceInfo(models.Model):
         null=True,
         blank=True
     )
+
+    # We need this for the YC demo.
+    detected_mirai = models.BooleanField(default=False, blank=True)
+
     RASPBERRY_MODEL_MAP = {
         '0002': 'Model B Rev 1',
         '0003': 'Model B Rev 1',
