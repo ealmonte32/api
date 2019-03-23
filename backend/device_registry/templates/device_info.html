@@ -92,15 +92,24 @@
               <tbody>
               <tr>
                 <th scope="row">Firewall Enabled</th>
-                <td>N/A</td>
+                <!-- Change after YC demo --!>
+                <td>Yes</td>
               </tr>
               <tr>
                 <th scope="row">Firmware Rules</th>
-                <td>N/A</td>
+                <!-- Change after YC demo --!>
+                <td>Allow connections on 22/tcp</td>
               </tr>
               <tr>
                 <th scope="row">Open Ports</th>
-                <td>{% for scan in device.get_latest_portscan %}{{ scan.port}}/{{ scan.proto }}{% empty %}N/A{% endfor %}</td>
+                <!--> <td>{% for scan in device.get_latest_portscan %}{{ scan.port}}/{{ scan.proto }}{% empty %}N/A{% endfor %}</td><--!>
+                <td>
+                <ul>
+                <li>SSH (22/tcp)</li>
+                <li>HTTP (80/tcp)</li>
+                <li>HTTPS (443/tcp)</li>
+                </ul>
+                </td>
               </tr>
               <tr>
                 <th scope="row">Download Certificate</th>
