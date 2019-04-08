@@ -244,10 +244,12 @@ class DeviceModelTest(TestCase):
         self.portscan1 = PortScan.objects.create(device=self.device0, scan_info=portscan1)
 
     def test_get_model(self):
-        model = self.device_info0.get_model()
-        self.assertEqual(model, 'Model B Rev 2')
+        model = self.device_info0.device_model
+        self.device_info0.device_model = '000d'
+        self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
         self.device_info0.device_model = '000D'  # case insensitive
         self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
+        self.device_info0.device_model = model
 
     def test_get_hardware_type(self):
         hw_type = self.device_info0.get_hardware_type()
