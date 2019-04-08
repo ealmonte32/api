@@ -11,9 +11,9 @@ jobs:
           name: Install dependencies
           command: |
             apk add --no-cache \
-              py-pip
-            pip install \
-              docker-compose==1.23.2
+              python3 py3-pynacl py3-cffi py3-bcrypt py3-cryptography
+            python3 -m ensurepip
+            pip3 install docker-compose
       - restore_cache:
           keys:
             - v1-{{ .Branch }}
