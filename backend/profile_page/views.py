@@ -13,7 +13,6 @@ def profile_page(request, user_id):
     if request.method == 'POST':
         form = ProfileForm(request.POST)
         if form.is_valid():
-            user.username = form.cleaned_data['username']
             user.email = form.cleaned_data['email']
             user.first_name = form.cleaned_data['email']
             user.second_name = form.cleaned_data['email']

@@ -13,7 +13,7 @@ jobs:
             apk add --no-cache \
               py-pip
             pip install \
-              docker-compose
+              docker-compose==1.23.2
       - restore_cache:
           keys:
             - v1-{{ .Branch }}
