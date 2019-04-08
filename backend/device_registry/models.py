@@ -2,7 +2,7 @@ import datetime
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Avg
 from django.utils import timezone
 from jsonfield import JSONField
 from device_registry import ca_helper
@@ -79,6 +79,7 @@ class DeviceInfo(models.Model):
     device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)
     distr_id = models.CharField(blank=True, null=True, max_length=32)
     distr_release = models.CharField(blank=True, null=True, max_length=32)
+    trust_score = models.FloatField(blank=True, null=True)
     fqdn = models.CharField(blank=True, null=True, max_length=128)
     ipv4_address = models.GenericIPAddressField(
         protocol="IPv4",
@@ -171,3 +172,7 @@ def get_device_list(user):
     """Get list of devices ordered by last ping.
     """
     return Device.objects.filter(owner=user).order_by(F('last_ping').desc(nulls_last=True))
+
+
+def get_avg_trust_score(user):
+    return DeviceInfo.objects.filter(device__owner=user).aggregate(Avg('trust_score'))['trust_score__avg']

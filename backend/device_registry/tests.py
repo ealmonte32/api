@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.test import TestCase, RequestFactory
 from rest_framework.test import APIRequestFactory
 from .api_views import mtls_ping_view, claim_by_link
-from .models import Device, DeviceInfo, PortScan
+from .models import Device, DeviceInfo, PortScan, get_avg_trust_score
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -196,6 +196,7 @@ czUUClEc0OJDMw8PsHyYvrl+jk0JFXgDqBgAutPzSiC+pWL3H/5DO8t/NcccNNlR
 class DeviceModelTest(TestCase):
     def setUp(self):
         self.user0 = User.objects.create_user('test')
+        self.user1 = User.objects.create_user('test-no-device')
         week_ago = timezone.now() - datetime.timedelta(days=7)
         hour_ago = timezone.now() - datetime.timedelta(hours=1)
         self.device0 = Device.objects.create(
@@ -222,7 +223,14 @@ class DeviceModelTest(TestCase):
         self.device_info0 = DeviceInfo.objects.create(
             device=self.device0,
             device_manufacturer='Raspberry Pi',
-            device_model='000d'
+            device_model='900092',
+            trust_score=0.6
+        )
+        self.device_info1 = DeviceInfo.objects.create(
+            device=self.device1,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            trust_score=0.8
         )
         portscan0 = [
             {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"},
@@ -236,10 +244,12 @@ class DeviceModelTest(TestCase):
         self.portscan1 = PortScan.objects.create(device=self.device0, scan_info=portscan1)
 
     def test_get_model(self):
-        model = self.device_info0.get_model()
-        self.assertEqual(model, 'Model B Rev 2')
+        model = self.device_info0.device_model
+        self.device_info0.device_model = '000d'
+        self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
         self.device_info0.device_model = '000D'  # case insensitive
         self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
+        self.device_info0.device_model = model
 
     def test_get_hardware_type(self):
         hw_type = self.device_info0.get_hardware_type()
@@ -263,6 +273,16 @@ class DeviceModelTest(TestCase):
         score1 = self.portscan1.get_score()
         self.assertEqual(score0, 0.6)
         self.assertEqual(score1, 0.7)
+
+    def test_avg_trust_score(self):
+        user = self.user0
+        avg_score = get_avg_trust_score(user)
+        self.assertEqual(avg_score, 0.7)
+
+    def test_empty_avg_trust_score(self):
+        user = self.user1
+        avg_score = get_avg_trust_score(user)
+        self.assertIsNone(avg_score)
 
 
 class ClaimLinkTest(TestCase):

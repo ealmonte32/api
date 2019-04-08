@@ -2,7 +2,7 @@ from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm
 from django.views.generic.list import ListView
 from django.views.generic import View
 from django.http import HttpResponse, HttpResponseRedirect
-from device_registry.models import Action, Device, DeviceInfo, get_device_list
+from device_registry.models import Action, Device, DeviceInfo, get_device_list, get_avg_trust_score
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -14,6 +14,7 @@ from profile_page.models import Profile
 @login_required
 def root_view(request):
     return render(request, 'root.html', {
+        'avg_trust_score': get_avg_trust_score(request.user),
         'active_inactive': Device.get_active_inactive(request.user),
         'devices': get_device_list(request.user)
     })
