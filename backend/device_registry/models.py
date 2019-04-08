@@ -137,6 +137,18 @@ class PortScan(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now_add=True)
     scan_info = JSONField()
+    GOOD_PORTS = [22, 443]
+    BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
+
+    def get_score(self):
+        score = 1
+        ports = [port['port'] for port in self.scan_info if port['proto'] == 'tcp']
+        for port in ports:
+            if port in PortScan.GOOD_PORTS:
+                score -= 0.1
+            if port in PortScan.BAD_PORTS:
+                score -= 0.3
+        return max(round(score, 1), 0)
 
 
 # Temporary POJO to showcase recommended actions template.
