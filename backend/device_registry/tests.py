@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.test import TestCase, RequestFactory
 from rest_framework.test import APIRequestFactory
 from .api_views import mtls_ping_view, claim_by_link
-from .models import Device, DeviceInfo, PortScan, get_avg_trust_score
+from .models import Device, DeviceInfo, FirewallState, PortScan, get_avg_trust_score
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -179,8 +179,8 @@ class APIPingTest(TestCase):
             **self.ping_headers
         )
         mtls_ping_view(request)
-        portscan = PortScan.objects.get(device=self.device0)
-        self.assertTrue(portscan.firewall_enabled)
+        firewall_state = FirewallState.objects.get(device=self.device0)
+        self.assertTrue(firewall_state.enabled)
 
     def test_ping_writes_firewall_info_neg(self):
         scan_info = [
@@ -200,8 +200,8 @@ class APIPingTest(TestCase):
             **self.ping_headers
         )
         mtls_ping_view(request)
-        portscan = PortScan.objects.get(device=self.device0)
-        self.assertFalse(portscan.firewall_enabled)
+        firewall_state = FirewallState.objects.get(device=self.device0)
+        self.assertFalse(firewall_state.enabled)
 
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
