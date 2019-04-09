@@ -6,7 +6,7 @@ import re
 from django.utils import timezone
 from django.conf import settings
 from device_registry import ca_helper
-from .models import Device, DeviceInfo, PortScan
+from .models import Device, DeviceInfo, FirewallState, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
@@ -249,6 +249,11 @@ def mtls_ping_view(request, format=None):
             'scan_info': json.loads(request.data.get('scan_info')),
         }
         PortScan.objects.create(**portscan_data)
+        firewall_state = {
+            'device': device_object,
+            'enabled': request.data.get('is_firewall', None)
+        }
+        FirewallState.objects.create(**firewall_state)
     else:
         return Response({
             'message': 'ping failed.',

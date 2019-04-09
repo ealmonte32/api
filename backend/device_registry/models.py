@@ -152,6 +152,11 @@ class PortScan(models.Model):
         return max(round(score, 1), 0)
 
 
+class FirewallState(models.Model):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    enabled = models.BooleanField(null=True, blank=True)
+
+
 # Temporary POJO to showcase recommended actions template.
 class Action:
     def __init__(self, action_id, title, description, actions):

@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.test import TestCase, RequestFactory
 from rest_framework.test import APIRequestFactory
 from .api_views import mtls_ping_view, claim_by_link
-from .models import Device, DeviceInfo, PortScan, get_avg_trust_score
+from .models import Device, DeviceInfo, FirewallState, PortScan, get_avg_trust_score
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -118,7 +118,8 @@ class APIPingTest(TestCase):
             'uptime': '0',
             'distr_id': 'Raspbian',
             'distr_release': '9.4',
-            'scan_info': json.dumps(self.scan_info)
+            'scan_info': json.dumps(self.scan_info),
+            'is_firewall': True
         }
         self.ping_headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -170,6 +171,37 @@ class APIPingTest(TestCase):
         mtls_ping_view(request)
         self.assertEqual(self.device0.deviceinfo.distr_id, 'Raspbian')
         self.assertEqual(self.device0.deviceinfo.distr_release, '9.4')
+
+    def test_ping_writes_firewall_info_pos(self):
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers
+        )
+        mtls_ping_view(request)
+        firewall_state = FirewallState.objects.get(device=self.device0)
+        self.assertTrue(firewall_state.enabled)
+
+    def test_ping_writes_firewall_info_neg(self):
+        scan_info = [
+            {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
+        ]
+        ping_payload = {
+            'device_operating_system_version': 'linux',
+            'fqdn': 'test-device0',
+            'ipv4_address': '127.0.0.1',
+            'uptime': '0',
+            'scan_info': json.dumps(scan_info),
+            'is_firewall': False
+        }
+        request = self.api.post(
+            '/v0.2/ping/',
+            ping_payload,
+            **self.ping_headers
+        )
+        mtls_ping_view(request)
+        firewall_state = FirewallState.objects.get(device=self.device0)
+        self.assertFalse(firewall_state.enabled)
 
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
