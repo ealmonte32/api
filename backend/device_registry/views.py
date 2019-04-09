@@ -2,7 +2,7 @@ from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm
 from django.views.generic.list import ListView
 from django.views.generic import View
 from django.http import HttpResponse, HttpResponseRedirect
-from device_registry.models import Action, Device, DeviceInfo, get_device_list, get_avg_trust_score
+from device_registry.models import Action, Device, DeviceInfo, FirewallState, get_device_list, get_avg_trust_score
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -76,7 +76,14 @@ class DeviceDetailView(View):
             id=kwargs['pk'],
             owner=request.user
         )
-        context = {'device_info': device_info, 'device': device}
+        firewall_state = get_object_or_404(
+            FirewallState, 
+            device=device)
+        context = {
+            'device_info': device_info, 
+            'device': device,
+            'firewall_state': firewall_state
+        }
         return render(request, 'device_info.html', context)
 
     def post(self, request, *args, **kwargs):
