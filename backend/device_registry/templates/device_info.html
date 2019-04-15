@@ -110,14 +110,28 @@
                 </ul>
                 </td>
               </tr>
-              <tr>
-                <th scope="row">Download Certificate</th>
-                <td><a href="{{ device.get_cert_url }}">{{ device.device_id }}.crt</a></td>
-              </tr>
-              <tr>
-                <th scope="row">Certificate Expires</th>
-                <td>In {{ device.get_cert_expiration_date|timeuntil|default_if_none:'N/A' }}</td>
-              </tr>
+              {% if  not is_expired %}
+                <tr>
+                  <th scope="row">Download Certificate</th>
+                  <td>
+                    <a href="{{ device.get_cert_url }}">{{ device.device_id }}.crt</a>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Certificate Expires</th>
+                  <td>In {{ device.get_cert_expiration_date|timeuntil }}</td>
+                </tr>
+              [% else %}
+                <tr>
+                  <th scope="row">Download Certificate</th>
+                  <td>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Certificate Expired</th>
+                  <td>On {{ device.get_cert_expiration_date|date:"Y-m-d" }}</td>
+                </tr>
+              [% endif %}
               </tbody>
             </table>
           </div>
