@@ -15,6 +15,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -88,6 +89,7 @@ def get_device_cert_view(request, device_id, format=None):
         return Response({
             'certificate': device_info[0].certificate,
             'certificate_expires': device_info[0].certificate_expires,
+            'is_expired': device_info[0].certificate_expires < datetime.now(),
             'device_id': device_id,
         })
     return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
