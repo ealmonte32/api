@@ -101,9 +101,11 @@
               </tr>
               <tr>
                 <th scope="row">Open Ports</th>
+                <td><ul>
                 {% for scan in device.get_latest_portscan %}
-                <td>{{ scan.port}}/{{ scan.proto }}{% empty %}None</td>
+                <li>{{ scan.port}}/{{ scan.proto }}{% empty %}none</li>
                 {% endfor %}
+                </ul></td>
               </tr>
               {% if  not is_expired %}
                 <tr>
