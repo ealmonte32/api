@@ -101,7 +101,7 @@
               </tr>
               <tr>
                 <th scope="row">Open Ports</th>
-                <td>{% for scan in device.get_latest_portscan %}{{ scan.port}}/{{ scan.proto }}{% empty %}N/A{% endfor %}</td>
+                <td>{% for scan in device.get_latest_portscan %}{{ scan.port}}/{{ scan.proto }}{% empty %}none{% endfor %}</td>
               </tr>
               {% if  not is_expired %}
                 <tr>
@@ -114,7 +114,7 @@
                   <th scope="row">Certificate Expires</th>
                   <td>In {{ device.get_cert_expiration_date|timeuntil }}</td>
                 </tr>
-              [% else %}
+              {% else %}
                 <tr>
                   <th scope="row">Download Certificate</th>
                   <td>
@@ -124,7 +124,7 @@
                   <th scope="row">Certificate Expired</th>
                   <td>On {{ device.get_cert_expiration_date|date:"Y-m-d" }}</td>
                 </tr>
-              [% endif %}
+              {% endif %}
               </tbody>
             </table>
           </div>
