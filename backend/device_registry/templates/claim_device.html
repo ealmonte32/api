@@ -23,7 +23,7 @@
                   <div class="form-group">
                     <label for="device_id">Device ID</label>
                     <input class="form-control form-control-lg" type="text" name="device_id"
-                           placeholder="Device ID" id="device_id"/>
+                           placeholder="Device ID" id="device_id" value= "{{ form.device_id.value | default_if_none:'' }}" />
                     {% if form.device_id.errors %}
                       {% for error in form.device_id.errors %}
                         <label class="error form-text invalid-feedback small"
@@ -34,7 +34,7 @@
                   <div class="form-group">
                     <label>Claim Token</label>
                     <input class="form-control form-control-lg" type="text" name="claim_token"
-                           placeholder="Claim Token"/>
+                           placeholder="Claim Token" value= "{{ form.claim_token.value | default_if_none:'' }}"/>
                     {% if form.claim_token.errors %}
                       {% for error in form.claim_token.errors %}
                         <label class="error form-text invalid-feedback small"

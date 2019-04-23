@@ -57,9 +57,15 @@ def claim_device_view(request):
             get_device.save()
             return HttpResponse('Successfully claimed {}.'.format(form.cleaned_data['device_id']))
 
-    # if a GET (or any other method) we'll create a blank form
     else:
-        form = ClaimDeviceForm()
+        # GET with claim_token and device_id set will fill the form.
+        # Empty GET or any other request will generate empty form.
+        if request.method == 'GET' and \
+            'claim_token' in request.GET and \
+                'device_id' in request.GET:
+            form = ClaimDeviceForm(request.GET)
+        else:
+            form = ClaimDeviceForm()
 
     return render(request, 'claim_device.html', {'form': form})
 
