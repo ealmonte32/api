@@ -17,7 +17,6 @@ from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
-from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -89,12 +88,12 @@ def get_device_cert_view(request, device_id, format=None):
 
     if device_info:
         if 'format' in request.GET:
-        return Response({
-            'certificate': device_info[0].certificate,
-            'certificate_expires': device_info[0].certificate_expires,
-                'is_expired': device_info[0].certificate_expires < timezone.now(),
-            'device_id': device_id,
-        })
+            return Response({
+                'certificate': device_info[0].certificate,
+                'certificate_expires': device_info[0].certificate_expires,
+                    'is_expired': device_info[0].certificate_expires < timezone.now(),
+                'device_id': device_id,
+            })
         else:
             response = HttpResponse(device_info[0].certificate, content_type='application/x-pem-file')
             response['Content-Disposition'] = 'attachment; filename={}.crt'.format(device_id)
