@@ -3,6 +3,7 @@ import logging
 import uuid
 import re
 
+from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
 from device_registry import ca_helper
@@ -10,6 +11,7 @@ from .models import Device, DeviceInfo, FirewallState, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
@@ -86,12 +88,17 @@ def get_device_cert_view(request, device_id, format=None):
     device_info = Device.objects.filter(device_id=device_id)
 
     if device_info:
+        if 'format' in request.GET:
         return Response({
             'certificate': device_info[0].certificate,
             'certificate_expires': device_info[0].certificate_expires,
-            'is_expired': device_info[0].certificate_expires < datetime.now(),
+                'is_expired': device_info[0].certificate_expires < timezone.now(),
             'device_id': device_id,
         })
+        else:
+            response = HttpResponse(device_info[0].certificate, content_type='application/x-pem-file')
+            response['Content-Disposition'] = 'attachment; filename={}.crt'.format(device_id)
+            return response
     return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
 
 
