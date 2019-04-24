@@ -103,7 +103,7 @@
                 <th scope="row">Open Ports</th>
                 <td><ul>
                 {% for scan in device.get_latest_portscan %}
-                <li>{{ scan.port}}/{{ scan.proto|upper }}{% empty %}none</li>
+                <li>{{ scan.host }}:{{ scan.port}}/{{ scan.proto|upper }}{% empty %}none</li>
                 {% endfor %}
                 </ul></td>
               </tr>
