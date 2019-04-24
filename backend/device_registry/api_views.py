@@ -255,7 +255,7 @@ def mtls_ping_view(request, format=None):
         PortScan.objects.create(**portscan_data)
         firewall_state = {
             'device': device_object,
-            'enabled': request.data.get('is_firewall', None)
+            'enabled': request.data.get('firewall_enabled', None)
         }
         FirewallState.objects.create(**firewall_state)
     else:
