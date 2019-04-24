@@ -82,13 +82,9 @@ class DeviceDetailView(View):
             id=kwargs['pk'],
             owner=request.user
         )
-        firewall_state = get_object_or_404(
-            FirewallState, 
-            device=device)
         context = {
-            'device_info': device_info, 
-            'device': device,
-            'firewall_state': firewall_state
+            'device_info': device_info,
+            'device': device
         }
         return render(request, 'device_info.html', context)
 

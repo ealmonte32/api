@@ -52,6 +52,11 @@ class Device(models.Model):
         latest = self.portscan_set.order_by('-scan_date')
         if latest.exists():
             return latest[0].scan_info
+    
+    def get_latest_fwstate(self):
+        latest = self.firewallstate_set.order_by('-scan_date')
+        if latest.exists():
+            return latest[0].enabled
 
     def get_cert_expiration_date(self):
         try:
@@ -155,6 +160,7 @@ class PortScan(models.Model):
 class FirewallState(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     enabled = models.BooleanField(null=True, blank=True)
+    scan_date = models.DateTimeField(null=True, auto_now_add=True)
 
 
 # Temporary POJO to showcase recommended actions template.

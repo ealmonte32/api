@@ -92,7 +92,7 @@
               <tbody>
               <tr>
                 <th scope="row">Firewall Enabled</th>
-                <td>{{ firewall_state.enabled }}</td>
+                <td>{{ device.get_latest_fwstate|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Firmware Rules</th>
