@@ -11,7 +11,7 @@ from .models import Device, DeviceInfo, FirewallState, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
+from device_registry.datastore_helper import datastore, datastore_client
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
@@ -264,6 +264,15 @@ def mtls_ping_view(request, format=None):
             'enabled': request.data.get('firewall_enabled', None)
         }
         FirewallState.objects.create(**firewall_state)
+
+        if datastore_client:
+            task_key = datastore_client.key('Ping')
+            entity = datastore.Entity(key=task_key)
+            for k, v in request.data.items():
+                entity[k] = v
+            entity['device_id'] = device_id
+            entity['last_ping'] = timezone.now()
+            datastore_client.put(entity)
     else:
         return Response({
             'message': 'ping failed.',
