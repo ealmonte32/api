@@ -1,4 +1,5 @@
 import datetime
+from statistics import mean
 
 from django.conf import settings
 from django.db import models
@@ -176,4 +177,4 @@ def get_device_list(user):
 
 
 def get_avg_trust_score(user):
-    return DeviceInfo.objects.filter(device__owner=user).aggregate(Avg('trust_score'))['trust_score__avg']
+    return mean([p.get_score() for p in PortScan.objects.filter(device__owner=user).all()])
