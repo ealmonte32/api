@@ -254,16 +254,16 @@ def mtls_ping_view(request, format=None):
         device_info_object.distr_release = request.data.get('distr_release', None)
         device_info_object.save()
         device_object.save()
-        portscan_data = {
-            'device': device_object,
-            'scan_info': json.loads(request.data.get('scan_info')),
-        }
-        PortScan.objects.create(**portscan_data)
-        firewall_state = {
-            'device': device_object,
-            'enabled': request.data.get('firewall_enabled', None)
-        }
-        FirewallState.objects.create(**firewall_state)
+        portscan, created = PortScan.objects.update_or_create(
+            device=device_object,
+            scan_info=json.loads(request.data.get('scan_info'))
+        )
+        portscan.save()
+        firewall_state, created = FirewallState.objects.update_or_create(
+            device=device_object,
+            enabled=request.data.get('firewall_enabled', None)
+        )
+        firewall_state.save()
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
