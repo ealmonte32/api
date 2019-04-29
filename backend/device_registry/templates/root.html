@@ -96,7 +96,7 @@
                   <td><a href="{% url 'device-detail' device.id %}">{{ device.device_id | truncatechars:30 }}</a></td>
                   <td>{{ device.deviceinfo.fqdn }}</td>
                   <td>{{ device.last_ping | timesince }} ago</td>
-                  <td>{{ device.deviceinfo.trust_score | default_if_none:'N/A' }}</td>
+                  <td>{{ device.portscan.get_score | default_if_none:'N/A' }}</td>
                   <td>{{ device.comment | default_if_none:'' }}</td>
                 </tr>
               {% endfor %}
