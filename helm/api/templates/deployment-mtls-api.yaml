@@ -47,6 +47,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
                   key: databasePassword
+            - name: DATASTORE_KEY_JSON
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: datastoreKey
           livenessProbe:
             httpGet:
               path: /healthz

@@ -66,7 +66,10 @@ Create the namespace and inject the secrets:
 $ kubectl create ns api
 $ kubectl create -f misc/{ENV}-secrets.yaml
 $ kubectl create secret generic wott-ca -n api --from-file=ca.crt=backend/files/cert-bundle.crt
+$ k8sec set api-secrets --base64 datastoreKey=$(cat ~/Downloads/wott-prod-[...].json| base64 -w0)  -n api
 ```
+
+
 
 Once the secrets are live, you can deploy the actual app using:
 
