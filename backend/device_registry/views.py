@@ -71,22 +71,37 @@ def claim_device_view(request):
 
 
 class DeviceDetailView(View):
-    def get(self, request, *args, **kwargs):
+    def _render(self, request, pk):
         device_info = get_object_or_404(
             DeviceInfo,
-            device__id=kwargs['pk'],
+            device__id=pk,
+            device__owner=request.user
+        )
+        portscan = get_object_or_404(
+            PortScan,
+            device__id=pk,
+            device__owner=request.user
+        )
+        firewall_state = get_object_or_404(
+            FirewallState,
+            device__id=pk,
             device__owner=request.user
         )
         device = get_object_or_404(
             Device,
-            id=kwargs['pk'],
+            id=pk,
             owner=request.user
         )
         context = {
             'device_info': device_info,
-            'device': device
+            'device': device,
+            'portscan': portscan,
+            'firewall_state': firewall_state
         }
         return render(request, 'device_info.html', context)
+
+    def get(self, request, *args, **kwargs):
+        return self._render(request, kwargs['pk'])
 
     def post(self, request, *args, **kwargs):
         if request.method == 'POST':
@@ -97,34 +112,7 @@ class DeviceDetailView(View):
                 device.save()
 
                 return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
-
-        device_info = get_object_or_404(
-            DeviceInfo,
-            device__id=kwargs['pk'],
-            device__owner=request.user
-        )
-        portscan = get_object_or_404(
-            PortScan,
-            device__id=kwargs['pk'],
-            device__owner=request.user
-        )
-        firewall_state = get_object_or_404(
-            FirewallState,
-            device__id=kwargs['pk'],
-            device__owner=request.user
-        )
-        device = get_object_or_404(
-            Device,
-            id=kwargs['pk'],
-            owner=request.user
-        )
-        context = {
-            'device_info': device_info,
-            'device': device,
-            'portscan': portscan,
-            'firewall_state': firewall_state
-        }
-        return render(request, 'device_info.html', context)
+        return self._render(request, kwargs['pk'])
 
 
 def actions_view(request):
