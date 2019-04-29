@@ -177,4 +177,5 @@ def get_device_list(user):
 
 
 def get_avg_trust_score(user):
-    return mean([p.get_score() for p in PortScan.objects.filter(device__owner=user).all()])
+    scores = [p.get_score() for p in PortScan.objects.filter(device__owner=user).all()]
+    return mean(scores) if scores else None
