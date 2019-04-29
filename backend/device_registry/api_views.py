@@ -11,7 +11,7 @@ from .models import Device, DeviceInfo, FirewallState, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
+from device_registry.datastore_helper import datastore, datastore_client
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
@@ -253,17 +253,26 @@ def mtls_ping_view(request, format=None):
         device_info_object.distr_id = request.data.get('distr_id', None)
         device_info_object.distr_release = request.data.get('distr_release', None)
         device_info_object.save()
+        portscan_object, created = PortScan.objects.update_or_create(
+            device=device_object,
+        )
+        portscan_object.scan_info=json.loads(request.data.get('scan_info'))
+        portscan_object.save()
+        firewall_state, created = FirewallState.objects.update_or_create(
+            device=device_object
+        )
+        firewall_state.enabled = request.data.get('firewall_enabled', None)
+        firewall_state.save()
         device_object.save()
-        portscan_data = {
-            'device': device_object,
-            'scan_info': json.loads(request.data.get('scan_info')),
-        }
-        PortScan.objects.create(**portscan_data)
-        firewall_state = {
-            'device': device_object,
-            'enabled': request.data.get('firewall_enabled', None)
-        }
-        FirewallState.objects.create(**firewall_state)
+
+        if datastore_client:
+            task_key = datastore_client.key('Ping')
+            entity = datastore.Entity(key=task_key)
+            for k, v in request.data.items():
+                entity[k] = v
+            entity['device_id'] = device_id
+            entity['last_ping'] = timezone.now()
+            datastore_client.put(entity)
     else:
         return Response({
             'message': 'ping failed.',

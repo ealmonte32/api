@@ -19,6 +19,7 @@ services:
     - DJANGO_SETTINGS_MODULE=backend.settings.dev
     - DB_PASSWORD=SuperSecurePassword
     - DB_USER=postgres
+    - DATASTORE_KEY_JSON
     build:
       context: .
     volumes:
@@ -35,6 +36,7 @@ services:
     - DJANGO_SETTINGS_MODULE=backend.settings.dev
     - DB_PASSWORD=SuperSecurePassword
     - DB_USER=postgres
+    - DATASTORE_KEY_JSON
     build:
       context: .
     volumes:
@@ -51,6 +53,7 @@ services:
     - DJANGO_SETTINGS_MODULE=backend.settings.dev
     - DB_PASSWORD=SuperSecurePassword
     - DB_USER=postgres
+    - DATASTORE_KEY_JSON
     build:
       context: .
     volumes:

@@ -92,7 +92,7 @@
               <tbody>
               <tr>
                 <th scope="row">Firewall Enabled</th>
-                <td>{{ device.get_latest_fwstate|default_if_none:'N/A' }}</td>
+                <td>{{ firewall_state.enabled|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Firmware Rules</th>
@@ -102,7 +102,7 @@
               <tr>
                 <th scope="row">Open Ports</th>
                 <td><ul>
-                {% for scan in device.get_latest_portscan %}
+                {% for scan in portscan.scan_info %}
                 <li>{{ scan.host }}:{{ scan.port}}/{{ scan.proto|upper }}{% empty %}none</li>
                 {% endfor %}
                 </ul></td>

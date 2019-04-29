@@ -183,16 +183,18 @@ class APIPingTest(TestCase):
         self.assertTrue(firewall_state.enabled)
 
     def test_ping_writes_firewall_info_neg(self):
-        scan_info = [
-            {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
-        ]
         ping_payload = {
             'device_operating_system_version': 'linux',
             'fqdn': 'test-device0',
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
-            'scan_info': json.dumps(scan_info),
-            'is_firewall': False
+            'scan_info': [{
+                "host": "localhost",
+                "port": 22,
+                "proto": "tcp",
+                "state": "open"
+            }],
+            'firewall_enabled': False
         }
         request = self.api.post(
             '/v0.2/ping/',

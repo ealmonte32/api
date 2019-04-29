@@ -48,16 +48,6 @@ class Device(models.Model):
     def has_valid_hostname(self):
         self.device_id.endswith(settings.COMMON_NAME_PREFIX)
 
-    def get_latest_portscan(self):
-        latest = self.portscan_set.order_by('-scan_date')
-        if latest.exists():
-            return latest[0].scan_info
-    
-    def get_latest_fwstate(self):
-        latest = self.firewallstate_set.order_by('-scan_date')
-        if latest.exists():
-            return latest[0].enabled
-
     def get_cert_expiration_date(self):
         try:
             return ca_helper.get_certificate_expiration_date(self.certificate)
@@ -140,7 +130,7 @@ class DeviceInfo(models.Model):
 
 
 class PortScan(models.Model):
-    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    device = models.OneToOneField(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now_add=True)
     scan_info = JSONField()
     GOOD_PORTS = [22, 443]
@@ -158,7 +148,7 @@ class PortScan(models.Model):
 
 
 class FirewallState(models.Model):
-    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    device = models.OneToOneField(Device, on_delete=models.CASCADE)
     enabled = models.BooleanField(null=True, blank=True)
     scan_date = models.DateTimeField(null=True, auto_now_add=True)
 
