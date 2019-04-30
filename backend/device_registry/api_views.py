@@ -369,6 +369,70 @@ def mtls_renew_cert_view(request, format=None):
 
 @api_view(['POST'])
 @permission_classes((permissions.AllowAny,))
+def renew_expired_cert_view(request, format=None):
+    """
+    Renewal of certificate.
+    """
+
+    csr = request.data.get('csr')
+    device_id = request.data.get('device_id')
+    fallback_token = request.data.get('fallback_token')
+
+    if fallback_token != 'TOKEN':
+        return Response(
+            'Invalid fallback token.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if not ca_helper.csr_is_valid(csr=csr, device_id=device_id):
+        return Response(
+            'Invalid CSR.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    device_object = Device.objects.get(device_id=device_id)
+    if device_object.certificate_expires > timezone.now():
+        return Response(
+            'Certificate is not expired yet',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    signed_certificate = ca_helper.sign_csr(csr, device_id)
+    if not signed_certificate:
+        return Response(
+            'Unknown error',
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
+    device_object.certificate_csr = csr
+    device_object.certificate = signed_certificate
+    device_object.certificate_expires = certificate_expires
+    device_object.last_ping = timezone.now()
+    device_object.claim_token = uuid.uuid4()
+    device_object.save()
+
+    # @TODO: Log changes
+    device_info_object, created = DeviceInfo.objects.update_or_create(device=device_object)
+    device_info_object.device_manufacturer = request.data.get('device_manufacturer')
+    device_info_object.device_model = request.data.get('device_model')
+    device_info_object.device_operating_system = request.data.get('device_operating_system')
+    device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
+    device_info_object.device_architecture = request.data.get('device_architecture')
+    device_info_object.fqdn = request.data.get('fqdn')
+    device_info_object.ipv4_address = request.data.get('ipv4_address')
+    device_info_object.save()
+
+    return Response({
+        'certificate': signed_certificate,
+        'certificate_expires': certificate_expires,
+        'claim_token': device_object.claim_token,
+        'fallback_token': 'TOKEN'
+    })
+
+
+@api_view(['POST'])
+@permission_classes((permissions.AllowAny,))
 def action_view(request, action_id, action_name):
     # Perform action
     return Response({
