@@ -165,6 +165,7 @@ def sign_new_device_view(request, format=None):
     device_object.certificate_expires = certificate_expires
     device_object.last_ping = timezone.now()
     device_object.claim_token = uuid.uuid4()
+    device_object.fallback_token = uuid.uuid4()
     device_object.save()
 
     DeviceInfo(
@@ -182,6 +183,7 @@ def sign_new_device_view(request, format=None):
         'certificate': signed_certificate,
         'certificate_expires': certificate_expires,
         'claim_token': device_object.claim_token,
+        'fallback_token': device_object.fallback_token
     })
 
 
@@ -347,6 +349,7 @@ def mtls_renew_cert_view(request, format=None):
     device_object.certificate_expires = certificate_expires
     device_object.last_ping = timezone.now()
     device_object.claim_token = uuid.uuid4()
+    device_object.fallback_token = uuid.uuid4()
     device_object.save()
 
     # @TODO: Log changes
@@ -364,6 +367,7 @@ def mtls_renew_cert_view(request, format=None):
         'certificate': signed_certificate,
         'certificate_expires': certificate_expires,
         'claim_token': device_object.claim_token,
+        'fallback_token': device_object.fallback_token
     })
 
 
@@ -378,12 +382,6 @@ def renew_expired_cert_view(request, format=None):
     device_id = request.data.get('device_id')
     fallback_token = request.data.get('fallback_token')
 
-    if fallback_token != 'TOKEN':
-        return Response(
-            'Invalid fallback token.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
     if not ca_helper.csr_is_valid(csr=csr, device_id=device_id):
         return Response(
             'Invalid CSR.',
@@ -391,6 +389,13 @@ def renew_expired_cert_view(request, format=None):
         )
 
     device_object = Device.objects.get(device_id=device_id)
+
+    if fallback_token != device_object.fallback_token:
+        return Response(
+            'Invalid fallback token.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     if device_object.certificate_expires > timezone.now():
         return Response(
             'Certificate is not expired yet',
@@ -410,6 +415,7 @@ def renew_expired_cert_view(request, format=None):
     device_object.certificate_expires = certificate_expires
     device_object.last_ping = timezone.now()
     device_object.claim_token = uuid.uuid4()
+    device_object.fallback_token = uuid.uuid4()
     device_object.save()
 
     # @TODO: Log changes
@@ -427,7 +433,7 @@ def renew_expired_cert_view(request, format=None):
         'certificate': signed_certificate,
         'certificate_expires': certificate_expires,
         'claim_token': device_object.claim_token,
-        'fallback_token': 'TOKEN'
+        'fallback_token': device_object.fallback_token
     })
 
 

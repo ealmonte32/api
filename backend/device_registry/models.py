@@ -30,6 +30,7 @@ class Device(models.Model):
     certificate_expires = models.DateTimeField(blank=True, null=True)
     comment = models.CharField(blank=True, null=True, max_length=512)
     claim_token = models.CharField(editable=False, max_length=128)
+    fallback_token = models.CharField(editable=False, max_length=128, default='')
 
     @staticmethod
     def get_active_inactive(user):
