@@ -37,7 +37,7 @@
                       <label>Email</label>
                       <input class="form-control form-control-lg" type="email" name="email"
                              placeholder="Enter your e-mail"/>
-                      {% if form.username.errors %}
+                      {% if form.email.errors %}
                         {% for error in form.email.errors %}
                           <label class="error form-text invalid-feedback small"
                                  style="display: block">{{ error | escape }}</label>
@@ -48,7 +48,7 @@
                       <label>Password</label>
                       <input class="form-control form-control-lg" type="password" name="password1"
                              placeholder="Enter your password"/>
-                      {% if form.username.errors %}
+                      {% if form.password1.errors %}
                         {% for error in form.password1.errors %}
                           <label class="error form-text invalid-feedback small"
                                  style="display: block">{{ error | escape }}</label>
@@ -59,13 +59,20 @@
                       <label>Confirm Password</label>
                       <input class="form-control form-control-lg" type="password" name="password2"
                              placeholder="Confirm your password"/>
-                      {% if form.username.errors %}
+                      {% if form.password2.errors %}
                         {% for error in form.password2.errors %}
                           <label class="error form-text invalid-feedback small"
                                  style="display: block">{{ error | escape }}</label>
                         {% endfor %}
                       {% endif %}
                     </div>
+
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                            <div class="alert alert-warning">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+
                     <div class="text-center mt-3">
                       <input class="btn btn-lg btn-primary" type="submit" value="{% trans 'Submit' %}" />
                     </div>

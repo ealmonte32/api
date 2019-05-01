@@ -46,6 +46,11 @@
                           <a href="{% url 'registration_register' %}">Register</a>
                         </small>
                       </div>
+                        {% if form.non_field_errors %}
+                            {% for error in form.non_field_errors %}
+                                <div class="alert alert-warning">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
                       <div class="text-center mt-3">
                         <input type="submit" class="btn btn-lg btn-primary" value="Sign In"/>
                       </div>
