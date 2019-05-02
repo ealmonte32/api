@@ -142,7 +142,7 @@ class DeviceInfo(models.Model):
 class PortScan(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now_add=True)
-    scan_info = JSONField()
+    scan_info = JSONField(default=list)
     GOOD_PORTS = [22, 443]
     BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
 

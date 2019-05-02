@@ -118,9 +118,9 @@ class APIPingTest(TestCase):
             'uptime': '0',
             'distr_id': 'Raspbian',
             'distr_release': '9.4',
-            'scan_info': json.dumps([
+            'scan_info': [
                 {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
-            ]),
+            ],
             'firewall_enabled': True
         }
         self.ping_headers = {
@@ -190,13 +190,13 @@ class APIPingTest(TestCase):
             'fqdn': 'test-device0',
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
-            'scan_info': json.dumps([{
+            'scan_info': [{
                 "host": "localhost",
                 "port": 22,
                 "proto": "tcp",
                 "state": "open"
-            }]),
-            'firewall_enabled': False
+            }],
+            'firewall_enabled': False,
         }
         request = self.api.post(
             '/v0.2/ping/',
