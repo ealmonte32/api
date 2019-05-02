@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
 from device_registry import ca_helper
-from .models import Device, DeviceInfo, FirewallState, PortScan
+from device_registry.models import Device, DeviceInfo, FirewallState, PortScan
 from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
@@ -258,7 +258,7 @@ def mtls_ping_view(request, format=None):
         portscan_object, created = PortScan.objects.update_or_create(
             device=device_object,
         )
-        portscan_object.scan_info=json.loads(request.data.get('scan_info'))
+        portscan_object.scan_info=request.data.get('scan_info')
         portscan_object.save()
         firewall_state, created = FirewallState.objects.update_or_create(
             device=device_object
