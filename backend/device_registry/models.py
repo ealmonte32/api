@@ -4,17 +4,19 @@ import json
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F, Avg
+from django.db.models import F
 from django.utils import timezone
+
 from jsonfield_compat.fields import JSONField
+
 from device_registry import ca_helper
 
 
 class JsonFieldTransitionHelper(JSONField):
     def from_db_value(self, value, expression, connection, context):
-            if isinstance(value, str):
-                return json.loads(value)
-            return value
+        if isinstance(value, str):
+            return json.loads(value)
+        return value
 
 
 class Device(models.Model):
@@ -161,6 +163,11 @@ class FirewallState(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
     enabled = models.BooleanField(null=True, blank=True)
     scan_date = models.DateTimeField(null=True, auto_now_add=True)
+    rules = JSONField(default=dict)
+
+    @property
+    def beautified_rules(self):
+        return json.dumps(self.rules, indent=4)
 
 
 # Temporary POJO to showcase recommended actions template.

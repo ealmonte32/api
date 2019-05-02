@@ -96,8 +96,7 @@
               </tr>
               <tr>
                 <th scope="row">Firewall Rules</th>
-                <!-- Change after YC demo -->
-                <td>Allow connections on 22/tcp</td>
+                <td>{{ firewall_state.beautified_rules|linebreaksbr }}</td>
               </tr>
               <tr>
                 <th scope="row">Open Ports</th>

@@ -107,6 +107,10 @@ class CsrHelperTests(TestCase):
         )
 
 
+TEST_RULES = {'INPUT': [{'src': '15.15.15.50/32', 'target': 'DROP'}, {'src': '15.15.15.51/32', 'target': 'DROP'}],
+              'OUTPUT': [], 'FORWARD': []}
+
+
 class APIPingTest(TestCase):
     def setUp(self):
         self.api = APIRequestFactory()
@@ -121,7 +125,8 @@ class APIPingTest(TestCase):
             'scan_info': [
                 {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
             ],
-            'firewall_enabled': True
+            'firewall_enabled': True,
+            'firewall_rules': TEST_RULES
         }
         self.ping_headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -183,6 +188,7 @@ class APIPingTest(TestCase):
         mtls_ping_view(request)
         firewall_state = FirewallState.objects.get(device=self.device0)
         self.assertTrue(firewall_state.enabled)
+        self.assertDictEqual(firewall_state.rules, TEST_RULES)
 
     def test_ping_writes_firewall_info_neg(self):
         ping_payload = {
@@ -197,6 +203,7 @@ class APIPingTest(TestCase):
                 "state": "open"
             }],
             'firewall_enabled': False,
+            'firewall_rules': {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
         }
         request = self.api.post(
             '/v0.2/ping/',
@@ -206,6 +213,7 @@ class APIPingTest(TestCase):
         mtls_ping_view(request)
         firewall_state = FirewallState.objects.get(device=self.device0)
         self.assertFalse(firewall_state.enabled)
+        self.assertDictEqual(firewall_state.rules, {'INPUT': [], 'OUTPUT': [], 'FORWARD': []})
 
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
