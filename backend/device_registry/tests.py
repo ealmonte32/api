@@ -1,5 +1,7 @@
 import datetime
 import json
+import uuid
+import freezegun
 
 from django.conf import settings
 from cryptography import x509
@@ -13,8 +15,9 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.test import TestCase, RequestFactory
 from rest_framework.test import APIRequestFactory
-from .api_views import mtls_ping_view, claim_by_link
+from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view
 from .models import Device, DeviceInfo, FirewallState, PortScan, get_avg_trust_score
+from unittest.mock import patch
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -337,3 +340,80 @@ class ClaimLinkTest(TestCase):
         request.user = self.user0
         response = claim_by_link(request)
         self.assertEqual(response.status_code, 404)
+
+
+class CertTest(TestCase):
+    def setUp(self):
+        id = 'foobar.{}'.format(settings.COMMON_NAME_PREFIX)
+        self.api = RequestFactory()
+        self.fallback_token = uuid.uuid4()
+        self.cert = generate_cert(
+            common_name=id,
+            subject_alt_name=id
+        )
+        self.user0 = User.objects.create_user('test')
+        week_ago = timezone.now() - datetime.timedelta(days=7)
+        self.device0 = Device.objects.create(
+            device_id=id,
+            last_ping=week_ago,
+            owner=self.user0,
+            certificate=TEST_CERT,
+            certificate_expires=week_ago,
+            fallback_token=self.fallback_token
+        )
+
+    def make_request(self):
+        return self.api.post(f'/api/v0.2/sign-expired-csr', {
+            'csr': self.cert['csr'],
+            'device_id': self.device0.device_id,
+            'fallback_token': self.device0.fallback_token,
+
+            'device_manufacturer': 'none',
+            'device_model': 'none',
+            'device_operating_system': 'none',
+            'device_operating_system_version': 'none',
+            'device_architecture': 'none',
+            'fqdn': 'none',
+            'ipv4_address': '0.0.0.0'
+        })
+
+    # @freezegun.freeze_time("2019-04-14")
+    @patch('device_registry.ca_helper.sign_csr')
+    @patch('device_registry.ca_helper.get_certificate_expiration_date')
+    def test_renew_expired(self, get_certificate_expiration_date, sign_csr):
+        week_after = timezone.now() + datetime.timedelta(days=7)
+        sign_csr.return_value = self.cert['key']
+        get_certificate_expiration_date.return_value = week_after
+
+        req = self.make_request()
+        res = renew_expired_cert_view(req)
+        content = json.loads(res.rendered_content)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(content['certificate'], self.cert['key'])
+
+    @patch('device_registry.ca_helper.sign_csr')
+    @patch('device_registry.ca_helper.get_certificate_expiration_date')
+    def test_renew_expired_invalid_token(self, get_certificate_expiration_date, sign_csr):
+        self.device0.fallback_token = 'invalid'
+
+        week_after = timezone.now() + datetime.timedelta(days=7)
+        sign_csr.return_value = self.cert['key']
+        get_certificate_expiration_date.return_value = week_after
+
+        req = self.make_request()
+        res = renew_expired_cert_view(req)
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(b'"Invalid fallback token."', res.rendered_content)
+
+    @freezegun.freeze_time("2019-04-14")
+    @patch('device_registry.ca_helper.sign_csr')
+    @patch('device_registry.ca_helper.get_certificate_expiration_date')
+    def test_renew_expired_not_expired(self, get_certificate_expiration_date, sign_csr):
+        week_after = timezone.now() + datetime.timedelta(days=7)
+        sign_csr.return_value = self.cert['key']
+        get_certificate_expiration_date.return_value = week_after
+
+        req = self.make_request()
+        res = renew_expired_cert_view(req)
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(b'"Certificate is not expired yet."', res.rendered_content)
