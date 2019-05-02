@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_json_widget',
     'rest_framework',
     'device_registry.apps.DeviceRegistryConfig',
     'profile_page.apps.ProfilePageConfig'

@@ -1,12 +1,20 @@
 import datetime
 from statistics import mean
+import json
 
 from django.conf import settings
 from django.db import models
 from django.db.models import F, Avg
 from django.utils import timezone
-from jsonfield import JSONField
+from django.contrib.postgres.fields import JSONField
 from device_registry import ca_helper
+
+
+class JsonFieldTransitionHelper(JSONField):
+    def from_db_value(self, value, expression, connection, context):
+            if isinstance(value, str):
+                return json.loads(value)
+            return value
 
 
 class Device(models.Model):
