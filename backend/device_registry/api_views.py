@@ -398,14 +398,14 @@ def renew_expired_cert_view(request, format=None):
 
     if device_object.certificate_expires > timezone.now():
         return Response(
-            'Certificate is not expired yet',
+            'Certificate is not expired yet.',
             status=status.HTTP_400_BAD_REQUEST
         )
 
     signed_certificate = ca_helper.sign_csr(csr, device_id)
     if not signed_certificate:
         return Response(
-            'Unknown error',
+            'Unknown error.',
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
