@@ -108,9 +108,6 @@ class APIPingTest(TestCase):
     def setUp(self):
         self.api = APIRequestFactory()
         self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
-        self.scan_info = [
-                {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
-            ]
         self.ping_payload = {
             'device_operating_system_version': 'linux',
             'fqdn': 'test-device0',
@@ -118,8 +115,10 @@ class APIPingTest(TestCase):
             'uptime': '0',
             'distr_id': 'Raspbian',
             'distr_release': '9.4',
-            'scan_info': json.dumps(self.scan_info),
-            'is_firewall': True
+            'scan_info': json.dumps([
+                {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
+            ]),
+            'firewall_enabled': True
         }
         self.ping_headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -160,7 +159,7 @@ class APIPingTest(TestCase):
         mtls_ping_view(request)
         portscan = PortScan.objects.get(device=self.device0)
         scan_info = portscan.scan_info
-        self.assertListEqual(scan_info, self.scan_info)
+        self.assertListEqual(scan_info, scan_info)
 
     def test_ping_distr_info(self):
         request = self.api.post(
@@ -188,12 +187,12 @@ class APIPingTest(TestCase):
             'fqdn': 'test-device0',
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
-            'scan_info': [{
+            'scan_info': json.dumps([{
                 "host": "localhost",
                 "port": 22,
                 "proto": "tcp",
                 "state": "open"
-            }],
+            }]),
             'firewall_enabled': False
         }
         request = self.api.post(
@@ -275,7 +274,7 @@ class DeviceModelTest(TestCase):
             {"host": "localhost", "port": 110, "proto": "tcp", "state": "open"}
         ]
         self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
-        self.portscan1 = PortScan.objects.create(device=self.device0, scan_info=portscan1)
+        self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
 
     def test_get_model(self):
         model = self.device_info0.device_model
@@ -288,11 +287,6 @@ class DeviceModelTest(TestCase):
     def test_get_hardware_type(self):
         hw_type = self.device_info0.get_hardware_type()
         self.assertEqual(hw_type, 'Raspberry Pi')
-
-    def test_latest_portscan(self):
-        latest_portscan = self.device0.get_latest_portscan()
-        scans = set([si['port'] for si in latest_portscan])
-        self.assertSetEqual({80, 110}, scans)
 
     def test_active_inactive(self):
         active_inactive = Device.get_active_inactive(self.user0)
@@ -311,7 +305,7 @@ class DeviceModelTest(TestCase):
     def test_avg_trust_score(self):
         user = self.user0
         avg_score = get_avg_trust_score(user)
-        self.assertEqual(avg_score, 0.7)
+        self.assertEqual(avg_score, (0.6+0.7)/2)
 
     def test_empty_avg_trust_score(self):
         user = self.user1
