@@ -141,3 +141,5 @@ IS_MTLS_API = socket.gethostname().startswith('mtls-api-')
 IS_DASH = socket.gethostname().startswith('dash-')
 
 IS_DEV = False
+
+USE_NATIVE_JSONFIELD = True

@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import jsonfield.fields
+from jsonfield_compat.fields import JSONField
 
 
 class Migration(migrations.Migration):
@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('scan_date', models.DateTimeField(auto_now_add=True)),
-                ('scan_info', jsonfield.fields.JSONField(default=dict)),
+                ('scan_info', JSONField(default=dict)),
                 ('device', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='device_registry.Device')),
             ],
         ),
