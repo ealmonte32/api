@@ -1,4 +1,3 @@
-import json
 import logging
 import uuid
 import re
@@ -6,17 +5,19 @@ import re
 from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
-from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo, FirewallState, PortScan
-from device_registry.serializers import DeviceSerializer
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
-from device_registry.datastore_helper import datastore, datastore_client
+
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
+
+from device_registry import ca_helper
+from device_registry.serializers import DeviceSerializer
+from device_registry.datastore_helper import datastore, datastore_client
+from .models import Device, DeviceInfo, FirewallState, PortScan
 
 
 logger = logging.getLogger(__name__)
@@ -264,6 +265,7 @@ def mtls_ping_view(request, format=None):
             device=device_object
         )
         firewall_state.enabled = request.data.get('firewall_enabled', None)
+        firewall_state.rules = request.data.get('firewall_rules', '')
         firewall_state.save()
         device_object.save()
 
