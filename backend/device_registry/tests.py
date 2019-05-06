@@ -137,7 +137,8 @@ class APIPingTest(TestCase):
         request = self.api.post(
             '/v0.2/ping/',
             self.ping_payload,
-            **self.ping_headers
+            **self.ping_headers,
+            format='json'
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
@@ -146,7 +147,8 @@ class APIPingTest(TestCase):
         request = self.api.post(
             '/v0.2/ping/',
             self.ping_payload,
-            **self.ping_headers
+            **self.ping_headers,
+            format='json'
         )
         devinfo_obj_count_before = DeviceInfo.objects.count()
         portscan_obj_count_before = PortScan.objects.count()
@@ -162,7 +164,8 @@ class APIPingTest(TestCase):
         request = self.api.post(
             '/v0.2/ping/',
             self.ping_payload,
-            **self.ping_headers
+            **self.ping_headers,
+            format='json'
         )
         mtls_ping_view(request)
         portscan = PortScan.objects.get(device=self.device0)
@@ -173,7 +176,8 @@ class APIPingTest(TestCase):
         request = self.api.post(
             '/v0.2/ping/',
             self.ping_payload,
-            **self.ping_headers
+            **self.ping_headers,
+            format='json'
         )
         mtls_ping_view(request)
         self.assertEqual(self.device0.deviceinfo.distr_id, 'Raspbian')
@@ -183,7 +187,8 @@ class APIPingTest(TestCase):
         request = self.api.post(
             '/v0.2/ping/',
             self.ping_payload,
-            **self.ping_headers
+            **self.ping_headers,
+            format='json'
         )
         mtls_ping_view(request)
         firewall_state = FirewallState.objects.get(device=self.device0)
@@ -208,7 +213,8 @@ class APIPingTest(TestCase):
         request = self.api.post(
             '/v0.2/ping/',
             ping_payload,
-            **self.ping_headers
+            **self.ping_headers,
+            format='json'
         )
         mtls_ping_view(request)
         firewall_state = FirewallState.objects.get(device=self.device0)
