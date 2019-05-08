@@ -15,7 +15,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
 from device_registry import ca_helper
-from device_registry.serializers import DeviceSerializer
+from device_registry.serializers import DeviceInfoSerializer
 from device_registry.datastore_helper import datastore, datastore_client
 from .models import Device, DeviceInfo, FirewallState, PortScan
 
@@ -29,8 +29,8 @@ def device_list_view(request, format=None):
     """
     List all of the users devices.
     """
-    devices = Device.objects.filter(owner=request.user)
-    serializer = DeviceSerializer(devices, many=True)
+    infos = DeviceInfo.objects.filter(device__owner=request.user)
+    serializer = DeviceInfoSerializer(infos, many=True)
     return Response(serializer.data)
 
 
