@@ -144,8 +144,11 @@ class DeviceInfo(models.Model):
 
 class PortScan(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
-    scan_date = models.DateTimeField(auto_now_add=True)
+    scan_date = models.DateTimeField(auto_now=True)
     scan_info = JSONField(default=list)
+    netstat = JSONField(default=list)
+    block_ports = JSONField(default=dict)
+    block_networks = JSONField(default=list)
     GOOD_PORTS = [22, 443]
     BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
 
@@ -158,6 +161,25 @@ class PortScan(models.Model):
             if port in PortScan.BAD_PORTS:
                 score -= 0.3
         return max(round(score, 1), 0)
+
+    @property
+    def ports_list(self):
+        out_list = []
+        for port_record in self.scan_info:
+            out_list.append(
+                '%s:%s/%s' % (port_record['host'], port_record['port'], port_record['proto'].upper()))
+        return out_list
+
+    @property
+    def networks_list(self):
+        out_list = []
+        for network_record in self.netstat:
+            out_list.append(
+                'IP:v%s Type:%s Local addr:%s Remote addr:%s Status:%s PID:%s' %
+                (network_record['ip_version'], network_record['type'].upper(),
+                 network_record['local_address'], network_record['remote_address'],
+                 network_record['status'], network_record['pid']))
+        return out_list
 
 
 class FirewallState(models.Model):

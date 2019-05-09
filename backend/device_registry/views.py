@@ -1,12 +1,12 @@
-from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm
-from django.views.generic.list import ListView
-from django.views.generic import View
+from django.views.generic import DetailView
 from django.http import HttpResponse, HttpResponseRedirect
-from device_registry.models import Action, Device, DeviceInfo, FirewallState, PortScan, get_device_list, get_avg_trust_score
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
+
+from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm, PortsForm, NetworksForm
+from device_registry.models import Action, Device, get_device_list, get_avg_trust_score
 from profile_page.forms import ProfileForm
 from profile_page.models import Profile
 
@@ -70,49 +70,50 @@ def claim_device_view(request):
     return render(request, 'claim_device.html', {'form': form})
 
 
-class DeviceDetailView(View):
-    def _render(self, request, pk):
-        device_info = get_object_or_404(
-            DeviceInfo,
-            device__id=pk,
-            device__owner=request.user
-        )
-        portscan = get_object_or_404(
-            PortScan,
-            device__id=pk,
-            device__owner=request.user
-        )
-        firewall_state = get_object_or_404(
-            FirewallState,
-            device__id=pk,
-            device__owner=request.user
-        )
-        device = get_object_or_404(
-            Device,
-            id=pk,
-            owner=request.user
-        )
-        context = {
-            'device_info': device_info,
-            'device': device,
-            'portscan': portscan,
-            'firewall_state': firewall_state
-        }
-        return render(request, 'device_info.html', context)
+class DeviceDetailView(DetailView):
+    model = Device
+    template_name = 'device_info.html'
 
-    def get(self, request, *args, **kwargs):
-        return self._render(request, kwargs['pk'])
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['comment_form'] = DeviceCommentsForm(instance=self.object)
+        context['ports_form'] = PortsForm(open_ports_choices=enumerate(self.object.portscan.ports_list))
+        context['connections_form'] = NetworksForm(
+            open_connections_choices=enumerate(self.object.portscan.networks_list))
+        return context
 
     def post(self, request, *args, **kwargs):
-        if request.method == 'POST':
-            form = DeviceCommentsForm(request.POST)
+        self.object = self.get_object()
+        portscan = self.object.portscan
+        if 'comment' in request.POST:
+            form = DeviceCommentsForm(request.POST, instance=self.object)
             if form.is_valid():
-                device = get_object_or_404(Device, id=kwargs['pk'], owner=request.user)
-                device.comment = form.cleaned_data['comment']
-                device.save()
-
-                return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
-        return self._render(request, kwargs['pk'])
+                form.save()
+        elif 'open_ports' in request.POST:
+            form = PortsForm(request.POST, open_ports_choices=enumerate(portscan.ports_list))
+            if form.is_valid():
+                out_data = {'tcp': [], 'udp': []}
+                for element in form.cleaned_data['open_ports']:
+                    port_record_index = int(element)
+                    port_record = portscan.scan_info[port_record_index]
+                    out_data[port_record['proto']].append(port_record['port'])
+                portscan.block_ports = out_data
+                portscan.save(update_fields=['block_ports'])
+        elif 'open_connections' in request.POST:
+            form = NetworksForm(request.POST, open_connections_choices=enumerate(self.object.portscan.networks_list))
+            if form.is_valid():
+                out_data = []
+                for element in form.cleaned_data['open_connections']:
+                    connection_record_index = int(element)
+                    connection_record = portscan.netstat[connection_record_index]
+                    out_data.append(connection_record['remote_address'])
+                portscan.block_networks = out_data
+                portscan.save(update_fields=['block_networks'])
+        return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
 
 
 def actions_view(request):

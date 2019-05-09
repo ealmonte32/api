@@ -12,7 +12,7 @@
       <h2 style="
       text-overflow: ellipsis;
       overflow: hidden;
-      padding-bottom: 5px">{{ device.device_id }}</h2>
+      padding-bottom: 5px">{{ object.device_id }}</h2>
     </div>
   </div>
   <div class="row">
@@ -41,7 +41,7 @@
               <tbody>
               <tr>
                 <th scope="row">Device ID</th>
-                <td>{{ device.device_id }}</td>
+                <td>{{ object.device_id }}</td>
               </tr>
               <tr>
                 <th scope="row">Trust Score</th>
@@ -49,11 +49,11 @@
               </tr>
               <tr>
                 <th scope="row">Hardware Type</th>
-                <td>{{ device_info.get_hardware_type|default_if_none:'Unknown'}}</td>
+                <td>{{ object.deviceinfo.get_hardware_type|default_if_none:'Unknown'}}</td>
               </tr>
               <tr>
                 <th scope="row">Last Ping</th>
-                <td>{{ device.last_ping | timesince }} ago</td>
+                <td>{{ object.last_ping | timesince }} ago</td>
               </tr>
               <tr>
                 <th scope="row">Comment</th>
@@ -61,10 +61,9 @@
                   <form method="POST" action="">
                     {% csrf_token %}
                     <div class="form-group">
-                      <textarea class="form-control" rows="4" placeholder="Comment"
-                                name="comment">{{ device.comment |default_if_none:'' }}</textarea>
+                      {{ comment_form.comment }}
+                      <button class="btn btn-primary" type="submit">Save</button>
                     </div>
-                    <button class="btn btn-primary" type="submit">Save</button>
                   </form>
                 </td>
               </tr>
@@ -77,11 +76,11 @@
               <tbody>
               <tr>
                 <th scope="row">Operating System</th>
-                <td>{{ device_info.device_operating_system|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_operating_system|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Operating System Version</th>
-                <td>{{ device_info.device_operating_system_version|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_operating_system_version|default_if_none:'N/A' }}</td>
               </tr>
               </tbody>
             </table>
@@ -92,30 +91,48 @@
               <tbody>
               <tr>
                 <th scope="row">Firewall Enabled</th>
-                <td>{{ firewall_state.enabled|default_if_none:'N/A' }}</td>
+                <td>{{ object.firewallstate.enabled|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Firewall Rules</th>
-                <td><pre>{{ firewall_state.beautified_rules }}</pre></td>
+                <td>
+                  <pre>{{ object.firewallstate.beautified_rules }}</pre>
+                </td>
               </tr>
               <tr>
                 <th scope="row">Open Ports</th>
-                <td><ul>
-                {% for scan in portscan.scan_info %}
-                <li>{{ scan.host }}:{{ scan.port}}/{{ scan.proto|upper }}{% empty %}none</li>
-                {% endfor %}
-                </ul></td>
+                <td>
+                  <form method="POST" action="">
+                    {% csrf_token %}
+                    <div class="form-group">
+                      {{ ports_form.open_ports }}
+                      <button class="btn btn-danger btn-sm" type="submit">Block</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Open Connections</th>
+                <td>
+                  <form method="POST" action="">
+                    {% csrf_token %}
+                    <div class="form-group">
+                      {{ connections_form.open_connections }}
+                      <button class="btn btn-danger btn-sm" type="submit">Block</button>
+                    </div>
+                  </form>
+                </td>
               </tr>
               {% if  not is_expired %}
                 <tr>
                   <th scope="row">Download Certificate</th>
                   <td>
-                    <a href="{{ device.get_cert_url }}">{{ device.device_id }}.crt</a>
+                    <a href="{{ object.get_cert_url }}">{{ object.device_id }}.crt</a>
                   </td>
                 </tr>
                 <tr>
                   <th scope="row">Certificate Expires</th>
-                  <td>In {{ device.get_cert_expiration_date|timeuntil }}</td>
+                  <td>In {{ object.get_cert_expiration_date|timeuntil }}</td>
                 </tr>
               {% else %}
                 <tr>
@@ -125,7 +142,7 @@
                 </tr>
                 <tr>
                   <th scope="row">Certificate Expired</th>
-                  <td>On {{ device.get_cert_expiration_date|date:"Y-m-d" }}</td>
+                  <td>On {{ object.get_cert_expiration_date|date:"Y-m-d" }}</td>
                 </tr>
               {% endif %}
               </tbody>
@@ -137,19 +154,19 @@
               <tbody>
               <tr>
                 <th scope="row">Hostname</th>
-                <td>{{ device.device_id|default_if_none:'N/A' }}</td>
+                <td>{{ object.device_id|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">FQDN</th>
-                <td>{{ device_info.fqdn|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">IP</th>
-                <td>{{ device_info.ipv4_address|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.ipv4_address|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Last Heartbeat</th>
-                <td>{{ device.last_ping|timesince }} ago</td>
+                <td>{{ object.last_ping|timesince }} ago</td>
               </tr>
               </tbody>
             </table>
@@ -160,15 +177,15 @@
               <tbody>
               <tr>
                 <th scope="row">Manufacturer</th>
-                <td>{{ device_info.device_manufacturer|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Model</th>
-                <td>{{ device_info.get_model|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Architecture</th>
-                <td>{{ device_info.device_architecture|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A' }}</td>
               </tr>
               </tbody>
             </table>

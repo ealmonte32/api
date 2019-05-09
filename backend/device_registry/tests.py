@@ -1,23 +1,27 @@
 import datetime
 import json
 import uuid
-import freezegun
+from unittest.mock import patch
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.urls import reverse
+from django.test import TestCase, RequestFactory
+
+import freezegun
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
-from device_registry import ca_helper
-from django.contrib.auth.models import User
-from django.utils import timezone
-from django.test import TestCase, RequestFactory
 from rest_framework.test import APIRequestFactory
+
+from device_registry import ca_helper
 from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view
 from .models import Device, DeviceInfo, FirewallState, PortScan, get_avg_trust_score
-from unittest.mock import patch
+from .forms import DeviceCommentsForm, PortsForm, NetworksForm
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -110,6 +114,13 @@ class CsrHelperTests(TestCase):
 TEST_RULES = {'INPUT': [{'src': '15.15.15.50/32', 'target': 'DROP'}, {'src': '15.15.15.51/32', 'target': 'DROP'}],
               'OUTPUT': [], 'FORWARD': []}
 
+OPEN_PORTS_INFO = [{"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}]
+
+OPEN_CONNECTIONS_INFO = [
+    {'ip_version': 4, 'type': 'tcp', 'local_address': '192.168.1.178',
+     'remote_address': '192.168.1.177', 'status': 'open', 'pid': 3425}
+]
+
 
 class APIPingTest(TestCase):
     def setUp(self):
@@ -122,9 +133,8 @@ class APIPingTest(TestCase):
             'uptime': '0',
             'distr_id': 'Raspbian',
             'distr_release': '9.4',
-            'scan_info': [
-                {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}
-            ],
+            'scan_info': OPEN_PORTS_INFO,
+            'netstat': OPEN_CONNECTIONS_INFO,
             'firewall_enabled': True,
             'firewall_rules': TEST_RULES
         }
@@ -142,6 +152,33 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, {'block_ports': {}, 'block_networks': []})
+
+    def test_pong_data(self):
+        # 1st request
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers,
+            format='json'
+        )
+        response = mtls_ping_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, {'block_ports': {}, 'block_networks': []})
+        # 2nd request
+        self.device0.portscan.block_ports = {'tcp': [22], 'udp': []}
+        self.device0.portscan.block_networks = ['192.168.1.177']
+        self.device0.portscan.save(update_fields=['block_ports', 'block_networks'])
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers,
+            format='json'
+        )
+        response = mtls_ping_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, {'block_ports': {'tcp': [22], 'udp': []},
+                                             'block_networks': ['192.168.1.177']})
 
     def test_ping_creates_models(self):
         request = self.api.post(
@@ -170,7 +207,19 @@ class APIPingTest(TestCase):
         mtls_ping_view(request)
         portscan = PortScan.objects.get(device=self.device0)
         scan_info = portscan.scan_info
-        self.assertListEqual(scan_info, scan_info)
+        self.assertListEqual(scan_info, OPEN_PORTS_INFO)
+
+    def test_ping_writes_netstat(self):
+        request = self.api.post(
+            '/v0.2/ping/',
+            self.ping_payload,
+            **self.ping_headers,
+            format='json'
+        )
+        mtls_ping_view(request)
+        portscan = PortScan.objects.get(device=self.device0)
+        netstat = portscan.netstat
+        self.assertListEqual(netstat, OPEN_CONNECTIONS_INFO)
 
     def test_ping_distr_info(self):
         request = self.api.post(
@@ -201,12 +250,8 @@ class APIPingTest(TestCase):
             'fqdn': 'test-device0',
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
-            'scan_info': [{
-                "host": "localhost",
-                "port": 22,
-                "proto": "tcp",
-                "state": "open"
-            }],
+            'scan_info': OPEN_PORTS_INFO,
+            'netstat': OPEN_CONNECTIONS_INFO,
             'firewall_enabled': False,
             'firewall_rules': {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
         }
@@ -245,6 +290,7 @@ czUUClEc0OJDMw8PsHyYvrl+jk0JFXgDqBgAutPzSiC+pWL3H/5DO8t/NcccNNlR
 
 class DeviceModelTest(TestCase):
     def setUp(self):
+        User = get_user_model()
         self.user0 = User.objects.create_user('test')
         self.user1 = User.objects.create_user('test-no-device')
         week_ago = timezone.now() - datetime.timedelta(days=7)
@@ -332,6 +378,7 @@ class DeviceModelTest(TestCase):
 
 class ClaimLinkTest(TestCase):
     def setUp(self):
+        User = get_user_model()
         self.api = RequestFactory()
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
@@ -358,6 +405,7 @@ class ClaimLinkTest(TestCase):
 
 class CertTest(TestCase):
     def setUp(self):
+        User = get_user_model()
         id = 'foobar.{}'.format(settings.COMMON_NAME_PREFIX)
         self.api = RequestFactory()
         self.fallback_token = uuid.uuid4()
@@ -431,3 +479,69 @@ class CertTest(TestCase):
         res = renew_expired_cert_view(req)
         self.assertEqual(res.status_code, 400)
         self.assertEqual(b'"Certificate is not expired yet."', res.rendered_content)
+
+
+class FormsTests(TestCase):
+    def setUp(self):
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local')
+        self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
+                                                netstat=OPEN_CONNECTIONS_INFO)
+
+    def test_device_comments_form(self):
+        form_data = {'comment': 'Test comment'}
+        form = DeviceCommentsForm(data=form_data, instance=self.device)
+        self.assertTrue(form.is_valid())
+
+    def test_ports_form(self):
+        form_data = {'open_ports': ['0']}
+        form = PortsForm(data=form_data, open_ports_choices=enumerate(self.portscan.ports_list))
+        self.assertTrue(form.is_valid())
+
+    def test_networks_form(self):
+        form_data = {'open_connections': ['0']}
+        form = NetworksForm(data=form_data, open_connections_choices=enumerate(self.portscan.networks_list))
+        self.assertTrue(form.is_valid())
+
+
+class DeviceDetailViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
+                                            certificate=TEST_CERT)
+        self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
+                                                netstat=OPEN_CONNECTIONS_INFO)
+        self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
+
+    def test_get(self):
+        """
+        If no questions exist, an appropriate message is displayed.
+        """
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Device Profile')
+
+    def test_comment(self):
+        self.client.login(username='test', password='123')
+        form_data = {'comment': 'Test comment'}
+        self.client.post(self.url, form_data)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test comment')
+
+    def test_open_ports(self):
+        self.client.login(username='test', password='123')
+        form_data = {'open_ports': ['0']}
+        self.client.post(self.url, form_data)
+        portscan = PortScan.objects.get(pk=self.portscan.pk)
+        self.assertDictEqual(portscan.block_ports, {'tcp': [22], 'udp': []})
+
+    def test_open_connections(self):
+        self.client.login(username='test', password='123')
+        form_data = {'open_connections': ['0']}
+        self.client.post(self.url, form_data)
+        portscan = PortScan.objects.get(pk=self.portscan.pk)
+        self.assertListEqual(portscan.block_networks, ['192.168.1.177'])

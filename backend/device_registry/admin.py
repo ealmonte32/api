@@ -38,11 +38,7 @@ class DeviceInfoAdmin(admin.ModelAdmin):
 
 @admin.register(PortScan)
 class PortscanAdmin(admin.ModelAdmin):
-    list_display = [
-        'device',
-        'scan_date',
-        'scan_info'
-    ]
+    list_display = ['device', 'scan_date']
 
     formfield_overrides = {
         JSONField: {'widget': JSONEditorWidget},
