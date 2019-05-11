@@ -10,3 +10,5 @@ DATABASES = {
 }
 
 COMMON_NAME_PREFIX = 'd.wott-dev.local'
+
+IS_DASH = True

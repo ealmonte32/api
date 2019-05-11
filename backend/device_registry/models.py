@@ -145,9 +145,9 @@ class DeviceInfo(models.Model):
 class PortScan(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now=True)
-    scan_info = JSONField(default=list)
-    netstat = JSONField(default=list)
-    block_ports = JSONField(default=dict)
+    scan_info = JSONField(default=list)  # Ports open for incoming connection to.
+    netstat = JSONField(default=list)  # Currently open network connections.
+    block_ports = JSONField(default=list)
     block_networks = JSONField(default=list)
     GOOD_PORTS = [22, 443]
     BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
@@ -162,24 +162,73 @@ class PortScan(models.Model):
                 score -= 0.3
         return max(round(score, 1), 0)
 
-    @property
-    def ports_list(self):
-        out_list = []
+    def ports_form_data(self):
+        """
+        Build 3 lists:
+        1) list of choices for the ports form:
+         [[0, '192.168.1.178:22/TCP'], [0, '192.168.1.178:33/UDP']]
+        2) list of initial values for the ports form:
+         [0, 1]
+        3) list of choices for saving to the block list:
+         [['192.168.1.178', 22, 'tcp'], ['192.168.1.178', 33, 'udp']]
+        """
+        initial_data = []
+        choices_data = []
+        ports_data = []
+        port_record_index = 0
+        # 1st - take ports from the block list.
+        for port_record in self.block_ports:
+            choices_data.append((port_record_index, '%s:%s/%s' % (
+                port_record[0], port_record[1], port_record[2].upper())))
+            ports_data.append(port_record)
+            initial_data.append(port_record_index)
+            port_record_index += 1
+        # 2nd - take ports from the open ports list (only the ones missing in the block list).
         for port_record in self.scan_info:
-            out_list.append(
-                '%s:%s/%s' % (port_record['host'], port_record['port'], port_record['proto'].upper()))
-        return out_list
+            if [port_record['host'], port_record['port'], port_record['proto']] not in self.block_ports:
+                choices_data.append((port_record_index, '%s:%s/%s' % (
+                    port_record['host'], port_record['port'], port_record['proto'].upper())))
+                ports_data.append([port_record['host'], port_record['port'], port_record['proto']])
+                port_record_index += 1
+        return choices_data, initial_data, ports_data
 
-    @property
-    def networks_list(self):
-        out_list = []
-        for network_record in self.netstat:
-            out_list.append(
-                'IP:v%s Type:%s Local addr:%s Remote addr:%s Status:%s PID:%s' %
-                (network_record['ip_version'], network_record['type'].upper(),
-                 network_record['local_address'], network_record['remote_address'],
-                 network_record['status'], network_record['pid']))
-        return out_list
+    def connections_form_data(self):
+        """
+        Build 3 lists:
+        1) list of choices for the open connections form:
+         [[0, 'IP:v4 Type:TCP Local addr:192.168.1.178 Remote addr:192.168.1.20 Status:open PID:3425']]
+        2) list of initial values for the open connections form:
+         [0]
+        3) list of choices for saving to the block list:
+         ['192.168.1.20']
+        """
+        initial_data = []
+        choices_data = []
+        connections_data = []
+        connection_record_index = 0
+        unique_addresses = set()
+
+        # 1st - take addresses from the block list.
+        for connection_record in self.block_networks:
+            if connection_record not in unique_addresses:
+                unique_addresses.add(connection_record)
+                choices_data.append((connection_record_index, 'Remote addr:%s' % connection_record))
+                connections_data.append(connection_record)
+                initial_data.append(connection_record_index)
+                connection_record_index += 1
+
+        # 2nd - take addresses from the open connections list (only the ones missing in the block list).
+        for connection_record in self.netstat:
+            if connection_record['remote_address'] not in unique_addresses:
+                unique_addresses.add(connection_record['remote_address'])
+                choices_data.append((
+                    connection_record_index, 'IP:v%s Type:%s Local addr:%s Remote addr:%s Status:%s PID:%s' %
+                    (connection_record['ip_version'], connection_record['type'].upper(),
+                     connection_record['local_address'], connection_record['remote_address'],
+                     connection_record['status'], connection_record['pid'])))
+                connections_data.append(connection_record['remote_address'])
+                connection_record_index += 1
+        return choices_data, initial_data, connections_data
 
 
 class FirewallState(models.Model):

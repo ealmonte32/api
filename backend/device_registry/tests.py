@@ -21,7 +21,7 @@ from rest_framework.test import APIRequestFactory
 from device_registry import ca_helper
 from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view
 from .models import Device, DeviceInfo, FirewallState, PortScan, get_avg_trust_score
-from .forms import DeviceCommentsForm, PortsForm, NetworksForm
+from .forms import DeviceCommentsForm, PortsForm, ConnectionsForm
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -31,11 +31,11 @@ def generate_cert(common_name=None, subject_alt_name=None):
     builder = x509.CertificateSigningRequestBuilder()
 
     builder = builder.subject_name(x509.Name([
-                x509.NameAttribute(NameOID.COMMON_NAME, u'{}'.format(common_name)),
-                x509.NameAttribute(NameOID.COUNTRY_NAME, u'UK'),
-                x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u'London'),
-                x509.NameAttribute(NameOID.ORGANIZATION_NAME, u'Web of Trusted Things'),
-            ]))
+        x509.NameAttribute(NameOID.COMMON_NAME, u'{}'.format(common_name)),
+        x509.NameAttribute(NameOID.COUNTRY_NAME, u'UK'),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u'London'),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u'Web of Trusted Things'),
+    ]))
 
     if subject_alt_name:
         builder = builder.add_extension(
@@ -114,7 +114,7 @@ class CsrHelperTests(TestCase):
 TEST_RULES = {'INPUT': [{'src': '15.15.15.50/32', 'target': 'DROP'}, {'src': '15.15.15.51/32', 'target': 'DROP'}],
               'OUTPUT': [], 'FORWARD': []}
 
-OPEN_PORTS_INFO = [{"host": "localhost", "port": 22, "proto": "tcp", "state": "open"}]
+OPEN_PORTS_INFO = [{"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open"}]
 
 OPEN_CONNECTIONS_INFO = [
     {'ip_version': 4, 'type': 'tcp', 'local_address': '192.168.1.178',
@@ -152,7 +152,7 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': {}, 'block_networks': []})
+        self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
 
     def test_pong_data(self):
         # 1st request
@@ -164,9 +164,9 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': {}, 'block_networks': []})
+        self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
         # 2nd request
-        self.device0.portscan.block_ports = {'tcp': [22], 'udp': []}
+        self.device0.portscan.block_ports = [['192.168.1.178', 22, 'tcp']]
         self.device0.portscan.block_networks = ['192.168.1.177']
         self.device0.portscan.save(update_fields=['block_ports', 'block_networks'])
         request = self.api.post(
@@ -177,8 +177,8 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': {'tcp': [22], 'udp': []},
-                                             'block_networks': ['192.168.1.177']})
+        self.assertDictEqual(response.data, {'block_ports': [['192.168.1.178', 22, 'tcp']],
+                                             'block_networks': ['192.168.1.177'] + settings.SPAM_NETWORKS})
 
     def test_ping_creates_models(self):
         request = self.api.post(
@@ -329,12 +329,12 @@ class DeviceModelTest(TestCase):
             trust_score=0.8
         )
         portscan0 = [
-            {"host": "localhost", "port": 22, "proto": "tcp", "state": "open"},
-            {"host": "localhost", "port": 25, "proto": "tcp", "state": "open"}
+            {"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open"},
+            {"host": "192.168.1.178", "port": 25, "proto": "tcp", "state": "open"}
         ]
         portscan1 = [
-            {"host": "localhost", "port": 80, "proto": "tcp", "state": "open"},
-            {"host": "localhost", "port": 110, "proto": "tcp", "state": "open"}
+            {"host": "192.168.1.178", "port": 80, "proto": "tcp", "state": "open"},
+            {"host": "192.168.1.178", "port": 110, "proto": "tcp", "state": "open"}
         ]
         self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
         self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
@@ -368,7 +368,7 @@ class DeviceModelTest(TestCase):
     def test_avg_trust_score(self):
         user = self.user0
         avg_score = get_avg_trust_score(user)
-        self.assertEqual(avg_score, (0.6+0.7)/2)
+        self.assertEqual(avg_score, (0.6 + 0.7) / 2)
 
     def test_empty_avg_trust_score(self):
         user = self.user1
@@ -387,7 +387,8 @@ class ClaimLinkTest(TestCase):
         self.user0 = User.objects.create_user('test')
 
     def test_claim_get_view(self):
-        request = self.api.get(f'/api/v0.2/claim-device/?device-id={self.device0.device_id}&claim-token={self.device0.claim_token}')
+        request = self.api.get(
+            f'/api/v0.2/claim-device/?device-id={self.device0.device_id}&claim-token={self.device0.claim_token}')
         request.user = self.user0
         self.assertFalse(self.device0.claimed())
         response = claim_by_link(request)
@@ -488,18 +489,20 @@ class FormsTests(TestCase):
                                                 netstat=OPEN_CONNECTIONS_INFO)
 
     def test_device_comments_form(self):
-        form_data = {'comment': 'Test comment'}
+        form_data = {'is_comments_form': 'true', 'comment': 'Test comment'}
         form = DeviceCommentsForm(data=form_data, instance=self.device)
         self.assertTrue(form.is_valid())
 
     def test_ports_form(self):
-        form_data = {'open_ports': ['0']}
-        form = PortsForm(data=form_data, open_ports_choices=enumerate(self.portscan.ports_list))
+        ports_form_data = self.portscan.ports_form_data()
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0']}
+        form = PortsForm(data=form_data, open_ports_choices=ports_form_data[0])
         self.assertTrue(form.is_valid())
 
     def test_networks_form(self):
-        form_data = {'open_connections': ['0']}
-        form = NetworksForm(data=form_data, open_connections_choices=enumerate(self.portscan.networks_list))
+        connections_form_data = self.portscan.connections_form_data()
+        form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
+        form = ConnectionsForm(data=form_data, open_connections_choices=connections_form_data[0])
         self.assertTrue(form.is_valid())
 
 
@@ -526,7 +529,7 @@ class DeviceDetailViewTests(TestCase):
 
     def test_comment(self):
         self.client.login(username='test', password='123')
-        form_data = {'comment': 'Test comment'}
+        form_data = {'is_comments_form': 'true', 'comment': 'Test comment'}
         self.client.post(self.url, form_data)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -534,14 +537,14 @@ class DeviceDetailViewTests(TestCase):
 
     def test_open_ports(self):
         self.client.login(username='test', password='123')
-        form_data = {'open_ports': ['0']}
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0']}
         self.client.post(self.url, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
-        self.assertDictEqual(portscan.block_ports, {'tcp': [22], 'udp': []})
+        self.assertListEqual(portscan.block_ports, [['192.168.1.178', 22, 'tcp']])
 
     def test_open_connections(self):
         self.client.login(username='test', password='123')
-        form_data = {'open_connections': ['0']}
+        form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
         self.client.post(self.url, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_networks, ['192.168.1.177'])

@@ -9,14 +9,19 @@ class ClaimDeviceForm(forms.Form):
 
 
 class DeviceCommentsForm(forms.ModelForm):
+    is_comments_form = forms.CharField(widget=forms.HiddenInput, initial='true')
+
     class Meta:
         model = Device
         fields = ['comment']
-        widgets = {'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Comment'})}
+        widgets = {'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Comment', 'class': 'form-control'})}
 
 
 class PortsForm(forms.Form):
-    open_ports = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple)
+    open_ports = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'list-unstyled'}))
+    is_ports_form = forms.CharField(widget=forms.HiddenInput, initial='true')
 
     def __init__(self, *args, **kwargs):
         open_ports_choices = kwargs.pop('open_ports_choices')
@@ -24,8 +29,11 @@ class PortsForm(forms.Form):
         self.fields['open_ports'].choices = open_ports_choices
 
 
-class NetworksForm(forms.Form):
-    open_connections = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple)
+class ConnectionsForm(forms.Form):
+    open_connections = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'list-unstyled'}))
+    is_connections_form = forms.CharField(widget=forms.HiddenInput, initial='true')
 
     def __init__(self, *args, **kwargs):
         open_connections_choices = kwargs.pop('open_connections_choices')

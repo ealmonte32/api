@@ -258,10 +258,8 @@ def mtls_ping_view(request, format=None):
         portscan_object, _ = PortScan.objects.get_or_create(device=device_object)
         portscan_object.scan_info = request.data.get('scan_info', [])
         portscan_object.netstat = request.data.get('netstat', [])
-        block_ports = portscan_object.block_ports
-        portscan_object.block_ports = []
         block_networks = portscan_object.block_networks
-        portscan_object.block_networks = []
+        block_networks.extend(settings.SPAM_NETWORKS)
         portscan_object.save()
         firewall_state, _ = FirewallState.objects.get_or_create(device=device_object)
         firewall_state.enabled = request.data.get('firewall_enabled', None)
@@ -278,7 +276,7 @@ def mtls_ping_view(request, format=None):
             entity['last_ping'] = timezone.now()
             datastore_client.put(entity)
 
-        return Response({'block_ports': block_ports, 'block_networks': block_networks})
+        return Response({'block_ports': portscan_object.block_ports, 'block_networks': block_networks})
 
 
 @api_view(['GET'])

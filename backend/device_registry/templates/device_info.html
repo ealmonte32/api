@@ -62,6 +62,7 @@
                     {% csrf_token %}
                     <div class="form-group">
                       {{ comment_form.comment }}
+                      {{ comment_form.is_comments_form }}
                       <button class="btn btn-primary" type="submit">Save</button>
                     </div>
                   </form>
@@ -102,25 +103,57 @@
               <tr>
                 <th scope="row">Open Ports</th>
                 <td>
-                  <form method="POST" action="">
-                    {% csrf_token %}
-                    <div class="form-group">
-                      {{ ports_form.open_ports }}
-                      <button class="btn btn-danger btn-sm" type="submit">Block</button>
-                    </div>
-                  </form>
+                  {% if ports_choices %}
+                    <form method="POST" action="">
+                      {% csrf_token %}
+                      <div class="form-group">
+                        <table class="table table-borderless table-sm">
+                          <thead class="thead-light">
+                          <tr>
+                            <th scope="col">Blocked</th>
+                            <th scope="col">Details</th>
+                          </tr>
+                          </thead>
+                          {% for checkbox in ports_form.open_ports %}
+                            <tr>
+                              <td>{{ checkbox.tag }}</td>
+                              <td>{{ checkbox.choice_label }}</td>
+                            </tr>
+                          {% endfor %}
+                        </table>
+                        {{ ports_form.is_ports_form }}
+                        <button class="btn btn-danger btn-sm" type="submit">Apply</button>
+                      </div>
+                    </form>
+                  {% endif %}
                 </td>
               </tr>
               <tr>
                 <th scope="row">Open Connections</th>
                 <td>
-                  <form method="POST" action="">
-                    {% csrf_token %}
-                    <div class="form-group">
-                      {{ connections_form.open_connections }}
-                      <button class="btn btn-danger btn-sm" type="submit">Block</button>
-                    </div>
-                  </form>
+                  {% if connections_choices %}
+                    <form method="POST" action="">
+                      {% csrf_token %}
+                      <div class="form-group">
+                        <table class="table table-borderless table-sm">
+                          <thead class="thead-light">
+                          <tr>
+                            <th scope="col">Blocked</th>
+                            <th scope="col">Details</th>
+                          </tr>
+                          </thead>
+                          {% for checkbox in connections_form.open_connections %}
+                            <tr>
+                              <td>{{ checkbox.tag }}</td>
+                              <td>{{ checkbox.choice_label }}</td>
+                            </tr>
+                          {% endfor %}
+                        </table>
+                        {{ connections_form.is_connections_form }}
+                        <button class="btn btn-danger btn-sm" type="submit">Apply</button>
+                      </div>
+                    </form>
+                  {% endif %}
                 </td>
               </tr>
               {% if  not is_expired %}
