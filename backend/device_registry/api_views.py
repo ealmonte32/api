@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 import re
@@ -256,17 +257,26 @@ def mtls_ping_view(request, format=None):
         device_info_object.distr_id = request.data.get('distr_id', None)
         device_info_object.distr_release = request.data.get('distr_release', None)
         device_info_object.save()
+
         portscan_object, created = PortScan.objects.update_or_create(
             device=device_object,
         )
-        portscan_object.scan_info=request.data.get('scan_info')
+        scan_info = request.data.get('scan_info', None)
+        if isinstance(scan_info, str):
+            scan_info = json.loads(scan_info)
+        portscan_object.scan_info = scan_info
         portscan_object.save()
         firewall_state, created = FirewallState.objects.update_or_create(
             device=device_object
         )
+
         firewall_state.enabled = request.data.get('firewall_enabled', None)
-        firewall_state.rules = request.data.get('firewall_rules', '')
+        firewall_rules = request.data.get('firewall_rules')
+        if isinstance(firewall_rules, str):
+            firewall_rules = json.loads(scan_info)
+        firewall_state.rules = firewall_rules
         firewall_state.save()
+
         device_object.save()
 
         if datastore_client:
