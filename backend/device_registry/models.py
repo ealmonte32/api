@@ -168,7 +168,7 @@ class FirewallState(models.Model):
 
     @property
     def beautified_rules(self):
-        return yaml.dump(self.rules)
+        return yaml.dump(self.rules) if self.rules else "none"
 
 
 # Temporary POJO to showcase recommended actions template.
