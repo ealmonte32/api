@@ -93,6 +93,8 @@ class DeviceInfo(models.Model):
         null=True,
         blank=True
     )
+    selinux_state = JSONField(default=dict)
+    app_armor_enabled = models.BooleanField(null=True, blank=True)
 
     # We need this for the YC demo.
     detected_mirai = models.BooleanField(default=False, blank=True)

@@ -33,7 +33,13 @@ class DeviceInfoAdmin(admin.ModelAdmin):
         'device_architecture',
         'device_operating_system',
         'device_operating_system_version',
+        'selinux_state',
+        'app_armor_enabled'
     ]
+
+    formfield_overrides = {
+        JSONField: {'widget': JSONEditorWidget},
+    }
 
 
 @admin.register(PortScan)
