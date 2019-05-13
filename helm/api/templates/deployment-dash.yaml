@@ -45,6 +45,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
                   key: databasePassword
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: sentryDsn
           livenessProbe:
             httpGet:
               path: /healthz
