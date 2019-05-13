@@ -8,6 +8,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from jsonfield_compat.fields import JSONField
+import yaml
 
 from device_registry import ca_helper
 
@@ -167,7 +168,7 @@ class FirewallState(models.Model):
 
     @property
     def beautified_rules(self):
-        return json.dumps(self.rules, indent=4)
+        return yaml.dump(self.rules) if self.rules else "none"
 
 
 # Temporary POJO to showcase recommended actions template.
