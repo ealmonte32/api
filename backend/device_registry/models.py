@@ -179,16 +179,16 @@ class PortScan(models.Model):
         # 1st - take ports from the block list.
         for port_record in self.block_ports:
             choices_data.append((port_record_index, '%s:%s/%s' % (
-                port_record[0], port_record[1], port_record[2].upper())))
+                port_record[0], port_record[2], port_record[1].upper())))
             ports_data.append(port_record)
             initial_data.append(port_record_index)
             port_record_index += 1
         # 2nd - take ports from the open ports list (only the ones missing in the block list).
         for port_record in self.scan_info:
-            if [port_record['host'], port_record['port'], port_record['proto']] not in self.block_ports:
+            if [port_record['host'], port_record['proto'], port_record['port']] not in self.block_ports:
                 choices_data.append((port_record_index, '%s:%s/%s' % (
                     port_record['host'], port_record['port'], port_record['proto'].upper())))
-                ports_data.append([port_record['host'], port_record['port'], port_record['proto']])
+                ports_data.append([port_record['host'], port_record['proto'], port_record['port']])
                 port_record_index += 1
         return choices_data, initial_data, ports_data
 

@@ -166,7 +166,7 @@ class APIPingTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
         # 2nd request
-        self.device0.portscan.block_ports = [['192.168.1.178', 22, 'tcp']]
+        self.device0.portscan.block_ports = [['192.168.1.178', 'tcp', 22]]
         self.device0.portscan.block_networks = ['192.168.1.177']
         self.device0.portscan.save(update_fields=['block_ports', 'block_networks'])
         request = self.api.post(
@@ -177,7 +177,7 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': [['192.168.1.178', 22, 'tcp']],
+        self.assertDictEqual(response.data, {'block_ports': [['192.168.1.178', 'tcp', 22]],
                                              'block_networks': ['192.168.1.177'] + settings.SPAM_NETWORKS})
 
     def test_ping_creates_models(self):
@@ -540,7 +540,7 @@ class DeviceDetailViewTests(TestCase):
         form_data = {'is_ports_form': 'true', 'open_ports': ['0']}
         self.client.post(self.url, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
-        self.assertListEqual(portscan.block_ports, [['192.168.1.178', 22, 'tcp']])
+        self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22]])
 
     def test_open_connections(self):
         self.client.login(username='test', password='123')
