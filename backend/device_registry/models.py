@@ -219,14 +219,15 @@ class PortScan(models.Model):
 
         # 2nd - take addresses from the open connections list (only the ones missing in the block list).
         for connection_record in self.netstat:
-            if connection_record['remote_address'] not in unique_addresses:
-                unique_addresses.add(connection_record['remote_address'])
+            if connection_record['remote_address'][0] not in unique_addresses:
+                unique_addresses.add(connection_record['remote_address'][0])
                 choices_data.append((
-                    connection_record_index, 'IP:v%s Type:%s Local addr:%s Remote addr:%s Status:%s PID:%s' %
+                    connection_record_index, 'IP:v%s Type:%s Local addr:%s:%d Remote addr:%s:%d Status:%s PID:%s' %
                     (connection_record['ip_version'], connection_record['type'].upper(),
-                     connection_record['local_address'], connection_record['remote_address'],
+                     connection_record['local_address'][0], connection_record['local_address'][1],
+                     connection_record['remote_address'][0], connection_record['remote_address'][1],
                      connection_record['status'], connection_record['pid'])))
-                connections_data.append(connection_record['remote_address'])
+                connections_data.append(connection_record['remote_address'][0])
                 connection_record_index += 1
         return choices_data, initial_data, connections_data
 

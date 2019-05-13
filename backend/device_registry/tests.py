@@ -117,8 +117,8 @@ TEST_RULES = {'INPUT': [{'src': '15.15.15.50/32', 'target': 'DROP'}, {'src': '15
 OPEN_PORTS_INFO = [{"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open"}]
 
 OPEN_CONNECTIONS_INFO = [
-    {'ip_version': 4, 'type': 'tcp', 'local_address': '192.168.1.178',
-     'remote_address': '192.168.1.177', 'status': 'open', 'pid': 3425}
+    {'ip_version': 4, 'type': 'tcp', 'local_address': ['192.168.1.178', 4567],
+     'remote_address': ['192.168.1.177', 5678], 'status': 'open', 'pid': 3425}
 ]
 
 
