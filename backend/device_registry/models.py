@@ -94,6 +94,7 @@ class DeviceInfo(models.Model):
         null=True,
         blank=True
     )
+    logins = JSONField(default=dict)
 
     # We need this for the YC demo.
     detected_mirai = models.BooleanField(default=False, blank=True)
@@ -141,6 +142,15 @@ class DeviceInfo(models.Model):
         if self.device_manufacturer == 'Raspberry Pi':
             return 'Raspberry Pi'
 
+    @property
+    def beautified_logins(self):
+        if self.logins:
+            l = self.logins
+            if '' in l.keys():
+                l['<unknown>'] = self.logins['']
+                del(l[''])
+            return yaml.dump(l)
+        return "none"
 
 class PortScan(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)

@@ -255,6 +255,7 @@ def mtls_ping_view(request, format=None):
         device_info_object.device_model = request.data.get('device_model')
         device_info_object.distr_id = request.data.get('distr_id', None)
         device_info_object.distr_release = request.data.get('distr_release', None)
+        device_info_object.logins = request.data.get('logins', {})
         device_info_object.save()
         portscan_object, created = PortScan.objects.update_or_create(
             device=device_object,
