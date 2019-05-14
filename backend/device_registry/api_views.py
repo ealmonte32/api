@@ -256,7 +256,7 @@ def mtls_ping_view(request, format=None):
         device_info_object.distr_id = request.data.get('distr_id', None)
         device_info_object.distr_release = request.data.get('distr_release', None)
         device_info_object.selinux_state = request.data.get('selinux_status', {})
-        device_info_object.app_armor_enabled = request.data.get('app_armor_enabled', False)
+        device_info_object.app_armor_enabled = request.data.get('app_armor_enabled', None)
         device_info_object.save()
         portscan_object, created = PortScan.objects.update_or_create(
             device=device_object,
