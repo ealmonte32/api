@@ -94,6 +94,8 @@ class DeviceInfo(models.Model):
         null=True,
         blank=True
     )
+    selinux_state = JSONField(default=dict)
+    app_armor_enabled = models.BooleanField(null=True, blank=True)
     logins = JSONField(default=dict)
 
     # We need this for the YC demo.
