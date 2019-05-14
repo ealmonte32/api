@@ -9,6 +9,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend ./
+COPY ./misc /usr/src/misc
 
 ENV DJANGO_SETTINGS_MODULE backend.settings.prod
 
