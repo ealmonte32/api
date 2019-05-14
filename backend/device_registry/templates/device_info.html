@@ -1,4 +1,5 @@
 {% extends "admin_base.html" %}
+{% load split_string %}
 
 {% block title %}WoTT - Device Info{% endblock title %}
 
@@ -107,20 +108,26 @@
                     <form method="POST" action="">
                       {% csrf_token %}
                       <div class="form-group">
-                        <table class="table table-borderless table-sm">
-                          <thead class="thead-light">
-                          <tr>
-                            <th scope="col">Blocked</th>
-                            <th scope="col">Details</th>
-                          </tr>
-                          </thead>
-                          {% for checkbox in ports_form.open_ports %}
+                        <div class="table-responsive">
+                          <table class="table table-borderless table-sm">
+                            <thead class="thead-light">
                             <tr>
-                              <td>{{ checkbox.tag }}</td>
-                              <td>{{ checkbox.choice_label }}</td>
+                              <th scope="col" width="5%">Blocked</th>
+                              <th scope="col">Address</th>
+                              <th scope="col">Port</th>
+                              <th scope="col">Proto</th>
                             </tr>
-                          {% endfor %}
-                        </table>
+                            </thead>
+                            {% for checkbox in ports_form.open_ports %}
+                              <tr>
+                                <td>{{ checkbox.tag }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,0" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,1" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,2" }}</td>
+                              </tr>
+                            {% endfor %}
+                          </table>
+                        </div>
                         {{ ports_form.is_ports_form }}
                         <button class="btn btn-danger btn-sm" type="submit">Apply</button>
                       </div>
@@ -135,20 +142,36 @@
                     <form method="POST" action="">
                       {% csrf_token %}
                       <div class="form-group">
-                        <table class="table table-borderless table-sm">
-                          <thead class="thead-light">
-                          <tr>
-                            <th scope="col">Blocked</th>
-                            <th scope="col">Details</th>
-                          </tr>
-                          </thead>
-                          {% for checkbox in connections_form.open_connections %}
+                        <div class="table-responsive">
+                          <table class="table table-borderless table-sm">
+                            <thead class="thead-light">
                             <tr>
-                              <td>{{ checkbox.tag }}</td>
-                              <td>{{ checkbox.choice_label }}</td>
+                              <th scope="col" width="5%">Blocked</th>
+                              <th scope="col">Rem addr</th>
+                              <th scope="col">Rem port</th>
+                              <th scope="col">Loc addr</th>
+                              <th scope="col">Loc port</th>
+                              <th scope="col">IP</th>
+                              <th scope="col">Type</th>
+                              <th scope="col">Status</th>
+                              <th scope="col">PID</th>
                             </tr>
-                          {% endfor %}
-                        </table>
+                            </thead>
+                            {% for checkbox in connections_form.open_connections %}
+                              <tr>
+                                <td>{{ checkbox.tag }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,0" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,1" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,2" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,3" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,4" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,5" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,6" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,7" }}</td>
+                              </tr>
+                            {% endfor %}
+                          </table>
+                        </div>
                         {{ connections_form.is_connections_form }}
                         <button class="btn btn-danger btn-sm" type="submit">Apply</button>
                       </div>

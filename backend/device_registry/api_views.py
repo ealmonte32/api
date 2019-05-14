@@ -263,7 +263,7 @@ def mtls_ping_view(request, format=None):
         portscan_object.save()
         firewall_state, _ = FirewallState.objects.get_or_create(device=device_object)
         firewall_state.enabled = request.data.get('firewall_enabled', None)
-        firewall_state.rules = request.data.get('firewall_rules', '')
+        firewall_state.rules = request.data.get('firewall_rules', {})
         firewall_state.save()
         device_object.save(update_fields=['last_ping'])
 

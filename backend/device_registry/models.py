@@ -165,8 +165,9 @@ class PortScan(models.Model):
     def ports_form_data(self):
         """
         Build 3 lists:
-        1) list of choices for the ports form:
-         [[0, '192.168.1.178:22/TCP'], [0, '192.168.1.178:33/UDP']]
+        1) list of choices for the ports form
+         (gonna be split in a template by '/' separator):
+         [[0, '192.168.1.178/22/TCP'], [0, '192.168.1.178/33/UDP']]
         2) list of initial values for the ports form:
          [0, 1]
         3) list of choices for saving to the block list:
@@ -178,7 +179,7 @@ class PortScan(models.Model):
         port_record_index = 0
         # 1st - take ports from the block list.
         for port_record in self.block_ports:
-            choices_data.append((port_record_index, '%s:%s/%s' % (
+            choices_data.append((port_record_index, '%s/%s/%s' % (
                 port_record[0], port_record[2], port_record[1].upper())))
             ports_data.append(port_record)
             initial_data.append(port_record_index)
@@ -186,7 +187,7 @@ class PortScan(models.Model):
         # 2nd - take ports from the open ports list (only the ones missing in the block list).
         for port_record in self.scan_info:
             if [port_record['host'], port_record['proto'], port_record['port']] not in self.block_ports:
-                choices_data.append((port_record_index, '%s:%s/%s' % (
+                choices_data.append((port_record_index, '%s/%s/%s' % (
                     port_record['host'], port_record['port'], port_record['proto'].upper())))
                 ports_data.append([port_record['host'], port_record['proto'], port_record['port']])
                 port_record_index += 1
@@ -195,8 +196,9 @@ class PortScan(models.Model):
     def connections_form_data(self):
         """
         Build 3 lists:
-        1) list of choices for the open connections form:
-         [[0, 'IP:v4 Type:TCP Local addr:192.168.1.178 Remote addr:192.168.1.20 Status:open PID:3425']]
+        1) list of choices for the open connections form
+         (gonna be split in a template by '/' separator)::
+         [[0, '192.168.1.20/4567/192.168.1.178/80/v4/TCP/open/3425']]
         2) list of initial values for the open connections form:
          [0]
         3) list of choices for saving to the block list:
@@ -212,7 +214,7 @@ class PortScan(models.Model):
         for connection_record in self.block_networks:
             if connection_record not in unique_addresses:
                 unique_addresses.add(connection_record)
-                choices_data.append((connection_record_index, 'Remote addr:%s' % connection_record))
+                choices_data.append((connection_record_index, '%s////v4///' % connection_record))
                 connections_data.append(connection_record)
                 initial_data.append(connection_record_index)
                 connection_record_index += 1
@@ -222,11 +224,11 @@ class PortScan(models.Model):
             if connection_record['remote_address'] and connection_record['remote_address'][0] not in unique_addresses:
                 unique_addresses.add(connection_record['remote_address'][0])
                 choices_data.append((
-                    connection_record_index, 'IP:v%s Type:%s Local addr:%s:%d Remote addr:%s:%d Status:%s PID:%s' %
-                    (connection_record['ip_version'], connection_record['type'].upper(),
+                    connection_record_index, '%s/%s/%s/%s/v%s/%s/%s/%s' %
+                    (connection_record['remote_address'][0], connection_record['remote_address'][1],
                      connection_record['local_address'][0] if connection_record['local_address'] else '',
                      connection_record['local_address'][1] if connection_record['local_address'] else '',
-                     connection_record['remote_address'][0], connection_record['remote_address'][1],
+                     connection_record['ip_version'], connection_record['type'].upper(),
                      connection_record['status'], connection_record['pid'])))
                 connections_data.append(connection_record['remote_address'][0])
                 connection_record_index += 1
