@@ -155,6 +155,22 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'ERROR'),
+        },
+    },
+}
+
 # Role definition based on hostnames
 IS_API = socket.gethostname().startswith('api-')
 IS_MTLS_API = socket.gethostname().startswith('mtls-api-')
@@ -163,3 +179,6 @@ IS_DASH = socket.gethostname().startswith('dash-')
 IS_DEV = False
 
 USE_NATIVE_JSONFIELD = True
+
+# Sentry
+SENTRY_DSN = os.getenv('SENTRY_DSN')
