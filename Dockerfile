@@ -11,6 +11,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend ./
+COPY ./misc /usr/src/misc
 
 ENV CFSSL_SERVER wott-ca
 ENV DJANGO_SETTINGS_MODULE backend.settings.prod

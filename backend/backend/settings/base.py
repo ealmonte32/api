@@ -12,9 +12,30 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 import socket
+import re
+
+from netaddr import IPNetwork, AddrFormatError
+
+
+def check_ip_range(ipr):
+    try:
+        _ = IPNetwork(ipr)
+    except AddrFormatError:
+        return False
+    return True
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_DIR = os.path.dirname(os.path.dirname(BASE_DIR))
+
+# Load spam networks list from the local file.
+# TODO: Load this list from its original site.
+spam_networks_list_path = os.path.join(REPO_DIR, 'misc', 'spam_networks.txt')
+with open(spam_networks_list_path) as f:
+    read_data = f.read()
+spam_networks_list = re.findall(r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.0/\d{1,2}).*', read_data, re.MULTILINE)
+SPAM_NETWORKS = list(filter(check_ip_range, spam_networks_list))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
@@ -124,7 +145,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/

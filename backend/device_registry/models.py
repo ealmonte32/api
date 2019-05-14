@@ -8,6 +8,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from jsonfield_compat.fields import JSONField
+import yaml
 
 from device_registry import ca_helper
 
@@ -95,6 +96,7 @@ class DeviceInfo(models.Model):
     )
     selinux_state = JSONField(default=dict)
     app_armor_enabled = models.BooleanField(null=True, blank=True)
+    logins = JSONField(default=dict)
 
     # We need this for the YC demo.
     detected_mirai = models.BooleanField(default=False, blank=True)
@@ -142,11 +144,23 @@ class DeviceInfo(models.Model):
         if self.device_manufacturer == 'Raspberry Pi':
             return 'Raspberry Pi'
 
+    @property
+    def beautified_logins(self):
+        if self.logins:
+            logins = self.logins
+            if '' in logins:
+                logins['<unknown>'] = self.logins['']
+                del(logins[''])
+            return yaml.dump(logins)
+        return "none"
 
 class PortScan(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
-    scan_date = models.DateTimeField(auto_now_add=True)
-    scan_info = JSONField(default=list)
+    scan_date = models.DateTimeField(auto_now=True)
+    scan_info = JSONField(default=list)  # Ports open for incoming connection to.
+    netstat = JSONField(default=list)  # Currently open network connections.
+    block_ports = JSONField(default=list)
+    block_networks = JSONField(default=list)
     GOOD_PORTS = [22, 443]
     BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
 
@@ -160,6 +174,78 @@ class PortScan(models.Model):
                 score -= 0.3
         return max(round(score, 1), 0)
 
+    def ports_form_data(self):
+        """
+        Build 3 lists:
+        1) list of choices for the ports form
+         (gonna be split in a template by '/' separator):
+         [[0, '192.168.1.178/22/TCP'], [0, '192.168.1.178/33/UDP']]
+        2) list of initial values for the ports form:
+         [0, 1]
+        3) list of choices for saving to the block list:
+         [['192.168.1.178', 22, 'tcp'], ['192.168.1.178', 33, 'udp']]
+        """
+        initial_data = []
+        choices_data = []
+        ports_data = []
+        port_record_index = 0
+        # 1st - take ports from the block list.
+        for port_record in self.block_ports:
+            choices_data.append((port_record_index, '%s/%s/%s' % (
+                port_record[0], port_record[2], port_record[1].upper())))
+            ports_data.append(port_record)
+            initial_data.append(port_record_index)
+            port_record_index += 1
+        # 2nd - take ports from the open ports list (only the ones missing in the block list).
+        for port_record in self.scan_info:
+            if [port_record['host'], port_record['proto'], port_record['port']] not in self.block_ports:
+                choices_data.append((port_record_index, '%s/%s/%s' % (
+                    port_record['host'], port_record['port'], port_record['proto'].upper())))
+                ports_data.append([port_record['host'], port_record['proto'], port_record['port']])
+                port_record_index += 1
+        return choices_data, initial_data, ports_data
+
+    def connections_form_data(self):
+        """
+        Build 3 lists:
+        1) list of choices for the open connections form
+         (gonna be split in a template by '/' separator)::
+         [[0, '192.168.1.20/4567/192.168.1.178/80/v4/TCP/open/3425']]
+        2) list of initial values for the open connections form:
+         [0]
+        3) list of choices for saving to the block list:
+         ['192.168.1.20']
+        """
+        initial_data = []
+        choices_data = []
+        connections_data = []
+        connection_record_index = 0
+        unique_addresses = set()
+
+        # 1st - take addresses from the block list.
+        for connection_record in self.block_networks:
+            if connection_record not in unique_addresses:
+                unique_addresses.add(connection_record)
+                choices_data.append((connection_record_index, '%s////v4///' % connection_record))
+                connections_data.append(connection_record)
+                initial_data.append(connection_record_index)
+                connection_record_index += 1
+
+        # 2nd - take addresses from the open connections list (only the ones missing in the block list).
+        for connection_record in self.netstat:
+            if connection_record['remote_address'] and connection_record['remote_address'][0] not in unique_addresses:
+                unique_addresses.add(connection_record['remote_address'][0])
+                choices_data.append((
+                    connection_record_index, '%s/%s/%s/%s/v%s/%s/%s/%s' %
+                    (connection_record['remote_address'][0], connection_record['remote_address'][1],
+                     connection_record['local_address'][0] if connection_record['local_address'] else '',
+                     connection_record['local_address'][1] if connection_record['local_address'] else '',
+                     connection_record['ip_version'], connection_record['type'].upper(),
+                     connection_record['status'], connection_record['pid'])))
+                connections_data.append(connection_record['remote_address'][0])
+                connection_record_index += 1
+        return choices_data, initial_data, connections_data
+
 
 class FirewallState(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
@@ -169,7 +255,7 @@ class FirewallState(models.Model):
 
     @property
     def beautified_rules(self):
-        return json.dumps(self.rules, indent=4)
+        return yaml.dump(self.rules) if self.rules else "none"
 
 
 # Temporary POJO to showcase recommended actions template.

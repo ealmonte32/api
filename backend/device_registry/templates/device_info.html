@@ -1,4 +1,5 @@
 {% extends "admin_base.html" %}
+{% load split_string %}
 
 {% block title %}WoTT - Device Info{% endblock title %}
 
@@ -12,7 +13,7 @@
       <h2 style="
       text-overflow: ellipsis;
       overflow: hidden;
-      padding-bottom: 5px">{{ device.device_id }}</h2>
+      padding-bottom: 5px">{{ object.device_id }}</h2>
     </div>
   </div>
   <div class="row">
@@ -41,19 +42,19 @@
               <tbody>
               <tr>
                 <th scope="row">Device ID</th>
-                <td>{{ device.device_id }}</td>
+                <td>{{ object.device_id }}</td>
               </tr>
               <tr>
                 <th scope="row">Trust Score</th>
-                <td>{{ portscan.get_score }}</td>
+                <td>{{ object.portscan.get_score }}</td>
               </tr>
               <tr>
                 <th scope="row">Hardware Type</th>
-                <td>{{ device_info.get_hardware_type|default_if_none:'Unknown'}}</td>
+                <td>{{ object.deviceinfo.get_hardware_type|default_if_none:'Unknown'}}</td>
               </tr>
               <tr>
                 <th scope="row">Last Ping</th>
-                <td>{{ device.last_ping | timesince }} ago</td>
+                <td>{{ object.last_ping | timesince }} ago</td>
               </tr>
               <tr>
                 <th scope="row">Comment</th>
@@ -61,10 +62,10 @@
                   <form method="POST" action="">
                     {% csrf_token %}
                     <div class="form-group">
-                      <textarea class="form-control" rows="4" placeholder="Comment"
-                                name="comment">{{ device.comment |default_if_none:'' }}</textarea>
+                      {{ comment_form.comment }}
+                      {{ comment_form.is_comments_form }}
+                      <button class="btn btn-primary" type="submit">Save</button>
                     </div>
-                    <button class="btn btn-primary" type="submit">Save</button>
                   </form>
                 </td>
               </tr>
@@ -77,11 +78,11 @@
               <tbody>
               <tr>
                 <th scope="row">Operating System</th>
-                <td>{{ device_info.device_operating_system|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_operating_system|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Operating System Version</th>
-                <td>{{ device_info.device_operating_system_version|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_operating_system_version|default_if_none:'N/A' }}</td>
               </tr>
               </tbody>
             </table>
@@ -107,31 +108,107 @@
                   <td>{{ device_info.app_armor_enabled|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
+                <th scope="row">Logins</th>
+                <td><pre>{{ device_info.beautified_logins }}</pre></td>
+              </tr>
+              <tr>
                 <th scope="row">Firewall Enabled</th>
-                <td>{{ firewall_state.enabled|default_if_none:'N/A' }}</td>
+                <td>{{ object.firewallstate.enabled|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Firewall Rules</th>
-                <td>{{ firewall_state.beautified_rules|linebreaksbr }}</td>
+                <td>
+                  <pre>{{ object.firewallstate.beautified_rules }}</pre>
+                </td>
               </tr>
               <tr>
                 <th scope="row">Open Ports</th>
-                <td><ul>
-                {% for scan in portscan.scan_info %}
-                <li>{{ scan.host }}:{{ scan.port}}/{{ scan.proto|upper }}{% empty %}none</li>
-                {% endfor %}
-                </ul></td>
+                <td>
+                  {% if ports_choices %}
+                    <form method="POST" action="">
+                      {% csrf_token %}
+                      <div class="form-group">
+                        <div class="table-responsive">
+                          <table class="table table-borderless table-sm">
+                            <thead class="thead-light">
+                            <tr>
+                              <th scope="col" width="5%">Blocked</th>
+                              <th scope="col">Address</th>
+                              <th scope="col">Port</th>
+                              <th scope="col">Proto</th>
+                            </tr>
+                            </thead>
+                            {% for checkbox in ports_form.open_ports %}
+                              <tr>
+                                <td>{{ checkbox.tag }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,0" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,1" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,2" }}</td>
+                              </tr>
+                            {% endfor %}
+                          </table>
+                        </div>
+                        {{ ports_form.is_ports_form }}
+                        <button class="btn btn-danger btn-sm" type="submit">Apply</button>
+                      </div>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Open Connections</th>
+                <td>
+                  {% if connections_choices %}
+                    <form method="POST" action="">
+                      {% csrf_token %}
+                      <div class="form-group">
+                        <div class="table-responsive">
+                          <table class="table table-borderless table-sm">
+                            <thead class="thead-light">
+                            <tr>
+                              <th scope="col" width="5%">Blocked</th>
+                              <th scope="col">Rem addr</th>
+                              <th scope="col">Rem port</th>
+                              <th scope="col">Loc addr</th>
+                              <th scope="col">Loc port</th>
+                              <th scope="col">IP</th>
+                              <th scope="col">Type</th>
+                              <th scope="col">Status</th>
+                              <th scope="col">PID</th>
+                            </tr>
+                            </thead>
+                            {% for checkbox in connections_form.open_connections %}
+                              <tr>
+                                <td>{{ checkbox.tag }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,0" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,1" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,2" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,3" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,4" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,5" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,6" }}</td>
+                                <td>{{ checkbox.choice_label|split_index:"/,7" }}</td>
+                              </tr>
+                            {% endfor %}
+                          </table>
+                        </div>
+                        {{ connections_form.is_connections_form }}
+                        <button class="btn btn-danger btn-sm" type="submit">Apply</button>
+                      </div>
+                    </form>
+                  {% endif %}
+                </td>
               </tr>
               {% if  not is_expired %}
                 <tr>
                   <th scope="row">Download Certificate</th>
                   <td>
-                    <a href="{{ device.get_cert_url }}">{{ device.device_id }}.crt</a>
+                    <a href="{{ object.get_cert_url }}">{{ object.device_id }}.crt</a>
                   </td>
                 </tr>
                 <tr>
                   <th scope="row">Certificate Expires</th>
-                  <td>In {{ device.get_cert_expiration_date|timeuntil }}</td>
+                  <td>In {{ object.get_cert_expiration_date|timeuntil }}</td>
                 </tr>
               {% else %}
                 <tr>
@@ -141,7 +218,7 @@
                 </tr>
                 <tr>
                   <th scope="row">Certificate Expired</th>
-                  <td>On {{ device.get_cert_expiration_date|date:"Y-m-d" }}</td>
+                  <td>On {{ object.get_cert_expiration_date|date:"Y-m-d" }}</td>
                 </tr>
               {% endif %}
               </tbody>
@@ -153,19 +230,19 @@
               <tbody>
               <tr>
                 <th scope="row">Hostname</th>
-                <td>{{ device.device_id|default_if_none:'N/A' }}</td>
+                <td>{{ object.device_id|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">FQDN</th>
-                <td>{{ device_info.fqdn|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">IP</th>
-                <td>{{ device_info.ipv4_address|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.ipv4_address|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Last Heartbeat</th>
-                <td>{{ device.last_ping|timesince }} ago</td>
+                <td>{{ object.last_ping|timesince }} ago</td>
               </tr>
               </tbody>
             </table>
@@ -176,15 +253,15 @@
               <tbody>
               <tr>
                 <th scope="row">Manufacturer</th>
-                <td>{{ device_info.device_manufacturer|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Model</th>
-                <td>{{ device_info.get_model|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Architecture</th>
-                <td>{{ device_info.device_architecture|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A' }}</td>
               </tr>
               </tbody>
             </table>
