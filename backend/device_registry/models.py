@@ -145,11 +145,11 @@ class DeviceInfo(models.Model):
     @property
     def beautified_logins(self):
         if self.logins:
-            l = self.logins
-            if '' in l.keys():
-                l['<unknown>'] = self.logins['']
-                del(l[''])
-            return yaml.dump(l)
+            logins = self.logins
+            if '' in logins:
+                logins['<unknown>'] = self.logins['']
+                del(logins[''])
+            return yaml.dump(logins)
         return "none"
 
 class PortScan(models.Model):
