@@ -15,4 +15,5 @@ netaddr==0.7.19
 psycopg2-binary==2.7.7
 pyyaml==5.1
 pytz==2018.9
+sentry-sdk==0.7.14
 sh==1.12.14
