@@ -53,7 +53,7 @@
                 <td>{{ object.deviceinfo.get_hardware_type|default_if_none:'Unknown'}}</td>
               </tr>
               <tr>
-                <th scope="row">Last Ping</th>
+                <th scope="row">Last Heartbeat</th>
                 <td>{{ object.last_ping | timesince }} ago</td>
               </tr>
               <tr>
