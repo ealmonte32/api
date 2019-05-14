@@ -241,13 +241,12 @@ def mtls_ping_view(request, format=None):
     if request.method == 'GET':
         device_object = Device.objects.get(device_id=device_id)
         device_object.last_ping = timezone.now()
-        device_object.save()
+        device_object.save(update_fields=['last_ping'])
+        return Response({'message': 'pong'})
     elif request.method == 'POST':
         device_object = Device.objects.get(device_id=device_id)
         device_object.last_ping = timezone.now()
-        device_info_object, created = DeviceInfo.objects.update_or_create(
-            device=device_object
-        )
+        device_info_object, _ = DeviceInfo.objects.get_or_create(device=device_object)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
         device_info_object.fqdn = request.data.get('fqdn')
@@ -256,28 +255,26 @@ def mtls_ping_view(request, format=None):
         device_info_object.device_model = request.data.get('device_model')
         device_info_object.distr_id = request.data.get('distr_id', None)
         device_info_object.distr_release = request.data.get('distr_release', None)
+        device_info_object.logins = request.data.get('logins', {})
         device_info_object.save()
 
-        portscan_object, created = PortScan.objects.update_or_create(
-            device=device_object
-        )
-        scan_info = request.data.get('scan_info', None)
+        portscan_object, _ = PortScan.objects.get_or_create(device=device_object)
+        scan_info = request.data.get('scan_info', [])
         if isinstance(scan_info, str):
             scan_info = json.loads(scan_info)
         portscan_object.scan_info = scan_info
+        portscan_object.netstat = request.data.get('netstat', [])
+        block_networks = portscan_object.block_networks.copy()
+        block_networks.extend(settings.SPAM_NETWORKS)
         portscan_object.save()
-        firewall_state, created = FirewallState.objects.update_or_create(
-            device=device_object
-        )
-
-        firewall_state.enabled = request.data.get('firewall_enabled', None)
-        firewall_rules = request.data.get('firewall_rules')
+        firewall_state, _ = FirewallState.objects.get_or_create(device=device_object)
+        firewall_state.enabled = request.data.get('firewall_enabled')
+        firewall_rules = request.data.get('firewall_rules', {})
         if isinstance(firewall_rules, str):
             firewall_rules = json.loads(firewall_rules)
         firewall_state.rules = firewall_rules
         firewall_state.save()
-
-        device_object.save()
+        device_object.save(update_fields=['last_ping'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
@@ -287,14 +284,8 @@ def mtls_ping_view(request, format=None):
             entity['device_id'] = device_id
             entity['last_ping'] = timezone.now()
             datastore_client.put(entity)
-    else:
-        return Response({
-            'message': 'ping failed.',
-        })
 
-    return Response({
-        'message': 'pong',
-    })
+        return Response({'block_ports': portscan_object.block_ports, 'block_networks': block_networks})
 
 
 @api_view(['GET'])
@@ -365,7 +356,7 @@ def mtls_renew_cert_view(request, format=None):
     device_object.save()
 
     # @TODO: Log changes
-    device_info_object, created = DeviceInfo.objects.update_or_create(device=device_object)
+    device_info_object, _ = DeviceInfo.objects.get_or_create(device=device_object)
     device_info_object.device_manufacturer = request.data.get('device_manufacturer')
     device_info_object.device_model = request.data.get('device_model')
     device_info_object.device_operating_system = request.data.get('device_operating_system')
@@ -431,7 +422,7 @@ def renew_expired_cert_view(request, format=None):
     device_object.save()
 
     # @TODO: Log changes
-    device_info_object, created = DeviceInfo.objects.update_or_create(device=device_object)
+    device_info_object, _ = DeviceInfo.objects.get_or_create(device=device_object)
     device_info_object.device_manufacturer = request.data.get('device_manufacturer')
     device_info_object.device_model = request.data.get('device_model')
     device_info_object.device_operating_system = request.data.get('device_operating_system')
