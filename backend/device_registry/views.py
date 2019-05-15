@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 
 from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm, PortsForm, ConnectionsForm
-from device_registry.models import Action, Device, get_device_list, get_avg_trust_score, PortScan
+from device_registry.models import Action, Device, get_device_list, get_avg_trust_score, PortScan, FirewallState
 from profile_page.forms import ProfileForm
 from profile_page.models import Profile
 
@@ -84,7 +84,6 @@ class DeviceDetailView(DetailView):
         try:
             ports_form_data = self.object.portscan.ports_form_data()
             context['portscan'] = self.object.portscan
-            context['firewall'] = self.object.firewallstate
             context['ports_choices'] = bool(ports_form_data[0])
             context['ports_form'] = PortsForm(open_ports_choices=ports_form_data[0],
                                               initial={'open_ports': ports_form_data[1]})
@@ -94,6 +93,10 @@ class DeviceDetailView(DetailView):
                                                           initial={'open_connections': connections_form_data[1]})
         except PortScan.DoesNotExist:
             context['portscan'] = None
+
+        try:
+            context['firewall'] = self.object.firewallstate
+        except FirewallState.DoesNotExist:
             context['firewall'] = None
 
         return context
