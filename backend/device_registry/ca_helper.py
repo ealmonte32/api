@@ -46,6 +46,9 @@ def csr_is_valid(csr=None, device_id=None):
     Parse the submitted CSR and ensure that it is both valid
     and falls in the acceptable domain prefix(es).
     """
+    if csr is None:
+        return False
+
     try:
         parse_csr = x509.load_pem_x509_csr(csr.encode(), default_backend())
     except TypeError:
