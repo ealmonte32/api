@@ -55,9 +55,11 @@ class Device(models.Model):
     def __str__(self):
         return self.device_id
 
+    @property
     def claimed(self):
         return bool(self.owner)
 
+    @property
     def has_valid_hostname(self):
         self.device_id.endswith(settings.COMMON_NAME_PREFIX)
 
@@ -73,6 +75,46 @@ class Device(models.Model):
         else:
             cert_url = f'https://api.wott.io/v0.2/device-cert/{self.device_id}'
         return cert_url
+
+    COEFFICIENTS = {
+        'app_armor_enabled': 1.0,
+        'firewall_enabled': 1.0,
+        'selinux_enabled': 1.0,
+        'selinux_enforcing': 1.0,
+        'failed_logins': 1.0,
+        'port_score': 1.0
+    }
+    MAX_FAILED_LOGINS = 10
+    MIN_FAILED_LOGINS = 1
+
+    @property
+    def trust_score(self):
+        if not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
+            return None
+
+        selinux = self.deviceinfo.selinux_state
+        logins = self.deviceinfo.logins
+        failed_logins = sum([u['failed'] for u in logins.values()])
+        if failed_logins <= self.MIN_FAILED_LOGINS:
+            failed_logins = 1.0
+        elif failed_logins >= self.MAX_FAILED_LOGINS:
+            failed_logins = 0.0
+        else:
+            failed_logins = 1.0 - ((failed_logins - self.MIN_FAILED_LOGINS) /
+                (self.MAX_FAILED_LOGINS - self.MIN_FAILED_LOGINS + 1))
+        return self.calculate_trust_score(
+            app_armor_enabled=self.deviceinfo.app_armor_enabled,
+            firewall_enabled=self.firewallstate.enabled,
+            selinux_enabled=selinux['enabled'],
+            selinux_enforcing=(selinux['mode'] == 'enforcing'),
+            failed_logins=failed_logins,
+            port_score=self.portscan.get_score()
+        )
+
+    @classmethod
+    def calculate_trust_score(cls, **kwargs):
+        return sum([v*cls.COEFFICIENTS[k] for k,v in kwargs.items()]) / \
+               sum(cls.COEFFICIENTS.values())
 
     class Meta:
         ordering = ('created',)
@@ -153,6 +195,7 @@ class DeviceInfo(models.Model):
                 del(logins[''])
             return yaml.dump(logins)
         return "none"
+
 
 class PortScan(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
@@ -280,6 +323,7 @@ def get_device_list(user):
     return Device.objects.filter(owner=user).order_by(F('last_ping').desc(nulls_last=True))
 
 
-def get_avg_trust_score(user):
-    scores = [p.get_score() for p in PortScan.objects.filter(device__owner=user).all()]
+def average_trust_score(user):
+    scores = [p.trust_score for p in Device.objects.filter(owner=user).all()]
+    scores = [s for s in scores if s is not None]
     return mean(scores) if scores else None
