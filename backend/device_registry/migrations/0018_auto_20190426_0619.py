@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-from django.contrib.postgres.fields import JSONField
+from jsonfield_compat.fields import JSONField
 
 
 class Migration(migrations.Migration):
