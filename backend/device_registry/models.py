@@ -6,8 +6,8 @@ from django.conf import settings
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
+from django.contrib.postgres.fields import JSONField
 
-from jsonfield_compat.fields import JSONField
 import yaml
 
 from device_registry import ca_helper
