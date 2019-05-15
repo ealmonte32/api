@@ -18,5 +18,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(fix_scan_info_content),
+        # migrations.RunPython(fix_scan_info_content),
     ]
