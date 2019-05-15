@@ -39,6 +39,7 @@ def profile_view(request):
 @login_required
 def claim_device_view(request):
     # if this is a POST request we need to process the form data
+    text, style = None, None
     if request.method == 'POST':
         form = ClaimDeviceForm(request.POST)
 
@@ -48,26 +49,28 @@ def claim_device_view(request):
                 device_id=form.cleaned_data['device_id']
             )
             if get_device.claimed():
-                return HttpResponse('Device has already been claimed.')
+                text, style = 'Device has already been claimed.', 'warning'
+            elif not get_device.claim_token == form.cleaned_data['claim_token']:
+                text, style = 'Invalid claim/device id pair.', 'warning'
+            else:
+                get_device.owner = request.user
+                get_device.save()
+                text, style = 'Successfully claimed {}.'.format(form.cleaned_data['device_id']), 'success'
 
-            if not get_device.claim_token == form.cleaned_data['claim_token']:
-                return HttpResponse('Invalid claim/device id pair.')
-
-            get_device.owner = request.user
-            get_device.save()
-            return HttpResponse('Successfully claimed {}.'.format(form.cleaned_data['device_id']))
-
+    # GET with claim_token and device_id set will fill the form.
+    # Empty GET or any other request will generate empty form.
+    if request.method == 'GET' and \
+        'claim_token' in request.GET and \
+            'device_id' in request.GET:
+        form = ClaimDeviceForm(request.GET)
     else:
-        # GET with claim_token and device_id set will fill the form.
-        # Empty GET or any other request will generate empty form.
-        if request.method == 'GET' and \
-            'claim_token' in request.GET and \
-                'device_id' in request.GET:
-            form = ClaimDeviceForm(request.GET)
-        else:
-            form = ClaimDeviceForm()
+        form = ClaimDeviceForm()
 
-    return render(request, 'claim_device.html', {'form': form})
+    return render(request, 'claim_device.html', {
+        'form': form,
+        'alert_style': style,
+        'alert_text': text
+    })
 
 
 class DeviceDetailView(DetailView):
