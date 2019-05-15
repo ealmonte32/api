@@ -94,9 +94,9 @@
               <tr>
                   <th scope="row">SELinux Status</th>
                   <td>
-                  {% if device_info.selinux_state.enabled %}
-                    {{ device_info.selinux_state.mode|default:'enabled (unknown)' }}
-                  {%  elif device_info.selinux_state.enabled is False %}
+                  {% if object.deviceinfo.selinux_state.enabled %}
+                    {{ object.deviceinfo.selinux_state.mode|default:'enabled (unknown)' }}
+                  {%  elif object.deviceinfo.selinux_state.enabled is False %}
                     disabled
                   {%  else %}
                       N/A
@@ -105,11 +105,11 @@
               </tr>
               <tr>
                   <th scope="row">AppArmor Enabled</th>
-                  <td>{{ device_info.app_armor_enabled|default_if_none:'N/A' }}</td>
+                  <td>{{ object.deviceinfo.app_armor_enabled|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Logins</th>
-                <td><pre>{{ device_info.beautified_logins }}</pre></td>
+                <td><pre>{{ object.deviceinfo.beautified_logins }}</pre></td>
               </tr>
               <tr>
                 <th scope="row">Firewall Enabled</th>
