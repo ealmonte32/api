@@ -385,7 +385,7 @@ def renew_expired_cert_view(request, format=None):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    device_object = Device.objects.get(device_id=device_id)
+    device_object = get_object_or_404(Device, device_id=device_id)
 
     if fallback_token != device_object.fallback_token:
         return Response(
