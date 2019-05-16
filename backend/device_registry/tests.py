@@ -430,12 +430,12 @@ class ClaimLinkTest(TestCase):
         request = self.api.get(
             f'/api/v0.2/claim-device/?device-id={self.device0.device_id}&claim-token={self.device0.claim_token}')
         request.user = self.user0
-        self.assertFalse(self.device0.claimed())
+        self.assertFalse(self.device0.claimed)
         response = claim_by_link(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, f'Device {self.device0.device_id} claimed!')
         self.device0.refresh_from_db()
-        self.assertTrue(self.device0.claimed())
+        self.assertTrue(self.device0.claimed)
 
     def test_claim_get_404(self):
         request = self.api.get(f'/claim-device/?device-id=none&claim-token=none')
