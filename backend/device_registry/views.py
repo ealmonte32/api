@@ -155,6 +155,12 @@ def actions_view(request):
             'Insecure port open',
             'foobar0.d.woot.local has port 22/tcp (telnet) open. This is usually a security risk.',
             [('Ignore', 'danger'), ('Block', 'success')]
+        ),
+        Action(
+            4,
+            'Default password used',
+            'Device keeps default username/password unchanged.',
+            [('Ignore', 'danger'), ('Snooze', 'warning')]
         )
     ]
 
