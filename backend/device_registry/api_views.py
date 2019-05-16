@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 import re
@@ -258,15 +259,22 @@ def mtls_ping_view(request, format=None):
         device_info_object.app_armor_enabled = request.data.get('app_armor_enabled', None)
         device_info_object.logins = request.data.get('logins', {})
         device_info_object.save()
+
         portscan_object, _ = PortScan.objects.get_or_create(device=device_object)
-        portscan_object.scan_info = request.data.get('scan_info', [])
+        scan_info = request.data.get('scan_info', [])
+        if isinstance(scan_info, str):
+            scan_info = json.loads(scan_info)
+        portscan_object.scan_info = scan_info
         portscan_object.netstat = request.data.get('netstat', [])
         block_networks = portscan_object.block_networks.copy()
         block_networks.extend(settings.SPAM_NETWORKS)
         portscan_object.save()
         firewall_state, _ = FirewallState.objects.get_or_create(device=device_object)
-        firewall_state.enabled = request.data.get('firewall_enabled', None)
-        firewall_state.rules = request.data.get('firewall_rules', {})
+        firewall_state.enabled = request.data.get('firewall_enabled')
+        firewall_rules = request.data.get('firewall_rules', {})
+        if isinstance(firewall_rules, str):
+            firewall_rules = json.loads(firewall_rules)
+        firewall_state.rules = firewall_rules
         firewall_state.save()
         device_object.save(update_fields=['last_ping'])
 

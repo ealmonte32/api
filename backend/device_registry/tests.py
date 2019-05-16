@@ -266,6 +266,35 @@ class APIPingTest(TestCase):
         self.assertFalse(firewall_state.enabled)
         self.assertDictEqual(firewall_state.rules, {'INPUT': [], 'OUTPUT': [], 'FORWARD': []})
 
+    def test_ping_converts_json(self):
+        scan_info = [{
+            "host": "localhost",
+            "port": 22,
+            "proto": "tcp",
+            "state": "open"
+        }]
+        firewall_rules = {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
+        ping_payload = {
+            'device_operating_system_version': 'linux',
+            'fqdn': 'test-device0',
+            'ipv4_address': '127.0.0.1',
+            'uptime': '0',
+            'scan_info': json.dumps(scan_info),
+            'firewall_enabled': False,
+            'firewall_rules': json.dumps(firewall_rules)
+        }
+        request = self.api.post(
+            '/v0.2/ping/',
+            ping_payload,
+            **self.ping_headers,
+            format='json'
+        )
+        mtls_ping_view(request)
+        firewall_state = FirewallState.objects.get(device=self.device0)
+        portscan = PortScan.objects.get(device=self.device0)
+        self.assertListEqual(scan_info, portscan.scan_info)
+        self.assertDictEqual(firewall_rules, firewall_state.rules)
+
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
