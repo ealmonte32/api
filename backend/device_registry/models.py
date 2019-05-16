@@ -102,11 +102,15 @@ class Device(models.Model):
         else:
             failed_logins = 1.0 - ((failed_logins - self.MIN_FAILED_LOGINS) /
                 (self.MAX_FAILED_LOGINS - self.MIN_FAILED_LOGINS + 1))
+
+        def zero_if_none(x):
+            return 0 if x is None else x
+
         return self.calculate_trust_score(
-            app_armor_enabled=self.deviceinfo.app_armor_enabled,
-            firewall_enabled=self.firewallstate.enabled,
-            selinux_enabled=selinux['enabled'],
-            selinux_enforcing=(selinux['mode'] == 'enforcing'),
+            app_armor_enabled=zero_if_none(self.deviceinfo.app_armor_enabled),
+            firewall_enabled=zero_if_none(self.firewallstate.enabled),
+            selinux_enabled=selinux.get('enabled', False),
+            selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
             port_score=self.portscan.get_score()
         )
