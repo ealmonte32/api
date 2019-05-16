@@ -20,7 +20,7 @@ from rest_framework.test import APIRequestFactory
 
 from device_registry import ca_helper
 from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view
-from .models import Device, DeviceInfo, FirewallState, PortScan, get_avg_trust_score
+from .models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score
 from .forms import DeviceCommentsForm, PortsForm, ConnectionsForm
 
 
@@ -327,13 +327,13 @@ class DeviceModelTest(TestCase):
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
             last_ping=week_ago,
-            owner=self.user0,
+            owner=self.user1,
             certificate=TEST_CERT
         )
         self.device1 = Device.objects.create(
             device_id='device1.d.wott-dev.local',
             last_ping=hour_ago,
-            owner=self.user0
+            owner=self.user1
         )
         self.device2 = Device.objects.create(
             device_id='device2.d.wott-dev.local',
@@ -349,13 +349,17 @@ class DeviceModelTest(TestCase):
             device=self.device0,
             device_manufacturer='Raspberry Pi',
             device_model='900092',
-            trust_score=0.6
+            selinux_state={'enabled': True, 'mode': 'enforcing'},
+            app_armor_enabled=True,
+            logins={'pi': {'failed': 1, 'success': 1}}
         )
         self.device_info1 = DeviceInfo.objects.create(
             device=self.device1,
             device_manufacturer='Raspberry Pi',
             device_model='900092',
-            trust_score=0.8
+            selinux_state={'enabled': True, 'mode': 'enforcing'},
+            app_armor_enabled=True,
+            logins={'pi': {'failed': 1, 'success': 1}}
         )
         portscan0 = [
             {"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open"},
@@ -367,6 +371,8 @@ class DeviceModelTest(TestCase):
         ]
         self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
         self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
+        self.firewall0 = FirewallState.objects.create(device=self.device0, enabled=True)
+        self.firewall1 = FirewallState.objects.create(device=self.device1, enabled=True)
 
     def test_get_model(self):
         model = self.device_info0.device_model
@@ -382,27 +388,32 @@ class DeviceModelTest(TestCase):
 
     def test_active_inactive(self):
         active_inactive = Device.get_active_inactive(self.user0)
-        self.assertListEqual(active_inactive, [3, 1])
+        self.assertListEqual(active_inactive, [2, 0])
 
     def test_get_expiration_date(self):
         exp_date = self.device0.get_cert_expiration_date()
         self.assertEqual(exp_date.date(), datetime.date(2019, 4, 4))
 
     def test_bad_ports_score(self):
+        ps = self.device0.portscan
+        assert ps
         score0 = self.portscan0.get_score()
         score1 = self.portscan1.get_score()
         self.assertEqual(score0, 0.6)
         self.assertEqual(score1, 0.7)
 
-    def test_avg_trust_score(self):
+    def test_empty_average_trust_score(self):
         user = self.user0
-        avg_score = get_avg_trust_score(user)
-        self.assertEqual(avg_score, (0.6 + 0.7) / 2)
-
-    def test_empty_avg_trust_score(self):
-        user = self.user1
-        avg_score = get_avg_trust_score(user)
+        avg_score = average_trust_score(user)
         self.assertIsNone(avg_score)
+
+    def test_trust_score(self):
+        self.assertEqual(self.device0.trust_score, (5.0 + 0.6) / 6.0)
+        self.assertEqual(self.device1.trust_score, (5.0 + 0.7) / 6.0)
+
+    def test_average_trust_score(self):
+        score = average_trust_score(self.user1)
+        self.assertEqual(score, ((5.0 + 0.6) / 6.0 + (5.0 + 0.7) / 6.0) / 2.0)
 
 
 class ClaimLinkTest(TestCase):
@@ -419,12 +430,12 @@ class ClaimLinkTest(TestCase):
         request = self.api.get(
             f'/api/v0.2/claim-device/?device-id={self.device0.device_id}&claim-token={self.device0.claim_token}')
         request.user = self.user0
-        self.assertFalse(self.device0.claimed())
+        self.assertFalse(self.device0.claimed)
         response = claim_by_link(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, f'Device {self.device0.device_id} claimed!')
         self.device0.refresh_from_db()
-        self.assertTrue(self.device0.claimed())
+        self.assertTrue(self.device0.claimed)
 
     def test_claim_get_404(self):
         request = self.api.get(f'/claim-device/?device-id=none&claim-token=none')

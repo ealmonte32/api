@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 
 from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm, PortsForm, ConnectionsForm
-from device_registry.models import Action, Device, get_device_list, get_avg_trust_score, PortScan, FirewallState
+from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from profile_page.forms import ProfileForm
 from profile_page.models import Profile
 
@@ -14,7 +14,7 @@ from profile_page.models import Profile
 @login_required
 def root_view(request):
     return render(request, 'root.html', {
-        'avg_trust_score': get_avg_trust_score(request.user),
+        'avg_trust_score': average_trust_score(request.user),
         'active_inactive': Device.get_active_inactive(request.user),
         'devices': get_device_list(request.user)
     })
@@ -39,7 +39,7 @@ def profile_view(request):
 @login_required
 def claim_device_view(request):
     # if this is a POST request we need to process the form data
-    text, style = None, None
+    text = style = None
     if request.method == 'POST':
         form = ClaimDeviceForm(request.POST)
 
@@ -48,7 +48,7 @@ def claim_device_view(request):
                 Device,
                 device_id=form.cleaned_data['device_id']
             )
-            if get_device.claimed():
+            if get_device.claimed:
                 text, style = 'Device has already been claimed.', 'warning'
             elif not get_device.claim_token == form.cleaned_data['claim_token']:
                 text, style = 'Invalid claim/device id pair.', 'warning'
