@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 from device_registry import ca_helper
 from device_registry.serializers import DeviceInfoSerializer
-from device_registry.datastore_helper import datastore, datastore_client
+from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan
 
 
@@ -272,11 +272,9 @@ def mtls_ping_view(request, format=None):
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
-            entity = datastore.Entity(key=task_key)
-            for k, v in request.data.items():
-                entity[k] = v
-            entity['device_id'] = device_id
-            entity['last_ping'] = timezone.now()
+            entity = dicts_to_ds_entities(request.data, task_key)
+            entity['device_id'] = device_id  # Will be indexed.
+            entity['last_ping'] = timezone.now()  # Will be indexed.
             datastore_client.put(entity)
 
         return Response({'block_ports': portscan_object.block_ports, 'block_networks': block_networks})
