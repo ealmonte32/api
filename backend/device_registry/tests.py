@@ -516,7 +516,18 @@ class DeviceDetailViewTests(TestCase):
                                             certificate=TEST_CERT)
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
+        self.firewall = FirewallState.objects.create(device=self.device)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
+
+        self.device_no_portscan = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user,
+                                            certificate=TEST_CERT)
+        self.firewall2 = FirewallState.objects.create(device=self.device_no_portscan)
+
+        self.device_no_firewall = Device.objects.create(device_id='device2.d.wott-dev.local', owner=self.user,
+                                                        certificate=TEST_CERT)
+        self.portscan2 = PortScan.objects.create(device=self.device_no_firewall, scan_info=OPEN_PORTS_INFO,
+                                                netstat=OPEN_CONNECTIONS_INFO)
+
 
     def test_get(self):
         """
@@ -526,6 +537,31 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
+
+    def test_no_portscan(self):
+        """
+        Neither Hardware nor Security tabs should be rendered if Device object
+        has no PortScan.
+        """
+        url = reverse('device-detail', kwargs={'pk': self.device_no_portscan.pk})
+        self.client.login(username='test', password='123')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Device Profile')
+        self.assertNotContains(response, 'id="hardware"')
+        self.assertNotContains(response, 'id="security"')
+
+    def test_no_firewall(self):
+        """
+        Security tab should not be rendered if Device object has no FirewallState.
+        """
+        url = reverse('device-detail', kwargs={'pk': self.device_no_firewall.pk})
+        self.client.login(username='test', password='123')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Device Profile')
+        self.assertContains(response, 'id="hardware"')
+        self.assertNotContains(response, 'id="security"')
 
     def test_comment(self):
         self.client.login(username='test', password='123')
