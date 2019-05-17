@@ -19,7 +19,6 @@ jobs:
         command: |
             echo 'export KUBECTL_VERSION="1.14.2"' >> $BASH_ENV
             echo 'export HELM_VERSION="2.14.0"' >> $BASH_ENV
-            source $BASH_ENV
       - run:
           name: Install Kubectl
           command: |
