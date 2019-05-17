@@ -15,15 +15,21 @@ jobs:
             python3 -m ensurepip
             pip3 install docker-compose
       - run:
+        name: Set versions
+        command: |
+            echo 'export KUBECTL_VERSION="1.14.2"' >> $BASH_ENV
+            echo 'export HELM_VERSION="2.14.0"' >> $BASH_ENV
+            source $BASH_ENV
+      - run:
           name: Install Kubectl
           command: |
-            echo 'export KUBECTL_VERSION="1.14.2"' >> $BASH_ENV
+            source $BASH_ENV
             curl -L "https://storage.googleapis.com/kubernetes-release/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl" -o /usr/bin/kubectl
             chmod +x /usr/bin/kubectl
       - run:
           name: Install Helm
           command: |
-            echo 'export HELM_VERSION="2.14.0"' >> $BASH_ENV
+            source $BASH_ENV
             curl -OL "https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz"
             tar -zxvf "helm-v$HELM_VERSION-linux-amd64.tgz"
             mv linux-amd64/helm /usr/bin/bin/helm
