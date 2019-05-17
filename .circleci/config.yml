@@ -33,7 +33,8 @@ jobs:
             curl -OL "https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz.sha256"
             sha256sum "helm-v$HELM_VERSION-linux-amd64.tar.gz.sha256"
             tar xfz "helm-v$HELM_VERSION-linux-amd64.tar.gz" -C /tmp
-            mv /tmp/linux-amd64/{helm,tiller} /usr/bin/
+            mv /tmp/linux-amd64/helm /usr/bin/
+            mv /tmp/linux-amd64/tiller /usr/bin/
       - restore_cache:
           keys:
             - v1-{{ .Branch }}
