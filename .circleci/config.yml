@@ -45,13 +45,13 @@ jobs:
           name: Run tests
           command: |
             docker-compose -f ./docker-compose.tests.yml up
-#      - deploy:
-#          name: Push application Docker image
-#          command: |
-#            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-#                export GITHASH="git-$(git rev-parse --short HEAD)"
-#                echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
-#                docker tag app "gcr.io/wott-prod/wott-api:${GITHASH}"
-#                docker push "gcr.io/wott-prod/wott-api:${GITHASH}"
-#                echo "Pushed gcr.io/wott-prod/wott-api:${GITHASH}"
-#            fi
+      - deploy_image_to_gcr:
+          name: Push application Docker image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                export GITHASH="git-$(git rev-parse --short HEAD)"
+                echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
+                docker tag app "gcr.io/wott-prod/wott-api:${GITHASH}"
+                docker push "gcr.io/wott-prod/wott-api:${GITHASH}"
+                echo "Pushed gcr.io/wott-prod/wott-api:${GITHASH}"
+            fi
