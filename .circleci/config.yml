@@ -26,6 +26,8 @@ jobs:
             tar xfz google-cloud-sdk.tar.gz
             rm google-cloud-sdk.tar.gz
             ./google-cloud-sdk/install.sh --usage-reporting=false --path-update=false
+            pwd
+            exit 1
       - run:
           name: Install Kubectl
           command: |
