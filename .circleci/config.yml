@@ -31,9 +31,7 @@ jobs:
             source $BASH_ENV
             curl -OL "https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz"
             tar xvfz "helm-v$HELM_VERSION-linux-amd64.tar.gz" -C /tmp
-            ls -lah /tmp
-            ls -lah /tmp/linux-amd64
-            mv /tmp/linux-amd64/helm /usr/bin/bin/helm
+            mv /tmp/linux-amd64/helm /usr/bin/helm
       - restore_cache:
           keys:
             - v1-{{ .Branch }}
