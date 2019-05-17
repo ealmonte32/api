@@ -47,31 +47,12 @@ jobs:
             rm "helm-v$HELM_VERSION-linux-amd64.tar.gz"
             mv /tmp/linux-amd64/helm /usr/bin/
             mv /tmp/linux-amd64/tiller /usr/bin/
-      - restore_cache:
-          keys:
-            - v1-{{ .Branch }}
-          paths:
-            - /caches/app.tar
       - run:
-          name: Load Docker image layer cache
+          name: Build docker images
           command: |
-            set +o pipefail
-            docker load -i /caches/app.tar | true
+            docker-compose -p api build
       - run:
-          name: Build application Docker image
-          command: |
-            docker build --cache-from=app -t app .
-      - run:
-          name: Save Docker image layer cache
-          command: |
-            mkdir -p /caches
-            docker save -o /caches/app.tar app
-      - save_cache:
-          key: v1-{{ .Branch }}-{{ epoch }}
-          paths:
-            - /caches/app.tar
-      - run:
-          name: Build container
+          name: Build docker test images
           command: |
             docker-compose -f ./docker-compose.tests.yml build
       - run:
@@ -85,8 +66,16 @@ jobs:
               source $BASH_ENV
 
                 echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
-                docker tag app "gcr.io/wott-prod/wott-api:${GITHASH}"
-                docker push "gcr.io/wott-prod/wott-api:${GITHASH}"
+
+                docker tag api_api-dev gcr.io/wott-prod/wott-api:${GITHASH}
+                docker tag api_api-dev gcr.io/wott-prod/wott-api:latest
+                docker tag api_nginx-static gcr.io/wott-prod/wott-static:${GITHASH}
+                docker tag api_nginx-static gcr.io/wott-prod/wott-static:latest
+
+                docker push gcr.io/wott-prod/wott-api:${GITHASH}
+                docker push gcr.io/wott-prod/wott-api:latest
+                docker push gcr.io/wott-prod/wott-static:${GITHASH}
+                docker push gcr.io/wott-prod/wott-static:latest
                 echo "Pushed gcr.io/wott-prod/wott-api:${GITHASH}"
             fi
       - run:
