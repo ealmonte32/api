@@ -82,6 +82,7 @@ jobs:
           name: Push application Docker image
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              source $BASH_ENV
 
                 echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
                 docker tag app "gcr.io/wott-prod/wott-api:${GITHASH}"
@@ -103,6 +104,8 @@ jobs:
 
               gcloud container clusters get-credentials cluster0
               helm init --client-only
+
+              helm lint helm/api
 
               helm upgrade \
                 -i api helm/api \
