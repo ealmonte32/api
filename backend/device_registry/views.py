@@ -134,6 +134,7 @@ class DeviceDetailView(DetailView):
         return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
 
 
+@login_required
 def actions_view(request):
     actions = [
         Action(
@@ -155,14 +156,24 @@ def actions_view(request):
             'Insecure port open',
             'foobar0.d.woot.local has port 22/tcp (telnet) open. This is usually a security risk.',
             [('Ignore', 'danger'), ('Block', 'success')]
-        ),
-        Action(
-            4,
-            'Default password used',
-            'Device keeps default username/password unchanged.',
-            [('Ignore', 'danger'), ('Snooze', 'warning')]
         )
     ]
+
+    insecure_password_devices = request.user.devices.filter(deviceinfo__default_password=True)
+    if insecure_password_devices.exists():
+        text_blocks = []
+        for dev in insecure_password_devices:
+            device_text_block = '<a href="%s">%s</a>' % (reverse('device-detail', kwargs={'pk': dev.pk}), dev.device_id)
+            text_blocks.append(device_text_block)
+        full_string = ', '.join(text_blocks)
+        action = Action(
+            4,
+            'Default credentials detected',
+            'We found default credentials present on %s. Please consider changing them as soon as possible.' %
+            full_string,
+            [('Ignore', 'danger'), ('Snooze', 'warning')]
+        )
+        actions.append(action)
 
     return render(request, 'actions.html', {
         'actions': actions

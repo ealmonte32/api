@@ -22,7 +22,7 @@
           </button>
           <div class="alert-message">
             <h4 class="alert-heading">{{ action.title }}</h4>
-            <p>{{ action.description }}</p>
+            <p>{{ action.description|safe }}</p>
             <hr>
             <div class="btn-list text-center">
               {% for button_text, button_type in action.actions %}

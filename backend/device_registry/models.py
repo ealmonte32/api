@@ -29,7 +29,7 @@ class Device(models.Model):
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        related_name='device',
+        related_name='devices',
         on_delete=models.CASCADE,
         blank=True,
         null=True,
