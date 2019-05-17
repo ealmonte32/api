@@ -20,7 +20,7 @@ jobs:
             echo 'export KUBECTL_VERSION="1.14.2"' >> $BASH_ENV
             echo 'export HELM_VERSION="2.14.0"' >> $BASH_ENV
             echo 'export PATH=/google-cloud-sdk/bin/:$PATH' >> $BASH_ENV
-            echo 'export GITHASH="git-$(git rev-parse --short HEAD)' >> $BASH_ENV
+            echo 'export GITHASH="git-$(git rev-parse --short HEAD)"' >> $BASH_ENV
       - run:
           name: Install gcloud
           command: |
