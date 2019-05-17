@@ -20,6 +20,7 @@ jobs:
             echo 'export KUBECTL_VERSION="1.14.2"' >> $BASH_ENV
             echo 'export HELM_VERSION="2.14.0"' >> $BASH_ENV
             echo 'export PATH=/google-cloud-sdk/bin/:$PATH' >> $BASH_ENV
+            echo 'export GITHASH="git-$(git rev-parse --short HEAD)' >> $BASH_ENV
       - run:
           name: Install gcloud
           command: |
@@ -81,7 +82,7 @@ jobs:
           name: Push application Docker image
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-                export GITHASH="git-$(git rev-parse --short HEAD)"
+
                 echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
                 docker tag app "gcr.io/wott-prod/wott-api:${GITHASH}"
                 docker push "gcr.io/wott-prod/wott-api:${GITHASH}"
@@ -106,6 +107,6 @@ jobs:
               helm upgrade \
                 -i api helm/api \
                 --set image.tag="$GITHASH" \
-                --set releaseTimeStamp="$(date +%s)" \
+                --set releaseTimeStamp="$CIRCLE_BUILD_NUM" \
                 --reuse-values
             fi
