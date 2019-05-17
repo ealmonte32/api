@@ -4,8 +4,14 @@ DEBUG = True
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'wott-backend',
+        'USER': 'postgres',
+        'PASSWORD': 'SuperSecurePassword',
+        'HOST': 'psql',
+        'OPTIONS': {
+            'connect_timeout': 3,
+        }
     }
 }
 

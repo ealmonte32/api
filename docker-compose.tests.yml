@@ -1,9 +1,38 @@
 version: '3'
 services:
-  api-dev:
+  check:
+    command: python manage.py check
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings.tests
+    build:
+      context: .
+  tests:
     command: python manage.py test
-    hostname: api-test
     environment:
     - DJANGO_SETTINGS_MODULE=backend.settings.tests
     build:
       context: .
+    depends_on:
+      - psql
+  check_migrations:
+    command: python manage.py makemigrations --check --dry-run
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings.tests
+    build:
+      context: .
+    depends_on:
+      - psql
+      - migrate
+  migrate:
+    command: python manage.py migrate --noinput
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings.tests
+    build:
+      context: .
+    depends_on:
+      - psql
+  psql:
+    environment:
+      - POSTGRES_DB=wott-backend
+      - POSTGRES_PASSWORD=SuperSecurePassword
+    image: postgres:alpine
