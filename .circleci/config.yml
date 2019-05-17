@@ -19,6 +19,7 @@ jobs:
           command: |
             echo 'export KUBECTL_VERSION="1.14.2"' >> $BASH_ENV
             echo 'export HELM_VERSION="2.14.0"' >> $BASH_ENV
+            echo 'export PATH=/google-cloud-sdk/bin/:$PATH' >> $BASH_ENV
       - run:
           name: Install gcloud
           command: |
@@ -30,8 +31,7 @@ jobs:
       - run:
           name: gcloud test
           command: |
-            source /google-cloud-sdk/path.bash.inc
-            cat /google-cloud-sdk/path.bash.inc
+            source $BASH_ENV
             echo $PATH
             gcloud --help
             exit 1
