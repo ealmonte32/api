@@ -100,6 +100,12 @@ jobs:
               gcloud auth activate-service-account --key-file="$HOME/service-account.json"
               rm "$HOME/service-account.json"
 
-              gcloud container clusters get-credentials cluster1
+              gcloud container clusters get-credentials cluster0
               helm init --client-only
+
+              helm upgrade \
+                -i api helm/api \
+                --set image.tag="$GITHASH" \
+                --set releaseTimeStamp="$(date +%s)" \
+                --reuse-values
             fi
