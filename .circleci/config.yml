@@ -58,7 +58,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            docker-compose -f ./docker-compose.tests.yml up
+            docker-compose -f ./docker-compose.tests.yml run api-dev
       - run:
           name: Push application Docker image
           command: |
