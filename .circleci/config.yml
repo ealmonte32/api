@@ -23,7 +23,7 @@ jobs:
       - run:
           name: Install gcloud
           command: |
-            curl -OL https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz
+            curl -sOL https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz
             sha256sum google-cloud-sdk.tar.gz
             tar xfz google-cloud-sdk.tar.gz -C /
             rm google-cloud-sdk.tar.gz
@@ -32,15 +32,15 @@ jobs:
           name: Install Kubectl
           command: |
             source $BASH_ENV
-            curl -L "https://storage.googleapis.com/kubernetes-release/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl" -o /usr/bin/kubectl
+            curl -sL "https://storage.googleapis.com/kubernetes-release/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl" -o /usr/bin/kubectl
             sha256sum /usr/bin/kubectl
             chmod +x /usr/bin/kubectl
       - run:
           name: Install Helm
           command: |
             source $BASH_ENV
-            curl -OL "https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz"
-            curl -OL "https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz.sha256"
+            curl -sOL "https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz"
+            curl -sOL "https://storage.googleapis.com/kubernetes-helm/helm-v$HELM_VERSION-linux-amd64.tar.gz.sha256"
             #sha256sum -c "helm-v$HELM_VERSION-linux-amd64.tar.gz.sha256"
             tar xfz "helm-v$HELM_VERSION-linux-amd64.tar.gz" -C /tmp
             rm "helm-v$HELM_VERSION-linux-amd64.tar.gz"
