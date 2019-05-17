@@ -23,7 +23,7 @@ jobs:
           name: Install gcloud
           command: |
             curl -OL https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz
-            sha256 google-cloud-sdk.tar.gz
+            sha256sum google-cloud-sdk.tar.gz
             tar xfz google-cloud-sdk.tar.gz -C /
             rm google-cloud-sdk.tar.gz
             /google-cloud-sdk/install.sh --usage-reporting=false --path-update=false
@@ -40,7 +40,7 @@ jobs:
           command: |
             source $BASH_ENV
             curl -L "https://storage.googleapis.com/kubernetes-release/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl" -o /usr/bin/kubectl
-            sha256 /usr/bin/kubectl
+            sha256sum /usr/bin/kubectl
             chmod +x /usr/bin/kubectl
       - run:
           name: Install Helm
