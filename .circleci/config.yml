@@ -11,9 +11,21 @@ jobs:
           name: Install dependencies
           command: |
             apk add --no-cache \
-              python3 py3-pynacl py3-cffi py3-bcrypt py3-cryptography
+              curl python3 py3-pynacl py3-cffi py3-bcrypt py3-cryptography
             python3 -m ensurepip
             pip3 install docker-compose
+      - run:
+          name: Install Kubectl
+          command: |
+            curl -L https://storage.googleapis.com/kubernetes-release/release/v1.14.2/bin/linux/amd64/kubectl -o /usr/bin/kubectl
+            chmod +x /usr/bin/kubectl
+      - run:
+          name: Install Helm
+          command: |
+            curl -L https://storage.googleapis.com/kubernetes-helm/helm-v2.14.0-linux-amd64.tar.gz
+            tar -zxvf helm-*-linux-amd64.tgz
+            mv linux-amd64/helm /usr/bin/bin/helm
+            rm -rf helm*
       - restore_cache:
           keys:
             - v1-{{ .Branch }}
