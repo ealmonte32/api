@@ -45,7 +45,7 @@ jobs:
           name: Run tests
           command: |
             docker-compose -f ./docker-compose.tests.yml up
-      - deploy_image_to_gcr:
+      - run:
           name: Push application Docker image
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
