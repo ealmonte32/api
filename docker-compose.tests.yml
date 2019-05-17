@@ -7,3 +7,10 @@ services:
     - DJANGO_SETTINGS_MODULE=backend.settings.tests
     build:
       context: .
+    depends_on:
+      - psql
+  psql:
+    environment:
+      - POSTGRES_DB=wott-backend
+      - POSTGRES_PASSWORD=SuperSecurePassword
+    image: postgres:alpine
