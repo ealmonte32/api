@@ -15,10 +15,18 @@ jobs:
             python3 -m ensurepip
             pip3 install docker-compose
       - run:
-          name: Set versions
+          name: Set environment variables
           command: |
             echo 'export KUBECTL_VERSION="1.14.2"' >> $BASH_ENV
             echo 'export HELM_VERSION="2.14.0"' >> $BASH_ENV
+            echo 'export PATH=/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Install gcloud
+          command: |
+            curl -OL https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz
+            tar zxvf google-cloud-sdk.tar.gz
+            rm google-cloud-sdk.tar.gz
+            ./google-cloud-sdk/install.sh --usage-reporting=true --path-update=true
       - run:
           name: Install Kubectl
           command: |
