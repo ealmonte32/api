@@ -94,7 +94,7 @@ jobs:
               source $BASH_ENV
 
               gcloud config set project wott-prod
-              gcloud config set compute/zone us-central1
+              gcloud config set compute/zone us-central1-a
 
               echo "$GCR_CREDS" > "$HOME/service-account.json"
               gcloud auth activate-service-account --key-file="$HOME/service-account.json"
