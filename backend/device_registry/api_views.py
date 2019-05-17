@@ -258,6 +258,7 @@ def mtls_ping_view(request, format=None):
         device_info_object.selinux_state = request.data.get('selinux_status', {})
         device_info_object.app_armor_enabled = request.data.get('app_armor_enabled', None)
         device_info_object.logins = request.data.get('logins', {})
+        device_info_object.default_password = request.data.get('default_password')
         device_info_object.save()
 
         portscan_object, _ = PortScan.objects.get_or_create(device=device_object)

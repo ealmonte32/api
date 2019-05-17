@@ -119,6 +119,10 @@
                   <td>{{ object.deviceinfo.app_armor_enabled|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
+                  <th scope="row">Default password used</th>
+                  <td>{{ object.deviceinfo.default_password|default_if_none:'N/A' }}</td>
+              </tr>
+              <tr>
                 <th scope="row">Logins</th>
                 <td><pre>{{ object.deviceinfo.beautified_logins }}</pre></td>
               </tr>

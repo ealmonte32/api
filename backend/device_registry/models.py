@@ -29,7 +29,7 @@ class Device(models.Model):
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        related_name='device',
+        related_name='devices',
         on_delete=models.CASCADE,
         blank=True,
         null=True,
@@ -143,6 +143,7 @@ class DeviceInfo(models.Model):
     selinux_state = JSONField(default=dict)
     app_armor_enabled = models.BooleanField(null=True, blank=True)
     logins = JSONField(default=dict)
+    default_password = models.BooleanField(null=True, blank=True)
 
     # We need this for the YC demo.
     detected_mirai = models.BooleanField(default=False, blank=True)
