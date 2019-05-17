@@ -15,8 +15,8 @@ jobs:
             python3 -m ensurepip
             pip3 install docker-compose
       - run:
-        name: Set versions
-        command: |
+          name: Set versions
+          command: |
             echo 'export KUBECTL_VERSION="1.14.2"' >> $BASH_ENV
             echo 'export HELM_VERSION="2.14.0"' >> $BASH_ENV
       - run:
