@@ -29,13 +29,6 @@ jobs:
             rm google-cloud-sdk.tar.gz
             /google-cloud-sdk/install.sh --usage-reporting=false --path-update=false
       - run:
-          name: gcloud test
-          command: |
-            source $BASH_ENV
-            echo $PATH
-            gcloud --help
-            exit 1
-      - run:
           name: Install Kubectl
           command: |
             source $BASH_ENV
@@ -99,7 +92,6 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               source $BASH_ENV
-              source /google-cloud-sdk/path.bash.inc
 
               gcloud config set project wott-prod
               gcloud config set compute/zone us-central1
