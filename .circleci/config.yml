@@ -23,11 +23,9 @@ jobs:
           name: Install gcloud
           command: |
             curl -OL https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz
-            tar xfz google-cloud-sdk.tar.gz
+            tar xfz google-cloud-sdk.tar.gz -C /
             rm google-cloud-sdk.tar.gz
-            ./google-cloud-sdk/install.sh --usage-reporting=false --path-update=false
-            pwd
-            exit 1
+            /google-cloud-sdk/install.sh --usage-reporting=false --path-update=false
       - run:
           name: Install Kubectl
           command: |
