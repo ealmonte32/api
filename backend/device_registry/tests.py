@@ -546,6 +546,32 @@ class FormsTests(TestCase):
         self.assertTrue(form.is_valid())
 
 
+class ActionsViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
+                                            certificate=TEST_CERT)
+        self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
+                                                netstat=OPEN_CONNECTIONS_INFO)
+        self.firewall = FirewallState.objects.create(device=self.device, enabled=False)
+        self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
+        self.url = reverse('actions')
+
+    def test_get(self):
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, 'We found disabled firewall present on <a href="/devices/%d/">%s</a>' % (
+                self.device.pk, self.device.device_id))
+        self.assertContains(
+            response, 'We found default credentials present on <a href="/devices/%d/">%s</a>' % (
+                self.device.pk, self.device.device_id))
+
+
 class DeviceDetailViewTests(TestCase):
     def setUp(self):
         User = get_user_model()

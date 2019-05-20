@@ -155,7 +155,7 @@ def actions_view(request):
         )
         actions.append(action)
 
-    # Farewall disabled action.
+    # Firewall disabled action.
     disabled_firewall_devices = request.user.devices.filter(firewallstate__enabled=False)
     if disabled_firewall_devices.exists():
         text_blocks = []
