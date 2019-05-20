@@ -136,29 +136,9 @@ class DeviceDetailView(DetailView):
 
 @login_required
 def actions_view(request):
-    actions = [
-        Action(
-            1,
-            'Abnormal network connection',
-            'foobar.d.wott.local attempted to connect to a.b.c.d which is a known end-point for the Marai botnet. What '
-            'do you want to do?',
-            [('Ignore', 'warning'), ('Block', 'success')]
-        ),
-        Action(
-            2,
-            'Suspicious process detected',
-            'foobar2.d.woot.local executed the command "nc" which is often used by attackers (but can also be used '
-            'for legitimate purposes). Is this expected?',
-            [('Expected', 'info'), ('Snooze', 'warning')]
-        ),
-        Action(
-            3,
-            'Insecure port open',
-            'foobar0.d.woot.local has port 22/tcp (telnet) open. This is usually a security risk.',
-            [('Ignore', 'danger'), ('Block', 'success')]
-        )
-    ]
+    actions = []
 
+    # Default username/password used action.
     insecure_password_devices = request.user.devices.filter(deviceinfo__default_password=True)
     if insecure_password_devices.exists():
         text_blocks = []
@@ -167,9 +147,26 @@ def actions_view(request):
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
-            4,
+            1,
             'Default credentials detected',
             'We found default credentials present on %s. Please consider changing them as soon as possible.' %
+            full_string,
+            [('Ignore', 'danger'), ('Snooze', 'warning')]
+        )
+        actions.append(action)
+
+    # Firewall disabled action.
+    disabled_firewall_devices = request.user.devices.filter(firewallstate__enabled=False)
+    if disabled_firewall_devices.exists():
+        text_blocks = []
+        for dev in disabled_firewall_devices:
+            device_text_block = '<a href="%s">%s</a>' % (reverse('device-detail', kwargs={'pk': dev.pk}), dev.device_id)
+            text_blocks.append(device_text_block)
+        full_string = ', '.join(text_blocks)
+        action = Action(
+            2,
+            'Disabled firewall detected',
+            'We found disabled firewall present on %s. Please consider enabling it.' %
             full_string,
             [('Ignore', 'danger'), ('Snooze', 'warning')]
         )
