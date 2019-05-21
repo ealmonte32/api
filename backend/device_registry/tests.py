@@ -580,6 +580,14 @@ class DeviceDetailViewTests(TestCase):
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
                                             certificate=TEST_CERT)
+        self.deviceinfo = DeviceInfo.objects.create(
+            device=self.device,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            selinux_state={'enabled': True, 'mode': 'enforcing'},
+            app_armor_enabled=True,
+            logins={'pi': {'failed': 1, 'success': 1}}
+        )
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall = FirewallState.objects.create(device=self.device)
@@ -593,6 +601,20 @@ class DeviceDetailViewTests(TestCase):
                                                         certificate=TEST_CERT)
         self.portscan2 = PortScan.objects.create(device=self.device_no_firewall, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
+
+        self.device_no_logins = Device.objects.create(device_id='device3.d.wott-dev.local', owner=self.user,
+                                            certificate=TEST_CERT)
+        self.deviceinfo3 = DeviceInfo.objects.create(
+            device=self.device_no_logins,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            selinux_state={'enabled': True, 'mode': 'enforcing'},
+            app_armor_enabled=True,
+            logins={}
+        )
+        self.portscan3 = PortScan.objects.create(device=self.device_no_logins, scan_info=OPEN_PORTS_INFO,
+                                                netstat=OPEN_CONNECTIONS_INFO)
+        self.firewall3 = FirewallState.objects.create(device=self.device_no_logins)
 
 
     def test_get(self):
@@ -650,3 +672,18 @@ class DeviceDetailViewTests(TestCase):
         self.client.post(self.url, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_networks, ['192.168.1.177'])
+
+    def test_no_logins(self):
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail', kwargs={'pk': self.device_no_logins.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No recent login attempts detected')
+
+    def test_logins(self):
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<pre>pi:')
+        self.assertContains(response, 'success: 1')
