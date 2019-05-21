@@ -124,7 +124,13 @@
               </tr>
               <tr>
                 <th scope="row">Logins</th>
-                <td><pre>{{ object.deviceinfo.beautified_logins }}</pre></td>
+                <td>
+                    {% if object.deviceinfo.logins %}
+                        <pre>{{ object.deviceinfo.beautified_logins }}</pre>
+                    {% else %}
+                        No recent login attempts detected
+                    {% endif %}
+                </td>
               </tr>
               <tr>
                 <th scope="row">Firewall Enabled</th>
