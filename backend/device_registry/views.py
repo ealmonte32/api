@@ -1,5 +1,5 @@
 from django.views.generic import DetailView
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -75,7 +75,7 @@ def claim_device_view(request):
 
 class DeviceDetailView(DetailView):
     model = Device
-    template_name = 'device_info.html'
+    template_name = 'device_info_overview.html'
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -83,10 +83,65 @@ class DeviceDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['comment_form'] = DeviceCommentsForm(instance=self.object)
         try:
-            ports_form_data = self.object.portscan.ports_form_data()
             context['portscan'] = self.object.portscan
+        except PortScan.DoesNotExist:
+            context['portscan'] = None
+        try:
+            context['firewall'] = self.object.firewallstate
+        except FirewallState.DoesNotExist:
+            context['firewall'] = None
+        if 'form' not in context:
+            context['form'] = DeviceCommentsForm(instance=self.object)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = DeviceCommentsForm(request.POST, instance=self.object)
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
+
+
+class DeviceDetailSoftwareView(DetailView):
+    model = Device
+    template_name = 'device_info_software.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            context['portscan'] = self.object.portscan
+        except PortScan.DoesNotExist:
+            context['portscan'] = None
+        try:
+            context['firewall'] = self.object.firewallstate
+        except FirewallState.DoesNotExist:
+            context['firewall'] = None
+        return context
+
+
+class DeviceDetailSecurityView(DetailView):
+    model = Device
+    template_name = 'device_info_security.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            context['portscan'] = self.object.portscan
+        except PortScan.DoesNotExist:
+            context['portscan'] = None
+        else:
+            ports_form_data = self.object.portscan.ports_form_data()
             context['ports_choices'] = bool(ports_form_data[0])
             context['ports_form'] = PortsForm(open_ports_choices=ports_form_data[0],
                                               initial={'open_ports': ports_form_data[1]})
@@ -94,24 +149,16 @@ class DeviceDetailView(DetailView):
             context['connections_choices'] = bool(connections_form_data[0])
             context['connections_form'] = ConnectionsForm(open_connections_choices=connections_form_data[0],
                                                           initial={'open_connections': connections_form_data[1]})
-        except PortScan.DoesNotExist:
-            context['portscan'] = None
-
         try:
             context['firewall'] = self.object.firewallstate
         except FirewallState.DoesNotExist:
             context['firewall'] = None
-
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         portscan = self.object.portscan
-        if 'is_comments_form' in request.POST:
-            form = DeviceCommentsForm(request.POST, instance=self.object)
-            if form.is_valid():
-                form.save()
-        elif 'is_ports_form' in request.POST:
+        if 'is_ports_form' in request.POST:
             ports_form_data = self.object.portscan.ports_form_data()
             form = PortsForm(request.POST, open_ports_choices=ports_form_data[0])
             if form.is_valid():
@@ -131,7 +178,49 @@ class DeviceDetailView(DetailView):
                     out_data.append(connections_form_data[2][connection_record_index])
                 portscan.block_networks = out_data
                 portscan.save(update_fields=['block_networks'])
-        return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
+        return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
+
+
+class DeviceDetailNetworkView(DetailView):
+    model = Device
+    template_name = 'device_info_network.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            context['portscan'] = self.object.portscan
+        except PortScan.DoesNotExist:
+            context['portscan'] = None
+        try:
+            context['firewall'] = self.object.firewallstate
+        except FirewallState.DoesNotExist:
+            context['firewall'] = None
+        return context
+
+
+class DeviceDetailHardwareView(DetailView):
+    model = Device
+    template_name = 'device_info_hardware.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            context['portscan'] = self.object.portscan
+        except PortScan.DoesNotExist:
+            context['portscan'] = None
+        try:
+            context['firewall'] = self.object.firewallstate
+        except FirewallState.DoesNotExist:
+            context['firewall'] = None
+        return context
 
 
 @login_required

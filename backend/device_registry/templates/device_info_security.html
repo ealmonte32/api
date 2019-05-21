@@ -20,85 +20,30 @@
     <div class="col-12">
       <div class="tab">
         <ul class="nav nav-tabs" role="tablist">
-          <li class="nav-item"><a class="nav-link active" href="#overview" data-toggle="tab" role="tab"
-                                  aria-selected="true">Overview</a></li>
           <li class="nav-item">
-            <a class="nav-link" href="#software" data-toggle="tab" role="tab" aria-selected="false">Software</a>
+            <a class="nav-link" href="{% url 'device-detail' object.pk %}" role="tab" aria-selected="false">Overview</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-software' object.pk %}" role="tab" aria-selected="false">Software</a>
           </li>
         {% if portscan and firewall %}
           <li class="nav-item">
-            <a class="nav-link" href="#security" data-toggle="tab" role="tab" aria-selected="false">Security</a>
+            <a class="nav-link active" href="{% url 'device-detail-security' object.pk %}" role="tab" aria-selected="true">Security</a>
           </li>
         {% endif %}
           <li class="nav-item">
-            <a class="nav-link" href="#network" data-toggle="tab" role="tab" aria-selected="false">Network</a>
+            <a class="nav-link" href="{% url 'device-detail-network' object.pk %}" role="tab" aria-selected="false">Network</a>
           </li>
         {% if portscan %}
           <li class="nav-item">
-            <a class="nav-link" href="#hardware" data-toggle="tab" role="tab" aria-selected="false">Hardware</a>
+            <a class="nav-link" href="{% url 'device-detail-hardware' object.pk %}" role="tab" aria-selected="false">Hardware</a>
           </li>
         {% endif %}
         </ul>
         <div class="tab-content">
-          <div class="tab-pane active" id="overview" role="tabpanel">
-            <h4 class="tab-title">Overview</h4>
-            <table class="table table-striped table-responsive-xs">
-              <tbody>
-              <tr>
-                <th scope="row">Device ID</th>
-                <td>{{ object.device_id }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Trust Score</th>
-                <td>
-                {% if portscan %}
-                    {{ object.portscan.get_score }}
-                {% else %}
-                    N/A
-                {% endif %}
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Hardware Type</th>
-                <td>{{ object.deviceinfo.get_hardware_type|default_if_none:'Unknown'}}</td>
-              </tr>
-              <tr>
-                <th scope="row">Last Heartbeat</th>
-                <td>{{ object.last_ping | timesince }} ago</td>
-              </tr>
-              <tr>
-                <th scope="row">Comment</th>
-                <td>
-                  <form method="POST" action="">
-                    {% csrf_token %}
-                    <div class="form-group">
-                      {{ comment_form.comment }}
-                      {{ comment_form.is_comments_form }}
-                      <button class="btn btn-primary" type="submit">Save</button>
-                    </div>
-                  </form>
-                </td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="tab-pane" id="software" role="tabpanel">
-            <h4 class="tab-title">Software</h4>
-            <table class="table table-striped table-responsive-xs">
-              <tbody>
-              <tr>
-                <th scope="row">Operating System</th>
-                <td>{{ object.deviceinfo.device_operating_system|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Operating System Version</th>
-                <td>{{ object.deviceinfo.device_operating_system_version|default_if_none:'N/A' }}</td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-        {% if portscan and firewall %}
-          <div class="tab-pane" id="security" role="tabpanel">
+
+          {% if portscan and firewall %}
+          <div class="tab-pane active" id="security" role="tabpanel">
             <h4 class="tab-title">Security</h4>
             <table class="table table-striped table-responsive-xs">
               <tbody>
@@ -246,50 +191,7 @@
             </table>
           </div>
         {% endif %}
-          <div class="tab-pane" id="network" role="tabpanel">
-            <h4 class="tab-title">Network</h4>
-            <table class="table table-striped table-responsive-xs">
-              <tbody>
-              <tr>
-                <th scope="row">Hostname</th>
-                <td>{{ object.device_id|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">FQDN</th>
-                <td>{{ object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">IP</th>
-                <td>{{ object.deviceinfo.ipv4_address|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Last Heartbeat</th>
-                <td>{{ object.last_ping|timesince }} ago</td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-        {% if portscan %}
-          <div class="tab-pane" id="hardware" role="tabpanel">
-            <h4 class="tab-title">Hardware</h4>
-            <table class="table table-striped table-responsive-xs">
-              <tbody>
-              <tr>
-                <th scope="row">Manufacturer</th>
-                <td>{{ object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Model</th>
-                <td>{{ object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Architecture</th>
-                <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A' }}</td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-        {% endif %}
+
         </div>
       </div>
     </div>

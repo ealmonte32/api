@@ -9,8 +9,6 @@ class ClaimDeviceForm(forms.Form):
 
 
 class DeviceCommentsForm(forms.ModelForm):
-    is_comments_form = forms.CharField(widget=forms.HiddenInput, initial='true')
-
     class Meta:
         model = Device
         fields = ['comment']
