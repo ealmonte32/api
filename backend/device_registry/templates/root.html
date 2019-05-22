@@ -43,7 +43,7 @@
                 labels: ["Active", "Inactive"],
                 datasets: [{
                   data: [{{ active_inactive|first }}, {{ active_inactive|last }}],
-                  backgroundColor: ["#47BAC1", "#fcc100"],
+                  backgroundColor: ["#4cff78", "#df362b"],
                   borderColor: "transparent"
                 }]
               },
@@ -51,7 +51,8 @@
                 responsive: !window.MSInputMethodContext,
                 maintainAspectRatio: false,
                 legend: {
-                  display: false
+                  display: true,
+                  position: 'bottom'
                 }
               }
             });
