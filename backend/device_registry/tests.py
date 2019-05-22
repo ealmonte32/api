@@ -419,12 +419,16 @@ class DeviceModelTest(TestCase):
 class ClaimLinkTest(TestCase):
     def setUp(self):
         User = get_user_model()
+        self.url = reverse('claim-device')
+
         self.api = RequestFactory()
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
             claim_token='token'
         )
         self.user0 = User.objects.create_user('test')
+        self.user0.set_password('123')
+        self.user0.save()
 
     def test_claim_get_view(self):
         request = self.api.get(
@@ -442,6 +446,22 @@ class ClaimLinkTest(TestCase):
         request.user = self.user0
         response = claim_by_link(request)
         self.assertEqual(response.status_code, 404)
+
+    def test_claim_post_invalid(self):
+        self.client.login(username='test', password='123')
+        form_data = {
+            'device_id': self.device0.device_id,
+            'claim_token': 'invalid'
+        }
+        response = self.client.post(self.url, form_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Invalid claim/device id pair.')
+
+    def test_claim_get_invalid(self):
+        self.client.login(username='test', password='123')
+        response = self.client.get(f"{reverse('claim-device')}?device_id=invalid&claim_token=invalid")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Invalid claim/device id pair.')
 
 
 class CertTest(TestCase):
