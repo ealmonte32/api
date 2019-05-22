@@ -69,6 +69,26 @@ if settings.IS_DASH:
             views.DeviceDetailView.as_view(),
             name='device-detail'
         ),
+        path(
+            'devices/<int:pk>/software/',
+            views.DeviceDetailSoftwareView.as_view(),
+            name='device-detail-software'
+        ),
+        path(
+            'devices/<int:pk>/security/',
+            views.DeviceDetailSecurityView.as_view(),
+            name='device-detail-security'
+        ),
+        path(
+            'devices/<int:pk>/network/',
+            views.DeviceDetailNetworkView.as_view(),
+            name='device-detail-network'
+        ),
+        path(
+            'devices/<int:pk>/hardware/',
+            views.DeviceDetailHardwareView.as_view(),
+            name='device-detail-hardware'
+        ),
         path('profile/', views.profile_view, name='profile'),
         path('actions/', views.actions_view, name='actions'),
     ]

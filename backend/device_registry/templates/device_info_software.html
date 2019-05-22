@@ -1,0 +1,64 @@
+{% extends "admin_base.html" %}
+{% load split_string %}
+
+{% block title %}WoTT - Device Info{% endblock title %}
+
+{% block dashboard_title %}
+  <h1 style="margin-bottom: 0">Device Profile</h1>
+{% endblock dashboard_title %}
+
+{% block admin_content %}
+  <div class="row">
+    <div class="col">
+      <h2 style="
+      text-overflow: ellipsis;
+      overflow: hidden;
+      padding-bottom: 5px">{{ object.device_id }}</h2>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12">
+      <div class="tab">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail' object.pk %}" role="tab" aria-selected="false">Overview</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="{% url 'device-detail-software' object.pk %}" role="tab" aria-selected="true">Software</a>
+          </li>
+        {% if portscan and firewall %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-security' object.pk %}" role="tab" aria-selected="false">Security</a>
+          </li>
+        {% endif %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-network' object.pk %}" role="tab" aria-selected="false">Network</a>
+          </li>
+        {% if portscan %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-hardware' object.pk %}" role="tab" aria-selected="false">Hardware</a>
+          </li>
+        {% endif %}
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active" id="software" role="tabpanel">
+            <h4 class="tab-title">Software</h4>
+            <table class="table table-striped table-responsive-xs">
+              <tbody>
+              <tr>
+                <th scope="row">Operating System</th>
+                <td>{{ object.deviceinfo.device_operating_system|default_if_none:'N/A' }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Operating System Version</th>
+                <td>{{ object.deviceinfo.device_operating_system_version|default_if_none:'N/A' }}</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock admin_content %}
+

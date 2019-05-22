@@ -529,7 +529,7 @@ class FormsTests(TestCase):
                                                 netstat=OPEN_CONNECTIONS_INFO)
 
     def test_device_comments_form(self):
-        form_data = {'is_comments_form': 'true', 'comment': 'Test comment'}
+        form_data = {'comment': 'Test comment'}
         form = DeviceCommentsForm(data=form_data, instance=self.device)
         self.assertTrue(form.is_valid())
 
@@ -592,6 +592,7 @@ class DeviceDetailViewTests(TestCase):
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall = FirewallState.objects.create(device=self.device)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
+        self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
 
         self.device_no_portscan = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user,
                                             certificate=TEST_CERT)
@@ -636,8 +637,8 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
-        self.assertNotContains(response, 'id="hardware"')
-        self.assertNotContains(response, 'id="security"')
+        self.assertNotContains(response, '>Security<')
+        self.assertNotContains(response, '>Hardware<')
 
     def test_no_firewall(self):
         """
@@ -648,12 +649,12 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
-        self.assertContains(response, 'id="hardware"')
-        self.assertNotContains(response, 'id="security"')
+        self.assertContains(response, '>Hardware<')
+        self.assertNotContains(response, '>Security<')
 
     def test_comment(self):
         self.client.login(username='test', password='123')
-        form_data = {'is_comments_form': 'true', 'comment': 'Test comment'}
+        form_data = {'comment': 'Test comment'}
         self.client.post(self.url, form_data)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -662,27 +663,27 @@ class DeviceDetailViewTests(TestCase):
     def test_open_ports(self):
         self.client.login(username='test', password='123')
         form_data = {'is_ports_form': 'true', 'open_ports': ['0']}
-        self.client.post(self.url, form_data)
+        self.client.post(self.url2, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22]])
 
     def test_open_connections(self):
         self.client.login(username='test', password='123')
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
-        self.client.post(self.url, form_data)
+        self.client.post(self.url2, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_networks, ['192.168.1.177'])
 
     def test_no_logins(self):
         self.client.login(username='test', password='123')
-        url = reverse('device-detail', kwargs={'pk': self.device_no_logins.pk})
+        url = reverse('device-detail-security', kwargs={'pk': self.device_no_logins.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No recent login attempts detected')
 
     def test_logins(self):
         self.client.login(username='test', password='123')
-        url = reverse('device-detail', kwargs={'pk': self.device.pk})
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<pre>pi:')
