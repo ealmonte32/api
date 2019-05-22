@@ -64,7 +64,14 @@ def claim_device_view(request):
     if request.method == 'GET' and \
         'claim_token' in request.GET and \
             'device_id' in request.GET:
-        form = ClaimDeviceForm(request.GET)
+        try:
+            Device.objects.get(
+                device_id=request.GET['device_id']
+            )
+            form = ClaimDeviceForm(request.GET)
+        except Device.DoesNotExist:
+            text, style = 'Invalid claim/device id pair.', 'warning'
+            form = ClaimDeviceForm()
     else:
         form = ClaimDeviceForm()
 
