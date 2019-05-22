@@ -55,7 +55,9 @@ def claim_device_view(request):
                 else:
                     get_device.owner = request.user
                     get_device.save()
-                    text, style = 'Successfully claimed {}.'.format(form.cleaned_data['device_id']), 'success'
+                    text, style = f'Successfully claimed &nbsp;<a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": get_device.pk})}">' \
+                                      f'{format(form.cleaned_data["device_id"])}</a>.', \
+                                  'success'
             except Device.DoesNotExist:
                 text, style = 'Invalid claim/device id pair.', 'warning'
 

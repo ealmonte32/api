@@ -10,7 +10,12 @@
   <!-- claim_device.html -->
     {% if alert_style %}
     <div class="alert alert-{{ alert_style }} p-2" style="color: black" role="alert">
-      {{ alert_text }}
+      <style>
+        .claim-link {
+          color: white;
+        }
+      </style>
+      {{ alert_text|safe }}
     </div>
     {% endif %}
 
