@@ -246,8 +246,7 @@ def actions_view(request, device_pk=None):
             1,
             'Default credentials detected',
             'We found default credentials present on %s. Please consider changing them as soon as possible.' %
-            full_string,
-            [('Ignore', 'danger'), ('Snooze', 'warning')]
+            ('this device' if device_id else full_string), []
         )
         actions.append(action)
 
@@ -265,8 +264,7 @@ def actions_view(request, device_pk=None):
             2,
             'Disabled firewall detected',
             'We found disabled firewall present on %s. Please consider enabling it.' %
-            full_string,
-            [('Ignore', 'danger'), ('Snooze', 'warning')]
+            ('this device' if device_id else full_string), []
         )
         actions.append(action)
 

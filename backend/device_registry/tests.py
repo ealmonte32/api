@@ -618,7 +618,6 @@ class DeviceDetailViewTests(TestCase):
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall3 = FirewallState.objects.create(device=self.device_no_logins)
 
-
     def test_get(self):
         """
         If no questions exist, an appropriate message is displayed.
@@ -628,7 +627,7 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
         self.assertFalse(self.device.has_actions())
-        self.assertNotContains(response, 'Has recommended actions')
+        self.assertNotContains(response, 'Show recommended actions')
 
     def test_actions_btn_pos(self):
         self.client.login(username='test', password='123')
@@ -636,7 +635,7 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(self.device_no_logins.has_actions())
-        self.assertContains(response, 'Has recommended actions')
+        self.assertContains(response, 'Show recommended actions')
 
     def test_no_portscan(self):
         """

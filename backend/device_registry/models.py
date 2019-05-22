@@ -77,7 +77,7 @@ class Device(models.Model):
         return cert_url
 
     def has_actions(self):
-        if self.deviceinfo.default_password or self.firewallstate.enabled:
+        if self.deviceinfo.default_password is True or self.firewallstate.enabled is False:
             return True
         return False
 

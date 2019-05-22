@@ -8,13 +8,6 @@
 
 {% block admin_content %}
   <div class="row">
-    <div class="col-xs-12 mx-auto d-table h-100">
-      <div class="d-table-cell align-middle">
-        <button class="btn btn-success btn-lg">Enable automatic actions</button>
-      </div>
-    </div>
-  </div>
-  <div class="row">
     <div class="mb-3 mt-3 w-100" id="alert-container">
       {% for action in actions %}
         <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
@@ -25,14 +18,6 @@
           <div class="alert-message">
             <h4 class="alert-heading">{{ action.title }}</h4>
             <p>{{ action.description|safe }}</p>
-            <hr>
-            <div class="btn-list text-center">
-              {% for button_text, button_type in action.actions %}
-                <button class="btn btn-{{ button_type }} ml-2 mr-2" type="button" data-dismiss="alert"
-                        aria-label="{{ button_text }}"
-                        onclick="submitAction({{ action.id }}, '{{ button_text }}')">{{ button_text }}</button>
-              {% endfor %}
-            </div>
           </div>
         </div>
       {% endfor %}

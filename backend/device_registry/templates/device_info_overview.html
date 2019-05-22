@@ -13,8 +13,9 @@
       <h2 style="
       text-overflow: ellipsis;
       overflow: hidden;
-      padding-bottom: 5px">{{ object.device_id }}</h2>
-      {% if object.has_actions %}<a href="{% url 'device_actions' object.pk %}" class="btn btn-danger btn-lg active" role="button" aria-pressed="true">Has recommended actions</a>{% endif %}
+      padding-bottom: 5px">{{ object.device_id }}{% if object.has_actions %}
+        <a href="{% url 'device_actions' object.pk %}" class="btn btn-danger btn-lg active" role="button"
+           aria-pressed="true">Show recommended actions</a>{% endif %}</h2>
     </div>
   </div>
   <div class="row">
