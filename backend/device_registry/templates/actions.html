@@ -2,7 +2,9 @@
 
 {% block title %}WoTT - Recommended Actions{% endblock title %}
 
-{% block dashboard_title %}<h1>Recommended Actions</h1>{% endblock dashboard_title %}
+{% block dashboard_title %}
+  <h1>Recommended Actions{% if device_id %} for device {{ device_id }}{% endif %}</h1>
+{% endblock dashboard_title %}
 
 {% block admin_content %}
   <div class="row">
