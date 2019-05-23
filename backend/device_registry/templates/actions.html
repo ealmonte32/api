@@ -18,6 +18,14 @@
           <div class="alert-message">
             <h4 class="alert-heading">{{ action.title }}</h4>
             <p>{{ action.description|safe }}</p>
+            {% if device_id and action.actions %}
+              <hr>
+              <div class="btn-list text-center">
+                {% for button_template in action.actions %}
+                  {% include button_template %}
+                {% endfor %}
+              </div>
+            {% endif %}
           </div>
         </div>
       {% endfor %}
