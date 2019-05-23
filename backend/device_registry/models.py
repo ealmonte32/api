@@ -227,6 +227,18 @@ class PortScan(models.Model):
                 score -= 0.3
         return max(round(score, 1), 0)
 
+    def get_score_percent(self):
+        return int(self.get_score() * 100)
+
+    def get_score_color(self):
+        score = self.get_score_percent()
+        if score <= 33:
+            return 'danger'
+        elif score <= 66:
+            return 'warning'
+        else:
+            return 'success'
+
     def ports_form_data(self):
         """
         Build 3 lists:
