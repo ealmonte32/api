@@ -104,7 +104,27 @@
               <tr>
                 <th scope="row">Firewall Rules</th>
                 <td>
-                  <pre>{{ object.firewallstate.beautified_rules }}</pre>
+                  <div id="firewall-rules">
+                    <style>
+                      button.btn.collapsed:before {
+                          content:'show' ;
+                      }
+                      button.btn:before {
+                          content:'hide' ;
+                      }
+                    </style>
+                    <div>
+                      <div id="firewall-rules-btn">
+                          <button class="btn btn-link m-0 p-0 collapsed" type="button" data-toggle="collapse" data-target="#firewall-rules-collapse" aria-expanded="false" aria-controls="firewall-rules-collapse"></button>
+                      </div>
+
+                      <div id="firewall-rules-collapse" class="collapse" aria-labelledby="firewall-rules-btn" data-parent="#firewall-rules">
+                        <div>
+                          <pre>{{ object.firewallstate.beautified_rules }}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </td>
               </tr>
               <tr>
