@@ -224,11 +224,18 @@ class DeviceDetailHardwareView(DetailView):
 
 
 @login_required
-def actions_view(request):
+def actions_view(request, device_pk=None):
+    if device_pk is not None:
+        device = get_object_or_404(Device, pk=device_pk)
+        device_id = device.device_id
+    else:
+        device_id = None
     actions = []
 
     # Default username/password used action.
     insecure_password_devices = request.user.devices.filter(deviceinfo__default_password=True)
+    if device_pk is not None:
+        insecure_password_devices = insecure_password_devices.filter(pk=device_pk)
     if insecure_password_devices.exists():
         text_blocks = []
         for dev in insecure_password_devices:
@@ -239,13 +246,14 @@ def actions_view(request):
             1,
             'Default credentials detected',
             'We found default credentials present on %s. Please consider changing them as soon as possible.' %
-            full_string,
-            [('Ignore', 'danger'), ('Snooze', 'warning')]
+            ('this device' if device_id else full_string), []
         )
         actions.append(action)
 
     # Firewall disabled action.
     disabled_firewall_devices = request.user.devices.filter(firewallstate__enabled=False)
+    if device_pk is not None:
+        disabled_firewall_devices = disabled_firewall_devices.filter(pk=device_pk)
     if disabled_firewall_devices.exists():
         text_blocks = []
         for dev in disabled_firewall_devices:
@@ -256,11 +264,11 @@ def actions_view(request):
             2,
             'Disabled firewall detected',
             'We found disabled firewall present on %s. Please consider enabling it.' %
-            full_string,
-            [('Ignore', 'danger'), ('Snooze', 'warning')]
+            ('this device' if device_id else full_string), []
         )
         actions.append(action)
 
     return render(request, 'actions.html', {
-        'actions': actions
+        'actions': actions,
+        'device_id': device_id
     })

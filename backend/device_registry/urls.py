@@ -91,4 +91,5 @@ if settings.IS_DASH:
         ),
         path('profile/', views.profile_view, name='profile'),
         path('actions/', views.actions_view, name='actions'),
+        path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),
     ]

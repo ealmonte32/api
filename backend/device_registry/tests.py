@@ -611,12 +611,12 @@ class DeviceDetailViewTests(TestCase):
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
             app_armor_enabled=True,
-            logins={}
+            logins={},
+            default_password=True
         )
         self.portscan3 = PortScan.objects.create(device=self.device_no_logins, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall3 = FirewallState.objects.create(device=self.device_no_logins)
-
 
     def test_get(self):
         """
@@ -626,6 +626,16 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
+        self.assertFalse(self.device.has_actions())
+        self.assertNotContains(response, 'Show recommended actions')
+
+    def test_actions_btn_pos(self):
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail', kwargs={'pk': self.device_no_logins.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(self.device_no_logins.has_actions())
+        self.assertContains(response, 'Show recommended actions')
 
     def test_no_portscan(self):
         """

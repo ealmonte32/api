@@ -76,6 +76,11 @@ class Device(models.Model):
             cert_url = f'https://api.wott.io/v0.2/device-cert/{self.device_id}'
         return cert_url
 
+    def has_actions(self):
+        if self.deviceinfo.default_password is True or self.firewallstate.enabled is False:
+            return True
+        return False
+
     COEFFICIENTS = {
         'app_armor_enabled': 1.0,
         'firewall_enabled': 1.0,
