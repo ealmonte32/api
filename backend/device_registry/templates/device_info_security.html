@@ -57,15 +57,35 @@
                   {%  else %}
                       N/A
                   {% endif %}
+
+                  {% if object.deviceinfo.selinux_state.enabled and object.deviceinfo.selinux_state.mode == 'enforcing'%}
+                    <span class="p-1 badge badge-pill badge-success">✓</span>
+                  {% else %}
+                    <span class="p-1 badge badge-pill badge-warning">✗</span>
+                  {% endif %}
                   </td>
               </tr>
               <tr>
                   <th scope="row">AppArmor Enabled</th>
-                  <td>{{ object.deviceinfo.app_armor_enabled|default_if_none:'N/A' }}</td>
+                  <td>
+                    {{ object.deviceinfo.app_armor_enabled|default_if_none:'N/A' }}
+                    {% if object.deviceinfo.app_armor_enabled is not None %}
+                      <span class="p-1 badge badge-pill badge-{{ object.deviceinfo.app_armor_enabled|yesno:"success,warning" }}">
+                        {{ object.deviceinfo.app_armor_enabled|yesno:"✓,✗" }}
+                      </span>
+                    {% endif %}
+                  </td>
               </tr>
               <tr>
                   <th scope="row">Default password used</th>
-                  <td>{{ object.deviceinfo.default_password|default_if_none:'N/A' }}</td>
+                  <td>
+                    {{ object.deviceinfo.default_password|default_if_none:'N/A' }}
+                    {% if object.deviceinfo.default_password is not None %}
+                      <span class="p-1 badge badge-pill badge-{{ object.deviceinfo.default_password|yesno:"warning,success" }}">
+                        {{ object.deviceinfo.default_password|yesno:"✗,✓" }}
+                      </span>
+                    {% endif %}
+                  </td>
               </tr>
               <tr>
                 <th scope="row">Logins</th>
