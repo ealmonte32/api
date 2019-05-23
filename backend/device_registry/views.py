@@ -44,25 +44,34 @@ def claim_device_view(request):
         form = ClaimDeviceForm(request.POST)
 
         if form.is_valid():
-            get_device = get_object_or_404(
-                Device,
-                device_id=form.cleaned_data['device_id']
-            )
-            if get_device.claimed:
-                text, style = 'Device has already been claimed.', 'warning'
-            elif not get_device.claim_token == form.cleaned_data['claim_token']:
+            try:
+                get_device = Device.objects.get(
+                    device_id=form.cleaned_data['device_id']
+                )
+                if get_device.claimed:
+                    text, style = 'Device has already been claimed.', 'warning'
+                elif not get_device.claim_token == form.cleaned_data['claim_token']:
+                    text, style = 'Invalid claim/device id pair.', 'warning'
+                else:
+                    get_device.owner = request.user
+                    get_device.save()
+                    text, style = 'Successfully claimed {}.'.format(form.cleaned_data['device_id']), 'success'
+            except Device.DoesNotExist:
                 text, style = 'Invalid claim/device id pair.', 'warning'
-            else:
-                get_device.owner = request.user
-                get_device.save()
-                text, style = 'Successfully claimed {}.'.format(form.cleaned_data['device_id']), 'success'
 
     # GET with claim_token and device_id set will fill the form.
     # Empty GET or any other request will generate empty form.
     if request.method == 'GET' and \
         'claim_token' in request.GET and \
             'device_id' in request.GET:
-        form = ClaimDeviceForm(request.GET)
+        try:
+            Device.objects.get(
+                device_id=request.GET['device_id']
+            )
+            form = ClaimDeviceForm(request.GET)
+        except Device.DoesNotExist:
+            text, style = 'Invalid claim/device id pair.', 'warning'
+            form = ClaimDeviceForm()
     else:
         form = ClaimDeviceForm()
 
