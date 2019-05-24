@@ -8,30 +8,7 @@
 {% endblock dashboard_title %}
 
 {% block admin_content %}
-  <div class="row">
-    <div class="col">
-      <h2 style="
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      padding-bottom: 5px">{{ object.device_id }}
-        {% if object.trust_score is not None %}
-          <div class="progress position-relative" style="width: 45ch">
-            <div class="progress-bar bg-{{ object.trust_score_color }}" role="progressbar"
-                 style="width: {{ object.trust_score_percent }}%"></div>
-            <span
-                class="justify-content-center d-flex position-absolute w-100">{{ object.trust_score|floatformat:2 }}</span>
-          </div>
-        {% endif %}
-      </h2>
-    </div>
-    <div class="col">
-        {% if object.has_actions %}
-          <a href="{% url 'device_actions' object.pk %}" class="btn btn-danger btn-lg active" role="button"
-             aria-pressed="true">Show recommended actions</a>
-        {% endif %}
-    </div>
-  </div>
+  {% include 'device_info_top_block.html' %}
   <div class="row">
     <div class="col-12">
       <div class="tab">

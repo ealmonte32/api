@@ -8,16 +8,7 @@
 {% endblock dashboard_title %}
 
 {% block admin_content %}
-  <div class="row">
-    <div class="col">
-      <h2 style="
-      text-overflow: ellipsis;
-      overflow: hidden;
-      padding-bottom: 5px">{{ object.device_id }}{% if object.has_actions %}
-        <a href="{% url 'device_actions' object.pk %}" class="btn btn-danger btn-lg active" role="button"
-           aria-pressed="true">Show recommended actions</a>{% endif %}</h2>
-    </div>
-  </div>
+  {% include 'device_info_top_block.html' %}
   <div class="row">
     <div class="col-12">
       <div class="tab">
