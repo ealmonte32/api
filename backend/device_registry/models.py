@@ -13,6 +13,14 @@ import yaml
 from device_registry import ca_helper
 
 
+def get_bootstrap_color(val):
+    if val <= 33:
+        return 'danger'
+    elif val <= 66:
+        return 'warning'
+    else:
+        return 'success'
+
 class JsonFieldTransitionHelper(JSONField):
     def from_db_value(self, value, expression, connection, context):
         if isinstance(value, str):
@@ -125,6 +133,12 @@ class Device(models.Model):
         return sum([v*cls.COEFFICIENTS[k] for k,v in kwargs.items()]) / \
                sum(cls.COEFFICIENTS.values())
 
+    def trust_score_percent(self):
+        return int(self.trust_score * 100)
+
+    def trust_score_color(self):
+        return get_bootstrap_color(self.trust_score_percent())
+
     class Meta:
         ordering = ('created',)
 
@@ -226,18 +240,6 @@ class PortScan(models.Model):
             if port in PortScan.BAD_PORTS:
                 score -= 0.3
         return max(round(score, 1), 0)
-
-    def get_score_percent(self):
-        return int(self.get_score() * 100)
-
-    def get_score_color(self):
-        score = self.get_score_percent()
-        if score <= 33:
-            return 'danger'
-        elif score <= 66:
-            return 'warning'
-        else:
-            return 'success'
 
     def ports_form_data(self):
         """
