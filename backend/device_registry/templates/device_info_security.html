@@ -83,7 +83,7 @@
                   <td>
                     {{ object.deviceinfo.default_password|title|default_if_none:'N/A' }}
                     {% if object.deviceinfo.default_password is not None %}
-                      <span class="p-1 badge badge-pill badge-{{ object.deviceinfo.default_password|yesno:"warning,success" }}">
+                      <span class="p-1 badge badge-pill badge-{{ object.deviceinfo.default_password|yesno:"danger,success" }}">
                         {{ object.deviceinfo.default_password|yesno:"✗,✓" }}
                       </span>
                     {% endif %}
@@ -101,7 +101,14 @@
               </tr>
               <tr>
                 <th scope="row">Firewall Enabled</th>
-                <td>{{ object.firewallstate.enabled|title|default_if_none:'N/A' }}</td>
+                <td>
+                    {{ object.firewallstate.enabled|title|default_if_none:'N/A' }}
+                    {% if object.firewallstate.enabled is not None %}
+                      <span class="p-1 badge badge-pill badge-{{ object.firewallstate.enabled|yesno:"success,danger" }}">
+                        {{ object.firewallstate.enabled|yesno:"✓,✗" }}
+                      </span>
+                    {% endif %}
+                </td>
               </tr>
               <tr>
                 <th scope="row">Firewall Rules</th>
