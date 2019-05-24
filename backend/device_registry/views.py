@@ -279,7 +279,29 @@ def actions_view(request, device_pk=None):
         )
         actions.append(action)
 
+    # Telnet server running action.
+    enabled_telnet_devices = request.user.devices.filter(portscan__scan_info__contains=[{'port': 23}]).exclude(
+        portscan__block_ports__contains=[[23]])
+    if device_pk is not None:
+        enabled_telnet_devices = enabled_telnet_devices.filter(pk=device_pk)
+    if enabled_telnet_devices.exists():
+        text_blocks = []
+        for dev in enabled_telnet_devices:
+            device_text_block = '<a href="%s">%s</a>' % (
+            reverse('device-detail', kwargs={'pk': dev.pk}), dev.device_id)
+            text_blocks.append(device_text_block)
+        full_string = ', '.join(text_blocks)
+        action = Action(
+            3,
+            'Enabled Telnet server detected',
+            'We found enabled Telnet server present on %s. Please consider disabling it.' %
+            ('this device' if device_id else full_string),
+            ['buttons/block_telnet.html']
+        )
+        actions.append(action)
+
     return render(request, 'actions.html', {
         'actions': actions,
-        'device_id': device_id
+        'device_id': device_id,
+        'device_pk': device_pk
     })

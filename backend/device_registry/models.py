@@ -77,7 +77,11 @@ class Device(models.Model):
         return cert_url
 
     def has_actions(self):
-        if self.deviceinfo.default_password is True or self.firewallstate.enabled is False:
+        if any((self.deviceinfo.default_password is True,
+                self.firewallstate.enabled is False,
+                self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
+                    portscan__block_ports__contains=[[23]]).exists()
+                )):
             return True
         return False
 

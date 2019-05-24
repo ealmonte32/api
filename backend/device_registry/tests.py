@@ -115,6 +115,7 @@ TEST_RULES = {'INPUT': [{'src': '15.15.15.50/32', 'target': 'DROP'}, {'src': '15
               'OUTPUT': [], 'FORWARD': []}
 
 OPEN_PORTS_INFO = [{"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open"}]
+OPEN_PORTS_INFO_TELNET = [{"host": "192.168.1.178", "port": 23, "proto": "tcp", "state": "open"}]
 
 OPEN_CONNECTIONS_INFO = [
     {'ip_version': 4, 'type': 'tcp', 'local_address': ['192.168.1.178', 4567],
@@ -574,7 +575,7 @@ class ActionsViewTests(TestCase):
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
                                             certificate=TEST_CERT)
-        self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
+        self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO_TELNET,
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall = FirewallState.objects.create(device=self.device, enabled=False)
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
@@ -589,6 +590,9 @@ class ActionsViewTests(TestCase):
                 self.device.pk, self.device.device_id))
         self.assertContains(
             response, 'We found default credentials present on <a href="/devices/%d/">%s</a>' % (
+                self.device.pk, self.device.device_id))
+        self.assertContains(
+            response, 'We found enabled Telnet server present on <a href="/devices/%d/">%s</a>' % (
                 self.device.pk, self.device.device_id))
 
 
