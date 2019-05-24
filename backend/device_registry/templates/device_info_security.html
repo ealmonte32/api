@@ -60,7 +60,7 @@
 
                   {% if object.deviceinfo.selinux_state.enabled and object.deviceinfo.selinux_state.mode == 'enforcing'%}
                     <span class="p-1 badge badge-pill badge-success">✓</span>
-                  {% else %}
+                  {% elif object.deviceinfo.selinux_state.enabled is not None %}
                     <span class="p-1 badge badge-pill badge-warning">✗</span>
                   {% endif %}
                   </td>
