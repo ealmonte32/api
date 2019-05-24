@@ -1,3 +1,12 @@
+<style>
+    .wott-recommended-actions {
+        white-space: nowrap;
+    }
+    .wott-score-bar {
+        width: 45ch;
+        height: 2rem;
+    }
+</style>
 <div class="row">
   <div class="col">
     <h2 style="
@@ -5,19 +14,21 @@
       text-overflow: ellipsis;
       overflow: hidden;
       padding-bottom: 5px">{{ object.device_id }}
-      {% if object.trust_score is not None %}
-        <div class="progress position-relative" style="width: 45ch">
-          <div class="progress-bar bg-{{ object.trust_score_color }}" role="progressbar"
-               style="width: {{ object.trust_score_percent }}%"></div>
-          <span
-              class="justify-content-center d-flex position-absolute w-100">{{ object.trust_score|floatformat:2 }}</span>
-        </div>
-      {% endif %}
     </h2>
   </div>
   <div class="col">
+      {% if object.trust_score is not None %}
+        <div class="wott-score-bar progress position-relative" >
+          <div class="progress-bar bg-{{ object.trust_score_color }}" role="progressbar"
+               style="width: {{ object.trust_score_percent }}%"></div>
+          <h2
+              class="justify-content-center d-flex position-absolute w-100">{{ object.trust_score|floatformat:2 }}</h2>
+        </div>
+      {% endif %}
+  </div>
+  <div class="col">
     {% if object.has_actions %}
-      <a href="{% url 'device_actions' object.pk %}" class="btn btn-danger btn-lg active" role="button"
+      <a href="{% url 'device_actions' object.pk %}" class="wott-recommended-actions btn btn-danger btn-lg active" role="button"
          aria-pressed="true">Show recommended actions</a>
     {% endif %}
   </div>
