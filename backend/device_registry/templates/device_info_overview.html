@@ -54,11 +54,16 @@
               <tr>
                 <th scope="row">Trust Score</th>
                 <td>
-                {% if portscan %}
-                    {{ object.portscan.get_score }}
-                {% else %}
+                  {% if object.trust_score is not None %}
+                    <div class="progress position-relative" style="width: 45ch">
+                      <div class="progress-bar bg-{{ object.trust_score_color }}" role="progressbar"
+                           style="width: {{ object.trust_score_percent }}%"></div>
+                      <span
+                          class="justify-content-center d-flex position-absolute w-100">{{ object.trust_score|floatformat:2 }}</span>
+                    </div>
+                  {% else %}
                     N/A
-                {% endif %}
+                  {% endif %}
                 </td>
               </tr>
               <tr>

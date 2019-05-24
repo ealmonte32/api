@@ -65,14 +65,33 @@
           <div class="card-header">
             <h5 class="card-title mb-0">Average Trust Score:</h5>
           </div>
-          <div class="card-body py-4" style="display: flex; align-items: center">
-            <h1 style="font-size: 70px; margin: auto">
-                {%  if avg_trust_score is None %}
-                    N/A
-                {%  else %}
-                    {{ avg_trust_score|floatformat:2 }}
-                {% endif %}
+          <style>
+              h1.trust-score {
+                  margin: auto;
+                  font-size: 1em;
+              }
+              div.trust-score {
+                  font-size: 70px;
+              }
+              div.trust-score-bar {
+                  height: 2rem;
+                  max-width: 20rem;
+              }
+          </style>
+          <div class="trust-score card-body d-flex flex-column align-items-center py-4">
+            <h1 class="trust-score">
+              {% if avg_trust_score is None %}
+                N/A
+              {% else %}
+                {{ avg_trust_score|floatformat:2 }}
+              {% endif %}
             </h1>
+            {% if avg_trust_score is not None %}
+              <div class="trust-score-bar progress w-100">
+                <div class="progress-bar bg-{{ avg_trust_score_color }}" role="progressbar"
+                     style="width: {{ avg_trust_score_percent }}%"></div>
+              </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -103,7 +122,18 @@
                   <td><a href="{% url 'device-detail' device.id %}">{{ device.device_id | truncatechars:30 }}</a></td>
                   <td>{{ device.deviceinfo.fqdn }}</td>
                   <td>{{ device.last_ping | timesince }} ago</td>
-                  <td>{{ device.portscan.get_score | default_if_none:'N/A' }}</td>
+                  <td>
+                    {% if device.trust_score is not None %}
+                    <div class="progress position-relative">
+                      <div class="progress-bar bg-{{ device.trust_score_color }}" role="progressbar"
+                           style="width: {{ device.trust_score_percent }}%"></div>
+                      <span
+                          class="justify-content-center d-flex position-absolute w-100">{{ device.trust_score|floatformat:2 }}</span>
+                    </div>
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
                   <td>{{ device.comment | default_if_none:'' }}</td>
                 </tr>
               {% endfor %}

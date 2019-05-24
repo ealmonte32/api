@@ -13,6 +13,14 @@ import yaml
 from device_registry import ca_helper
 
 
+def get_bootstrap_color(val):
+    if val <= 33:
+        return 'danger'
+    elif val <= 66:
+        return 'warning'
+    else:
+        return 'success'
+
 class JsonFieldTransitionHelper(JSONField):
     def from_db_value(self, value, expression, connection, context):
         if isinstance(value, str):
@@ -128,6 +136,12 @@ class Device(models.Model):
     def calculate_trust_score(cls, **kwargs):
         return sum([v*cls.COEFFICIENTS[k] for k,v in kwargs.items()]) / \
                sum(cls.COEFFICIENTS.values())
+
+    def trust_score_percent(self):
+        return int(self.trust_score * 100)
+
+    def trust_score_color(self):
+        return get_bootstrap_color(self.trust_score_percent())
 
     class Meta:
         ordering = ('created',)

@@ -7,14 +7,19 @@ from django.contrib.auth.decorators import login_required
 
 from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm, PortsForm, ConnectionsForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
+from device_registry.models import get_bootstrap_color
 from profile_page.forms import ProfileForm
 from profile_page.models import Profile
 
 
 @login_required
 def root_view(request):
+    avg_trust_score = average_trust_score(request.user)
     return render(request, 'root.html', {
-        'avg_trust_score': average_trust_score(request.user),
+        'avg_trust_score': avg_trust_score,
+        'avg_trust_score_percent': int(avg_trust_score * 100) if avg_trust_score is not None else None,
+        'avg_trust_score_color': get_bootstrap_color(
+            int(avg_trust_score * 100)) if avg_trust_score is not None else None,
         'active_inactive': Device.get_active_inactive(request.user),
         'devices': get_device_list(request.user)
     })
