@@ -53,9 +53,9 @@
                   <th scope="row">SELinux Status</th>
                   <td>
                   {% if object.deviceinfo.selinux_state.enabled %}
-                    {{ object.deviceinfo.selinux_state.mode|default:'enabled (unknown)' }}
+                    {{ object.deviceinfo.selinux_state.mode|default:'Enabled (unknown)' }}
                   {%  elif object.deviceinfo.selinux_state.enabled is False %}
-                    disabled
+                    Disabled
                   {%  else %}
                       N/A
                   {% endif %}
@@ -70,7 +70,7 @@
               <tr>
                   <th scope="row">AppArmor Enabled</th>
                   <td>
-                    {{ object.deviceinfo.app_armor_enabled|default_if_none:'N/A' }}
+                    {{ object.deviceinfo.app_armor_enabled|title|default_if_none:'N/A' }}
                     {% if object.deviceinfo.app_armor_enabled is not None %}
                       <span class="p-1 badge badge-pill badge-{{ object.deviceinfo.app_armor_enabled|yesno:"success,warning" }}">
                         {{ object.deviceinfo.app_armor_enabled|yesno:"✓,✗" }}
@@ -79,9 +79,9 @@
                   </td>
               </tr>
               <tr>
-                  <th scope="row">Default password used</th>
+                  <th scope="row">Default Password Detected</th>
                   <td>
-                    {{ object.deviceinfo.default_password|default_if_none:'N/A' }}
+                    {{ object.deviceinfo.default_password|title|default_if_none:'N/A' }}
                     {% if object.deviceinfo.default_password is not None %}
                       <span class="p-1 badge badge-pill badge-{{ object.deviceinfo.default_password|yesno:"warning,success" }}">
                         {{ object.deviceinfo.default_password|yesno:"✗,✓" }}
@@ -101,7 +101,7 @@
               </tr>
               <tr>
                 <th scope="row">Firewall Enabled</th>
-                <td>{{ object.firewallstate.enabled|default_if_none:'N/A' }}</td>
+                <td>{{ object.firewallstate.enabled|title|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
                 <th scope="row">Firewall Rules</th>
