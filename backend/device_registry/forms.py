@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Device, PortScan
+from .models import Device
 
 
 class ClaimDeviceForm(forms.Form):
@@ -8,11 +8,12 @@ class ClaimDeviceForm(forms.Form):
     claim_token = forms.CharField()
 
 
-class DeviceCommentsForm(forms.ModelForm):
+class DeviceAttrsForm(forms.ModelForm):
     class Meta:
         model = Device
-        fields = ['comment']
-        widgets = {'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Comment', 'class': 'form-control'})}
+        fields = ['name', 'comment']
+        widgets = {'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Comment', 'class': 'form-control'}),
+                   'name': forms.TextInput(attrs={'style': 'width:100%'})}
 
 
 class PortsForm(forms.Form):

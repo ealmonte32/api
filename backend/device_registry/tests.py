@@ -21,7 +21,7 @@ from rest_framework.test import APIRequestFactory
 from device_registry import ca_helper
 from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view
 from .models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score
-from .forms import DeviceCommentsForm, PortsForm, ConnectionsForm
+from .forms import DeviceAttrsForm, PortsForm, ConnectionsForm
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -549,9 +549,9 @@ class FormsTests(TestCase):
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
 
-    def test_device_comments_form(self):
-        form_data = {'comment': 'Test comment'}
-        form = DeviceCommentsForm(data=form_data, instance=self.device)
+    def test_device_attrs_form(self):
+        form_data = {'comment': 'Test comment', 'name': 'My device 1'}
+        form = DeviceAttrsForm(data=form_data, instance=self.device)
         self.assertTrue(form.is_valid())
 
     def test_ports_form(self):
@@ -693,6 +693,14 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test comment')
+
+    def test_device_name(self):
+        self.client.login(username='test', password='123')
+        form_data = {'name': 'My device 1'}
+        self.client.post(self.url, form_data)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'My device 1')
 
     def test_open_ports(self):
         self.client.login(username='test', password='123')

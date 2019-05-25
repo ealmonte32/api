@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 
-from device_registry.forms import ClaimDeviceForm, DeviceCommentsForm, PortsForm, ConnectionsForm
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import get_bootstrap_color
 from profile_page.forms import ProfileForm
@@ -108,12 +108,12 @@ class DeviceDetailView(DetailView):
         except FirewallState.DoesNotExist:
             context['firewall'] = None
         if 'form' not in context:
-            context['form'] = DeviceCommentsForm(instance=self.object)
+            context['form'] = DeviceAttrsForm(instance=self.object)
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        form = DeviceCommentsForm(request.POST, instance=self.object)
+        form = DeviceAttrsForm(request.POST, instance=self.object)
         if form.is_valid():
             form.save()
             return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))

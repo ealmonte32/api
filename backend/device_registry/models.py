@@ -50,6 +50,21 @@ class Device(models.Model):
     comment = models.CharField(blank=True, null=True, max_length=512)
     claim_token = models.CharField(editable=False, max_length=128)
     fallback_token = models.CharField(editable=False, max_length=128, default='')
+    name = models.CharField(max_length=36, blank=True)
+
+    def get_name(self):
+        if self.name:
+            return self.name
+        fqdn = self.deviceinfo.fqdn
+        if fqdn:
+            fqdn = fqdn[:36]
+            if self.__class__.objects.exclude(pk=self.pk).filter(deviceinfo__fqdn__startswith=fqdn).exists():
+                appendix = '_%d' % self.pk
+                fqdn = fqdn[:36 - len(appendix)] + appendix
+            return fqdn
+        else:
+            return 'device_%d' % self.pk
+
 
     @staticmethod
     def get_active_inactive(user):
