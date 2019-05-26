@@ -58,8 +58,11 @@ class Device(models.Model):
         fqdn = self.deviceinfo.fqdn
         if fqdn:
             fqdn = fqdn[:36]
-            if self.__class__.objects.exclude(pk=self.pk).filter(deviceinfo__fqdn__startswith=fqdn).exists():
+            if self.__class__.objects.exclude(pk=self.pk).filter(
+                    owner=self.owner, deviceinfo__fqdn__startswith=fqdn).exists():
                 appendix = '_%d' % self.pk
+                if len(fqdn) + len(appendix) > 36:
+                    appendix = '..._%d' % self.pk
                 fqdn = fqdn[:36 - len(appendix)] + appendix
             return fqdn
         else:

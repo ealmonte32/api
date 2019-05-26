@@ -40,10 +40,6 @@
               <table class="table table-striped table-responsive-xs">
                 <tbody>
                 <tr>
-                  <th scope="row">Device ID</th>
-                  <td>{{ object.device_id }}</td>
-                </tr>
-                <tr>
                   <th scope="row">Hardware Type</th>
                   <td>{{ object.deviceinfo.get_hardware_type|default_if_none:'Unknown' }}</td>
                 </tr>
@@ -52,7 +48,7 @@
                   <td>{{ object.last_ping | timesince }} ago</td>
                 </tr>
                 <tr>
-                  <th scope="row">Device name</th>
+                  <th scope="row">Device Name</th>
                   <td>
                     <div class="form-group">
                       {% csrf_token %}

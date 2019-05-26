@@ -9,6 +9,16 @@ class ClaimDeviceForm(forms.Form):
 
 
 class DeviceAttrsForm(forms.ModelForm):
+
+    def clean_name(self):
+        data = self.cleaned_data['name'].strip()
+        if data:
+            model_class = self.instance.__class__
+            owner = self.instance.owner
+            if model_class.objects.exclude(pk=self.instance.pk).filter(owner=owner, name__iexact=data):
+                raise forms.ValidationError("You already have a device with such name!")
+        return data
+
     class Meta:
         model = Device
         fields = ['name', 'comment']
