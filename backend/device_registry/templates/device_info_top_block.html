@@ -13,8 +13,7 @@
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
-      padding-bottom: 5px">{{ object.device_id }}
-    </h2>
+      padding-bottom: 5px">{{ object.get_name }}</h2>
   </div>
   <div class="col">
       {% if object.trust_score is not None %}
