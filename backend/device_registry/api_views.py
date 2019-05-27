@@ -14,6 +14,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
+from netaddr import IPAddress
 
 from device_registry import ca_helper
 from device_registry.serializers import DeviceInfoSerializer
@@ -265,6 +266,11 @@ def mtls_ping_view(request, format=None):
         scan_info = request.data.get('scan_info', [])
         if isinstance(scan_info, str):
             scan_info = json.loads(scan_info)
+        # Add missing IP protocol version info.
+        for record in scan_info:
+            if 'ip_version' not in record:
+                ipaddr = IPAddress(record['host'])
+                record['ip_version'] = ipaddr.version
         portscan_object.scan_info = scan_info
         portscan_object.netstat = request.data.get('netstat', [])
         block_networks = portscan_object.block_networks.copy()

@@ -35,7 +35,7 @@ spam_networks_list_path = os.path.join(REPO_DIR, 'misc', 'spam_networks.txt')
 with open(spam_networks_list_path) as f:
     read_data = f.read()
 spam_networks_list = re.findall(r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.0/\d{1,2}).*', read_data, re.MULTILINE)
-SPAM_NETWORKS = list(filter(check_ip_range, spam_networks_list))
+SPAM_NETWORKS = [[addr, False] for addr in filter(check_ip_range, spam_networks_list)]
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
