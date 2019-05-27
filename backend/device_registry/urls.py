@@ -92,6 +92,9 @@ if settings.IS_DASH:
             views.DeviceDetailHardwareView.as_view(),
             name='device-detail-hardware'
         ),
+        path('credentials/',
+             views.CredentialsView.as_view(),
+             name='credentials'),
         path('profile/', views.profile_view, name='profile'),
         path('actions/', views.actions_view, name='actions'),
         path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),

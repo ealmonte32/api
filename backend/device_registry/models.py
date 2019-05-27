@@ -358,6 +358,21 @@ class FirewallState(models.Model):
         return yaml.dump(self.rules) if self.rules else "none"
 
 
+class Credential(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
+    name = models.CharField(max_length=64)
+    key = models.CharField(max_length=64)
+    value = models.CharField(max_length=1024)
+
+    class Meta:
+        unique_together = ['owner', 'key', 'name']
+        verbose_name = 'credentials record'
+        verbose_name_plural = 'credentials records'
+
+    def __str__(self):
+        return f'{self.name}: {self.key}={self.value}'
+
+
 # Temporary POJO to showcase recommended actions template.
 class Action:
     def __init__(self, action_id, title, description, actions):

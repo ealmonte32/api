@@ -48,3 +48,9 @@ class ConnectionsForm(forms.Form):
         open_connections_choices = kwargs.pop('open_connections_choices')
         super().__init__(*args, **kwargs)
         self.fields['open_connections'].choices = open_connections_choices
+
+
+class CredentialsForm(forms.Form):
+    name = forms.CharField(max_length=64)
+    key = forms.CharField(max_length=64)
+    value = forms.CharField(max_length=1024)
