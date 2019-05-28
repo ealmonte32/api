@@ -114,8 +114,8 @@ class CsrHelperTests(TestCase):
 TEST_RULES = {'INPUT': [{'src': '15.15.15.50/32', 'target': 'DROP'}, {'src': '15.15.15.51/32', 'target': 'DROP'}],
               'OUTPUT': [], 'FORWARD': []}
 
-OPEN_PORTS_INFO = [{"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open"}]
-OPEN_PORTS_INFO_TELNET = [{"host": "192.168.1.178", "port": 23, "proto": "tcp", "state": "open"}]
+OPEN_PORTS_INFO = [{"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4}]
+OPEN_PORTS_INFO_TELNET = [{"host": "192.168.1.178", "port": 23, "proto": "tcp", "state": "open", "ip_version": 4}]
 
 OPEN_CONNECTIONS_INFO = [
     {'ip_version': 4, 'type': 'tcp', 'local_address': ['192.168.1.178', 4567],
@@ -167,8 +167,8 @@ class APIPingTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
         # 2nd request
-        self.device0.portscan.block_ports = [['192.168.1.178', 'tcp', 22]]
-        self.device0.portscan.block_networks = ['192.168.1.177']
+        self.device0.portscan.block_ports = [['192.168.1.178', 'tcp', 22, False]]
+        self.device0.portscan.block_networks = [['192.168.1.177', False]]
         self.device0.portscan.save(update_fields=['block_ports', 'block_networks'])
         request = self.api.post(
             '/v0.2/ping/',
@@ -178,8 +178,8 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': [['192.168.1.178', 'tcp', 22]],
-                                             'block_networks': ['192.168.1.177'] + settings.SPAM_NETWORKS})
+        self.assertDictEqual(response.data, {'block_ports': [['192.168.1.178', 'tcp', 22, False]],
+                                             'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS})
 
     def test_ping_creates_models(self):
         request = self.api.post(
@@ -272,7 +272,8 @@ class APIPingTest(TestCase):
             "host": "localhost",
             "port": 22,
             "proto": "tcp",
-            "state": "open"
+            "state": "open",
+            "ip_version": 4
         }]
         firewall_rules = {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
         ping_payload = {
@@ -363,12 +364,12 @@ class DeviceModelTest(TestCase):
             logins={'pi': {'failed': 1, 'success': 1}}
         )
         portscan0 = [
-            {"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open"},
-            {"host": "192.168.1.178", "port": 25, "proto": "tcp", "state": "open"}
+            {"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
+            {"host": "192.168.1.178", "port": 25, "proto": "tcp", "state": "open", "ip_version": 4}
         ]
         portscan1 = [
-            {"host": "192.168.1.178", "port": 80, "proto": "tcp", "state": "open"},
-            {"host": "192.168.1.178", "port": 110, "proto": "tcp", "state": "open"}
+            {"host": "192.168.1.178", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
+            {"host": "192.168.1.178", "port": 110, "proto": "tcp", "state": "open", "ip_version": 4}
         ]
         self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
         self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
@@ -707,14 +708,14 @@ class DeviceDetailViewTests(TestCase):
         form_data = {'is_ports_form': 'true', 'open_ports': ['0']}
         self.client.post(self.url2, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
-        self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22]])
+        self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22, False]])
 
     def test_open_connections(self):
         self.client.login(username='test', password='123')
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
         self.client.post(self.url2, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
-        self.assertListEqual(portscan.block_networks, ['192.168.1.177'])
+        self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
 
     def test_no_logins(self):
         self.client.login(username='test', password='123')
