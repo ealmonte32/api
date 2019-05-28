@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from device_registry.models import Device, DeviceInfo
+from device_registry.models import Device, DeviceInfo, Credential
 
 
 class DeviceSerializer(serializers.ModelSerializer):
@@ -13,3 +13,9 @@ class DeviceInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceInfo
         fields = '__all__'
+
+
+class CredentialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Credential
+        fields = ['name', 'key', 'value']

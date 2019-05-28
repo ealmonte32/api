@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from netaddr import IPAddress
 
 from device_registry import ca_helper
-from device_registry.serializers import DeviceInfoSerializer
+from device_registry.serializers import DeviceInfoSerializer, CredentialSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan
 
@@ -472,6 +472,27 @@ def claim_by_link(request):
         device.save()
         return Response(f'Device {device.device_id} claimed!')
     return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def mtls_creds_view(request, format=None):
+    """
+    Return all user's credentials.
+    """
+    device_id = is_mtls_authenticated(request)
+
+    if not device_id:
+        return Response(
+            'Invalid request.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if type(device_id) is Response:
+        return device_id
+
+    device = Device.objects.get(device_id=device_id)
+    serializer = CredentialSerializer(device.owner.credentials.all(), many=True)
+    return Response(serializer.data)
 
 
 @api_view(['GET'])

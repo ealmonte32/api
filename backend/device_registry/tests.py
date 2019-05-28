@@ -16,11 +16,12 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
-from rest_framework.test import APIRequestFactory, APITestCase
+from rest_framework.test import APIRequestFactory
+from rest_framework.test import APITestCase
 
 from device_registry import ca_helper
-from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view
-from .models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score
+from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view, mtls_creds_view
+from .models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, Credential
 from .forms import DeviceAttrsForm, PortsForm, ConnectionsForm
 
 
@@ -731,6 +732,28 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<pre>pi:')
         self.assertContains(response, 'success: 1')
+
+
+class APICredsTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('mtls-creds')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        Credential.objects.create(owner=self.user, name='name1', key='key1', value='as9dfyaoiufhoasdfjh')
+        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(
+            self.url,
+            **self.headers,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh'}])
 
 
 class APIIsClaimedTest(APITestCase):
