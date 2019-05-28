@@ -93,12 +93,13 @@
               <tr>
                 <th scope="row">Firewall Enabled</th>
                 <td>
-                    {{ object.firewallstate.enabled|title|default_if_none:'N/A' }}
-                    {% if object.firewallstate.enabled is not None %}
-                      <span class="p-1 badge badge-pill badge-{{ object.firewallstate.enabled|yesno:"success,danger" }}">
+                  {% if object.firewallstate.enabled is None %}N/A{% else %}
+                    {{ object.firewallstate.enabled|title }}{% endif %}
+                  {% if object.firewallstate.enabled is not None %}
+                    <span class="p-1 badge badge-pill badge-{{ object.firewallstate.enabled|yesno:"success,danger" }}">
                         {{ object.firewallstate.enabled|yesno:"✓,✗" }}
                       </span>
-                    {% endif %}
+                  {% endif %}
                 </td>
               </tr>
               <tr>
