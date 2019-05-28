@@ -1,5 +1,5 @@
 from django.views.generic import DetailView, ListView
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -257,11 +257,20 @@ class CredentialsView(ListView):
         if creds.is_valid():
             d = creds.cleaned_data
             d['owner'] = request.user
-            cred = Credential.objects.create(**d)
-            cred.save()
+            try:
+                if d.get('pk'):
+                    cred, _ = Credential.objects.get_or_create(pk=d['pk'])
+                    cred.name = d['name']
+                    cred.key = d['key']
+                    cred.value = d['value']
+                else:
+                    cred = Credential.objects.create(**d)
+                cred.save()
+            except:
+                return HttpResponseBadRequest('Failed to save the credential.')
             return HttpResponseRedirect(reverse('credentials'))
         else:
-            return self.render_to_response(self.get_context_data(**kwargs))
+            return HttpResponseBadRequest('Invalid data supplied.')
 
 
 @login_required

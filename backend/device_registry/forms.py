@@ -54,3 +54,4 @@ class CredentialsForm(forms.Form):
     name = forms.CharField(max_length=64)
     key = forms.CharField(max_length=64)
     value = forms.CharField(max_length=1024)
+    pk = forms.IntegerField(required=False)

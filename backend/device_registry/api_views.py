@@ -496,6 +496,17 @@ def mtls_creds_view(request, format=None):
 
 
 @api_view(['GET'])
+@permission_classes((permissions.IsAuthenticated,))
+def ajax_creds_view(request, format=None):
+    """
+    Return all user's credentials.
+    """
+
+    serializer = CredentialSerializer(request.user.credentials.all(), many=True)
+    return Response({'data': serializer.data})
+
+
+@api_view(['GET'])
 @permission_classes((permissions.AllowAny,))
 def mtls_is_claimed_view(request, format=None):
     """

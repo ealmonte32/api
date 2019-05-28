@@ -18,4 +18,4 @@ class DeviceInfoSerializer(serializers.ModelSerializer):
 class CredentialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value']
+        fields = ['name', 'key', 'value', 'pk']
