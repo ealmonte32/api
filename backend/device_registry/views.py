@@ -262,7 +262,6 @@ class CredentialsView(ListView):
             return HttpResponseRedirect(reverse('credentials'))
         else:
             return self.render_to_response(self.get_context_data(**kwargs))
-            pass
 
 
 @login_required
