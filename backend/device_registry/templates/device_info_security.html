@@ -60,25 +60,27 @@
               </tr>
               <tr>
                   <th scope="row">AppArmor Enabled</th>
-                  <td>
-                    {{ object.deviceinfo.app_armor_enabled|title|default_if_none:'N/A' }}
-                    {% if object.deviceinfo.app_armor_enabled is not None %}
-                      <span class="p-1 badge badge-pill badge-{{ object.deviceinfo.app_armor_enabled|yesno:"success,warning" }}">
+                <td>
+                  {% if object.deviceinfo.app_armor_enabled is None %}N/A{% else %}
+                    {{ object.deviceinfo.app_armor_enabled|title }}
+                    <span
+                        class="p-1 badge badge-pill badge-{{ object.deviceinfo.app_armor_enabled|yesno:"success,warning" }}">
                         {{ object.deviceinfo.app_armor_enabled|yesno:"✓,✗" }}
                       </span>
-                    {% endif %}
-                  </td>
+                  {% endif %}
+                </td>
               </tr>
               <tr>
                   <th scope="row">Default Password Detected</th>
-                  <td>
-                    {{ object.deviceinfo.default_password|title|default_if_none:'N/A' }}
-                    {% if object.deviceinfo.default_password is not None %}
-                      <span class="p-1 badge badge-pill badge-{{ object.deviceinfo.default_password|yesno:"danger,success" }}">
+                <td>
+                  {% if object.deviceinfo.default_password is None %}N/A{% else %}
+                    {{ object.deviceinfo.default_password|title }}
+                    <span
+                        class="p-1 badge badge-pill badge-{{ object.deviceinfo.default_password|yesno:"danger,success" }}">
                         {{ object.deviceinfo.default_password|yesno:"✗,✓" }}
                       </span>
-                    {% endif %}
-                  </td>
+                  {% endif %}
+                </td>
               </tr>
               <tr>
                 <th scope="row">Logins</th>
@@ -94,8 +96,7 @@
                 <th scope="row">Firewall Enabled</th>
                 <td>
                   {% if object.firewallstate.enabled is None %}N/A{% else %}
-                    {{ object.firewallstate.enabled|title }}{% endif %}
-                  {% if object.firewallstate.enabled is not None %}
+                    {{ object.firewallstate.enabled|title }}
                     <span class="p-1 badge badge-pill badge-{{ object.firewallstate.enabled|yesno:"success,danger" }}">
                         {{ object.firewallstate.enabled|yesno:"✓,✗" }}
                       </span>
