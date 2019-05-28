@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, CredentialsForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState, \
     Credential
 from device_registry.models import get_bootstrap_color
@@ -247,6 +247,22 @@ class CredentialsView(ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        creds = CredentialsForm(request.POST)
+        if creds.is_valid():
+            d = creds.cleaned_data
+            d['owner'] = request.user
+            cred = Credential.objects.create(**d)
+            cred.save()
+            return HttpResponseRedirect(reverse('credentials'))
+        else:
+            return self.render_to_response(self.get_context_data(**kwargs))
+            pass
 
 
 @login_required
