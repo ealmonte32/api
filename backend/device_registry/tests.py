@@ -833,7 +833,7 @@ class APICredsTest(APITestCase):
             format='json'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': 1}])
+        self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': 8}])
 
 
 class AJAXCredsTest(APITestCase):
