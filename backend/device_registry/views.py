@@ -1,12 +1,13 @@
-from django.views.generic import DetailView
+from django.views.generic import DetailView, ListView
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
-from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, CredentialsForm
+from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState, \
+    Credential
 from device_registry.models import get_bootstrap_color
 from profile_page.forms import ProfileForm
 from profile_page.models import Profile
@@ -237,6 +238,15 @@ class DeviceDetailHardwareView(DetailView):
         except FirewallState.DoesNotExist:
             context['firewall'] = None
         return context
+
+
+class CredentialsView(ListView):
+    model = Credential
+    template_name = 'credentials.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
 
 
 @login_required
