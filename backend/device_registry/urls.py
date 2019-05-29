@@ -52,7 +52,10 @@ if settings.IS_MTLS_API:
              api_views.mtls_tester_view,
              name='mtls-tester'),
         path('api/{}/action/<int:action_id>/<str:action_name>'.format(api_version),
-             api_views.action_view, name='action')
+             api_views.action_view, name='action'),
+        path('api/{}/claimed'.format(api_version),
+             api_views.mtls_is_claimed_view,
+             name='mtls-is_claimed'),
     ]
 
 # Front-end

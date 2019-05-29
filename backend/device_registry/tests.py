@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from device_registry import ca_helper
 from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view
@@ -731,3 +731,24 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<pre>pi:')
         self.assertContains(response, 'success: 1')
+
+
+class APIIsClaimedTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('mtls-is_claimed')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(
+            self.url,
+            **self.headers,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {'claimed': True})

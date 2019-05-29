@@ -473,3 +473,22 @@ def claim_by_link(request):
         return Response(f'Device {device.device_id} claimed!')
     return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
 
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def mtls_is_claimed_view(request, format=None):
+    """
+    Return claimed status of a device.
+    """
+    device_id = is_mtls_authenticated(request)
+
+    if not device_id:
+        return Response(
+            'Invalid request.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if type(device_id) is Response:
+        return device_id
+
+    device = Device.objects.get(device_id=device_id)
+    return Response({'claimed': device.claimed})
