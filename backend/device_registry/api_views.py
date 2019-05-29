@@ -542,6 +542,8 @@ def ajax_creds_view(request, format=None):
                     Credential.objects.create(**cred)
             except IntegrityError:
                 return Response({'error': 'Name/Key combo should be unique'})
+            except Credential.DoesNotExist:
+                return Response({'error': 'Credential does not exist'})
             except ValidationError as e:
                 return Response({'error': e.messages[0]})
         return Response({})
