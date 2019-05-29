@@ -1,6 +1,5 @@
-from django.db import IntegrityError
 from django.views.generic import DetailView, ListView
-from django.http import HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -248,36 +247,6 @@ class CredentialsView(ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
-
-    def post(self, request, *args, **kwargs):
-        creds = CredentialsForm(request.POST)
-        if request.POST['method'] == 'delete':
-            cred = Credential.objects.get(pk=request.POST['pk'], owner=request.user)
-            cred.delete()
-            return HttpResponseRedirect(reverse('credentials'))
-        elif creds.is_valid():
-            d = creds.cleaned_data
-            try:
-                method = d['method']
-                del(d['method'])
-                if method == 'update':
-                    cred = Credential.objects.get(pk=d['pk'], owner=request.user)
-                    cred.name = d['name']
-                    cred.key = d['key']
-                    cred.value = d['value']
-                    cred.save()
-                elif method == 'create':
-                    d['owner'] = request.user
-                    cred = Credential.objects.create(**d)
-            except IntegrityError:
-                return HttpResponseBadRequest('Failed to save the credential.')
-            return HttpResponseRedirect(reverse('credentials'))
-        else:
-            return HttpResponseBadRequest('Invalid data supplied.')
 
 
 @login_required
