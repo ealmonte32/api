@@ -17,10 +17,10 @@ from rest_framework.response import Response
 from netaddr import IPAddress
 
 from device_registry import ca_helper
-from device_registry.serializers import DeviceInfoSerializer
+from device_registry.forms import CredentialsForm
+from device_registry.serializers import DeviceInfoSerializer, CredentialSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
-from .models import Device, DeviceInfo, FirewallState, PortScan
-
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential
 
 logger = logging.getLogger(__name__)
 
@@ -472,6 +472,68 @@ def claim_by_link(request):
         device.save()
         return Response(f'Device {device.device_id} claimed!')
     return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes((permissions.AllowAny,))
+def mtls_creds_view(request, format=None):
+    """
+    Return all user's credentials.
+    """
+    device_id = is_mtls_authenticated(request)
+
+    if not device_id:
+        return Response(
+            'Invalid request.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if type(device_id) is Response:
+        return device_id
+
+    device = Device.objects.get(device_id=device_id)
+    serializer = CredentialSerializer(device.owner.credentials.all(), many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes((permissions.IsAuthenticated,))
+def ajax_creds_view(request, format=None):
+    """
+    Return all user's credentials.
+    """
+
+    if request.method == 'GET':
+        serializer = CredentialSerializer(request.user.credentials.all(), many=True)
+        return Response({'data': serializer.data})
+    elif request.method == 'POST':
+        d = request.data
+        if not d.get('method'):
+            return Response({'error': 'Invalid request: missing method'})
+        method = d['method']
+        if method == 'delete':
+            if not d.get('pk'):
+                return Response({'error': 'Invalid request: missing pk'})
+            cred = Credential.objects.get(pk=d['pk'], owner=request.user)
+            cred.delete()
+        else:
+            creds_form = CredentialsForm(request.POST)
+            if not creds_form.is_valid():
+                return Response({'error': 'Invalid data supplied'})
+            try:
+                if method == 'update':
+                    if not d.get('pk'):
+                        return Response({'error': 'Invalid request: missing pk'})
+                    cred = Credential.objects.get(pk=d['pk'], owner=request.user)
+                    for k in ('name', 'key', 'value'):
+                        setattr(cred, k, d[k])
+                    cred.save()
+                elif method == 'create':
+                    cred = {k: d[k] for k in ('name', 'key', 'value') }
+                    cred['owner'] = request.user
+                    Credential.objects.create(**cred)
+            except IntegrityError:
+                return Response({'error': 'Name/Key combo should be unique'})
+        return Response({})
 
 
 @api_view(['GET'])

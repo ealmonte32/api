@@ -48,14 +48,14 @@ if settings.IS_MTLS_API:
         path('api/{}/hello'.format(api_version),
              api_views.mtls_tester_view,
              name='mtls-tester'),
-        path('api/{}/hello'.format(api_version),
-             api_views.mtls_tester_view,
-             name='mtls-tester'),
         path('api/{}/action/<int:action_id>/<str:action_name>'.format(api_version),
              api_views.action_view, name='action'),
         path('api/{}/claimed'.format(api_version),
              api_views.mtls_is_claimed_view,
              name='mtls-is_claimed'),
+        path('api/{}/creds'.format(api_version),
+             api_views.mtls_creds_view,
+             name='mtls-creds'),
     ]
 
 # Front-end
@@ -92,6 +92,12 @@ if settings.IS_DASH:
             views.DeviceDetailHardwareView.as_view(),
             name='device-detail-hardware'
         ),
+        path('credentials/',
+             views.CredentialsView.as_view(),
+             name='credentials'),
+        path('ajax/creds',
+             api_views.ajax_creds_view,
+             name='ajax-creds'),
         path('profile/', views.profile_view, name='profile'),
         path('actions/', views.actions_view, name='actions'),
         path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),

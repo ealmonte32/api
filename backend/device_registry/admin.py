@@ -2,7 +2,7 @@ from django.contrib import admin
 from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.postgres.fields import JSONField
 
-from device_registry.models import Device, DeviceInfo, PortScan, FirewallState
+from device_registry.models import Device, DeviceInfo, PortScan, FirewallState, Credential
 
 
 @admin.register(Device)
@@ -63,3 +63,9 @@ class FirewallStateAdmin(admin.ModelAdmin):
     ]
 
     ordering = ('scan_date',)
+
+
+@admin.register(Credential)
+class CredentialAdmin(admin.ModelAdmin):
+    list_display = ['owner', 'name', 'key', 'value']
+    list_filter = ['owner']
