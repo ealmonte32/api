@@ -7,7 +7,7 @@
         height: 2rem;
     }
     .wott-actions-badge {
-      {#color: black;#}
+      color: black;
     }
 </style>
 <div class="row">
@@ -33,7 +33,7 @@
     {% if actions_count %}
       <a href="{% url 'device_actions' object.pk %}" class="wott-recommended-actions btn btn-primary" role="button">
         Recommended Actions
-        <span class="badge badge-warning wott-actions-badge ml-2">{{ actions_count }}</span>
+        <span class="badge badge-light wott-actions-badge ml-2">{{ actions_count }}</span>
       </a>
     {% endif %}
   {% endwith %}
