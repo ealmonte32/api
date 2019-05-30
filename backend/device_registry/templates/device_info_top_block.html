@@ -6,6 +6,9 @@
         width: 45ch;
         height: 2rem;
     }
+    .wott-actions-badge {
+      {#color: black;#}
+    }
 </style>
 <div class="row">
   <div class="col">
@@ -26,9 +29,13 @@
       {% endif %}
   </div>
   <div class="col">
-    {% if object.has_actions %}
-      <a href="{% url 'device_actions' object.pk %}" class="wott-recommended-actions btn btn-danger btn-lg active" role="button"
-         aria-pressed="true">Show recommended actions</a>
+  {%  with actions_count=object.actions_count %}
+    {% if actions_count %}
+      <a href="{% url 'device_actions' object.pk %}" class="wott-recommended-actions btn btn-primary" role="button">
+        Recommended Actions
+        <span class="badge badge-warning wott-actions-badge ml-2">{{ actions_count }}</span>
+      </a>
     {% endif %}
+  {% endwith %}
   </div>
 </div>
