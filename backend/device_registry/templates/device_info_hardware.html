@@ -48,7 +48,7 @@
               </tr>
               <tr>
                 <th scope="row">Architecture</th>
-                <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A'|upper }}</td>
               </tr>
               </tbody>
             </table>
