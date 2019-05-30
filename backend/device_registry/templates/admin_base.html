@@ -12,18 +12,24 @@
           <span class="align-middle">WoTT</span>
         </a>
 
+        {% with url_name=request.resolver_match.url_name %}
         <ul class="sidebar-nav">
-          <li class="sidebar-item active">
-            <a href="{% url 'root' %}" class="sidebar-link">
-              <span class="align-middle">Dashboard</span>
-            </a>
-            <ul id="dashboards" class="sidebar-dropdown list-unstyled collapse show">
-              <li class="sidebar-item"><a class="sidebar-link" href="{% url 'claim-device' %}">Claim Device</a></li>
-              <li class="sidebar-item"><a class="sidebar-link" href="{% url 'actions' %}">Recommended Actions</a></li>
-              <li class="sidebar-item"><a class="sidebar-link" href="{% url 'credentials' %}">Credentials</a></li>
-            </ul>
-          </li>
+              <li class="sidebar-item {% if url_name == 'root' %}active{% endif %}">
+                  <a class="sidebar-link" href="{% url 'root' %}">Dashboard  </a>
+              </li>
+              <li class="sidebar-item {% if url_name == 'claim-device' %}active{% endif %}">
+                  <a class="sidebar-link" href="{% url 'claim-device' %}">Claim Device</a>
+              </li>
+              <li class="sidebar-item {% if url_name == 'actions' %}active{% endif %}">
+                  <a class="sidebar-link" href="{% url 'actions' %}">Recommended Actions</a>
+              </li>
+              <li class="sidebar-item {% if url_name == 'credentials' %}active{% endif %}">
+                  <a class="sidebar-link" href="{% url 'credentials' %}">Credentials</a>
+              </li>
+
         </ul>
+        {% endwith %}
+
       </div>
     </nav>
 
