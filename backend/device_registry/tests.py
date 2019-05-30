@@ -652,7 +652,7 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
-        self.assertFalse(self.device.has_actions())
+        self.assertFalse(self.device.has_actions)
         self.assertNotContains(response, 'Show recommended actions')
 
     def test_actions_btn_pos(self):
@@ -660,8 +660,8 @@ class DeviceDetailViewTests(TestCase):
         url = reverse('device-detail', kwargs={'pk': self.device_no_logins.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(self.device_no_logins.has_actions())
-        self.assertContains(response, 'Show recommended actions')
+        self.assertTrue(self.device_no_logins.has_actions)
+        self.assertContains(response, 'Recommended Actions')
 
     def test_no_portscan(self):
         """

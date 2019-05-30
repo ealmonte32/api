@@ -61,8 +61,10 @@ def claim_device_view(request):
                 else:
                     get_device.owner = request.user
                     get_device.save()
-                    text, style = f'Successfully claimed &nbsp;<a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": get_device.pk})}">' \
-                                      f'{format(form.cleaned_data["device_id"])}</a>.', \
+                    text, style = f'You\'ve successfully claimed {get_device.get_name()}. '\
+                                  f'Learn more about the security state of the device by clicking&nbsp;'\
+                                  f'<a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": get_device.pk})}">' \
+                                  f'here</a>.', \
                                   'success'
             except Device.DoesNotExist:
                 text, style = 'Invalid claim/device id pair.', 'warning'
@@ -253,9 +255,9 @@ class CredentialsView(ListView):
 def actions_view(request, device_pk=None):
     if device_pk is not None:
         device = get_object_or_404(Device, pk=device_pk)
-        device_id = device.device_id
+        device_name = device.get_name()
     else:
-        device_id = None
+        device_name = None
     actions = []
 
     # Default username/password used action.
@@ -272,7 +274,7 @@ def actions_view(request, device_pk=None):
             1,
             'Default credentials detected',
             'We found default credentials present on %s. Please consider changing them as soon as possible.' %
-            ('this device' if device_id else full_string), []
+            ('this device' if device_name else full_string), []
         )
         actions.append(action)
 
@@ -290,7 +292,7 @@ def actions_view(request, device_pk=None):
             2,
             'Disabled firewall detected',
             'We found disabled firewall present on %s. Please consider enabling it.' %
-            ('this device' if device_id else full_string), []
+            ('this device' if device_name else full_string), []
         )
         actions.append(action)
 
@@ -310,13 +312,13 @@ def actions_view(request, device_pk=None):
             3,
             'Enabled Telnet server detected',
             'We found enabled Telnet server present on %s. Please consider disabling it.' %
-            ('this device' if device_id else full_string),
+            ('this device' if device_name else full_string),
             ['buttons/block_telnet.html']
         )
         actions.append(action)
 
     return render(request, 'actions.html', {
         'actions': actions,
-        'device_id': device_id,
+        'device_name': device_name,
         'device_pk': device_pk
     })
