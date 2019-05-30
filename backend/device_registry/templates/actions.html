@@ -3,7 +3,7 @@
 {% block title %}WoTT - Recommended Actions{% endblock title %}
 
 {% block dashboard_title %}
-  <h1>Recommended Actions{% if device_id %} for device {{ device_id }}{% endif %}</h1>
+  <h1>Recommended Actions{% if device_name %} for {{ device_name }}{% endif %}</h1>
 {% endblock dashboard_title %}
 
 {% block admin_content %}
@@ -18,7 +18,7 @@
           <div class="alert-message">
             <h4 class="alert-heading">{{ action.title }}</h4>
             <p>{{ action.description|safe }}</p>
-            {% if device_id and action.actions %}
+            {% if device_name and action.actions %}
               <hr>
               <div class="btn-list text-center">
                 {% for button_template in action.actions %}
