@@ -661,7 +661,7 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(self.device_no_logins.has_actions)
-        self.assertContains(response, 'Show recommended actions')
+        self.assertContains(response, 'Recommended Actions')
 
     def test_no_portscan(self):
         """
