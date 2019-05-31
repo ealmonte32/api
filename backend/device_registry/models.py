@@ -126,7 +126,7 @@ class Device(models.Model):
         'selinux_enforcing': .5,
         'default_password': .5,
         'failed_logins': 1.0,
-        'port_score': 1.0,
+        'port_score': 1.5,
     }
     MAX_FAILED_LOGINS = 10
     MIN_FAILED_LOGINS = 1

@@ -396,16 +396,21 @@ class DeviceModelTest(TestCase):
             logins={'pi': {'failed': 1, 'success': 1}}
         )
         self.portscan4 = PortScan.objects.create(device=self.device4, scan_info=[
-            {"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4}
+            {"host": "0.0.0.0", "port": 23, "proto": "tcp", "state": "open", "ip_version": 4},
+            {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
+            {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6}
         ])
         self.firewall4 = FirewallState.objects.create(device=self.device4, enabled=False)
 
     def test_fixed_issues(self):
         # initial state: firewall disabled, telnet port found, default password found - trust score low
-        self.assertLess(self.device4.trust_score, 0.66)
+        self.assertLess(self.device4.trust_score_percent(), 66)
 
-        # fix issues: enable firewall, emove telnet, set non-default password
-        self.portscan4.scan_info = []
+        # fix issues: enable firewall, remove telnet, set non-default password
+        self.portscan4.scan_info = [
+            {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
+            {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6}
+        ]
         self.portscan4.save()
         self.firewall4.enabled = True
         self.firewall4.save()
@@ -413,7 +418,7 @@ class DeviceModelTest(TestCase):
         self.device_info4.save()
 
         # result: trust score high
-        self.assertGreaterEqual(self.device4.trust_score, 0.66)
+        self.assertGreaterEqual(self.device4.trust_score_percent(), 66)
 
     def test_get_model(self):
         model = self.device_info0.device_model
@@ -449,12 +454,12 @@ class DeviceModelTest(TestCase):
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
-        self.assertEqual(self.device0.trust_score, (4.0 + 0.6) / 5.0)
-        self.assertEqual(self.device1.trust_score, (4.0 + 0.7) / 5.0)
+        self.assertEqual(self.device0.trust_score, (4.0 + 0.6*1.5) / 5.5)
+        self.assertEqual(self.device1.trust_score, (4.0 + 0.7*1.5) / 5.5)
 
     def test_average_trust_score(self):
         score = average_trust_score(self.user1)
-        self.assertEqual(score, ((4.0 + 0.6) / 5.0 + (4.0 + 0.7) / 5.0) / 2.0)
+        self.assertEqual(score, ((4.0 + 0.6*1.5) / 5.5 + (4.0 + 0.7*1.5) / 5.5) / 2.0)
 
 
 class ClaimLinkTest(TestCase):
