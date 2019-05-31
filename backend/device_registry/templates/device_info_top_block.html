@@ -24,7 +24,7 @@
           <div class="progress-bar bg-{{ object.trust_score_color }}" role="progressbar"
                style="width: {{ object.trust_score_percent }}%"></div>
           <h2
-              class="justify-content-center d-flex position-absolute w-100">{{ object.trust_score|floatformat:2 }}</h2>
+              class="justify-content-center d-flex position-absolute w-100">{{ object.trust_score_percent }} %</h2>
         </div>
       {% endif %}
   </div>
