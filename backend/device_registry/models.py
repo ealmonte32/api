@@ -16,7 +16,7 @@ from device_registry import ca_helper
 def get_bootstrap_color(val):
     if val <= 33:
         return 'danger'
-    elif val <= 66:
+    elif val < 66:
         return 'warning'
     else:
         return 'success'
@@ -120,12 +120,13 @@ class Device(models.Model):
         return self.actions_count > 0
 
     COEFFICIENTS = {
-        'app_armor_enabled': 1.0,
+        'app_armor_enabled': .5,
         'firewall_enabled': 1.0,
-        'selinux_enabled': 1.0,
-        'selinux_enforcing': 1.0,
+        'selinux_enabled': .5,
+        'selinux_enforcing': .5,
+        'default_password': .5,
         'failed_logins': 1.0,
-        'port_score': 1.0
+        'port_score': 1.0,
     }
     MAX_FAILED_LOGINS = 10
     MIN_FAILED_LOGINS = 1
@@ -155,7 +156,8 @@ class Device(models.Model):
             selinux_enabled=selinux.get('enabled', False),
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
-            port_score=self.portscan.get_score()
+            port_score=self.portscan.get_score(),
+            default_password=not self.deviceinfo.default_password
         )
 
     @classmethod
