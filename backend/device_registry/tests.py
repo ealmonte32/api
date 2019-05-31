@@ -588,14 +588,14 @@ class ActionsViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(
-            response, 'We found disabled firewall present on <a href="/devices/%d/">%s</a>' % (
-                self.device.pk, self.device.device_id))
+            response, f'We found disabled firewall present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
         self.assertContains(
-            response, 'We found default credentials present on <a href="/devices/%d/">%s</a>' % (
-                self.device.pk, self.device.device_id))
+            response, f'We found default credentials present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
         self.assertContains(
-            response, 'We found enabled Telnet server present on <a href="/devices/%d/">%s</a>' % (
-                self.device.pk, self.device.device_id))
+            response, f'We found enabled Telnet server present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
 
 
 class DeviceDetailViewTests(TestCase):

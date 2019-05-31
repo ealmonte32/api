@@ -267,7 +267,7 @@ def actions_view(request, device_pk=None):
     if insecure_password_devices.exists():
         text_blocks = []
         for dev in insecure_password_devices:
-            device_text_block = '<a href="%s">%s</a>' % (reverse('device-detail', kwargs={'pk': dev.pk}), dev.device_id)
+            device_text_block = f'<a href="{ reverse("device-detail", kwargs={"pk": dev.pk}) }">{ dev.get_name() }</a>'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
@@ -285,7 +285,7 @@ def actions_view(request, device_pk=None):
     if disabled_firewall_devices.exists():
         text_blocks = []
         for dev in disabled_firewall_devices:
-            device_text_block = '<a href="%s">%s</a>' % (reverse('device-detail', kwargs={'pk': dev.pk}), dev.device_id)
+            device_text_block = f'<a href="{ reverse("device-detail", kwargs={"pk": dev.pk}) }">{ dev.get_name() }</a>'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
@@ -304,8 +304,7 @@ def actions_view(request, device_pk=None):
     if enabled_telnet_devices.exists():
         text_blocks = []
         for dev in enabled_telnet_devices:
-            device_text_block = '<a href="%s">%s</a>' % (
-            reverse('device-detail', kwargs={'pk': dev.pk}), dev.device_id)
+            device_text_block = f'<a href="{ reverse("device-detail", kwargs={"pk": dev.pk}) }">{ dev.get_name() }</a>'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
