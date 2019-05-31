@@ -348,6 +348,7 @@ class DeviceModelTest(TestCase):
             last_ping=hour_ago,
             owner=self.user0
         )
+
         self.device_info0 = DeviceInfo.objects.create(
             device=self.device0,
             device_manufacturer='Raspberry Pi',
@@ -364,6 +365,7 @@ class DeviceModelTest(TestCase):
             app_armor_enabled=True,
             logins={'pi': {'failed': 1, 'success': 1}}
         )
+
         portscan0 = [
             {"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "192.168.1.178", "port": 25, "proto": "tcp", "state": "open", "ip_version": 4}
@@ -374,8 +376,44 @@ class DeviceModelTest(TestCase):
         ]
         self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
         self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
+
         self.firewall0 = FirewallState.objects.create(device=self.device0, enabled=True)
         self.firewall1 = FirewallState.objects.create(device=self.device1, enabled=True)
+
+        self.user4 = User.objects.create_user('test-fixing-issues')
+        self.device4 = Device.objects.create(
+            device_id='device4.d.wott-dev.local',
+            last_ping=hour_ago,
+            owner=self.user4
+        )
+        self.device_info4 = DeviceInfo.objects.create(
+            device=self.device4,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            selinux_state={'enabled': False},
+            app_armor_enabled=False,
+            default_password=True,
+            logins={'pi': {'failed': 1, 'success': 1}}
+        )
+        self.portscan4 = PortScan.objects.create(device=self.device4, scan_info=[
+            {"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4}
+        ])
+        self.firewall4 = FirewallState.objects.create(device=self.device4, enabled=False)
+
+    def test_fixed_issues(self):
+        # initial state: firewall disabled, telnet port found, default password found - trust score low
+        self.assertLess(self.device4.trust_score, 0.66)
+
+        # fix issues: enable firewall, emove telnet, set non-default password
+        self.portscan4.scan_info = []
+        self.portscan4.save()
+        self.firewall4.enabled = True
+        self.firewall4.save()
+        self.device_info4.default_password = False
+        self.device_info4.save()
+
+        # result: trust score high
+        self.assertGreaterEqual(self.device4.trust_score, 0.66)
 
     def test_get_model(self):
         model = self.device_info0.device_model
@@ -411,12 +449,12 @@ class DeviceModelTest(TestCase):
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
-        self.assertEqual(self.device0.trust_score, (5.0 + 0.6) / 6.0)
-        self.assertEqual(self.device1.trust_score, (5.0 + 0.7) / 6.0)
+        self.assertEqual(self.device0.trust_score, (4.0 + 0.6) / 5.0)
+        self.assertEqual(self.device1.trust_score, (4.0 + 0.7) / 5.0)
 
     def test_average_trust_score(self):
         score = average_trust_score(self.user1)
-        self.assertEqual(score, ((5.0 + 0.6) / 6.0 + (5.0 + 0.7) / 6.0) / 2.0)
+        self.assertEqual(score, ((4.0 + 0.6) / 5.0 + (4.0 + 0.7) / 5.0) / 2.0)
 
 
 class ClaimLinkTest(TestCase):
