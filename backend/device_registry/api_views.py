@@ -377,7 +377,8 @@ def mtls_renew_cert_view(request, format=None):
         'certificate': signed_certificate,
         'certificate_expires': certificate_expires,
         'claim_token': device_object.claim_token,
-        'fallback_token': device_object.fallback_token
+        'fallback_token': device_object.fallback_token,
+        'claimed': device_object.claimed
     })
 
 
@@ -443,7 +444,8 @@ def renew_expired_cert_view(request, format=None):
         'certificate': signed_certificate,
         'certificate_expires': certificate_expires,
         'claim_token': device_object.claim_token,
-        'fallback_token': device_object.fallback_token
+        'fallback_token': device_object.fallback_token,
+        'claimed': device_object.claimed
     })
 
 
@@ -469,6 +471,7 @@ def claim_by_link(request):
     )
     if device:
         device.owner = request.user
+        device.claim_token = ""
         device.save()
         return Response(f'Device {device.device_id} claimed!')
     return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
