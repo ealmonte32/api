@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load highlight_selector %}
 
 {% block title %}WoTT - Dashboard{% endblock title %}
 
@@ -14,16 +15,16 @@
 
         {% with url_name=request.resolver_match.url_name %}
         <ul class="sidebar-nav">
-              <li class="sidebar-item {% if url_name == 'root' %}active{% endif %}">
+              <li class="sidebar-item {% if url_name|is_menu_highlight_id:'root' %}active{% endif %}">
                   <a class="sidebar-link" href="{% url 'root' %}">Dashboard  </a>
               </li>
-              <li class="sidebar-item {% if url_name == 'claim-device' %}active{% endif %}">
+              <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
                   <a class="sidebar-link" href="{% url 'claim-device' %}">Claim Device</a>
               </li>
-              <li class="sidebar-item {% if url_name == 'credentials' %}active{% endif %}">
+              <li class="sidebar-item {% if url_name|is_menu_highlight_id:'credentials' %}active{% endif %}">
                   <a class="sidebar-link" href="{% url 'credentials' %}">Credentials</a>
               </li>
-              <li class="sidebar-item {% if url_name == 'actions' %}active{% endif %}">
+              <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
                   <a class="sidebar-link" href="{% url 'actions' %}">Recommended Actions</a>
               </li>
 
