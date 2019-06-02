@@ -687,6 +687,36 @@ class DeviceDetailViewTests(TestCase):
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall3 = FirewallState.objects.create(device=self.device_no_logins)
 
+    def test_device_detail_not_logged_in(self):
+        url = reverse('device-detail', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_device_detail_software_not_logged_in(self):
+        url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_device_detail_security_not_logged_in(self):
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_device_detail_network_not_logged_in(self):
+        url = reverse('device-detail-network', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_device_detail_hardware_not_logged_in(self):
+        url = reverse('device-detail-hardware', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_credentials_not_logged_in(self):
+        url = reverse('credentials')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+
     def test_get(self):
         """
         If no questions exist, an appropriate message is displayed.
