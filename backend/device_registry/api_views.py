@@ -243,7 +243,11 @@ def mtls_ping_view(request, format=None):
         device_object = Device.objects.get(device_id=device_id)
         device_object.last_ping = timezone.now()
         device_object.save(update_fields=['last_ping'])
-        return Response({'message': 'pong'})
+        portscan_object, _ = PortScan.objects.get_or_create(device=device_object)
+        block_networks = portscan_object.block_networks.copy()
+        block_networks.extend(settings.SPAM_NETWORKS)
+        return Response({'block_ports': portscan_object.block_ports, 'block_networks': block_networks})
+
     elif request.method == 'POST':
         device_object = Device.objects.get(device_id=device_id)
         device_object.last_ping = timezone.now()
@@ -273,8 +277,6 @@ def mtls_ping_view(request, format=None):
                 record['ip_version'] = ipaddr.version
         portscan_object.scan_info = scan_info
         portscan_object.netstat = request.data.get('netstat', [])
-        block_networks = portscan_object.block_networks.copy()
-        block_networks.extend(settings.SPAM_NETWORKS)
         portscan_object.save()
         firewall_state, _ = FirewallState.objects.get_or_create(device=device_object)
         firewall_state.enabled = request.data.get('firewall_enabled')
@@ -292,7 +294,7 @@ def mtls_ping_view(request, format=None):
             entity['last_ping'] = timezone.now()  # Will be indexed.
             datastore_client.put(entity)
 
-        return Response({'block_ports': portscan_object.block_ports, 'block_networks': block_networks})
+        return Response({'message': 'pong'})
 
 
 @api_view(['GET'])
