@@ -61,6 +61,7 @@ def claim_device_view(request):
                     text, style = 'Invalid claim/device id pair.', 'warning'
                 else:
                     get_device.owner = request.user
+                    get_device.claim_token = ""
                     get_device.save()
                     text, style = f'You\'ve successfully claimed {get_device.get_name()}. '\
                                   f'Learn more about the security state of the device by clicking&nbsp;'\
