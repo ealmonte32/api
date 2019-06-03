@@ -63,7 +63,7 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row">Firewall Enabled</th>
+                <th scope="row">Firewall Enabled<br><sup>(drop incoming connections by default)</sup></th>
                 <td>
                   {% if object.firewallstate.enabled is None %}N/A{% else %}
                     {{ object.firewallstate.enabled|title }}
