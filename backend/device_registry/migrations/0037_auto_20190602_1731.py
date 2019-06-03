@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='credential',
             name='name',
-            field=models.CharField(max_length=64, validators=[django.core.validators.RegexValidator(code='invalid', message='Use only alphanumeric charecters, and _.-:', regex=re.compile('[\\w.-:]+'))]),
+            field=models.CharField(max_length=64, validators=[django.core.validators.RegexValidator(code='invalid_name', message='Use only alphanumeric charecters, and _.-:', regex=re.compile(r'^[\w0-9_.\-:]+$'))]),
         ),
     ]
