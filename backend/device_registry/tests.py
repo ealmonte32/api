@@ -829,7 +829,7 @@ class AjaxCredsTest(APITestCase):
         self.user.save()
         self.client.login(username='test', password='123')
 
-        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='as9dfyaoiufhoasdfjh')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='as9dfyaoiufhoah')
         self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -841,8 +841,7 @@ class AjaxCredsTest(APITestCase):
         form_data = {
             'name': 'Name1',
             'key': 'key1',
-            'value': 'as9dfyaoiufhoasdfjh',
-            #'pk': self.credential.pk,
+            'value': 'as9dfyaoiufhoah',
             'method': 'create',
         }
         response = self.client.post(
@@ -866,10 +865,11 @@ class AjaxCredsTest(APITestCase):
         self.assertDictEqual(response.data, {'error': 'Invalid data supplied'})
 
     def test_update_invalid(self):
+        # 1. try to rename 'name1' to 'Name+1' ('+' - incorrect symbol)
         form_data = {
             'name': 'Name+1',
             'key': 'key1',
-            'value': 'as9dfyaoiufhoasdfjh',
+            'value': 'as9dfyaoiufhoah',
             'pk': self.credential.pk,
             'method': 'update',
         }
