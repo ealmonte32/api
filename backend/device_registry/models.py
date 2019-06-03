@@ -1,12 +1,14 @@
 import datetime
 from statistics import mean
 import json
+import re
 
 from django.conf import settings
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
+from django.core.validators import RegexValidator, ValidationError, _
 
 import yaml
 
@@ -364,8 +366,18 @@ class FirewallState(models.Model):
 
 
 class Credential(models.Model):
+    re_name_valid = re.compile(r"^[\w0-9_.\-:]+$", re.UNICODE)
+
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
-    name = models.CharField(max_length=64)
+    name = models.CharField(
+        max_length=64,
+        validators=[
+            RegexValidator(
+                regex=re_name_valid,
+                message="Use only alphanumeric charecters, and _.-:",
+                code="invalid_name"
+            )
+        ])
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=1024)
 
@@ -376,6 +388,16 @@ class Credential(models.Model):
 
     def __str__(self):
         return f'{self.name}: {self.key}={self.value}'
+
+    def clean_name(self):
+        return self.cleaned_data["name"].lower()
+
+    def save(self, *args, **kwargs):
+        if self.re_name_valid.match(self.name):
+            self.name = self.name.lower()
+            super(Credential, self).save(*args, **kwargs)
+        else:
+            raise ValidationError(_('Name is incorrect, use only alphanumeric and .-_:'), code='invalid')
 
 
 # Temporary POJO to showcase recommended actions template.

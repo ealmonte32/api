@@ -21,6 +21,7 @@ from device_registry.forms import CredentialsForm
 from device_registry.serializers import DeviceInfoSerializer, CredentialSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential
+from django.core.validators import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -221,6 +222,7 @@ def is_mtls_authenticated(request):
     else:
         logging.error('[MTLS-Auth] CN does not match {}'.format(settings.COMMON_NAME_PREFIX))
         return False
+
 
 @api_view(['GET', 'POST'])
 @permission_classes((permissions.AllowAny,))
@@ -529,13 +531,17 @@ def ajax_creds_view(request, format=None):
                     cred = Credential.objects.get(pk=d['pk'], owner=request.user)
                     for k in ('name', 'key', 'value'):
                         setattr(cred, k, d[k])
+                    cred.clean_fields()
+                    cred.clean()
                     cred.save()
                 elif method == 'create':
-                    cred = {k: d[k] for k in ('name', 'key', 'value') }
+                    cred = {k: d[k] for k in ('name', 'key', 'value')}
                     cred['owner'] = request.user
                     Credential.objects.create(**cred)
             except IntegrityError:
                 return Response({'error': 'Name/Key combo should be unique'})
+            except ValidationError as e:
+                return Response({'error': e.messages[0]})
         return Response({})
 
 
