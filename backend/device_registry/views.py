@@ -4,10 +4,11 @@ from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, CredentialsForm
-from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState, \
-    Credential
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
+from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
+from device_registry.models import Credential
 from device_registry.models import get_bootstrap_color
 from profile_page.forms import ProfileForm
 from profile_page.models import Profile
@@ -92,7 +93,7 @@ def claim_device_view(request):
     })
 
 
-class DeviceDetailView(DetailView):
+class DeviceDetailView(LoginRequiredMixin, DetailView):
     model = Device
     template_name = 'device_info_overview.html'
 
@@ -124,7 +125,7 @@ class DeviceDetailView(DetailView):
             return self.render_to_response(self.get_context_data(form=form))
 
 
-class DeviceDetailSoftwareView(DetailView):
+class DeviceDetailSoftwareView(LoginRequiredMixin, DetailView):
     model = Device
     template_name = 'device_info_software.html'
 
@@ -145,7 +146,7 @@ class DeviceDetailSoftwareView(DetailView):
         return context
 
 
-class DeviceDetailSecurityView(DetailView):
+class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
     model = Device
     template_name = 'device_info_security.html'
 
@@ -200,7 +201,7 @@ class DeviceDetailSecurityView(DetailView):
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
-class DeviceDetailNetworkView(DetailView):
+class DeviceDetailNetworkView(LoginRequiredMixin, DetailView):
     model = Device
     template_name = 'device_info_network.html'
 
@@ -221,7 +222,7 @@ class DeviceDetailNetworkView(DetailView):
         return context
 
 
-class DeviceDetailHardwareView(DetailView):
+class DeviceDetailHardwareView(LoginRequiredMixin, DetailView):
     model = Device
     template_name = 'device_info_hardware.html'
 
@@ -242,7 +243,7 @@ class DeviceDetailHardwareView(DetailView):
         return context
 
 
-class CredentialsView(ListView):
+class CredentialsView(LoginRequiredMixin, ListView):
     model = Credential
     template_name = 'credentials.html'
 
