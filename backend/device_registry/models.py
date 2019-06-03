@@ -392,12 +392,10 @@ class Credential(models.Model):
     def clean_name(self):
         return self.cleaned_data["name"].lower()
 
-    def save(self, force_insert=False, force_update=False, using=None,
-             update_fields=None):
+    def save(self, *args, **kwargs):
         if self.re_name_valid.match(self.name):
             self.name = self.name.lower()
-            super(Credential, self).save(force_insert=force_insert, force_update=force_update,
-                                         using=using, update_fields=update_fields)
+            super(Credential, self).save(*args, **kwargs)
         else:
             raise ValidationError(_('Name is incorrect, use only alphanumeric and .-_:'), code='invalid')
 
