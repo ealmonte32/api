@@ -247,11 +247,16 @@ class DeviceDetailHardwareView(LoginRequiredMixin, DetailView):
 class CredentialsView(LoginRequiredMixin, ListView):
     model = Credential
     template_name = 'credentials.html'
+    pi_credentials_path = '/opt/wott/credentials'
 
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
 
+    def get_context_data(self, **kwargs):
+        context = super(CredentialsView, self).get_context_data(**kwargs)
+        context['pi_credentials_path'] = self.pi_credentials_path
+        return context
 
 @login_required
 def actions_view(request, device_pk=None):
