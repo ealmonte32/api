@@ -146,9 +146,8 @@ class APIPingTest(TestCase):
         }
 
     def test_ping_endpoint(self):
-        request = self.api.post(
+        request = self.api.get(
             '/v0.2/ping/',
-            self.ping_payload,
             **self.ping_headers,
             format='json'
         )
@@ -158,9 +157,8 @@ class APIPingTest(TestCase):
 
     def test_pong_data(self):
         # 1st request
-        request = self.api.post(
+        request = self.api.get(
             '/v0.2/ping/',
-            self.ping_payload,
             **self.ping_headers,
             format='json'
         )
@@ -174,6 +172,14 @@ class APIPingTest(TestCase):
         request = self.api.post(
             '/v0.2/ping/',
             self.ping_payload,
+            **self.ping_headers,
+            format='json'
+        )
+        response = mtls_ping_view(request)
+        self.assertEqual(response.status_code, 200)
+
+        request = self.api.get(
+            '/v0.2/ping/',
             **self.ping_headers,
             format='json'
         )
