@@ -251,25 +251,29 @@ def mtls_ping_view(request, format=None):
         return Response({'block_ports': portscan_object.block_ports, 'block_networks': block_networks})
 
     elif request.method == 'POST':
+        data = request.data
         device_object = Device.objects.get(device_id=device_id)
         device_object.last_ping = timezone.now()
+        device_object.agent_version = data.get('agent_version')
+        device_object.save(update_fields=['last_ping', 'agent_version'])
+
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device_object)
         device_info_object.device__last_ping = timezone.now()
-        device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
-        device_info_object.fqdn = request.data.get('fqdn')
-        device_info_object.ipv4_address = request.data.get('ipv4_address')
-        device_info_object.device_manufacturer = request.data.get('device_manufacturer')
-        device_info_object.device_model = request.data.get('device_model')
-        device_info_object.distr_id = request.data.get('distr_id', None)
-        device_info_object.distr_release = request.data.get('distr_release', None)
-        device_info_object.selinux_state = request.data.get('selinux_status', {})
-        device_info_object.app_armor_enabled = request.data.get('app_armor_enabled', None)
-        device_info_object.logins = request.data.get('logins', {})
-        device_info_object.default_password = request.data.get('default_password')
+        device_info_object.device_operating_system_version = data.get('device_operating_system_version')
+        device_info_object.fqdn = data.get('fqdn')
+        device_info_object.ipv4_address = data.get('ipv4_address')
+        device_info_object.device_manufacturer = data.get('device_manufacturer')
+        device_info_object.device_model = data.get('device_model')
+        device_info_object.distr_id = data.get('distr_id', None)
+        device_info_object.distr_release = data.get('distr_release', None)
+        device_info_object.selinux_state = data.get('selinux_status', {})
+        device_info_object.app_armor_enabled = data.get('app_armor_enabled', None)
+        device_info_object.logins = data.get('logins', {})
+        device_info_object.default_password = data.get('default_password')
         device_info_object.save()
 
         portscan_object, _ = PortScan.objects.get_or_create(device=device_object)
-        scan_info = request.data.get('scan_info', [])
+        scan_info = data.get('scan_info', [])
         if isinstance(scan_info, str):
             scan_info = json.loads(scan_info)
         # Add missing IP protocol version info.
@@ -278,20 +282,19 @@ def mtls_ping_view(request, format=None):
                 ipaddr = IPAddress(record['host'])
                 record['ip_version'] = ipaddr.version
         portscan_object.scan_info = scan_info
-        portscan_object.netstat = request.data.get('netstat', [])
+        portscan_object.netstat = data.get('netstat', [])
         portscan_object.save()
         firewall_state, _ = FirewallState.objects.get_or_create(device=device_object)
-        firewall_state.enabled = request.data.get('firewall_enabled')
-        firewall_rules = request.data.get('firewall_rules', {})
+        firewall_state.enabled = data.get('firewall_enabled')
+        firewall_rules = data.get('firewall_rules', {})
         if isinstance(firewall_rules, str):
             firewall_rules = json.loads(firewall_rules)
         firewall_state.rules = firewall_rules
         firewall_state.save()
-        device_object.save(update_fields=['last_ping'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
-            entity = dicts_to_ds_entities(request.data, task_key)
+            entity = dicts_to_ds_entities(data, task_key)
             entity['device_id'] = device_id  # Will be indexed.
             entity['last_ping'] = timezone.now()  # Will be indexed.
             datastore_client.put(entity)
