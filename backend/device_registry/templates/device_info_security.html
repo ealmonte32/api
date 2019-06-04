@@ -45,10 +45,11 @@
                 <td>
                   {% if object.deviceinfo.default_password is None %}N/A{% else %}
                     {{ object.deviceinfo.default_password|title }}
-                    <span
-                        class="p-1 badge badge-pill badge-{{ object.deviceinfo.default_password|yesno:"danger,success" }}">
-                        {{ object.deviceinfo.default_password|yesno:"✗,✓" }}
-                      </span>
+                    {% if not object.deviceinfo.default_password %}
+                      {% include "badge.html" with icon="check" color="success" %}
+                    {% else %}
+                      {% include "badge.html" with icon="times-circle" color="danger" %}
+                    {% endif %}
                   {% endif %}
                 </td>
               </tr>
@@ -72,9 +73,11 @@
                 <td>
                   {% if object.firewallstate.enabled is None %}N/A{% else %}
                     {{ object.firewallstate.enabled|title }}
-                    <span class="p-1 badge badge-pill badge-{{ object.firewallstate.enabled|yesno:"success,danger" }}">
-                        {{ object.firewallstate.enabled|yesno:"✓,✗" }}
-                      </span>
+                    {% if object.firewallstate.enabled %}
+                      {% include "badge.html" with icon="check" color="success" %}
+                    {% else %}
+                      {% include "badge.html" with icon="times-circle" color="danger" %}
+                    {% endif %}
                   {% endif %}
                 </td>
               </tr>
@@ -90,9 +93,9 @@
                   {% endif %}
 
                   {% if object.deviceinfo.selinux_state.enabled and object.deviceinfo.selinux_state.mode == 'enforcing'%}
-                    <span class="p-1 badge badge-pill badge-success">✓</span>
+                    {% include "badge.html" with icon="check" color="success" %}
                   {% elif object.deviceinfo.selinux_state.enabled is not None %}
-                    <span class="p-1 badge badge-pill badge-warning">✗</span>
+                    {% include "badge.html" with icon="exclamation-triangle" color="warning" %}
                   {% endif %}
                   </td>
               </tr>
@@ -101,10 +104,11 @@
                 <td>
                   {% if object.deviceinfo.app_armor_enabled is None %}N/A{% else %}
                     {{ object.deviceinfo.app_armor_enabled|title }}
-                    <span
-                        class="p-1 badge badge-pill badge-{{ object.deviceinfo.app_armor_enabled|yesno:"success,warning" }}">
-                        {{ object.deviceinfo.app_armor_enabled|yesno:"✓,✗" }}
-                      </span>
+                    {% if object.deviceinfo.app_armor_enabled %}
+                      {% include "badge.html" with icon="check" color="success" %}
+                    {% else %}
+                      {% include "badge.html" with icon="exclamation-triangle" color="warning" %}
+                    {% endif %}
                   {% endif %}
                 </td>
               </tr>
