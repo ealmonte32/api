@@ -845,7 +845,7 @@ class AJAXCredsTest(APITestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        Credential.objects.create(owner=self.user, name='name1', key='key0', value='as9dfyaoiufhoasdfjh')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key0', value='as9dfyaoiufhoasdfjh')
 
     def test_create(self):
         """
@@ -869,8 +869,8 @@ class AJAXCredsTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {
             'data': [
-                {'name': 'name1', 'key': 'key2', 'value': 'val1', 'pk': 2},
-                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': 1},
+                {'name': 'name1', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk+1},
+                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk},
             ]
         })
 
@@ -883,7 +883,7 @@ class AJAXCredsTest(APITestCase):
             self.url,
             {
                 'method': 'delete',
-                'pk': 3
+                'pk': self.credential.pk
             }
         )
         self.assertEqual(response.status_code, 200)
@@ -908,7 +908,7 @@ class AJAXCredsTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {
             'data': [
-                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': 4}
+                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk}
             ]
         })
 
@@ -924,7 +924,7 @@ class AJAXCredsTest(APITestCase):
                 'name': 'name2',
                 'key': 'key2',
                 'value': 'val1',
-                'pk': 5
+                'pk': self.credential.pk
             }
         )
         self.assertEqual(response.status_code, 200)
@@ -935,7 +935,7 @@ class AJAXCredsTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {
             'data': [
-                {'name': 'name2', 'key': 'key2', 'value': 'val1', 'pk': 5},
+                {'name': 'name2', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk},
             ]
         })
 
@@ -970,7 +970,7 @@ class AJAXCredsTest(APITestCase):
                     'name': 'name1',
                     'key': 'key2',
                     'value': 'val3',
-                    'pk': 6
+                    'pk': self.credential.pk
                 }
             )
             self.assertEqual(response.status_code, 200)
@@ -983,8 +983,8 @@ class AJAXCredsTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {
             'data': [
-                {'name': 'name1', 'key': 'key2', 'value': 'val1', 'pk': 7},
-                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': 6},
+                {'name': 'name1', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk+1},
+                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk},
             ]
         })
 
