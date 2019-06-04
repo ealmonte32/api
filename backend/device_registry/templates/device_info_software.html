@@ -46,6 +46,10 @@
                 <th scope="row">Operating System Version</th>
                 <td>{{ object.deviceinfo.device_operating_system_version|default_if_none:'N/A' }}</td>
               </tr>
+              <tr>
+                <th scope="row">Agent Version</th>
+                <td>{{ object.agent_version|default:'N/A' }}</td>
+              </tr>
               </tbody>
             </table>
           </div>

@@ -53,6 +53,7 @@ class Device(models.Model):
     claim_token = models.CharField(editable=False, max_length=128)
     fallback_token = models.CharField(editable=False, max_length=128, default='')
     name = models.CharField(max_length=36, blank=True)
+    agent_version = models.CharField(max_length=36, blank=True, null=True)
 
     def get_name(self):
         if self.name:
