@@ -819,7 +819,8 @@ class APICredsTest(APITestCase):
         self.url = reverse('mtls-creds')
         User = get_user_model()
         self.user = User.objects.create_user('test')
-        Credential.objects.create(owner=self.user, name='name1', key='key1', value='as9dfyaoiufhoasdfjh')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1',
+                                                    value='as9dfyaoiufhoasdfjh')
         self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -833,7 +834,8 @@ class APICredsTest(APITestCase):
             format='json'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': 8}])
+        self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh',
+                                                'pk': self.credential.pk}])
 
 
 class AJAXCredsTest(APITestCase):
