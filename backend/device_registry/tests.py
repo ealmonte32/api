@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.utils import timezone
 from django.urls import reverse
 from django.test import TestCase, RequestFactory
@@ -818,7 +819,8 @@ class APICredsTest(APITestCase):
         self.url = reverse('mtls-creds')
         User = get_user_model()
         self.user = User.objects.create_user('test')
-        Credential.objects.create(owner=self.user, name='name1', key='key1', value='as9dfyaoiufhoasdfjh')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1',
+                                                    value='as9dfyaoiufhoasdfjh')
         self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -832,7 +834,160 @@ class APICredsTest(APITestCase):
             format='json'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': 1}])
+        self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh',
+                                                'pk': self.credential.pk}])
+
+
+class AJAXCredsTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('ajax-creds')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key0', value='as9dfyaoiufhoasdfjh')
+
+    def test_create(self):
+        """
+        Create a record. As a result, two records should be present.
+        """
+        self.client.login(username='test', password='123')
+        response = self.client.post(
+            self.url,
+            {
+                'method': 'create',
+                'name': 'name1',
+                'key': 'key2',
+                'value': 'val1'
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(
+            self.url,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {
+            'data': [
+                {'name': 'name1', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk+1},
+                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk},
+            ]
+        })
+
+    def test_delete(self):
+        """
+        Delete an existing record. As a result, no records should be present.
+        """
+        self.client.login(username='test', password='123')
+        response = self.client.post(
+            self.url,
+            {
+                'method': 'delete',
+                'pk': self.credential.pk
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(
+            self.url,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {
+            'data': []
+        })
+
+    def test_get(self):
+        """
+        Get existing records. Should match the record created by setUp().
+        """
+        self.client.login(username='test', password='123')
+        response = self.client.get(
+            self.url,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {
+            'data': [
+                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk}
+            ]
+        })
+
+    def test_update(self):
+        """
+        Update existing record created in setUp(). The record should be updated, pk shouldn't change.
+        """
+        self.client.login(username='test', password='123')
+        response = self.client.post(
+            self.url,
+            {
+                'method': 'update',
+                'name': 'name2',
+                'key': 'key2',
+                'value': 'val1',
+                'pk': self.credential.pk
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(
+            self.url,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {
+            'data': [
+                {'name': 'name2', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk},
+            ]
+        })
+
+    def test_update_invalid(self):
+        """
+        Create another record; update existing record created in setUp() by setting its name and key
+        equal to this record.
+        The record should not be updated, an error should be returned.
+        """
+        self.client.login(username='test', password='123')
+        response = self.client.post(
+            self.url,
+            {
+                'method': 'create',
+                'name': 'name1',
+                'key': 'key2',
+                'value': 'val1'
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(
+            self.url,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+
+        with transaction.atomic():
+            response = self.client.post(
+                self.url,
+                {
+                    'method': 'update',
+                    'name': 'name1',
+                    'key': 'key2',
+                    'value': 'val3',
+                    'pk': self.credential.pk
+                }
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertDictEqual(response.json(), {'error': 'Name/Key combo should be unique'})
+
+        response = self.client.get(
+            self.url,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {
+            'data': [
+                {'name': 'name1', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk+1},
+                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk},
+            ]
+        })
+
 
 
 class APIIsClaimedTest(APITestCase):
