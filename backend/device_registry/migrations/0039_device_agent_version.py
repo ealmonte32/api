@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='device',
             name='agent_version',
-            field=models.CharField(max_length=36, blank=True),
+            field=models.CharField(max_length=36, blank=True, null=True),
         ),
     ]
