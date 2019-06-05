@@ -1,5 +1,12 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
+
+@receiver(pre_save, sender=User, dispatch_uid="user_save_listener")
+def my_callback(sender, instance, *args, **kwargs):
+    instance.username = instance.username.lower()
 
 
 class Profile(models.Model):
