@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 
 def make_lower_names(apps, schema_editor):
     count = 0
+    User = apps.get_model('django.contrib.auth.models', 'User')
     users = User.objects.all()
-    print("")
     for user in users.iterator():
         print("processing user...{}".format(user.username))
         old_name = user.username
@@ -16,12 +16,8 @@ def make_lower_names(apps, schema_editor):
         while User.objects.filter(username=user.username).exists():
             user.username = "{}_{}".format(old_name.lower(), count)
             count += 1
-        try:
-            print("save {} as {}".format(old_name, user.username))
-            user.save()
-        except Exception as e:
-            print("Can not save user '{old_name}' as '', errror:{}".format(
-                old_name, user.username, e))
+        print("save {} as {}".format(old_name, user.username))
+        user.save()
         print("ok")
 
 class Migration(migrations.Migration):
