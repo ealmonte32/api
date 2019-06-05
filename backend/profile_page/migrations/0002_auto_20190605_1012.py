@@ -4,9 +4,9 @@ from django.contrib.auth.models import User
 
 def make_lower_names(apps, schema_editor):
     count = 0
-    User = apps.get_model('django.contrib.auth.models', 'User')
+    User = apps.get_model('auth', 'User')
     users = User.objects.all()
-    for user in users.iterator():
+    for user in users:
         print("processing user...{}".format(user.username))
         old_name = user.username
         if user.username.islower():
