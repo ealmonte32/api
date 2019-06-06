@@ -9,10 +9,9 @@ from django.db.models import F
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
 from django.core.validators import RegexValidator, ValidationError, _
-
 import yaml
 
-from device_registry import ca_helper
+from device_registry import ca_helper, validators
 
 
 def get_bootstrap_color(val):
@@ -28,6 +27,16 @@ class JsonFieldTransitionHelper(JSONField):
         if isinstance(value, str):
             return json.loads(value)
         return value
+
+
+class Tag(models.Model):
+    name_validator = validators.UnicodeNameValidator()  # alphanum and @.+-_:
+    name = models.CharField(
+        max_length=64,
+        unique=True,
+        on_delete=models.PROTECT,
+        validators=[name_validator]
+    )
 
 
 class Device(models.Model):
@@ -54,6 +63,7 @@ class Device(models.Model):
     fallback_token = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
+    tags = models.ManyToManyField( Tag )
 
     def get_name(self):
         if self.name:
@@ -367,7 +377,7 @@ class FirewallState(models.Model):
 
 
 class Credential(models.Model):
-    re_name_valid = re.compile(r"^[\w0-9_.\-:]+$", re.UNICODE)
+    re_name_valid =  re.compile(r"^[\w0-9_.\-:]+$", re.UNICODE)
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
     name = models.CharField(

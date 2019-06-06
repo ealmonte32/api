@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     {% load static %}
     <link rel="stylesheet" href="{% static '/css/app.css' %}">
+    <link rel="stylesheet" href="jquery.tag-editor.css">
     <title>{% block title %}WoTT{% endblock title %}</title>
   </head>
   <body>
   {% block content %}
   {% endblock content %}
     <script src="{% static '/js/app.js' %}"></script>
+    <script src="jquery.caret.min.js"></script>
+    <script src="jquery.tag-editor.min.js"></script>
   {% block scripts %}
   {% endblock scripts %}
   </body>
