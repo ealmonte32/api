@@ -122,7 +122,7 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
         if form.is_valid():
             if 'revoke_button' in form.data:
                 self.object.owner = None
-                self.object.save()
+                self.object.save(update_fields=['owner'])
                 return HttpResponseRedirect(reverse('root'))
             else:
                 form.save()
