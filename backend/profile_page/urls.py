@@ -1,7 +1,7 @@
-from django.conf import settings
 from django.urls import path
-from .views import profile_page
+
+from .views import profile_view
 
 urlpatterns = [
-    path('<int:user_id>/', profile_page, name='profile-page')
+    path('profile/', profile_view, name='profile'),
 ]
