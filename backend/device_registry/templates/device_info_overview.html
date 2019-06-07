@@ -67,7 +67,7 @@
                       {{ form.comment.errors }}
                       {{ form.comment }}
                       <button class="btn btn-primary" type="submit">Save</button>
-                      <button class="btn btn-danger" data-toggle="modal" data-target="#revokeModal" type="button">Revoke</button>
+                      <button class="btn btn-danger" data-toggle="modal" data-target="#revokeModal" type="button" style="float: right;">Revoke</button>
                     </div>
                     <!-- Revoke Ye/No Dialog -->
                     <div class="modal fade" id="revokeModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -83,8 +83,8 @@
                             Do you really want to revoke this device?
                           </div>
                           <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
-                            <button type="submit" class="btn btn-primary" id="revoke_btn" name="revoke_button">Yes, revoke</button>
+                            <button type="button" class="btn btn-danger" data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="revoke_btn" name="revoke_button">Revoke</button>
                           </div>
                         </div>
                       </div>
