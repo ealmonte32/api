@@ -98,7 +98,6 @@ if settings.IS_DASH:
         path('ajax/creds',
              api_views.ajax_creds_view,
              name='ajax-creds'),
-        path('profile/', views.profile_view, name='profile'),
         path('actions/', views.actions_view, name='actions'),
         path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),
     ]

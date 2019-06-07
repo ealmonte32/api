@@ -10,8 +10,6 @@ from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, C
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import Credential
 from device_registry.models import get_bootstrap_color
-from profile_page.forms import ProfileForm
-from profile_page.models import Profile
 
 
 @login_required
@@ -25,22 +23,6 @@ def root_view(request):
         'active_inactive': Device.get_active_inactive(request.user),
         'devices': get_device_list(request.user)
     })
-
-@login_required
-def profile_view(request):
-    user = request.user
-    profile, _ = Profile.objects.get_or_create(user=user)
-    if request.method == 'POST':
-        form = ProfileForm(request.POST)
-
-        if form.is_valid():
-            user.email = form.cleaned_data['email']
-            user.first_name = form.cleaned_data['first_name']
-            user.last_name = form.cleaned_data['last_name']
-            profile.company_name = form.cleaned_data['company']
-            profile.save()
-            user.save()
-    return render(request, 'profile.html')
 
 
 @login_required
@@ -247,11 +229,16 @@ class DeviceDetailHardwareView(LoginRequiredMixin, DetailView):
 class CredentialsView(LoginRequiredMixin, ListView):
     model = Credential
     template_name = 'credentials.html'
+    pi_credentials_path = '/opt/wott/credentials'
 
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
 
+    def get_context_data(self, **kwargs):
+        context = super(CredentialsView, self).get_context_data(**kwargs)
+        context['pi_credentials_path'] = self.pi_credentials_path
+        return context
 
 @login_required
 def actions_view(request, device_pk=None):
