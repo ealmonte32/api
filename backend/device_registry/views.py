@@ -102,10 +102,14 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
         self.object = self.get_object()
         form = DeviceAttrsForm(request.POST, instance=self.object)
         if form.is_valid():
-            form.save()
-            return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
-        else:
-            return self.render_to_response(self.get_context_data(form=form))
+            if 'revoke_button' in form.data:
+                self.object.owner = None
+                self.object.save(update_fields=['owner'])
+                return HttpResponseRedirect(reverse('root'))
+            else:
+                form.save()
+                return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 class DeviceDetailSoftwareView(LoginRequiredMixin, DetailView):
