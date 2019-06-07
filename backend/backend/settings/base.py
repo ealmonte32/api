@@ -49,7 +49,7 @@ SECRET_KEY = os.getenv(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(int(os.getenv('DEBUG', "0")))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost','192.168.1.6', '192.168.1.17', '127.0.0.1']
 
 # Application definition
 
@@ -64,8 +64,16 @@ INSTALLED_APPS = [
     'django_json_widget',
     'rest_framework',
     'device_registry.apps.DeviceRegistryConfig',
-    'profile_page.apps.ProfilePageConfig'
+    'profile_page.apps.ProfilePageConfig',
+    'tagulous'
 ]
+
+SERIALIZATION_MODULES = {
+    'xml':    'tagulous.serializers.xml_serializer',
+    'json':   'tagulous.serializers.json',
+    'python': 'tagulous.serializers.python',
+    'yaml':   'tagulous.serializers.pyyaml',
+}
 
 MIDDLEWARE = [
     'device_registry.middleware.HealthCheckMiddleware',

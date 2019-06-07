@@ -21,9 +21,10 @@ class DeviceAttrsForm(forms.ModelForm):
 
     class Meta:
         model = Device
-        fields = ['name', 'comment']
+        fields = ['name', 'comment', 'tags']
         widgets = {'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Comment', 'class': 'form-control'}),
-                   'name': forms.TextInput(attrs={'style': 'width:100%'})}
+                   'name': forms.TextInput(attrs={'style': 'width:100%'}),
+                   'tags': forms.TextInput()}
 
 
 class PortsForm(forms.Form):

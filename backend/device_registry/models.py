@@ -12,6 +12,7 @@ from django.core.validators import RegexValidator, ValidationError, _
 import yaml
 
 from device_registry import ca_helper, validators
+import tagulous.models
 
 
 def get_bootstrap_color(val):
@@ -22,22 +23,18 @@ def get_bootstrap_color(val):
     else:
         return 'success'
 
+class Tags(tagulous.models.TagModel):
+    class TagMeta:
+        # Tag options
+        initial = ""
+        force_lowercase = True
+        autocomplete_view = 'ajax-tags-autocomplete'
+
 class JsonFieldTransitionHelper(JSONField):
     def from_db_value(self, value, expression, connection, context):
         if isinstance(value, str):
             return json.loads(value)
         return value
-
-
-class Tag(models.Model):
-    name_validator = validators.UnicodeNameValidator()  # alphanum and @.+-_:
-    name = models.CharField(
-        max_length=64,
-        unique=True,
-        on_delete=models.PROTECT,
-        validators=[name_validator]
-    )
-
 
 class Device(models.Model):
     device_id = models.CharField(
@@ -63,7 +60,7 @@ class Device(models.Model):
     fallback_token = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
-    tags = models.ManyToManyField( Tag )
+    tags = tagulous.models.TagField(to=Tags)
 
     def get_name(self):
         if self.name:
@@ -391,6 +388,7 @@ class Credential(models.Model):
         ])
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=1024)
+    tags = tagulous.models.TagField(to=Tags)
 
     class Meta:
         unique_together = ['owner', 'key', 'name']

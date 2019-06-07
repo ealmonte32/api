@@ -2,6 +2,9 @@ from django.conf import settings
 from django.urls import path
 from device_registry import views, api_views
 from rest_framework.schemas import get_schema_view
+import tagulous.views
+from django.conf.urls import url
+from device_registry.models import Tags
 
 schema_view = get_schema_view(title='WoTT API')
 api_version = 'v0.2'
@@ -88,4 +91,10 @@ if settings.IS_DASH:
         path('ajax-creds/create/', api_views.CreateCredentialView.as_view(), name='ajax_creds_create'),
         path('actions/', views.actions_view, name='actions'),
         path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),
+        url(
+             'ajax/tags/autocomplete/',
+              tagulous.views.autocomplete,
+              {'tag_model': Tags},
+              name='ajax-tags-autocomplete',
+        ),
     ]
