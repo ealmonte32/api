@@ -13,7 +13,8 @@ jobs:
             apk add --no-cache \
               curl python3 py3-pynacl py3-cffi py3-bcrypt py3-cryptography
             python3 -m ensurepip
-            pip3 install docker-compose
+            pip3 install --upgrade pip
+            pip3 install --upgrade-strategy only-if-needed paramiko==2.4.2 docker-compose
       - run:
           name: Set environment variables
           command: |
