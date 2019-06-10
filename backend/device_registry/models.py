@@ -194,9 +194,9 @@ class DeviceInfo(models.Model):
         null=True,
         blank=True
     )
-    selinux_state = JSONField(default=dict)
+    selinux_state = JSONField(blank=True, default=dict)
     app_armor_enabled = models.BooleanField(null=True, blank=True)
-    logins = JSONField(default=dict)
+    logins = JSONField(blank=True, default=dict)
     default_password = models.BooleanField(null=True, blank=True)
 
     # We need this for the YC demo.
@@ -259,10 +259,10 @@ class DeviceInfo(models.Model):
 class PortScan(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now=True)
-    scan_info = JSONField(default=list)  # Ports open for incoming connection to.
-    netstat = JSONField(default=list)  # Currently open network connections.
-    block_ports = JSONField(default=list)
-    block_networks = JSONField(default=list)
+    scan_info = JSONField(blank=True, default=list)  # Ports open for incoming connection to.
+    netstat = JSONField(blank=True, default=list)  # Currently open network connections.
+    block_ports = JSONField(blank=True, default=list)
+    block_networks = JSONField(blank=True, default=list)
     GOOD_PORTS = [22, 443]
     BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
 
@@ -359,7 +359,7 @@ class FirewallState(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
     enabled = models.BooleanField(null=True, blank=True)
     scan_date = models.DateTimeField(null=True, auto_now_add=True)
-    rules = JSONField(default=dict)
+    rules = JSONField(blank=True, default=dict)
 
     @property
     def beautified_rules(self):
