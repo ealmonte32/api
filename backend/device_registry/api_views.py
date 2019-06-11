@@ -29,6 +29,19 @@ from django.core.validators import ValidationError
 logger = logging.getLogger(__name__)
 
 
+class DeviceIDView(APIView):
+    """
+    Return a device ID for enrolling a new device.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        while True:
+            device_id = '{}.{}'.format(uuid.uuid4().hex, settings.COMMON_NAME_PREFIX)
+            if not Device.objects.filter(device_id=device_id).exists():
+                return Response({'device_id': device_id})
+
+
 class CACertView(APIView):
     """
     Return the CA cert
@@ -74,27 +87,6 @@ class DeviceListView(ListAPIView):
 
     def get_queryset(self):
         return DeviceInfo.objects.filter(device__owner=self.request.user)
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def generate_device_id_view(request, format=None):
-    """
-    Returns a device ID for enrolling a new device.
-    """
-
-    cert_in_use = True
-    while cert_in_use:
-        device_id = '{}.{}'.format(
-            uuid.uuid4().hex,
-            settings.COMMON_NAME_PREFIX
-        )
-        if not Device.objects.filter(device_id=device_id):
-            return Response({'device_id': device_id})
-    return Response(
-        'Unknown error',
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-    )
 
 
 @api_view(['GET'])
