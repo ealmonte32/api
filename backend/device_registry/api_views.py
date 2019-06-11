@@ -6,6 +6,7 @@ import re
 from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
+from django.db import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 

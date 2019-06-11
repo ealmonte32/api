@@ -6,8 +6,16 @@
     {% load static %}
     <link rel="stylesheet" href="{% static '/css/app.css' %}">
     <title>{% block title %}WoTT{% endblock title %}</title>
+
+    {% block css %}
+    {% endblock %}
+
+    {% block js %}
+    {% endblock %}
+
   </head>
   <body>
+
   {% block content %}
   {% endblock content %}
     <script src="{% static '/js/app.js' %}"></script>

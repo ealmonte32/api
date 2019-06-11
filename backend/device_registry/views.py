@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, CredentialsForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import Credential
 from device_registry.models import get_bootstrap_color
@@ -98,6 +98,10 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
             context['firewall'] = None
         if 'form' not in context:
             context['form'] = DeviceAttrsForm(instance=self.object)
+            context['form_media'] = context['form'].media
+        # if 'tagform' not in context:
+        #     context['tagform'] = DeviceTagsForm(instance=self.object)
+        #     context['tagform_media'] = context['tagform'].media
         return context
 
     def post(self, request, *args, **kwargs):
@@ -245,6 +249,7 @@ class CredentialsView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(CredentialsView, self).get_context_data(**kwargs)
         context['pi_credentials_path'] = self.pi_credentials_path
+        context['form_media'] = CredentialsForm().media
         return context
 
 @login_required

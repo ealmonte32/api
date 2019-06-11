@@ -1,4 +1,12 @@
 {% extends "admin_base.html" %}
+
+{% block css %}
+    {{ form_media.css }}
+{% endblock %}
+{% block js %}
+    {{ form_media.js }}
+{% endblock %}
+
 {% load split_string %}
 
 {% block title %}WoTT - Device Info{% endblock title %}
@@ -61,11 +69,19 @@
                 <tr>
                   <th scope="row">Comment</th>
                   <td>
-
                     <div class="form-group">
+                      {% csrf_token %}
                       {{ form.non_field_errors }}
                       {{ form.comment.errors }}
                       {{ form.comment }}
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Tags</th>
+                  <td>
+                    <div class="form-group">
+                      {% csrf_token %}
                       {{ form.non_field_errors }}
                       {{ form.tags.errors }}
                       {{ form.tags }}

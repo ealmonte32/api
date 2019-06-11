@@ -16,7 +16,6 @@ import re
 
 from netaddr import IPNetwork, AddrFormatError
 
-
 def check_ip_range(ipr):
     try:
         _ = IPNetwork(ipr)
@@ -63,17 +62,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_json_widget',
     'rest_framework',
+    'tagulous',
     'device_registry.apps.DeviceRegistryConfig',
     'profile_page.apps.ProfilePageConfig',
-    'tagulous'
 ]
-
-SERIALIZATION_MODULES = {
-    'xml':    'tagulous.serializers.xml_serializer',
-    'json':   'tagulous.serializers.json',
-    'python': 'tagulous.serializers.python',
-    'yaml':   'tagulous.serializers.pyyaml',
-}
 
 MIDDLEWARE = [
     'device_registry.middleware.HealthCheckMiddleware',
@@ -196,3 +188,22 @@ if SENTRY_DSN:
     from sentry_sdk.integrations.django import DjangoIntegration
 
     sentry_sdk.init(SENTRY_DSN, integrations=[DjangoIntegration()])
+
+# 'tagulous'
+SERIALIZATION_MODULES = {
+    'xml':    'tagulous.serializers.xml_serializer',
+    'json':   'tagulous.serializers.json',
+    'python': 'tagulous.serializers.python',
+    'yaml':   'tagulous.serializers.pyyaml',
+}
+
+TAGULOUS_AUTOCOMPLETE_JS = (
+    'tagulous/lib/jquery.js',
+    'tagulous/lib/select2-3/select2.min.js',
+    'tagulous/tagulous.js',
+    'js/select2-3.js',
+)
+
+TAGULOUS_AUTOCOMPLETE_CSS = {
+    'all':  ['css/select2.css'],
+}

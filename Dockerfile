@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 ENV PYTHONUNBUFFERED 1
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential libssl-dev libffi-dev libltdl-dev && \
+    apt-get install -y --no-install-recommends build-essential libssl-dev libffi-dev libltdl-dev mcedit && \
     apt-get clean
 
 COPY requirements.txt ./
