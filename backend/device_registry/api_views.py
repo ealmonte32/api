@@ -11,21 +11,17 @@ from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 
 from rest_framework import status
-from rest_framework.decorators import api_view, renderer_classes, permission_classes, parser_classes
-from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
-from rest_framework.parsers import FormParser, JSONParser
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from netaddr import IPAddress
 
 from device_registry import ca_helper
-from device_registry.forms import CredentialsForm
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential
-from django.core.validators import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -511,7 +507,7 @@ class CredentialsView(CredentialsQSMixin, ListAPIView):
 
     def list(self, request, *args, **kwargs):
         """
-        Overwritten default `list` method in order to retern a dict instead of list.
+        Overwritten default `list` method in order to return a dict instead of list.
         """
         queryset = self.filter_queryset(self.get_queryset())
 
@@ -531,61 +527,42 @@ class DeleteCredentialView(CredentialsQSMixin, DestroyAPIView):
 class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
     serializer_class = CredentialSerializer
 
+    def update(self, request, *args, **kwargs):
+        """
+        Overwritten default `update` method in order to catch unique constraint violation.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        if Credential.objects.filter(owner=request.user, key=serializer.validated_data['key'],
+                                     name=serializer.validated_data['name']).exists():
+            return Response({'error': 'Name/Key combo should be unique'}, status=status.HTTP_400_BAD_REQUEST)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
 
 class CreateCredentialView(CreateAPIView):
     serializer_class = CredentialSerializer
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        """
+        Overwritten default `create` method in order to catch unique constraint violation.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if Credential.objects.filter(owner=request.user, key=serializer.validated_data['key'],
+                                     name=serializer.validated_data['name']).exists():
+            return Response({'error': 'Name/Key combo should be unique'}, status=status.HTTP_400_BAD_REQUEST)
         serializer.save(owner=self.request.user)
-
-
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
-@renderer_classes([BrowsableAPIRenderer, JSONRenderer])
-@parser_classes([FormParser, JSONParser])
-def ajax_creds_view(request, format=None):
-    """
-    Return all user's credentials.
-    """
-
-    if request.method == 'GET':
-        serializer = CredentialsListSerializer(request.user.credentials.all(), many=True)
-        return Response({'data': serializer.data})
-    elif request.method == 'POST':
-        d = request.data
-        if not d.get('method'):
-            return Response({'error': 'Invalid request: missing method'})
-        method = d['method']
-        if method == 'delete':
-            if not d.get('pk'):
-                return Response({'error': 'Invalid request: missing pk'})
-            cred = Credential.objects.get(pk=d['pk'], owner=request.user)
-            cred.delete()
-        else:
-            creds_form = CredentialsForm(request.POST)
-            if not creds_form.is_valid():
-                return Response({'error': 'Invalid data supplied'})
-            try:
-                if method == 'update':
-                    if not d.get('pk'):
-                        return Response({'error': 'Invalid request: missing pk'})
-                    cred = Credential.objects.get(pk=d['pk'], owner=request.user)
-                    for k in ('name', 'key', 'value'):
-                        setattr(cred, k, d[k])
-                    cred.clean_fields()
-                    cred.clean()
-                    cred.save()
-                elif method == 'create':
-                    cred = {k: d[k] for k in ('name', 'key', 'value')}
-                    cred['owner'] = request.user
-                    Credential.objects.create(**cred)
-            except IntegrityError:
-                return Response({'error': 'Name/Key combo should be unique'})
-            except Credential.DoesNotExist:
-                return Response({'error': 'Credential does not exist'})
-            except ValidationError as e:
-                return Response({'error': e.messages[0]})
-        return Response({})
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 @api_view(['GET'])

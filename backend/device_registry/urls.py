@@ -85,7 +85,6 @@ if settings.IS_DASH:
         path('credentials/',
              views.CredentialsView.as_view(),
              name='credentials'),
-        path('ajax/creds', api_views.ajax_creds_view, name='ajax-creds'),
         path('ajax-creds/', api_views.CredentialsView.as_view(), name='ajax_creds'),
         path('ajax-creds/<int:pk>/delete/', api_views.DeleteCredentialView.as_view(), name='ajax_creds_delete'),
         path('ajax-creds/<int:pk>/update/', api_views.UpdateCredentialView.as_view(), name='ajax_creds_update'),
