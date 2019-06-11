@@ -14,6 +14,7 @@ from rest_framework.decorators import api_view, renderer_classes, permission_cla
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.parsers import FormParser, JSONParser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from netaddr import IPAddress
@@ -28,15 +29,14 @@ from django.core.validators import ValidationError
 logger = logging.getLogger(__name__)
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def device_list_view(request, format=None):
+class DeviceListView(ListAPIView):
     """
     List all of the users devices.
     """
-    infos = DeviceInfo.objects.filter(device__owner=request.user)
-    serializer = DeviceInfoSerializer(infos, many=True)
-    return Response(serializer.data)
+    serializer_class = DeviceInfoSerializer
+
+    def get_queryset(self):
+        return DeviceInfo.objects.filter(device__owner=self.request.user)
 
 
 @api_view(['GET'])

@@ -5,8 +5,64 @@ from django.contrib.auth import get_user_model
 
 from rest_framework.test import APITestCase
 from rest_framework import status
+from rest_framework import serializers
 
-from device_registry.models import Credential, Device
+from device_registry.models import Credential, Device, DeviceInfo
+
+
+def datetime_to_str(value):
+    field = serializers.DateTimeField()
+    return field.to_representation(value)
+
+
+class DeviceListViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('list_devices')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.device_info = DeviceInfo.objects.create(
+            device=self.device,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            selinux_state={'enabled': True, 'mode': 'enforcing'},
+            app_armor_enabled=True,
+            logins={'pi': {'failed': 1, 'success': 1}}
+        )
+        self.client.login(username='test', password='123')
+
+    def test_get(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.maxDiff = None
+        self.assertListEqual(response.data, [OrderedDict([('id', self.device_info.id),
+                                                          ('device', OrderedDict(
+                                                              [('id', self.device.id),
+                                                               ('device_id', self.device.device_id),
+                                                               ('created', datetime_to_str(self.device.created)),
+                                                               ('last_ping', None), ('certificate', None),
+                                                               ('certificate_csr', None),
+                                                               ('certificate_expires', None),
+                                                               ('comment', None), ('claim_token', ''),
+                                                               ('fallback_token', ''), ('name', ''),
+                                                               ('agent_version', None),
+                                                               ('owner', self.user.id)])),
+                                                          (
+                                                              'device_manufacturer',
+                                                              self.device_info.device_manufacturer),
+                                                          ('device_model', self.device_info.device_model),
+                                                          ('device_architecture', None),
+                                                          ('device_operating_system', None),
+                                                          ('device_operating_system_version', None),
+                                                          ('distr_id', None), ('distr_release', None),
+                                                          ('trust_score', None), ('fqdn', None),
+                                                          ('ipv4_address', None),
+                                                          ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
+                                                          ('app_armor_enabled', True),
+                                                          ('logins', {'pi': {'failed': 1, 'success': 1}}),
+                                                          ('default_password', None), ('detected_mirai', False)])])
 
 
 class CredentialsViewTest(APITestCase):
