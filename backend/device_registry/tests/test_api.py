@@ -1,9 +1,83 @@
+from collections import OrderedDict
+
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
 from rest_framework.test import APITestCase
+from rest_framework import status
 
 from device_registry.models import Credential, Device
+
+
+class CredentialsViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('ajax_creds')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1')
+        self.client.login(username='test', password='123')
+
+    def test_get(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertDictEqual(response.data, {'data': [OrderedDict(
+            [('name', 'name1'), ('key', 'key1'), ('value', 'value1'), ('pk', self.credential.pk)])]})
+
+
+class DeleteCredentialViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1')
+        self.url = reverse('ajax_creds_delete', kwargs={'pk': self.credential.pk})
+        self.client.login(username='test', password='123')
+
+    def test_delete(self):
+        self.assertEqual(Credential.objects.count(), 1)
+        response = self.client.delete(self.url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Credential.objects.count(), 0)
+
+
+class UpdateCredentialViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1')
+        self.url = reverse('ajax_creds_update', kwargs={'pk': self.credential.pk})
+        self.client.login(username='test', password='123')
+        self.data = {'name': 'name2', 'key': 'key2', 'value': 'value2'}
+
+    def test_patch(self):
+        self.assertEqual(Credential.objects.count(), 1)
+        response = self.client.patch(self.url, self.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertDictEqual(response.data, {'name': 'name2', 'key': 'key2', 'value': 'value2'})
+        self.assertEqual(Credential.objects.count(), 1)
+
+
+class CreateCredentialViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('ajax_creds_create')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.client.login(username='test', password='123')
+        self.data = {'name': 'name1', 'key': 'key1', 'value': 'value1'}
+
+    def test_post(self):
+        self.assertEqual(Credential.objects.count(), 0)
+        response = self.client.post(self.url, self.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertDictEqual(response.data, {'name': 'name1', 'key': 'key1', 'value': 'value1'})
+        self.assertEqual(Credential.objects.count(), 1)
 
 
 class AjaxCredsTest(APITestCase):
@@ -15,7 +89,7 @@ class AjaxCredsTest(APITestCase):
         self.user.save()
         self.client.login(username='test', password='123')
 
-        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='as9dfyaoiufhoah')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1')
         self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
@@ -27,7 +101,7 @@ class AjaxCredsTest(APITestCase):
         form_data = {
             'name': 'Name1',
             'key': 'key1',
-            'value': 'as9dfyaoiufhoah',
+            'value': 'value1',
             'method': 'create',
         }
         response = self.client.post(
@@ -55,7 +129,7 @@ class AjaxCredsTest(APITestCase):
         form_data = {
             'name': 'Name+1',
             'key': 'key1',
-            'value': 'as9dfyaoiufhoah',
+            'value': 'value1',
             'pk': self.credential.pk,
             'method': 'update',
         }
