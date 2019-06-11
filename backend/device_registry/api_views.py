@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, renderer_classes, permission_classes, parser_classes
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
-from rest_framework.parsers import FormParser
+from rest_framework.parsers import FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -550,8 +550,8 @@ class CreateCredentialView(CreateAPIView):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-@renderer_classes([BrowsableAPIRenderer])
-@parser_classes([FormParser])
+@renderer_classes([BrowsableAPIRenderer, JSONRenderer])
+@parser_classes([FormParser, JSONParser])
 def ajax_creds_view(request, format=None):
     """
     Return all user's credentials.
