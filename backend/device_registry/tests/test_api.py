@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from uuid import uuid4
 
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -13,6 +14,37 @@ from device_registry.models import Credential, Device, DeviceInfo
 def datetime_to_str(value):
     field = serializers.DateTimeField()
     return field.to_representation(value)
+
+
+class ClaimByLinkTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.claim_token = uuid4()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', claim_token=self.claim_token)
+        self.client.login(username='test', password='123')
+        self.url = reverse('claim_by_link')
+
+    def test_get_success(self):
+        device = Device.objects.get(pk=self.device.pk)
+        self.assertFalse(device.claimed)
+        url = self.url + '?claim-token=%s&device-id=%s' % (self.claim_token, self.device.device_id)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, 'Device device0.d.wott-dev.local claimed!')
+        device = Device.objects.get(pk=self.device.pk)
+        self.assertTrue(device.claimed)
+
+    def test_get_fail(self):
+        device = Device.objects.get(pk=self.device.pk)
+        self.assertFalse(device.claimed)
+        url = self.url + '?claim-token=abc&device-id=%s' % self.device.device_id
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+        device = Device.objects.get(pk=self.device.pk)
+        self.assertFalse(device.claimed)
 
 
 class DeviceListViewTest(APITestCase):

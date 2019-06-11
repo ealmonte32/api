@@ -30,9 +30,7 @@ if settings.IS_API:
         path('api/{}/sign-expired-csr'.format(api_version),
              api_views.renew_expired_cert_view,
              name='sign-expired-cert'),
-        path('api/{}/claim-device'.format(api_version),
-             api_views.claim_by_link,
-             name='claim-by-link'),
+        path('api/{}/claim-device'.format(api_version), api_views.ClaimByLink.as_view(), name='claim_by_link'),
     ]
 
 # Only load if mTLS

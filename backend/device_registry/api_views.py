@@ -29,6 +29,21 @@ from django.core.validators import ValidationError
 logger = logging.getLogger(__name__)
 
 
+class ClaimByLink(APIView):
+    def get(self, request, *args, **kwargs):
+        params = request.query_params
+        device = get_object_or_404(
+            Device,
+            claim_token=params['claim-token'],
+            device_id=params['device-id'],
+            owner__isnull=True
+        )
+        device.owner = request.user
+        device.claim_token = ''
+        device.save(update_fields=['owner', 'claim_token'])
+        return Response(f'Device {device.device_id} claimed!')
+
+
 class DeviceListView(ListAPIView):
     """
     List all of the users devices.
@@ -466,24 +481,6 @@ def action_view(request, action_id, action_name):
         'id': action_id,
         'name': action_name
     })
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def claim_by_link(request):
-    params = request.query_params
-    device = get_object_or_404(
-        Device,
-        claim_token=params['claim-token'],
-        device_id=params['device-id'],
-        owner__isnull=True
-    )
-    if device:
-        device.owner = request.user
-        device.claim_token = ""
-        device.save()
-        return Response(f'Device {device.device_id} claimed!')
-    return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET'])
