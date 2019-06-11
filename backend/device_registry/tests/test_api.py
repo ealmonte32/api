@@ -3,6 +3,7 @@ from uuid import uuid4
 from unittest.mock import patch, mock_open
 
 from django.urls import reverse
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 
 from rest_framework.test import APITestCase
@@ -11,10 +12,57 @@ from rest_framework import serializers
 
 from device_registry.models import Credential, Device, DeviceInfo
 
+TEST_CERT = """-----BEGIN CERTIFICATE-----
+MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
+BAMMCWxvY2FsaG9zdDAeFw0xOTAzMDUyMDE5MjRaFw0xOTA0MDQyMDE5MjRaMBQx
+EjAQBgNVBAMMCWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+ggEBAOgfhzltW1Bx/PLve7sk228G9FeBQmTVkEwiU1tgagvIzM8fhoeDnXoMVRf5
+GPWZr4h0E4BtDRQUO7NqgW+r3RQMq4nJljTV9f8Om3Owx41BM5M5w5YH75JZzcZ1
+OVBmJRPOG06I3Hk/uQjCGo1YN7ZggAdUmFQqQ03GdstqQhd6UzbV2dPphq+R2npV
+oAjByawBwuxi+NJXxz20dUVkXrrxGgDUKcUn4NPsIUGf9hSHZcDMZ3XQcQQ/ykD9
+i/zeVU6jGnsMOO+YZUguBlq/GKI2fzezfG7fv394oAJP9mV0T8k9ArciTigUehuv
+a8sHA+vrvRXCNbpV8vEQbRh/+0sCAwEAAaM6MDgwFAYDVR0RBA0wC4IJbG9jYWxo
+b3N0MAsGA1UdDwQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDATANBgkqhkiG9w0B
+AQsFAAOCAQEAL+KRDdqbbAFiMROy7eNkbMUj3Dp4S24y5QnGjFl4eSFLWu9UhBT+
+FcElSbo1vKaW5DJi+XG9snyZfqEuknQlBEDTuBlOEqguGpmzYE/+T0wt9zLTByN8
+N44fGr4f9ORj6Y6HJkzdlp+XCDdzHb2+3ienNle6bWlmBpbQaMVrayDxJ5yxldgJ
+czUUClEc0OJDMw8PsHyYvrl+jk0JFXgDqBgAutPzSiC+pWL3H/5DO8t/NcccNNlR
+2UZyh8r3qmVWo1jROR98z/J59ytNgMfYTmVI+ClUWKF5OWEOneKTf7dvic0Bqiyb
+1lti7kgwF5QeRU2eEn3VC2F5JreBMpTkeA==
+-----END CERTIFICATE-----
+"""
+
 
 def datetime_to_str(value):
     field = serializers.DateTimeField()
     return field.to_representation(value)
+
+
+class DeviceCertViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.expires = timezone.now() + timezone.timedelta(days=7)
+        self.device = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            certificate_expires=self.expires,
+            owner=self.user,
+            certificate=TEST_CERT
+        )
+        self.url = reverse('get_device_cert', kwargs={'device_id': self.device.device_id})
+
+    def test_simple_get(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.content, bytes)
+        self.assertEqual(response.content, TEST_CERT.encode('utf8'))
+
+    def test_get_with_format(self):
+        response = self.client.get(self.url + '?format')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.data, dict)
+        self.assertDictEqual(response.data, {'certificate': TEST_CERT, 'certificate_expires': self.expires,
+                                             'is_expired': False, 'device_id': self.device.device_id})
 
 
 class DeviceIDViewTest(APITestCase):
@@ -105,7 +153,6 @@ class DeviceListViewTest(APITestCase):
     def test_get(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.maxDiff = None
         self.assertListEqual(response.data, [OrderedDict([('id', self.device_info.id),
                                                           ('device', OrderedDict(
                                                               [('id', self.device.id),

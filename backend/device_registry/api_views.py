@@ -6,6 +6,7 @@ import re
 from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 
@@ -27,6 +28,32 @@ from .models import Device, DeviceInfo, FirewallState, PortScan, Credential
 from django.core.validators import ValidationError
 
 logger = logging.getLogger(__name__)
+
+
+class DeviceCertView(APIView):
+    """
+    Returns a device certificate from the database.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            device = Device.objects.get(device_id=kwargs['device_id'])
+        except ObjectDoesNotExist:
+            return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
+
+        if 'format' in request.GET:
+            return Response({
+                'certificate': device.certificate,
+                'certificate_expires': device.certificate_expires,
+                'is_expired':
+                    device.certificate_expires < timezone.now() if device.certificate_expires is not None else False,
+                'device_id': device.device_id,
+            })
+        else:
+            response = HttpResponse(device.certificate, content_type='application/x-pem-file')
+            response['Content-Disposition'] = 'attachment; filename={}.crt'.format(device.device_id)
+            return response
 
 
 class DeviceIDView(APIView):
@@ -87,29 +114,6 @@ class DeviceListView(ListAPIView):
 
     def get_queryset(self):
         return DeviceInfo.objects.filter(device__owner=self.request.user)
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def get_device_cert_view(request, device_id, format=None):
-    """
-    Returns a device certificate from the database.
-    """
-    device_info = Device.objects.filter(device_id=device_id)
-
-    if device_info:
-        if 'format' in request.GET:
-            return Response({
-                'certificate': device_info[0].certificate,
-                'certificate_expires': device_info[0].certificate_expires,
-                    'is_expired': device_info[0].certificate_expires < timezone.now(),
-                'device_id': device_id,
-            })
-        else:
-            response = HttpResponse(device_info[0].certificate, content_type='application/x-pem-file')
-            response['Content-Disposition'] = 'attachment; filename={}.crt'.format(device_id)
-            return response
-    return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
