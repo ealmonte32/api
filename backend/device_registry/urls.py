@@ -12,9 +12,7 @@ urlpatterns = []
 if settings.IS_API:
     urlpatterns += [
         path('api/{}/list-devices'.format(api_version), api_views.DeviceListView.as_view(), name='list_devices'),
-        path('api/{}/ca-bundle'.format(api_version),
-             api_views.get_ca_bundle_view,
-             name='get-ca-bundle'),
+        path('api/{}/ca-bundle'.format(api_version), api_views.CABundleView.as_view(), name='get_ca_bundle'),
         path('api/{}/ca'.format(api_version),
              api_views.get_ca_view,
              name='get-ca'),

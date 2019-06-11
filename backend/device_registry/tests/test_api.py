@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from uuid import uuid4
+from unittest.mock import patch, mock_open
 
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -14,6 +15,17 @@ from device_registry.models import Credential, Device, DeviceInfo
 def datetime_to_str(value):
     field = serializers.DateTimeField()
     return field.to_representation(value)
+
+
+class CABundleViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('get_ca_bundle')
+
+    @patch('builtins.open', mock_open(read_data='010101'))
+    def test_get(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertDictEqual(response.data, {'ca_bundle': '010101'})
 
 
 class ClaimByLinkTest(APITestCase):

@@ -29,6 +29,18 @@ from django.core.validators import ValidationError
 logger = logging.getLogger(__name__)
 
 
+class CABundleView(APIView):
+    """
+    Return the root cert bundle
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        with open('files/cert-bundle.crt') as f:
+            ca_bundle = f.read()
+        return Response({'ca_bundle': ca_bundle})
+
+
 class ClaimByLink(APIView):
     def get(self, request, *args, **kwargs):
         params = request.query_params
@@ -52,20 +64,6 @@ class DeviceListView(ListAPIView):
 
     def get_queryset(self):
         return DeviceInfo.objects.filter(device__owner=self.request.user)
-
-
-@api_view(['GET'])
-@renderer_classes((JSONRenderer,))
-@permission_classes([AllowAny])
-def get_ca_bundle_view(request, format=None):
-    """
-    Returns the root cert bundle
-    """
-
-    with open('files/cert-bundle.crt') as f:
-        ca_bundle = f.read()
-
-    return Response({'ca_bundle': ca_bundle})
 
 
 @api_view(['GET'])
