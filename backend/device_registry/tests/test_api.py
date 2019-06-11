@@ -17,6 +17,18 @@ def datetime_to_str(value):
     return field.to_representation(value)
 
 
+class CACertViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('get_ca')
+
+    def test_get(self):
+        with patch('cfssl.cfssl.CFSSL.info') as info:
+            info.return_value = {'certificate': '010101'}
+            response = self.client.get(self.url)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertDictEqual(response.data, {'ca_certificate': '010101'})
+
+
 class CABundleViewTest(APITestCase):
     def setUp(self):
         self.url = reverse('get_ca_bundle')

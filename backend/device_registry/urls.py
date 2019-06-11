@@ -13,9 +13,7 @@ if settings.IS_API:
     urlpatterns += [
         path('api/{}/list-devices'.format(api_version), api_views.DeviceListView.as_view(), name='list_devices'),
         path('api/{}/ca-bundle'.format(api_version), api_views.CABundleView.as_view(), name='get_ca_bundle'),
-        path('api/{}/ca'.format(api_version),
-             api_views.get_ca_view,
-             name='get-ca'),
+        path('api/{}/ca'.format(api_version), api_views.CACertView.as_view(), name='get_ca'),
         path('api/{}/generate-id'.format(api_version),
              api_views.generate_device_id_view,
              name='get-device-id'),

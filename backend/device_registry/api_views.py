@@ -29,6 +29,16 @@ from django.core.validators import ValidationError
 logger = logging.getLogger(__name__)
 
 
+class CACertView(APIView):
+    """
+    Return the CA cert
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        return Response({'ca_certificate': ca_helper.get_ca_certificate()})
+
+
 class CABundleView(APIView):
     """
     Return the root cert bundle
@@ -64,16 +74,6 @@ class DeviceListView(ListAPIView):
 
     def get_queryset(self):
         return DeviceInfo.objects.filter(device__owner=self.request.user)
-
-
-@api_view(['GET'])
-@renderer_classes((JSONRenderer,))
-@permission_classes([AllowAny])
-def get_ca_view(request, format=None):
-    """
-    Returns the CA cert
-    """
-    return Response({'ca_certificate': ca_helper.get_ca_certificate()})
 
 
 @api_view(['GET'])
