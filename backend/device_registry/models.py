@@ -418,7 +418,8 @@ class Credential(models.Model):
 
     @property
     def get_tags(self):
-         return render_tags(self.tags.objects.filter(owner=self.pk))
+        s = self.tags.__str__()
+        return s
 
 # Temporary POJO to showcase recommended actions template.
 class Action:
