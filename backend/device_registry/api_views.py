@@ -7,7 +7,6 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 
 from rest_framework import status
@@ -20,10 +19,56 @@ from netaddr import IPAddress
 
 from device_registry import ca_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
+from device_registry.serializers import CreateDeviceSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential
 
 logger = logging.getLogger(__name__)
+
+
+class SignNewDeviceView(CreateAPIView):
+    """
+    Sign a submitted CSR.
+    """
+    permission_classes = [AllowAny]
+    serializer_class = CreateDeviceSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        device = Device(device_id=serializer.validated_data['device_id'],
+                        certificate_csr=serializer.validated_data['certificate_csr'])
+
+        signed_certificate = ca_helper.sign_csr(serializer.validated_data['certificate_csr'],
+                                                serializer.validated_data['device_id'])
+        if not signed_certificate:
+            return Response('Unknown error', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
+        device.certificate = signed_certificate
+        device.certificate_expires = certificate_expires
+        device.last_ping = timezone.now()
+        device.claim_token = uuid.uuid4()
+        device.fallback_token = uuid.uuid4()
+        device.save()
+
+        DeviceInfo.objects.create(
+            device=device,
+            device_manufacturer=serializer.validated_data.get('device_manufacturer', ''),
+            device_model=serializer.validated_data.get('device_model', ''),
+            device_operating_system=serializer.validated_data['device_operating_system'],
+            device_operating_system_version=serializer.validated_data['device_operating_system_version'],
+            device_architecture=serializer.validated_data['device_architecture'],
+            fqdn=serializer.validated_data['fqdn'],
+            ipv4_address=serializer.validated_data['ipv4_address']
+        )
+
+        return Response({
+            'certificate': signed_certificate,
+            'certificate_expires': certificate_expires,
+            'claim_token': device.claim_token,
+            'fallback_token': device.fallback_token
+        })
 
 
 class DeviceCertView(APIView):
@@ -110,92 +155,6 @@ class DeviceListView(ListAPIView):
 
     def get_queryset(self):
         return DeviceInfo.objects.filter(device__owner=self.request.user)
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def sign_new_device_view(request, format=None):
-    """
-    Signs a submitted CSR.
-    """
-
-    csr = request.data.get('csr')
-    device_id = request.data.get('device_id')
-
-    if not csr:
-        return Response(
-            'Missing csr key in payload.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if not device_id:
-        return Response(
-            'Missing device_id key in payload.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if Device.objects.filter(device_id=device_id):
-        return Response(
-            'Device already exist.',
-            status=status.HTTP_409_CONFLICT
-        )
-
-    if not ca_helper.csr_is_valid(csr=csr, device_id=device_id):
-        return Response(
-            'Invalid CSR.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    try:
-        Device.objects.create(
-            device_id=device_id,
-            certificate_csr=csr
-        )
-    except IntegrityError:
-        return Response(
-            'Device already exist.',
-            status=status.HTTP_409_CONFLICT
-        )
-    except:
-        return Response(
-            'Unknown error.',
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-    signed_certificate = ca_helper.sign_csr(csr, device_id)
-    if not signed_certificate:
-        return Response(
-            'Unknown error',
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-    certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
-
-    device_object = Device.objects.get(device_id=device_id)
-    device_object.certificate = signed_certificate
-    device_object.certificate_expires = certificate_expires
-    device_object.last_ping = timezone.now()
-    device_object.claim_token = uuid.uuid4()
-    device_object.fallback_token = uuid.uuid4()
-    device_object.save()
-
-    DeviceInfo(
-        device=device_object,
-        device_manufacturer=request.data.get('device_manufacturer'),
-        device_model=request.data.get('device_model'),
-        device_operating_system=request.data.get('device_operating_system'),
-        device_operating_system_version=request.data.get('device_operating_system_version'),
-        device_architecture=request.data.get('device_architecture'),
-        fqdn=request.data.get('fqdn'),
-        ipv4_address=request.data.get('ipv4_address'),
-    ).save()
-
-    return Response({
-        'certificate': signed_certificate,
-        'certificate_expires': certificate_expires,
-        'claim_token': device_object.claim_token,
-        'fallback_token': device_object.fallback_token
-    })
 
 
 def is_mtls_authenticated(request):

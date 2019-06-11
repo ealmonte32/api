@@ -20,9 +20,7 @@ class DeviceAdmin(admin.ModelAdmin):
     )
 
     ordering = ('last_ping',)
-    readonly_fields = (
-        'claim_token',
-    )
+    readonly_fields = ('claim_token', 'fallback_token')
 
 
 @admin.register(DeviceInfo)

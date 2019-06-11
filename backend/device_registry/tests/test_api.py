@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from uuid import uuid4
+import uuid
 from unittest.mock import patch, mock_open
 
 from django.urls import reverse
@@ -107,7 +107,7 @@ class ClaimByLinkTest(APITestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.claim_token = uuid4()
+        self.claim_token = uuid.uuid4()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', claim_token=self.claim_token)
         self.client.login(username='test', password='123')
         self.url = reverse('claim_by_link')
@@ -268,3 +268,50 @@ class CreateCredentialViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'error': 'Name/Key combo should be unique'})
         self.assertEqual(Credential.objects.count(), 1)
+
+
+class SignNewDeviceViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('sign_device_cert')
+        self.expires = timezone.now() - timezone.timedelta(days=1)
+        self.uuid = uuid.uuid4()
+        self.post_data = {'device_id': 'device1.d.wott-dev.local', 'certificate_csr': 'asdfsdf',
+                          'device_operating_system': 'linux', 'device_operating_system_version': '2',
+                          'device_architecture': '386', 'fqdn': 'domain.com', 'ipv4_address': '192.168.1.15'}
+
+    def test_post_success(self):
+        with patch('cfssl.cfssl.CFSSL.sign') as sign, \
+                patch('device_registry.ca_helper.get_certificate_expiration_date') as gced, \
+                patch('uuid.uuid4') as uuid4:
+            sign.return_value = '010101'
+            gced.return_value = self.expires
+            uuid4.return_value = self.uuid
+
+            self.assertEqual(Device.objects.count(), 0)
+            self.assertEqual(DeviceInfo.objects.count(), 0)
+            response = self.client.post(self.url, self.post_data)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertDictEqual(response.data, {
+                'certificate': '010101',
+                'certificate_expires': self.expires,
+                'claim_token': self.uuid,
+                'fallback_token': self.uuid
+            })
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+
+    def test_post_failed_sign_csr(self):
+        with patch('cfssl.cfssl.CFSSL.sign') as sign, \
+                patch('device_registry.ca_helper.get_certificate_expiration_date') as gced, \
+                patch('uuid.uuid4') as uuid4:
+            sign.return_value = False
+            gced.return_value = self.expires
+            uuid4.return_value = self.uuid
+
+            self.assertEqual(Device.objects.count(), 0)
+            self.assertEqual(DeviceInfo.objects.count(), 0)
+            response = self.client.post(self.url, self.post_data)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data, 'Unknown error')
+            self.assertEqual(Device.objects.count(), 0)
+            self.assertEqual(DeviceInfo.objects.count(), 0)
