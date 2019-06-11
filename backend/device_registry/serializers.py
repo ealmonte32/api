@@ -10,12 +10,19 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 class DeviceInfoSerializer(serializers.ModelSerializer):
     device = DeviceSerializer(read_only=True)
+
     class Meta:
         model = DeviceInfo
         fields = '__all__'
 
 
-class CredentialSerializer(serializers.ModelSerializer):
+class CredentialsListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Credential
         fields = ['name', 'key', 'value', 'pk']
+
+
+class CredentialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Credential
+        fields = ['name', 'key', 'value']

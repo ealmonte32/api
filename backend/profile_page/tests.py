@@ -12,7 +12,6 @@ class ProfileViewTest(TestCase):
     def test_get(self):
         self.client.login(username='test', password='123')
         response = self.client.get(reverse('profile'))
-        print(response)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Profile Settings')
 

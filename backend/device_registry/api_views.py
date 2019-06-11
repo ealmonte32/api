@@ -9,16 +9,18 @@ from django.conf import settings
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 
-from rest_framework import permissions
 from rest_framework import status
-from rest_framework.decorators import api_view, renderer_classes, permission_classes
-from rest_framework.renderers import JSONRenderer
+from rest_framework.decorators import api_view, renderer_classes, permission_classes, parser_classes
+from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
+from rest_framework.parsers import FormParser
 from rest_framework.response import Response
+from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from netaddr import IPAddress
 
 from device_registry import ca_helper
 from device_registry.forms import CredentialsForm
-from device_registry.serializers import DeviceInfoSerializer, CredentialSerializer
+from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential
 from django.core.validators import ValidationError
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 @api_view(['GET'])
-@permission_classes((permissions.IsAuthenticated,))
+@permission_classes([IsAuthenticated])
 def device_list_view(request, format=None):
     """
     List all of the users devices.
@@ -39,7 +41,7 @@ def device_list_view(request, format=None):
 
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def get_ca_bundle_view(request, format=None):
     """
     Returns the root cert bundle
@@ -53,7 +55,7 @@ def get_ca_bundle_view(request, format=None):
 
 @api_view(['GET'])
 @renderer_classes((JSONRenderer,))
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def get_ca_view(request, format=None):
     """
     Returns the CA cert
@@ -62,7 +64,7 @@ def get_ca_view(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def generate_device_id_view(request, format=None):
     """
     Returns a device ID for enrolling a new device.
@@ -83,7 +85,7 @@ def generate_device_id_view(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def get_device_cert_view(request, device_id, format=None):
     """
     Returns a device certificate from the database.
@@ -106,7 +108,7 @@ def get_device_cert_view(request, device_id, format=None):
 
 
 @api_view(['POST'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def sign_new_device_view(request, format=None):
     """
     Signs a submitted CSR.
@@ -225,7 +227,7 @@ def is_mtls_authenticated(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def mtls_ping_view(request, format=None):
     """
     Endpoint for sending a heartbeat.
@@ -303,7 +305,7 @@ def mtls_ping_view(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def mtls_tester_view(request, format=None):
     """
     Simply returns the Device ID of the sender.
@@ -323,7 +325,7 @@ def mtls_tester_view(request, format=None):
 
 
 @api_view(['POST'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def mtls_renew_cert_view(request, format=None):
     """
     Renewal of certificate.
@@ -390,7 +392,7 @@ def mtls_renew_cert_view(request, format=None):
 
 
 @api_view(['POST'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def renew_expired_cert_view(request, format=None):
     """
     Renewal of certificate.
@@ -457,7 +459,7 @@ def renew_expired_cert_view(request, format=None):
 
 
 @api_view(['POST'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def action_view(request, action_id, action_name):
     # Perform action
     return Response({
@@ -467,7 +469,7 @@ def action_view(request, action_id, action_name):
 
 
 @api_view(['GET'])
-@permission_classes((permissions.IsAuthenticated,))
+@permission_classes([IsAuthenticated])
 def claim_by_link(request):
     params = request.query_params
     device = get_object_or_404(
@@ -485,7 +487,7 @@ def claim_by_link(request):
 
 
 @api_view(['GET'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def mtls_creds_view(request, format=None):
     """
     Return all user's credentials.
@@ -501,19 +503,62 @@ def mtls_creds_view(request, format=None):
         return device_id
 
     device = Device.objects.get(device_id=device_id)
-    serializer = CredentialSerializer(device.owner.credentials.all(), many=True)
+    serializer = CredentialsListSerializer(device.owner.credentials.all(), many=True)
     return Response(serializer.data)
 
 
+class CredentialsQSMixin(object):
+    def get_queryset(self):
+        return self.request.user.credentials.all()
+
+
+class CredentialsView(CredentialsQSMixin, ListAPIView):
+    """
+    Return all current user's credentials.
+    """
+    serializer_class = CredentialsListSerializer
+
+    def list(self, request, *args, **kwargs):
+        """
+        Overwritten default `list` method in order to retern a dict instead of list.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'data': serializer.data})
+
+
+class DeleteCredentialView(CredentialsQSMixin, DestroyAPIView):
+    pass
+
+
+class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
+    serializer_class = CredentialSerializer
+
+
+class CreateCredentialView(CreateAPIView):
+    serializer_class = CredentialSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+
 @api_view(['GET', 'POST'])
-@permission_classes((permissions.IsAuthenticated,))
+@permission_classes([IsAuthenticated])
+@renderer_classes([BrowsableAPIRenderer])
+@parser_classes([FormParser])
 def ajax_creds_view(request, format=None):
     """
     Return all user's credentials.
     """
 
     if request.method == 'GET':
-        serializer = CredentialSerializer(request.user.credentials.all(), many=True)
+        serializer = CredentialsListSerializer(request.user.credentials.all(), many=True)
         return Response({'data': serializer.data})
     elif request.method == 'POST':
         d = request.data
@@ -553,7 +598,7 @@ def ajax_creds_view(request, format=None):
 
 
 @api_view(['GET'])
-@permission_classes((permissions.AllowAny,))
+@permission_classes([AllowAny])
 def mtls_is_claimed_view(request, format=None):
     """
     Return claimed status of a device.
