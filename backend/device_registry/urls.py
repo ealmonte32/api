@@ -18,9 +18,8 @@ if settings.IS_API:
         path('api/{}/device-cert/<str:device_id>'.format(api_version), api_views.DeviceCertView.as_view(),
              name='get_device_cert'),
         path('api/{}/sign-csr'.format(api_version), api_views.SignNewDeviceView.as_view(), name='sign_device_cert'),
-        path('api/{}/sign-expired-csr'.format(api_version),
-             api_views.renew_expired_cert_view,
-             name='sign-expired-cert'),
+        path('api/{}/sign-expired-csr'.format(api_version), api_views.RenewExpiredCertView.as_view(),
+             name='sign_expired_cert'),
         path('api/{}/claim-device'.format(api_version), api_views.ClaimByLink.as_view(), name='claim_by_link'),
     ]
 

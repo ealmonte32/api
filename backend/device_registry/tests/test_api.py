@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 
 from device_registry.models import Credential, Device, DeviceInfo
 
@@ -315,3 +316,89 @@ class SignNewDeviceViewTest(APITestCase):
             self.assertEqual(response.data, 'Unknown error')
             self.assertEqual(Device.objects.count(), 0)
             self.assertEqual(DeviceInfo.objects.count(), 0)
+
+
+class RenewExpiredCertViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user,
+            fallback_token='0000000',
+            certificate_expires=timezone.now() - timezone.timedelta(days=1)
+        )
+        DeviceInfo.objects.create(device=self.device)
+        self.url = reverse('sign_expired_cert')
+        self.expires = timezone.now() + timezone.timedelta(days=3)
+        self.uuid = uuid.uuid4()
+        self.post_data = {'device_id': 'device0.d.wott-dev.local', 'csr': 'asdfsdf', 'fallback_token': '0000000',
+                          'device_operating_system': 'linux', 'device_operating_system_version': '2',
+                          'device_architecture': '386', 'fqdn': 'domain.com', 'ipv4_address': '192.168.1.15'}
+
+    def test_post_success(self):
+        with patch('cfssl.cfssl.CFSSL.sign') as sign, \
+                patch('device_registry.ca_helper.get_certificate_expiration_date') as gced, \
+                patch('device_registry.ca_helper.csr_is_valid') as civ, \
+                patch('uuid.uuid4') as uuid4:
+            sign.return_value = '010101'
+            gced.return_value = self.expires
+            civ.return_value = True
+            uuid4.return_value = self.uuid
+
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+            response = self.client.post(self.url, self.post_data)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertDictEqual(response.data, {
+                'certificate': '010101',
+                'certificate_expires': self.expires,
+                'claim_token': self.uuid,
+                'fallback_token': self.uuid,
+                'claimed': self.device.claimed
+            })
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+
+    def test_post_wrong_device_id(self):
+        post_data = self.post_data.copy()
+        post_data['device_id'] = 'no_such_device'
+        self.assertEqual(Device.objects.count(), 1)
+        self.assertEqual(DeviceInfo.objects.count(), 1)
+        response = self.client.post(self.url, post_data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertDictEqual(response.data, {'device_id': [ErrorDetail(string='Device not found', code='invalid')]})
+
+    def test_post_certificate_not_expired(self):
+        self.device.certificate_expires = timezone.now() + timezone.timedelta(days=1)
+        self.device.save(update_fields=['certificate_expires'])
+        self.assertEqual(Device.objects.count(), 1)
+        self.assertEqual(DeviceInfo.objects.count(), 1)
+        response = self.client.post(self.url, self.post_data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, 'Certificate is not expired yet')
+
+    def test_post_wrong_fallback_token(self):
+        post_data = self.post_data.copy()
+        post_data['fallback_token'] = 'no_such_fallback_token'
+        self.assertEqual(Device.objects.count(), 1)
+        self.assertEqual(DeviceInfo.objects.count(), 1)
+        response = self.client.post(self.url, post_data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertDictEqual(
+            response.data, {'fallback_token': [ErrorDetail(string='Invalid fallback token', code='invalid')]})
+
+    def test_post_wrong_csr(self):
+        with patch('device_registry.ca_helper.csr_is_valid') as civ:
+            civ.return_value = False
+            response = self.client.post(self.url, self.post_data)
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(response.data, 'Invalid CSR')
+
+    def test_post_fail_sign_csr(self):
+        with patch('device_registry.ca_helper.csr_is_valid') as civ, patch('cfssl.cfssl.CFSSL.sign') as sign:
+            civ.return_value = True
+            sign.return_value = False
+            response = self.client.post(self.url, self.post_data)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data, 'Unknown error')

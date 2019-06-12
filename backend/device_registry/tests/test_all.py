@@ -1,15 +1,12 @@
 import datetime
 import json
-import uuid
-from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.urls import reverse
-from django.test import TestCase, RequestFactory
+from django.test import TestCase
 
-import freezegun
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -20,7 +17,7 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.test import APITestCase
 
 from device_registry import ca_helper
-from device_registry.api_views import mtls_ping_view, renew_expired_cert_view
+from device_registry.api_views import mtls_ping_view
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, Credential
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm
 
@@ -466,84 +463,6 @@ class DeviceModelTest(TestCase):
     def test_average_trust_score(self):
         score = average_trust_score(self.user1)
         self.assertEqual(score, ((4.0 + 0.6 * 1.5) / 5.5 + (4.0 + 0.7 * 1.5) / 5.5) / 2.0)
-
-
-class CertTest(TestCase):
-    def setUp(self):
-        User = get_user_model()
-        id = 'foobar.{}'.format(settings.COMMON_NAME_PREFIX)
-        self.api = RequestFactory()
-        self.fallback_token = uuid.uuid4()
-        self.cert = generate_cert(
-            common_name=id,
-            subject_alt_name=id
-        )
-        self.user0 = User.objects.create_user('test')
-        week_ago = timezone.now() - datetime.timedelta(days=7)
-        self.device0 = Device.objects.create(
-            device_id=id,
-            last_ping=week_ago,
-            owner=self.user0,
-            certificate=TEST_CERT,
-            certificate_expires=week_ago,
-            fallback_token=self.fallback_token
-        )
-
-    def make_request(self):
-        return self.api.post(f'/api/v0.2/sign-expired-csr', {
-            'csr': self.cert['csr'],
-            'device_id': self.device0.device_id,
-            'fallback_token': self.device0.fallback_token,
-
-            'device_manufacturer': 'none',
-            'device_model': 'none',
-            'device_operating_system': 'none',
-            'device_operating_system_version': 'none',
-            'device_architecture': 'none',
-            'fqdn': 'none',
-            'ipv4_address': '0.0.0.0'
-        }, content_type='application/json')
-
-    # @freezegun.freeze_time("2019-04-14")
-    @patch('device_registry.ca_helper.sign_csr')
-    @patch('device_registry.ca_helper.get_certificate_expiration_date')
-    def test_renew_expired(self, get_certificate_expiration_date, sign_csr):
-        week_after = timezone.now() + datetime.timedelta(days=7)
-        sign_csr.return_value = self.cert['key']
-        get_certificate_expiration_date.return_value = week_after
-
-        req = self.make_request()
-        res = renew_expired_cert_view(req)
-        content = json.loads(res.rendered_content)
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(content['certificate'], self.cert['key'])
-
-    @patch('device_registry.ca_helper.sign_csr')
-    @patch('device_registry.ca_helper.get_certificate_expiration_date')
-    def test_renew_expired_invalid_token(self, get_certificate_expiration_date, sign_csr):
-        self.device0.fallback_token = 'invalid'
-
-        week_after = timezone.now() + datetime.timedelta(days=7)
-        sign_csr.return_value = self.cert['key']
-        get_certificate_expiration_date.return_value = week_after
-
-        req = self.make_request()
-        res = renew_expired_cert_view(req)
-        self.assertEqual(res.status_code, 400)
-        self.assertEqual(b'"Invalid fallback token."', res.rendered_content)
-
-    @freezegun.freeze_time("2019-04-14")
-    @patch('device_registry.ca_helper.sign_csr')
-    @patch('device_registry.ca_helper.get_certificate_expiration_date')
-    def test_renew_expired_not_expired(self, get_certificate_expiration_date, sign_csr):
-        week_after = timezone.now() + datetime.timedelta(days=7)
-        sign_csr.return_value = self.cert['key']
-        get_certificate_expiration_date.return_value = week_after
-
-        req = self.make_request()
-        res = renew_expired_cert_view(req)
-        self.assertEqual(res.status_code, 400)
-        self.assertEqual(b'"Certificate is not expired yet."', res.rendered_content)
 
 
 class FormsTests(TestCase):

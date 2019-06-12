@@ -76,3 +76,33 @@ class CreateDeviceSerializer(serializers.ModelSerializer):
         fields = ['device_id', 'certificate_csr', 'device_manufacturer', 'device_model', 'device_operating_system',
                   'device_operating_system_version', 'device_architecture', 'fqdn', 'ipv4_address']
         validators = [RequiredValidator(fields=['certificate_csr'])]
+
+
+class RenewExpiredCertSerializer(serializers.ModelSerializer):
+    csr = serializers.CharField(source='certificate_csr')
+    device_manufacturer = serializers.CharField(max_length=128, required=False)
+    device_model = serializers.CharField(max_length=128, required=False)
+    device_operating_system = serializers.CharField(max_length=128)
+    device_operating_system_version = serializers.CharField(max_length=128)
+    device_architecture = serializers.CharField(max_length=32)
+    fqdn = serializers.CharField(max_length=128)
+    ipv4_address = serializers.IPAddressField(protocol="IPv4", allow_null=True)
+
+    class Meta:
+        model = Device
+        fields = ['csr', 'fallback_token', 'device_manufacturer', 'device_model', 'device_operating_system',
+                  'device_operating_system_version', 'device_architecture', 'fqdn', 'ipv4_address']
+
+    def validate_fallback_token(self, value):
+        if value != self.instance.fallback_token:
+            raise serializers.ValidationError('Invalid fallback token')
+        return value
+
+
+class DeviceIDSerializer(serializers.Serializer):
+    device_id = serializers.CharField()
+
+    def validate_device_id(self, value):
+        if not Device.objects.filter(device_id=value).exists():
+            raise serializers.ValidationError('Device not found')
+        return value
