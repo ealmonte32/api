@@ -396,7 +396,7 @@ class Credential(models.Model):
         ])
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=1024)
-    tags = tagulous.models.TagField(to=Tags)
+    tags = tagulous.models.TagField(to=Tags, blank=True)
 
     class Meta:
         unique_together = ['owner', 'key', 'name']
