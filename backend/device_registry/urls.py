@@ -93,8 +93,9 @@ if settings.IS_DASH:
         path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),
         path(
              'ajax/tags/autocomplete/',
-              tagulous.views.autocomplete,
+              tagulous.views.autocomplete_login,
               {'tag_model': Tags},
               name='ajax-tags-autocomplete',
         ),
+        path('ajax-tags/', api_views.ajax_tags_view, name='ajax_tags'),
     ]

@@ -99,9 +99,6 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
         if 'form' not in context:
             context['form'] = DeviceAttrsForm(instance=self.object)
             context['form_media'] = context['form'].media
-        # if 'tagform' not in context:
-        #     context['tagform'] = DeviceTagsForm(instance=self.object)
-        #     context['tagform_media'] = context['tagform'].media
         return context
 
     def post(self, request, *args, **kwargs):

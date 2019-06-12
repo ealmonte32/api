@@ -417,7 +417,7 @@ class Credential(models.Model):
             raise ValidationError(_('Name is incorrect, use only alphanumeric and .-_:'), code='invalid')
 
     @property
-    def get_tags(self):
+    def tags_str(self):
         s = self.tags.__str__()
         return s
 
