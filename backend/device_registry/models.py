@@ -50,8 +50,8 @@ class Device(models.Model):
     certificate_csr = models.TextField(blank=True, null=True)
     certificate_expires = models.DateTimeField(blank=True, null=True)
     comment = models.CharField(blank=True, null=True, max_length=512)
-    claim_token = models.CharField(editable=False, max_length=128)
-    fallback_token = models.CharField(editable=False, max_length=128, default='')
+    claim_token = models.CharField(max_length=128)
+    fallback_token = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
 

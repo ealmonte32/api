@@ -1,16 +1,12 @@
 import datetime
 import json
-import uuid
-from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import transaction
 from django.utils import timezone
 from django.urls import reverse
-from django.test import TestCase, RequestFactory
+from django.test import TestCase
 
-import freezegun
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -21,9 +17,9 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.test import APITestCase
 
 from device_registry import ca_helper
-from .api_views import mtls_ping_view, claim_by_link, renew_expired_cert_view, mtls_creds_view
-from .models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, Credential
-from .forms import DeviceAttrsForm, PortsForm, ConnectionsForm
+from device_registry.api_views import mtls_ping_view
+from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, Credential
+from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -461,138 +457,12 @@ class DeviceModelTest(TestCase):
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
-        self.assertEqual(self.device0.trust_score, (4.0 + 0.6*1.5) / 5.5)
-        self.assertEqual(self.device1.trust_score, (4.0 + 0.7*1.5) / 5.5)
+        self.assertEqual(self.device0.trust_score, (4.0 + 0.6 * 1.5) / 5.5)
+        self.assertEqual(self.device1.trust_score, (4.0 + 0.7 * 1.5) / 5.5)
 
     def test_average_trust_score(self):
         score = average_trust_score(self.user1)
-        self.assertEqual(score, ((4.0 + 0.6*1.5) / 5.5 + (4.0 + 0.7*1.5) / 5.5) / 2.0)
-
-
-class ClaimLinkTest(TestCase):
-    def setUp(self):
-        User = get_user_model()
-        self.url = reverse('claim-device')
-
-        self.api = RequestFactory()
-        self.device0 = Device.objects.create(
-            device_id='device0.d.wott-dev.local',
-            claim_token='token'
-        )
-        self.user0 = User.objects.create_user('test')
-        self.user0.set_password('123')
-        self.user0.save()
-
-    def test_claim_get_view(self):
-        request = self.api.get(
-            f'/api/v0.2/claim-device/?device-id={self.device0.device_id}&claim-token={self.device0.claim_token}')
-        request.user = self.user0
-        self.assertFalse(self.device0.claimed)
-        response = claim_by_link(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, f'Device {self.device0.device_id} claimed!')
-        self.device0.refresh_from_db()
-        self.assertTrue(self.device0.claimed)
-
-    def test_claim_get_404(self):
-        request = self.api.get(f'/claim-device/?device-id=none&claim-token=none')
-        request.user = self.user0
-        response = claim_by_link(request)
-        self.assertEqual(response.status_code, 404)
-
-    def test_claim_post_invalid(self):
-        self.client.login(username='test', password='123')
-        form_data = {
-            'device_id': self.device0.device_id,
-            'claim_token': 'invalid'
-        }
-        response = self.client.post(self.url, form_data)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Invalid claim/device id pair.')
-
-    def test_claim_get_invalid(self):
-        self.client.login(username='test', password='123')
-        response = self.client.get(f"{reverse('claim-device')}?device_id=invalid&claim_token=invalid")
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Invalid claim/device id pair.')
-
-
-class CertTest(TestCase):
-    def setUp(self):
-        User = get_user_model()
-        id = 'foobar.{}'.format(settings.COMMON_NAME_PREFIX)
-        self.api = RequestFactory()
-        self.fallback_token = uuid.uuid4()
-        self.cert = generate_cert(
-            common_name=id,
-            subject_alt_name=id
-        )
-        self.user0 = User.objects.create_user('test')
-        week_ago = timezone.now() - datetime.timedelta(days=7)
-        self.device0 = Device.objects.create(
-            device_id=id,
-            last_ping=week_ago,
-            owner=self.user0,
-            certificate=TEST_CERT,
-            certificate_expires=week_ago,
-            fallback_token=self.fallback_token
-        )
-
-    def make_request(self):
-        return self.api.post(f'/api/v0.2/sign-expired-csr', {
-            'csr': self.cert['csr'],
-            'device_id': self.device0.device_id,
-            'fallback_token': self.device0.fallback_token,
-
-            'device_manufacturer': 'none',
-            'device_model': 'none',
-            'device_operating_system': 'none',
-            'device_operating_system_version': 'none',
-            'device_architecture': 'none',
-            'fqdn': 'none',
-            'ipv4_address': '0.0.0.0'
-        })
-
-    # @freezegun.freeze_time("2019-04-14")
-    @patch('device_registry.ca_helper.sign_csr')
-    @patch('device_registry.ca_helper.get_certificate_expiration_date')
-    def test_renew_expired(self, get_certificate_expiration_date, sign_csr):
-        week_after = timezone.now() + datetime.timedelta(days=7)
-        sign_csr.return_value = self.cert['key']
-        get_certificate_expiration_date.return_value = week_after
-
-        req = self.make_request()
-        res = renew_expired_cert_view(req)
-        content = json.loads(res.rendered_content)
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(content['certificate'], self.cert['key'])
-
-    @patch('device_registry.ca_helper.sign_csr')
-    @patch('device_registry.ca_helper.get_certificate_expiration_date')
-    def test_renew_expired_invalid_token(self, get_certificate_expiration_date, sign_csr):
-        self.device0.fallback_token = 'invalid'
-
-        week_after = timezone.now() + datetime.timedelta(days=7)
-        sign_csr.return_value = self.cert['key']
-        get_certificate_expiration_date.return_value = week_after
-
-        req = self.make_request()
-        res = renew_expired_cert_view(req)
-        self.assertEqual(res.status_code, 400)
-        self.assertEqual(b'"Invalid fallback token."', res.rendered_content)
-
-    @freezegun.freeze_time("2019-04-14")
-    @patch('device_registry.ca_helper.sign_csr')
-    @patch('device_registry.ca_helper.get_certificate_expiration_date')
-    def test_renew_expired_not_expired(self, get_certificate_expiration_date, sign_csr):
-        week_after = timezone.now() + datetime.timedelta(days=7)
-        sign_csr.return_value = self.cert['key']
-        get_certificate_expiration_date.return_value = week_after
-
-        req = self.make_request()
-        res = renew_expired_cert_view(req)
-        self.assertEqual(res.status_code, 400)
-        self.assertEqual(b'"Certificate is not expired yet."', res.rendered_content)
+        self.assertEqual(score, ((4.0 + 0.6 * 1.5) / 5.5 + (4.0 + 0.7 * 1.5) / 5.5) / 2.0)
 
 
 class FormsTests(TestCase):
@@ -638,13 +508,16 @@ class ActionsViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(
-            response, f'We found disabled firewall present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            response,
+            f'We found disabled firewall present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
         self.assertContains(
-            response, f'We found default credentials present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            response,
+            f'We found default credentials present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
         self.assertContains(
-            response, f'We found enabled Telnet server present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            response,
+            f'We found enabled Telnet server present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
 
 
@@ -671,16 +544,16 @@ class DeviceDetailViewTests(TestCase):
         self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
 
         self.device_no_portscan = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user,
-                                            certificate=TEST_CERT)
+                                                        certificate=TEST_CERT)
         self.firewall2 = FirewallState.objects.create(device=self.device_no_portscan)
 
         self.device_no_firewall = Device.objects.create(device_id='device2.d.wott-dev.local', owner=self.user,
                                                         certificate=TEST_CERT)
         self.portscan2 = PortScan.objects.create(device=self.device_no_firewall, scan_info=OPEN_PORTS_INFO,
-                                                netstat=OPEN_CONNECTIONS_INFO)
+                                                 netstat=OPEN_CONNECTIONS_INFO)
 
         self.device_no_logins = Device.objects.create(device_id='device3.d.wott-dev.local', owner=self.user,
-                                            certificate=TEST_CERT)
+                                                      certificate=TEST_CERT)
         self.deviceinfo3 = DeviceInfo.objects.create(
             device=self.device_no_logins,
             device_manufacturer='Raspberry Pi',
@@ -691,7 +564,7 @@ class DeviceDetailViewTests(TestCase):
             default_password=True
         )
         self.portscan3 = PortScan.objects.create(device=self.device_no_logins, scan_info=OPEN_PORTS_INFO,
-                                                netstat=OPEN_CONNECTIONS_INFO)
+                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall3 = FirewallState.objects.create(device=self.device_no_logins)
 
     def test_device_detail_not_logged_in(self):
@@ -838,158 +711,6 @@ class APICredsTest(APITestCase):
                                                 'pk': self.credential.pk}])
 
 
-class AJAXCredsTest(APITestCase):
-    def setUp(self):
-        self.url = reverse('ajax-creds')
-        User = get_user_model()
-        self.user = User.objects.create_user('test')
-        self.user.set_password('123')
-        self.user.save()
-        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key0', value='as9dfyaoiufhoasdfjh')
-
-    def test_create(self):
-        """
-        Create a record. As a result, two records should be present.
-        """
-        self.client.login(username='test', password='123')
-        response = self.client.post(
-            self.url,
-            {
-                'method': 'create',
-                'name': 'name1',
-                'key': 'key2',
-                'value': 'val1'
-            }
-        )
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(
-            self.url,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.json(), {
-            'data': [
-                {'name': 'name1', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk+1},
-                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk},
-            ]
-        })
-
-    def test_delete(self):
-        """
-        Delete an existing record. As a result, no records should be present.
-        """
-        self.client.login(username='test', password='123')
-        response = self.client.post(
-            self.url,
-            {
-                'method': 'delete',
-                'pk': self.credential.pk
-            }
-        )
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(
-            self.url,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.json(), {
-            'data': []
-        })
-
-    def test_get(self):
-        """
-        Get existing records. Should match the record created by setUp().
-        """
-        self.client.login(username='test', password='123')
-        response = self.client.get(
-            self.url,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.json(), {
-            'data': [
-                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk}
-            ]
-        })
-
-    def test_update(self):
-        """
-        Update existing record created in setUp(). The record should be updated, pk shouldn't change.
-        """
-        self.client.login(username='test', password='123')
-        response = self.client.post(
-            self.url,
-            {
-                'method': 'update',
-                'name': 'name2',
-                'key': 'key2',
-                'value': 'val1',
-                'pk': self.credential.pk
-            }
-        )
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(
-            self.url,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.json(), {
-            'data': [
-                {'name': 'name2', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk},
-            ]
-        })
-
-    def test_update_invalid(self):
-        """
-        Create another record; update existing record created in setUp() by setting its name and key
-        equal to this record.
-        The record should not be updated, an error should be returned.
-        """
-        self.client.login(username='test', password='123')
-        response = self.client.post(
-            self.url,
-            {
-                'method': 'create',
-                'name': 'name1',
-                'key': 'key2',
-                'value': 'val1'
-            }
-        )
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(
-            self.url,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-
-        with transaction.atomic():
-            response = self.client.post(
-                self.url,
-                {
-                    'method': 'update',
-                    'name': 'name1',
-                    'key': 'key2',
-                    'value': 'val3',
-                    'pk': self.credential.pk
-                }
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertDictEqual(response.json(), {'error': 'Name/Key combo should be unique'})
-
-        response = self.client.get(
-            self.url,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.json(), {
-            'data': [
-                {'name': 'name1', 'key': 'key2', 'value': 'val1', 'pk': self.credential.pk+1},
-                {'key': 'key0', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'pk': self.credential.pk},
-            ]
-        })
-
-
-
 class APIIsClaimedTest(APITestCase):
     def setUp(self):
         self.url = reverse('mtls-is_claimed')
@@ -1009,66 +730,3 @@ class APIIsClaimedTest(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {'claimed': True})
-
-
-class AjaxCredsTest(APITestCase):
-    def setUp(self):
-        self.url = reverse('ajax-creds')
-        User = get_user_model()
-        self.user = User.objects.create_user('test')
-        self.user.set_password('123')
-        self.user.save()
-        self.client.login(username='test', password='123')
-
-        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='as9dfyaoiufhoah')
-        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
-        self.headers = {
-            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
-            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
-        }
-
-    def test_create_invalid(self):
-        # 1. try to create 'Name1' while 'name1' already exists
-        form_data = {
-            'name': 'Name1',
-            'key': 'key1',
-            'value': 'as9dfyaoiufhoah',
-            'method': 'create',
-        }
-        response = self.client.post(
-            self.url,
-            form_data,
-            **self.headers,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'error': 'Invalid data supplied'})
-
-        # 2. try to create 'Name+1' - incorrect name
-        form_data['name'] = 'name+1'
-        response = self.client.post(
-            self.url,
-            form_data,
-            **self.headers,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'error': 'Invalid data supplied'})
-
-    def test_update_invalid(self):
-        # 1. try to rename 'name1' to 'Name+1' ('+' - incorrect symbol)
-        form_data = {
-            'name': 'Name+1',
-            'key': 'key1',
-            'value': 'as9dfyaoiufhoah',
-            'pk': self.credential.pk,
-            'method': 'update',
-        }
-        response = self.client.post(
-            self.url,
-            form_data,
-            **self.headers,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'error': 'Invalid data supplied'})
