@@ -481,6 +481,13 @@ class DeleteCredentialView(CredentialsQSMixin, DestroyAPIView):
 class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
     serializer_class = CredentialSerializer
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        tags = [
+            tag['name'] for tag in serializer.initial_data['tags']
+        ]
+        instance.tags.set(*tags)
+
     def update(self, request, *args, **kwargs):
         """
         Overwritten default `update` method in order to catch unique constraint violation.
@@ -518,6 +525,12 @@ class CreateCredentialView(CreateAPIView):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    def perform_create(self, serializer):
+        instance = serializer.save(owner=self.request.user)
+        tags = [
+            tag['name'] for tag in serializer.initial_data['tags']
+        ]
+        instance.tags.add(*tags)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

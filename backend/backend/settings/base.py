@@ -196,14 +196,3 @@ SERIALIZATION_MODULES = {
     'python': 'tagulous.serializers.python',
     'yaml':   'tagulous.serializers.pyyaml',
 }
-
-TAGULOUS_AUTOCOMPLETE_JS = (
-    'tagulous/lib/jquery.js',
-    'tagulous/lib/select2-3/select2.min.js',
-    'tagulous/tagulous.js',
-    'js/select2-3.js',
-)
-
-TAGULOUS_AUTOCOMPLETE_CSS = {
-    'all':  ['css/select2.css'],
-}

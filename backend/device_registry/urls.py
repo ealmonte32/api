@@ -97,5 +97,4 @@ if settings.IS_DASH:
               {'tag_model': Tags},
               name='ajax-tags-autocomplete',
         ),
-        path('ajax-tags/', api_views.ajax_tags_view, name='ajax_tags'),
     ]

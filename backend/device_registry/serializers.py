@@ -5,7 +5,7 @@ from rest_framework.utils.representation import smart_repr
 from rest_framework.compat import unicode_to_repr
 
 from device_registry.models import Device, DeviceInfo, Credential, Tags
-from tagulous.utils import render_tags
+import tagulous.serializers.base
 
 
 class RequiredValidator(object):
@@ -57,13 +57,14 @@ class TagsSerialiser(serializers.ModelSerializer):
 
 
 class CredentialsListSerializer(serializers.ModelSerializer):
-    #get_tags = serializers.ReadOnlyField()
+    tags = TagsSerialiser(many=True)
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value', 'pk', 'tags', 'tags_str']
+        fields = ['name', 'key', 'value', 'pk', 'tags']
 
 
 class CredentialSerializer(serializers.ModelSerializer):
+    tags = TagsSerialiser(many=True, read_only=True)
     class Meta:
         model = Credential
         fields = ['name', 'key', 'value', 'tags']
@@ -73,6 +74,7 @@ class TagsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tags
         fields = '__all__'
+
 
 class CreateDeviceSerializer(serializers.ModelSerializer):
     csr = serializers.CharField(source='certificate_csr')

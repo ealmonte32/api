@@ -2,6 +2,13 @@
 
 {% block css %}
     {{ form_media.css }}
+    <style type="text/css">
+      /* tagulous tags styling */
+    .select2-container-multi .select2-choices .select2-search-choice {
+      background-color: #256164;
+      background-image: linear-gradient(0.25turn, #3f87a6, #ebf8e1);
+    }
+    </style>
 {% endblock %}
 {% block js %}
     {{ form_media.js }}
