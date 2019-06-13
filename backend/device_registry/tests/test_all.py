@@ -693,8 +693,11 @@ class APICredsTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1',
-                                                    value='as9dfyaoiufhoasdfjh')
-        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+                                                    value='as9dfyaoiufhoasdfjh', tags='tag1')
+        self.credential2 = Credential.objects.create(owner=self.user, name='name2', key='key2',
+                                                    value='iuoiuoifpojoijccm', tags='tag2')
+        self.tag1_pk = self.credential.tags.tags[0].pk
+        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1')
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
             'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
@@ -707,8 +710,11 @@ class APICredsTest(APITestCase):
             format='json'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh',
-                                                'pk': self.credential.pk}])
+        self.assertListEqual(response.json(),
+                             [{
+                                 'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh',
+                                  'pk': self.credential.pk, 'tags': [{'name': 'tag1', 'pk': self.tag1_pk}],
+                             }])
 
     def test_get_revoked_device(self):
         Device.objects.create(device_id='device1.d.wott-dev.local')

@@ -11,7 +11,7 @@ from rest_framework import status
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
-from device_registry.models import Credential, Device, DeviceInfo
+from device_registry.models import Credential, Device, DeviceInfo, Tags
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
@@ -133,6 +133,20 @@ class ClaimByLinkTest(APITestCase):
         self.assertFalse(device.claimed)
 
 
+class AssertTaggedMixin:
+
+    def assertTaggedEqual(self, dict1, dict2):
+        for key in dict1:
+            assert key in dict2
+            if key == 'tags':
+                for i, _ in enumerate(dict1['tags']):
+                    assert 'name' in dict1['tags'][i]
+                    assert 'name' in dict2['tags'][i]
+                    assert dict1['tags'][i]['name'] == dict2['tags'][i]['name']
+            else:
+                self.assertEqual(dict1[key], dict2[key])
+
+
 class DeviceListViewTest(APITestCase):
     def setUp(self):
         self.url = reverse('list_devices')
@@ -140,7 +154,7 @@ class DeviceListViewTest(APITestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
         self.device_info = DeviceInfo.objects.create(
             device=self.device,
             device_manufacturer='Raspberry Pi',
@@ -149,6 +163,7 @@ class DeviceListViewTest(APITestCase):
             app_armor_enabled=True,
             logins={'pi': {'failed': 1, 'success': 1}}
         )
+        self.tags = self.device.tags.tags
         self.client.login(username='test', password='123')
 
     def test_get(self):
@@ -165,7 +180,10 @@ class DeviceListViewTest(APITestCase):
                                                                ('comment', None), ('claim_token', ''),
                                                                ('fallback_token', ''), ('name', ''),
                                                                ('agent_version', None),
-                                                               ('owner', self.user.id)])),
+                                                               ('owner', self.user.id),
+                                                               ('tags', [self.tags[0].pk, self.tags[1].pk])
+                                                              ]
+                                                          )),
                                                           (
                                                               'device_manufacturer',
                                                               self.device_info.device_manufacturer),
@@ -189,14 +207,18 @@ class CredentialsViewTest(APITestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1',
+                                                    tags="tag1,tag2")
+        self.tags = self.credential.tags.tags;
         self.client.login(username='test', password='123')
 
     def test_get(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertDictEqual(response.data, {'data': [OrderedDict(
-            [('name', 'name1'), ('key', 'key1'), ('value', 'value1'), ('pk', self.credential.pk)])]})
+            [('name', 'name1'), ('key', 'key1'), ('value', 'value1'), ('pk', self.credential.pk),
+             ('tags', [OrderedDict([('name', 'tag1'), ('pk', self.tags[0].pk)]),
+                       OrderedDict([('name', 'tag2'), ('pk', self.tags[1].pk)])])])]})
 
 
 class DeleteCredentialViewTest(APITestCase):
@@ -205,7 +227,8 @@ class DeleteCredentialViewTest(APITestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1',
+                                                    tags="tag1,tag2")
         self.url = reverse('ajax_creds_delete', kwargs={'pk': self.credential.pk})
         self.client.login(username='test', password='123')
 
@@ -214,9 +237,10 @@ class DeleteCredentialViewTest(APITestCase):
         response = self.client.delete(self.url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Credential.objects.count(), 0)
+        self.assertEqual(Tags.objects.count(), 0)
 
 
-class UpdateCredentialViewTest(APITestCase):
+class UpdateCredentialViewTest(APITestCase, AssertTaggedMixin):
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test')
@@ -225,26 +249,36 @@ class UpdateCredentialViewTest(APITestCase):
         self.credential1 = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1')
         self.url = reverse('ajax_creds_update', kwargs={'pk': self.credential1.pk})
         self.client.login(username='test', password='123')
-        self.data = {'name': 'name2', 'key': 'key2', 'value': 'value2'}
+        self.data = {'name': 'name2', 'key': 'key2', 'value': 'value2', 'tags': [{'name': 'tag1'}, {'name': 'tag2'}]}
 
     def test_patch(self):
         self.assertEqual(Credential.objects.count(), 1)
         response = self.client.patch(self.url, self.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertDictEqual(response.data, self.data)
+        self.assertTaggedEqual(response.data, self.data)
         self.assertEqual(Credential.objects.count(), 1)
 
     def test_patch_duplication(self):
+        # check for deny to update with duplicate Name/Key combo
         self.assertEqual(Credential.objects.count(), 1)
-        Credential.objects.create(owner=self.user, name='name2', key='key2', value='value2')
+        credential2 = Credential.objects.create(owner=self.user, name='name2', key='key2', value='value2')
         self.assertEqual(Credential.objects.count(), 2)
         response = self.client.patch(self.url, self.data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'error': 'Name/Key combo should be unique'})
         self.assertEqual(Credential.objects.count(), 2)
+        # check for update the record itself
+        url2 = reverse('ajax_creds_update', kwargs={'pk': credential2.pk})
+        response = self.client.patch(url2, self.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTaggedEqual(response.data, self.data)
+        self.assertEqual(Credential.objects.count(), 2)
 
 
-class CreateCredentialViewTest(APITestCase):
+
+
+class CreateCredentialViewTest(APITestCase, AssertTaggedMixin):
+
     def setUp(self):
         self.url = reverse('ajax_creds_create')
         User = get_user_model()
@@ -252,13 +286,13 @@ class CreateCredentialViewTest(APITestCase):
         self.user.set_password('123')
         self.user.save()
         self.client.login(username='test', password='123')
-        self.data = {'name': 'name1', 'key': 'key1', 'value': 'value1'}
+        self.data = {'name': 'name1', 'key': 'key1', 'value': 'value1', 'tags': [{'name': 'tag1'}, {'name': 'tag2'}]}
 
     def test_post(self):
         self.assertEqual(Credential.objects.count(), 0)
         response = self.client.post(self.url, self.data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertDictEqual(response.data, self.data)
+        self.assertTaggedEqual(response.data, self.data)
         self.assertEqual(Credential.objects.count(), 1)
 
     def test_post_duplication(self):
