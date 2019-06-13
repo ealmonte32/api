@@ -276,7 +276,7 @@ class SignNewDeviceViewTest(APITestCase):
         self.url = reverse('sign_device_cert')
         self.expires = timezone.now() - timezone.timedelta(days=1)
         self.uuid = uuid.uuid4()
-        self.post_data = {'device_id': 'device1.d.wott-dev.local', 'certificate_csr': 'asdfsdf',
+        self.post_data = {'device_id': 'device1.d.wott-dev.local', 'csr': 'asdfsdf',
                           'device_operating_system': 'linux', 'device_operating_system_version': '2',
                           'device_architecture': '386', 'fqdn': 'domain.com', 'ipv4_address': '192.168.1.15'}
 

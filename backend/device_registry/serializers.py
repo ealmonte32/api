@@ -63,6 +63,7 @@ class CredentialSerializer(serializers.ModelSerializer):
 
 
 class CreateDeviceSerializer(serializers.ModelSerializer):
+    csr = serializers.CharField(source='certificate_csr')
     device_manufacturer = serializers.CharField(max_length=128, required=False)
     device_model = serializers.CharField(max_length=128, required=False)
     device_operating_system = serializers.CharField(max_length=128)
@@ -73,7 +74,7 @@ class CreateDeviceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Device
-        fields = ['device_id', 'certificate_csr', 'device_manufacturer', 'device_model', 'device_operating_system',
+        fields = ['device_id', 'csr', 'device_manufacturer', 'device_model', 'device_operating_system',
                   'device_operating_system_version', 'device_architecture', 'fqdn', 'ipv4_address']
         validators = [RequiredValidator(fields=['certificate_csr'])]
 
