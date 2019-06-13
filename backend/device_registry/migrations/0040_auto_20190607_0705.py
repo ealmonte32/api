@@ -34,11 +34,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='credential',
             name='tags',
-            field=tagulous.models.fields.TagField(_set_tag_meta=True, autocomplete_view='device_regisstry.views.tags_autocomplete', force_lowercase=True, help_text='Enter a comma-separated tag string', initial='', to='device_registry.Tags'),
+            field=tagulous.models.fields.TagField(_set_tag_meta=True, autocomplete_view='ajax-tags-autocomplete', blank=True, force_lowercase=True, help_text='Enter a comma-separated tag string', initial='', to='device_registry.Tags'),
+
         ),
         migrations.AddField(
             model_name='device',
             name='tags',
-            field=tagulous.models.fields.TagField(_set_tag_meta=True, autocomplete_view='device_regisstry.views.tags_autocomplete', force_lowercase=True, help_text='Enter a comma-separated tag string', initial='', to='device_registry.Tags'),
+            field=tagulous.models.fields.TagField(_set_tag_meta=True, autocomplete_view='ajax-tags-autocomplete', blank=True, force_lowercase=True, help_text='Enter a comma-separated tag string', initial='', to='device_registry.Tags'),
+
         ),
     ]
