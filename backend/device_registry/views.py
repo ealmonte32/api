@@ -8,10 +8,11 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, CredentialsForm
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import Credential
 from device_registry.models import get_bootstrap_color
+from tagulous.forms import TagWidget
 
 
 @login_required
@@ -246,8 +247,9 @@ class CredentialsView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(CredentialsView, self).get_context_data(**kwargs)
         context['pi_credentials_path'] = self.pi_credentials_path
-        context['form_media'] = CredentialsForm().media
+        context['form_media'] = TagWidget().media
         return context
+
 
 @login_required
 def actions_view(request, device_pk=None):

@@ -13,7 +13,6 @@ import yaml
 
 from device_registry import ca_helper, validators
 import tagulous.models
-from tagulous.utils import render_tags
 
 
 def get_bootstrap_color(val):
@@ -30,13 +29,6 @@ class Tags(tagulous.models.TagModel):
         initial = ""
         force_lowercase = True
         autocomplete_view = 'ajax-tags-autocomplete'
-        required = False
-        Blank = True
-        space_delimiter = True
-        is_required = False
-
-    def save(self, *args, **kwargs):
-        super(Tags, self).save(*args, **kwargs)
 
 class JsonFieldTransitionHelper(JSONField):
     def from_db_value(self, value, expression, connection, context):
@@ -68,7 +60,7 @@ class Device(models.Model):
     fallback_token = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
-    tags = tagulous.models.TagField(to=Tags, blank=True)
+    tags = tagulous.models.TagField(to=Tags)
 
     def get_name(self):
         if self.name:
@@ -416,10 +408,6 @@ class Credential(models.Model):
         else:
             raise ValidationError(_('Name is incorrect, use only alphanumeric and .-_:'), code='invalid')
 
-    @property
-    def tags_str(self):
-        s = self.tags.__str__()
-        return s
 
 # Temporary POJO to showcase recommended actions template.
 class Action:
