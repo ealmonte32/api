@@ -328,6 +328,9 @@ def mtls_tester_view(request, format=None):
 
     device_id = is_mtls_authenticated(request)
 
+    if type(device_id) is Response:
+        return device_id
+
     if not device_id:
         return Response(
             'Invalid request.',
