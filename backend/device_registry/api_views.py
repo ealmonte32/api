@@ -538,6 +538,7 @@ class CreateCredentialView(CreateAPIView):
         ]
         instance.tags.add(*tags)
 
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def mtls_is_claimed_view(request, format=None):

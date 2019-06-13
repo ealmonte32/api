@@ -11,7 +11,7 @@ from django.contrib.postgres.fields import JSONField
 from django.core.validators import RegexValidator, ValidationError, _
 import yaml
 
-from device_registry import ca_helper, validators
+from device_registry import ca_helper
 import tagulous.models
 
 
@@ -23,6 +23,7 @@ def get_bootstrap_color(val):
     else:
         return 'success'
 
+
 class Tags(tagulous.models.TagModel):
     class TagMeta:
         # Tag options
@@ -30,11 +31,13 @@ class Tags(tagulous.models.TagModel):
         force_lowercase = True
         autocomplete_view = 'ajax-tags-autocomplete'
 
+
 class JsonFieldTransitionHelper(JSONField):
     def from_db_value(self, value, expression, connection, context):
         if isinstance(value, str):
             return json.loads(value)
         return value
+
 
 class Device(models.Model):
     device_id = models.CharField(
@@ -83,7 +86,6 @@ class Device(models.Model):
         else:
             return 'device_%d' % self.pk
 
-
     @staticmethod
     def get_active_inactive(user):
         devices = get_device_list(user)
@@ -120,10 +122,10 @@ class Device(models.Model):
     @property
     def actions_count(self):
         return sum((self.deviceinfo.default_password is True,
-                self.firewallstate.enabled is False,
-                self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
-                    portscan__block_ports__contains=[[23]]).exists()
-                ))
+                    self.firewallstate.enabled is False,
+                    self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
+                        portscan__block_ports__contains=[[23]]).exists()
+                    ))
 
     @property
     def has_actions(self):
@@ -155,7 +157,7 @@ class Device(models.Model):
             failed_logins = 0.0
         else:
             failed_logins = 1.0 - ((failed_logins - self.MIN_FAILED_LOGINS) /
-                (self.MAX_FAILED_LOGINS - self.MIN_FAILED_LOGINS + 1))
+                                   (self.MAX_FAILED_LOGINS - self.MIN_FAILED_LOGINS + 1))
 
         def zero_if_none(x):
             return 0 if x is None else x
@@ -172,7 +174,7 @@ class Device(models.Model):
 
     @classmethod
     def calculate_trust_score(cls, **kwargs):
-        return sum([v*cls.COEFFICIENTS[k] for k,v in kwargs.items()]) / \
+        return sum([v*cls.COEFFICIENTS[k] for k, v in kwargs.items()]) / \
                sum(cls.COEFFICIENTS.values())
 
     def trust_score_percent(self):
@@ -374,7 +376,7 @@ class FirewallState(models.Model):
 
 
 class Credential(models.Model):
-    re_name_valid =  re.compile(r"^[\w0-9_.\-:]+$", re.UNICODE)
+    re_name_valid = re.compile(r"^[\w0-9_.\-:]+$", re.UNICODE)
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
     name = models.CharField(
