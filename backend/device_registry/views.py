@@ -297,15 +297,14 @@ def actions_view(request, device_pk=None):
     if enabled_telnet_devices.exists():
         text_blocks = []
         for dev in enabled_telnet_devices:
-            device_text_block = f'<a href="{ reverse("device-detail", kwargs={"pk": dev.pk}) }">{ dev.get_name() }</a>'
+            device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
             3,
             'Enabled Telnet server detected',
             'We found enabled Telnet server present on %s. Please consider disabling it.' %
-            ('this device' if device_name else full_string),
-            ['buttons/block_telnet.html']
+            ('this device' if device_name else full_string), []
         )
         actions.append(action)
 
