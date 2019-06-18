@@ -710,6 +710,20 @@ class APICredsTest(APITestCase):
         self.assertListEqual(response.json(), [{'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh',
                                                 'pk': self.credential.pk}])
 
+    def test_get_revoked_device(self):
+        Device.objects.create(device_id='device1.d.wott-dev.local')
+        headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device1.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+        response = self.client.get(
+            self.url,
+            **headers,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(), [])
+
 
 class APIIsClaimedTest(APITestCase):
     def setUp(self):
@@ -729,4 +743,4 @@ class APIIsClaimedTest(APITestCase):
             format='json'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.json(), {'claimed': True})
+        self.assertDictEqual(response.json(), {'claim_token': '', 'claimed': True})
