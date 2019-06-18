@@ -26,7 +26,7 @@ if settings.IS_API:
 # Only load if mTLS
 if settings.IS_MTLS_API:
     urlpatterns += [
-        path('api/{}/sign-csr'.format(api_version),
+        path('api/{}/sign-csr'.format(api_version),  # TODO: change to some unique path.
              api_views.mtls_renew_cert_view,
              name='mtls-sign-device-cert'),
         path('api/{}/ping'.format(api_version),

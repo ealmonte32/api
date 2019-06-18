@@ -436,7 +436,11 @@ def mtls_creds_view(request, format=None):
         return device_id
 
     device = Device.objects.get(device_id=device_id)
-    serializer = CredentialsListSerializer(device.owner.credentials.all(), many=True)
+    if device.owner:
+        qs = device.owner.credentials.all()
+    else:
+        qs = Credential.objects.none()
+    serializer = CredentialsListSerializer(qs, many=True)
     return Response(serializer.data)
 
 
@@ -528,4 +532,4 @@ def mtls_is_claimed_view(request, format=None):
         return device_id
 
     device = Device.objects.get(device_id=device_id)
-    return Response({'claimed': device.claimed})
+    return Response({'claimed': device.claimed, 'claim_token': device.claim_token})
