@@ -1,3 +1,5 @@
+import uuid
+
 from django.views.generic import DetailView, ListView
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -44,7 +46,7 @@ def claim_device_view(request):
                 else:
                     get_device.owner = request.user
                     get_device.claim_token = ""
-                    get_device.save()
+                    get_device.save(update_fields=['owner', 'claim_token'])
                     text, style = f'You\'ve successfully claimed {get_device.get_name()}. '\
                                   f'Learn more about the security state of the device by clicking&nbsp;'\
                                   f'<a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": get_device.pk})}">' \
@@ -104,7 +106,8 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
         if form.is_valid():
             if 'revoke_button' in form.data:
                 self.object.owner = None
-                self.object.save(update_fields=['owner'])
+                self.object.claim_token = uuid.uuid4()
+                self.object.save(update_fields=['owner', 'claim_token'])
                 return HttpResponseRedirect(reverse('root'))
             else:
                 form.save()
