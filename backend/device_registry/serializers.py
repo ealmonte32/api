@@ -56,14 +56,16 @@ class TagsSerializer(serializers.ModelSerializer):
 
 
 class CredentialsListSerializer(serializers.ModelSerializer):
-    tags = TagsSerializer(many=True)
+    tags_data = TagsSerializer(many=True, source='tags')
+
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value', 'pk', 'tags']
+        fields = ['name', 'key', 'value', 'pk', 'tags_data']
 
 
 class CredentialSerializer(serializers.ModelSerializer):
     tags = TagsSerializer(many=True, read_only=True)
+
     class Meta:
         model = Credential
         fields = ['name', 'key', 'value', 'tags']
