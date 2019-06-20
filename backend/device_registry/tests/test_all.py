@@ -713,7 +713,7 @@ class APICredsTest(APITestCase):
         self.assertListEqual(response.json(),
                              [{
                                  'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh',
-                                  'pk': self.credential.pk, 'tags': [{'name': 'tag1', 'pk': self.tag1_pk}],
+                                  'pk': self.credential.pk, 'tags_data': [{'name': 'tag1', 'pk': self.tag1_pk}],
                              }])
 
     def test_get_revoked_device(self):

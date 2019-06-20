@@ -398,7 +398,7 @@ class Credential(models.Model):
         return self.cleaned_data["name"].lower()
 
     def save(self, *args, **kwargs):
-        validators.UnicodeNameValidator(self.name)
+        self.full_clean()
         self.name = self.name.lower()
         super(Credential, self).save(*args, **kwargs)
 

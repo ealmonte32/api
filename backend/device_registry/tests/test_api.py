@@ -225,7 +225,7 @@ class CredentialsViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertDictEqual(response.data, {'data': [OrderedDict(
             [('name', 'name1'), ('key', 'key1'), ('value', 'value1'), ('pk', self.credential.pk),
-             ('tags', [OrderedDict([('name', 'tag1'), ('pk', self.tags[0].pk)]),
+             ('tags_data', [OrderedDict([('name', 'tag1'), ('pk', self.tags[0].pk)]),
                        OrderedDict([('name', 'tag2'), ('pk', self.tags[1].pk)])])])]})
 
 
