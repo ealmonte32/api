@@ -385,9 +385,15 @@ class Credential(models.Model):
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=1024)
     tags = tagulous.models.TagField(to=Tag, blank=True)
+    linux_user = models.CharField(
+        max_length=32,
+        blank=True,
+        validators=[
+            validators.LinuxUserNameValidator()
+        ])
 
     class Meta:
-        unique_together = ['owner', 'key', 'name']
+        unique_together = ['owner', 'key', 'name', 'linux_user']
         verbose_name = 'credentials record'
         verbose_name_plural = 'credentials records'
 
