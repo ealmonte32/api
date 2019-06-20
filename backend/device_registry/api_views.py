@@ -441,7 +441,7 @@ def mtls_creds_view(request, format=None):
 
     device = Device.objects.get(device_id=device_id)
     if device.owner:
-        qs = device.owner.credentials.filter(tags__in=device.tags)
+        qs = device.owner.credentials.filter(tags__in=device.tags.tags)
     else:
         qs = Credential.objects.none()
     serializer = CredentialsListSerializer(qs, many=True)
