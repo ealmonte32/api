@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
 from rest_framework.compat import unicode_to_repr
 
-from device_registry.models import Device, DeviceInfo, Credential
+from device_registry.models import Device, DeviceInfo, Credential, Tag
 
 
 class RequiredValidator(object):
@@ -44,22 +44,31 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 class DeviceInfoSerializer(serializers.ModelSerializer):
     device = DeviceSerializer(read_only=True)
-
     class Meta:
         model = DeviceInfo
         fields = '__all__'
 
 
+class TagsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['name', 'pk']
+
+
 class CredentialsListSerializer(serializers.ModelSerializer):
+    tags_data = TagsSerializer(many=True, source='tags')
+
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value', 'pk']
+        fields = ['name', 'key', 'value', 'pk', 'tags_data']
 
 
 class CredentialSerializer(serializers.ModelSerializer):
+    tags = TagsSerializer(many=True, read_only=True)
+
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value']
+        fields = ['name', 'key', 'value', 'tags']
 
 
 class CreateDeviceSerializer(serializers.ModelSerializer):

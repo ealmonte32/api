@@ -12,6 +12,7 @@ from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, C
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import Credential
 from device_registry.models import get_bootstrap_color
+from tagulous.forms import TagWidget
 
 
 @login_required
@@ -98,6 +99,7 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
             context['firewall'] = None
         if 'form' not in context:
             context['form'] = DeviceAttrsForm(instance=self.object)
+            context['form_media'] = context['form'].media
         return context
 
     def post(self, request, *args, **kwargs):
@@ -245,7 +247,9 @@ class CredentialsView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(CredentialsView, self).get_context_data(**kwargs)
         context['pi_credentials_path'] = self.pi_credentials_path
+        context['form_media'] = TagWidget().media
         return context
+
 
 @login_required
 def actions_view(request, device_pk=None):

@@ -16,7 +16,6 @@ import re
 
 from netaddr import IPNetwork, AddrFormatError
 
-
 def check_ip_range(ipr):
     try:
         _ = IPNetwork(ipr)
@@ -63,8 +62,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_json_widget',
     'rest_framework',
+    'tagulous',
     'device_registry.apps.DeviceRegistryConfig',
-    'profile_page.apps.ProfilePageConfig'
+    'profile_page.apps.ProfilePageConfig',
 ]
 
 MIDDLEWARE = [
@@ -188,3 +188,11 @@ if SENTRY_DSN:
     from sentry_sdk.integrations.django import DjangoIntegration
 
     sentry_sdk.init(SENTRY_DSN, integrations=[DjangoIntegration()])
+
+# 'tagulous'
+SERIALIZATION_MODULES = {
+    'xml':    'tagulous.serializers.xml_serializer',
+    'json':   'tagulous.serializers.json',
+    'python': 'tagulous.serializers.python',
+    'yaml':   'tagulous.serializers.pyyaml',
+}

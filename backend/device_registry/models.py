@@ -1,18 +1,17 @@
 import datetime
 from statistics import mean
 import json
-import re
 
 from django.conf import settings
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
-from django.core.validators import RegexValidator, ValidationError, _
-
+from django.core.validators import ValidationError, _
 import yaml
 
-from device_registry import ca_helper
+from device_registry import ca_helper, validators
+import tagulous.models
 
 
 def get_bootstrap_color(val):
@@ -22,6 +21,15 @@ def get_bootstrap_color(val):
         return 'warning'
     else:
         return 'success'
+
+
+class Tag(tagulous.models.TagModel):
+    class TagMeta:
+        # Tag options
+        initial = ""
+        force_lowercase = True
+        autocomplete_view = 'ajax-tags-autocomplete'
+
 
 class JsonFieldTransitionHelper(JSONField):
     def from_db_value(self, value, expression, connection, context):
@@ -54,6 +62,7 @@ class Device(models.Model):
     fallback_token = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
+    tags = tagulous.models.TagField(to=Tag, blank=True)
 
     def get_name(self):
         if self.name:
@@ -75,7 +84,6 @@ class Device(models.Model):
             return fqdn
         else:
             return 'device_%d' % self.pk
-
 
     @staticmethod
     def get_active_inactive(user):
@@ -113,10 +121,10 @@ class Device(models.Model):
     @property
     def actions_count(self):
         return sum((self.deviceinfo.default_password is True,
-                self.firewallstate.enabled is False,
-                self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
-                    portscan__block_ports__contains=[[23]]).exists()
-                ))
+                    self.firewallstate.enabled is False,
+                    self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
+                        portscan__block_ports__contains=[[23]]).exists()
+                    ))
 
     @property
     def has_actions(self):
@@ -148,7 +156,7 @@ class Device(models.Model):
             failed_logins = 0.0
         else:
             failed_logins = 1.0 - ((failed_logins - self.MIN_FAILED_LOGINS) /
-                (self.MAX_FAILED_LOGINS - self.MIN_FAILED_LOGINS + 1))
+                                   (self.MAX_FAILED_LOGINS - self.MIN_FAILED_LOGINS + 1))
 
         def zero_if_none(x):
             return 0 if x is None else x
@@ -165,7 +173,7 @@ class Device(models.Model):
 
     @classmethod
     def calculate_trust_score(cls, **kwargs):
-        return sum([v*cls.COEFFICIENTS[k] for k,v in kwargs.items()]) / \
+        return sum([v*cls.COEFFICIENTS[k] for k, v in kwargs.items()]) / \
                sum(cls.COEFFICIENTS.values())
 
     def trust_score_percent(self):
@@ -367,20 +375,16 @@ class FirewallState(models.Model):
 
 
 class Credential(models.Model):
-    re_name_valid = re.compile(r"^[\w0-9_.\-:]+$", re.UNICODE)
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
     name = models.CharField(
         max_length=64,
         validators=[
-            RegexValidator(
-                regex=re_name_valid,
-                message="Use only alphanumeric charecters, and _.-:",
-                code="invalid_name"
-            )
+            validators.UnicodeNameValidator()
         ])
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=1024)
+    tags = tagulous.models.TagField(to=Tag, blank=True)
 
     class Meta:
         unique_together = ['owner', 'key', 'name']
@@ -394,11 +398,9 @@ class Credential(models.Model):
         return self.cleaned_data["name"].lower()
 
     def save(self, *args, **kwargs):
-        if self.re_name_valid.match(self.name):
-            self.name = self.name.lower()
-            super(Credential, self).save(*args, **kwargs)
-        else:
-            raise ValidationError(_('Name is incorrect, use only alphanumeric and .-_:'), code='invalid')
+        self.full_clean()
+        self.name = self.name.lower()
+        super(Credential, self).save(*args, **kwargs)
 
 
 # Temporary POJO to showcase recommended actions template.

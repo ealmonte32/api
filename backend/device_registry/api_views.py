@@ -437,7 +437,7 @@ def mtls_creds_view(request, format=None):
 
     device = Device.objects.get(device_id=device_id)
     if device.owner:
-        qs = device.owner.credentials.all()
+        qs = device.owner.credentials.filter(tags__in=device.tags.tags)
     else:
         qs = Credential.objects.none()
     serializer = CredentialsListSerializer(qs, many=True)
@@ -477,6 +477,16 @@ class DeleteCredentialView(CredentialsQSMixin, DestroyAPIView):
 class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
     serializer_class = CredentialSerializer
 
+    def perform_update(self, serializer):
+        """
+        overwrite default 'perform_update' method in order to replace tags to tag field
+        """
+        instance = serializer.save()
+        tags = [
+            tag['name'] for tag in serializer.initial_data['tags']
+        ]
+        instance.tags.set(*tags)
+
     def update(self, request, *args, **kwargs):
         """
         Overwritten default `update` method in order to catch unique constraint violation.
@@ -486,7 +496,7 @@ class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         if Credential.objects.filter(owner=request.user, key=serializer.validated_data['key'],
-                                     name=serializer.validated_data['name']).exists():
+                                     name=serializer.validated_data['name']).exclude(pk=instance.pk) .exists():
             return Response({'error': 'Name/Key combo should be unique'}, status=status.HTTP_400_BAD_REQUEST)
         self.perform_update(serializer)
 
@@ -510,9 +520,19 @@ class CreateCredentialView(CreateAPIView):
         if Credential.objects.filter(owner=request.user, key=serializer.validated_data['key'],
                                      name=serializer.validated_data['name']).exists():
             return Response({'error': 'Name/Key combo should be unique'}, status=status.HTTP_400_BAD_REQUEST)
-        serializer.save(owner=self.request.user)
+        self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        """
+        overwrite default 'perform_create' method in order to add tags to tag field
+        """
+        instance = serializer.save(owner=self.request.user)
+        tags = [
+            tag['name'] for tag in serializer.initial_data['tags']
+        ]
+        instance.tags.add(*tags)
 
 
 @api_view(['GET'])

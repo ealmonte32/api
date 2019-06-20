@@ -1,6 +1,7 @@
 from django import forms
 
 from .models import Device
+import tagulous.forms
 
 
 class ClaimDeviceForm(forms.Form):
@@ -21,9 +22,12 @@ class DeviceAttrsForm(forms.ModelForm):
 
     class Meta:
         model = Device
-        fields = ['name', 'comment']
-        widgets = {'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Comment', 'class': 'form-control'}),
-                   'name': forms.TextInput(attrs={'style': 'width:100%'})}
+        fields = ['name', 'comment', 'tags']
+        widgets = {
+            'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Comment', 'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'style': 'width:100%'}),
+            'tags': tagulous.forms.TagWidget(attrs={'style': 'width:100%', 'maxlength': 36})
+        }
 
 
 class PortsForm(forms.Form):
