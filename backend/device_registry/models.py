@@ -398,11 +398,9 @@ class Credential(models.Model):
         return self.cleaned_data["name"].lower()
 
     def save(self, *args, **kwargs):
-        if self.re_name_valid.match(self.name):
-            self.name = self.name.lower()
-            super(Credential, self).save(*args, **kwargs)
-        else:
-            raise ValidationError(_('Name is incorrect, use only alphanumeric and .-_:'), code='invalid')
+        validators.UnicodeNameValidator(self.name)
+        self.name = self.name.lower()
+        super(Credential, self).save(*args, **kwargs)
 
 
 # Temporary POJO to showcase recommended actions template.
