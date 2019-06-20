@@ -6,7 +6,6 @@ import re
 from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
-from django.db import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 
@@ -23,9 +22,6 @@ from device_registry.serializers import DeviceInfoSerializer, CredentialsListSer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tags
-from django.core.validators import ValidationError
-from tagulous.models.tagged import TaggedQuerySet
-from tagulous.utils import parse_tags
 
 logger = logging.getLogger(__name__)
 

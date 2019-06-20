@@ -1,14 +1,13 @@
 import datetime
 from statistics import mean
 import json
-import re
 
 from django.conf import settings
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
-from django.core.validators import RegexValidator, ValidationError, _
+from django.core.validators import ValidationError, _
 import yaml
 
 from device_registry import ca_helper, validators

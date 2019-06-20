@@ -1,9 +1,7 @@
 from django import forms
 
-from .models import Device, Credential
-from .models import Tags
+from .models import Device
 import tagulous.forms
-from tagulous.models.options import TagOptions
 
 
 class ClaimDeviceForm(forms.Form):
