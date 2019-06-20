@@ -135,11 +135,14 @@ class ClaimByLinkTest(APITestCase):
 
 # implements simple tags container dictionaries equality assertion
 class AssertTaggedMixin:
+    """
+    Assert equality of two dicts contains tags.
+    check that dict1 equal to dict2 and tags of dict1 all in tags of dict2
 
-    # Assert equelity of two dicts contains tags.
-    # In fact tags can be sorted or not. So for comparing tags used only
-    # their names. And ignored their order. Andd for simplisity, as it
-    # for test data we check only that dict1.tags is full in dict2.tags
+    In fact tags can be sorted or not. So for comparing tags used only
+    their names. And ignored their order. And for simplisity, as it
+    for test data we check only that dict1.tags is full in dict2.tags
+    """
     def assertTaggedEqual(self, dict1, dict2):
         for key in dict1:
             assert key in dict2
