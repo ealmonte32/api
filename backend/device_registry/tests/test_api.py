@@ -11,7 +11,7 @@ from rest_framework import status
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 
-from device_registry.models import Credential, Device, DeviceInfo, Tags
+from device_registry.models import Credential, Device, DeviceInfo, Tag
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
@@ -133,8 +133,13 @@ class ClaimByLinkTest(APITestCase):
         self.assertFalse(device.claimed)
 
 
+# implements simple tags container dictionaries equality assertion
 class AssertTaggedMixin:
 
+    # Assert equelity of two dicts contains tags.
+    # In fact tags can be sorted or not. So for comparing tags used only
+    # their names. And ignored their order. Andd for simplisity, as it
+    # for test data we check only that dict1.tags is full in dict2.tags
     def assertTaggedEqual(self, dict1, dict2):
         for key in dict1:
             assert key in dict2
@@ -237,7 +242,7 @@ class DeleteCredentialViewTest(APITestCase):
         response = self.client.delete(self.url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Credential.objects.count(), 0)
-        self.assertEqual(Tags.objects.count(), 0)
+        self.assertEqual(Tag.objects.count(), 0)
 
 
 class UpdateCredentialViewTest(APITestCase, AssertTaggedMixin):

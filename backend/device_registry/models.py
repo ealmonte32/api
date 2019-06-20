@@ -23,7 +23,7 @@ def get_bootstrap_color(val):
         return 'success'
 
 
-class Tags(tagulous.models.TagModel):
+class Tag(tagulous.models.TagModel):
     class TagMeta:
         # Tag options
         initial = ""
@@ -62,7 +62,7 @@ class Device(models.Model):
     fallback_token = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
-    tags = tagulous.models.TagField(to=Tags, blank=True)
+    tags = tagulous.models.TagField(to=Tag, blank=True)
 
     def get_name(self):
         if self.name:
@@ -384,7 +384,7 @@ class Credential(models.Model):
         ])
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=1024)
-    tags = tagulous.models.TagField(to=Tags, blank=True)
+    tags = tagulous.models.TagField(to=Tag, blank=True)
 
     class Meta:
         unique_together = ['owner', 'key', 'name']

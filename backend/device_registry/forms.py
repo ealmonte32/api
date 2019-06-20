@@ -26,7 +26,7 @@ class DeviceAttrsForm(forms.ModelForm):
         widgets = {
             'comment': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Comment', 'class': 'form-control'}),
             'name': forms.TextInput(attrs={'style': 'width:100%'}),
-            'tags': tagulous.forms.TagWidget(attrs={'style': 'width:100%', 'maxlength': 36, })
+            'tags': tagulous.forms.TagWidget(attrs={'style': 'width:100%', 'maxlength': 36})
         }
 
 

@@ -18,10 +18,10 @@ from rest_framework.permissions import AllowAny
 from netaddr import IPAddress
 
 from device_registry import ca_helper
-from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer, TagsSerialiser
+from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer, TagsSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tags
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
 
 logger = logging.getLogger(__name__)
 
