@@ -11,7 +11,7 @@ from django.contrib.postgres.fields import JSONField
 from django.core.validators import RegexValidator, ValidationError, _
 import yaml
 
-from device_registry import ca_helper
+from device_registry import ca_helper, validators
 import tagulous.models
 
 
@@ -376,17 +376,12 @@ class FirewallState(models.Model):
 
 
 class Credential(models.Model):
-    re_name_valid = re.compile(r"^[\w0-9_.\-:]+$", re.UNICODE)
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
     name = models.CharField(
         max_length=64,
         validators=[
-            RegexValidator(
-                regex=re_name_valid,
-                message="Use only alphanumeric charecters, and _.-:",
-                code="invalid_name"
-            )
+            validators.UnicodeNameValidator()
         ])
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=1024)
