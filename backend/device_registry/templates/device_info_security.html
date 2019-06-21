@@ -125,16 +125,17 @@
                 <td>
                   <form method="POST" action="">
                     {% csrf_token %}
-                  <div class="form-group">
-                    {{ ports_form.policy }}
-                  </div>
-                    {% if ports_choices %}
-                      <div class="form-group">
+                    <div class="form-group">
+                      {{ ports_form.policy }}
+                    </div>
+                    <div class="form-group">
+                      {% if ports_choices %}
                         <div class="table-responsive" id="ports-table">
                           <table class="table table-borderless table-sm">
                             <thead class="thead-light">
                             <tr>
-                              <th scope="col" width="5%"><span id="ports-table-column-1">{% if firewall.policy == 1 %}Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
+                              <th scope="col" width="5%"><span id="ports-table-column-1">{% if firewall.policy == 1 %}
+                                Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
                               <th scope="col">IP</th>
                               <th scope="col">Address</th>
                               <th scope="col">Port</th>
@@ -152,10 +153,10 @@
                             {% endfor %}
                           </table>
                         </div>
-                        {{ ports_form.is_ports_form }}
-                        <button class="btn btn-success btn-sm" type="submit">Apply</button>
-                      </div>
-                    {% endif %}
+                      {% endif %}
+                      {{ ports_form.is_ports_form }}
+                      <button class="btn btn-success btn-sm" type="submit">Apply</button>
+                    </div>
                   </form>
                 </td>
               </tr>
