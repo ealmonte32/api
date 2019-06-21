@@ -65,5 +65,5 @@ class FirewallStateAdmin(admin.ModelAdmin):
 
 @admin.register(Credential)
 class CredentialAdmin(admin.ModelAdmin):
-    list_display = ['owner', 'name', 'key', 'value']
+    list_display = ['owner', 'name', 'key', 'value', 'linux_user']
     list_filter = ['owner']
