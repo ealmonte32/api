@@ -7,12 +7,13 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+
+from tagulous.forms import TagWidget
 
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
-from device_registry.models import Credential
-from device_registry.models import get_bootstrap_color
-from tagulous.forms import TagWidget
+from device_registry.models import Credential, get_bootstrap_color
 
 
 @login_required
@@ -155,8 +156,9 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
         else:
             ports_form_data = self.object.portscan.ports_form_data()
             context['ports_choices'] = bool(ports_form_data[0])
-            context['ports_form'] = PortsForm(open_ports_choices=ports_form_data[0],
-                                              initial={'open_ports': ports_form_data[1]})
+            context['ports_form'] = PortsForm(ports_choices=ports_form_data[0],
+                                              initial={'open_ports': ports_form_data[1],
+                                                       'policy': self.object.firewallstate.policy})
             connections_form_data = self.object.portscan.connections_form_data()
             context['connections_choices'] = bool(connections_form_data[0])
             context['connections_form'] = ConnectionsForm(open_connections_choices=connections_form_data[0],
@@ -170,16 +172,21 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         portscan = self.object.portscan
+        firewallstate = self.object.firewallstate
         if 'is_ports_form' in request.POST:
             ports_form_data = self.object.portscan.ports_form_data()
-            form = PortsForm(request.POST, open_ports_choices=ports_form_data[0])
+            form = PortsForm(request.POST, ports_choices=ports_form_data[0])
             if form.is_valid():
                 out_data = []
                 for element in form.cleaned_data['open_ports']:
                     port_record_index = int(element)
                     out_data.append(ports_form_data[2][port_record_index])
                 portscan.block_ports = out_data
-                portscan.save(update_fields=['block_ports'])
+                firewallstate.policy = form.cleaned_data['policy']
+                with transaction.atomic():
+                    portscan.save(update_fields=['block_ports'])
+                    firewallstate.save(update_fields=['policy'])
+
         elif 'is_connections_form' in request.POST:
             connections_form_data = self.object.portscan.connections_form_data()
             form = ConnectionsForm(request.POST, open_connections_choices=connections_form_data[0])
@@ -279,7 +286,7 @@ def actions_view(request, device_pk=None):
         actions.append(action)
 
     # Firewall disabled action.
-    disabled_firewall_devices = request.user.devices.filter(firewallstate__enabled=False)
+    disabled_firewall_devices = request.user.devices.exclude(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)
     if device_pk is not None:
         disabled_firewall_devices = disabled_firewall_devices.filter(pk=device_pk)
     if disabled_firewall_devices.exists():
@@ -290,15 +297,20 @@ def actions_view(request, device_pk=None):
         full_string = ', '.join(text_blocks)
         action = Action(
             2,
-            'Disabled firewall detected',
-            'We found disabled firewall present on %s. Please consider enabling it.' %
+            'Permissive firewall policy detected',
+            'We found permissive firewall policy present on %s. Please consider change it to more restrictive one.' %
             ('this device' if device_name else full_string), []
         )
         actions.append(action)
 
     # Telnet server running action.
-    enabled_telnet_devices = request.user.devices.filter(portscan__scan_info__contains=[{'port': 23}]).exclude(
+    qs1 = request.user.devices.filter(
+        firewallstate__policy=FirewallState.POLICY_ENABLED_ALLOW, portscan__scan_info__contains=[{'port': 23}]).exclude(
         portscan__block_ports__contains=[[23]])
+    qs2 = request.user.devices.filter(
+        firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK, portscan__scan_info__contains=[{'port': 23}],
+        portscan__block_ports__contains=[[23]])
+    enabled_telnet_devices = qs1 | qs2
     if device_pk is not None:
         enabled_telnet_devices = enabled_telnet_devices.filter(pk=device_pk)
     if enabled_telnet_devices.exists():

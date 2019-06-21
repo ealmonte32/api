@@ -64,24 +64,6 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row">Firewall Enabled
-                  <button class="btn p-0 mb-1" data-toggle="tooltip"
-                          data-placement="top" title="drop incoming connections by default">
-                    <i class="fas fa-info-circle" style="color: black"></i>
-                  </button>
-                </th>
-                <td>
-                  {% if object.firewallstate.enabled is None %}N/A{% else %}
-                    {{ object.firewallstate.enabled|title }}
-                    {% if object.firewallstate.enabled %}
-                      {% include "badge.html" with icon="check" color="success" %}
-                    {% else %}
-                      {% include "badge.html" with icon="times-circle" color="danger" %}
-                    {% endif %}
-                  {% endif %}
-                </td>
-              </tr>
-              <tr>
                   <th scope="row">SELinux Status</th>
                   <td>
                   {% if object.deviceinfo.selinux_state.enabled %}
@@ -139,17 +121,20 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row">Open Ports</th>
+                <th scope="row">Firewall Ports Policy</th>
                 <td>
-                  {% if ports_choices %}
-                    <form method="POST" action="">
-                      {% csrf_token %}
+                  <form method="POST" action="">
+                    {% csrf_token %}
+                  <div class="form-group">
+                    {{ ports_form.policy }}
+                  </div>
+                    {% if ports_choices %}
                       <div class="form-group">
-                        <div class="table-responsive">
+                        <div class="table-responsive" id="ports-table">
                           <table class="table table-borderless table-sm">
                             <thead class="thead-light">
                             <tr>
-                              <th scope="col" width="5%">Blocked</th>
+                              <th scope="col" width="5%"><span id="ports-table-column-1">{% if firewall.policy == 1 %}Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
                               <th scope="col">IP</th>
                               <th scope="col">Address</th>
                               <th scope="col">Port</th>
@@ -170,8 +155,8 @@
                         {{ ports_form.is_ports_form }}
                         <button class="btn btn-success btn-sm" type="submit">Apply</button>
                       </div>
-                    </form>
-                  {% endif %}
+                    {% endif %}
+                  </form>
                 </td>
               </tr>
               <tr>
@@ -251,3 +236,17 @@
   </div>
 {% endblock admin_content %}
 
+{% block scripts %}
+  <script>
+      $('#id_policy').on('change', function () {
+          $('#ports-table :checkbox').each(function () {
+              this.checked = !this.checked;
+          });
+          if (this.value === '1') {
+              $('#ports-table-column-1').text('Blocked');
+          } else if (this.value === '2') {
+              $('#ports-table-column-1').text('Allowed');
+          }
+      });
+  </script>
+{% endblock %}

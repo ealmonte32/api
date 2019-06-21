@@ -479,7 +479,7 @@ class FormsTests(TestCase):
     def test_ports_form(self):
         ports_form_data = self.portscan.ports_form_data()
         form_data = {'is_ports_form': 'true', 'open_ports': ['0']}
-        form = PortsForm(data=form_data, open_ports_choices=ports_form_data[0])
+        form = PortsForm(data=form_data, ports_choices=ports_form_data[0])
         self.assertTrue(form.is_valid())
 
     def test_networks_form(self):
