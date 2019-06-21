@@ -134,7 +134,6 @@ class APIPingTest(TestCase):
             'distr_release': '9.4',
             'scan_info': OPEN_PORTS_INFO,
             'netstat': OPEN_CONNECTIONS_INFO,
-            'firewall_enabled': True,
             'firewall_rules': TEST_RULES
         }
         self.ping_headers = {
@@ -150,7 +149,8 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
+        self.assertDictEqual(response.data, {'policy': self.device0.firewallstate.policy_string,
+                                             'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
 
     def test_pong_data(self):
         # 1st request
@@ -161,7 +161,8 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
+        self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
+                                             'policy': self.device0.firewallstate.policy_string})
         # 2nd request
         self.device0.portscan.block_ports = [['192.168.1.178', 'tcp', 22, False]]
         self.device0.portscan.block_networks = [['192.168.1.177', False]]
@@ -182,7 +183,8 @@ class APIPingTest(TestCase):
         )
         response = mtls_ping_view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': [['192.168.1.178', 'tcp', 22, False]],
+        self.assertDictEqual(response.data, {'policy': self.device0.firewallstate.policy_string,
+                                             'block_ports': [['192.168.1.178', 'tcp', 22, False]],
                                              'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS})
 
     def test_ping_creates_models(self):
@@ -246,7 +248,6 @@ class APIPingTest(TestCase):
         )
         mtls_ping_view(request)
         firewall_state = FirewallState.objects.get(device=self.device0)
-        self.assertTrue(firewall_state.enabled)
         self.assertDictEqual(firewall_state.rules, TEST_RULES)
 
     def test_ping_writes_firewall_info_neg(self):
@@ -257,7 +258,6 @@ class APIPingTest(TestCase):
             'uptime': '0',
             'scan_info': OPEN_PORTS_INFO,
             'netstat': OPEN_CONNECTIONS_INFO,
-            'firewall_enabled': False,
             'firewall_rules': {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
         }
         request = self.api.post(
@@ -268,7 +268,6 @@ class APIPingTest(TestCase):
         )
         mtls_ping_view(request)
         firewall_state = FirewallState.objects.get(device=self.device0)
-        self.assertFalse(firewall_state.enabled)
         self.assertDictEqual(firewall_state.rules, {'INPUT': [], 'OUTPUT': [], 'FORWARD': []})
 
     def test_ping_converts_json(self):
@@ -286,7 +285,6 @@ class APIPingTest(TestCase):
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
             'scan_info': json.dumps(scan_info),
-            'firewall_enabled': False,
             'firewall_rules': json.dumps(firewall_rules)
         }
         request = self.api.post(
@@ -380,8 +378,8 @@ class DeviceModelTest(TestCase):
         self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
         self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
 
-        self.firewall0 = FirewallState.objects.create(device=self.device0, enabled=True)
-        self.firewall1 = FirewallState.objects.create(device=self.device1, enabled=True)
+        self.firewall0 = FirewallState.objects.create(device=self.device0, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        self.firewall1 = FirewallState.objects.create(device=self.device1, policy=FirewallState.POLICY_ENABLED_BLOCK)
 
         self.user4 = User.objects.create_user('test-fixing-issues')
         self.device4 = Device.objects.create(
@@ -403,7 +401,7 @@ class DeviceModelTest(TestCase):
             {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6}
         ])
-        self.firewall4 = FirewallState.objects.create(device=self.device4, enabled=False)
+        self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
 
     def test_fixed_issues(self):
         # initial state: firewall disabled, telnet port found, default password found - trust score low
@@ -415,7 +413,7 @@ class DeviceModelTest(TestCase):
             {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6}
         ]
         self.portscan4.save()
-        self.firewall4.enabled = True
+        self.firewall4.policy = FirewallState.POLICY_ENABLED_BLOCK
         self.firewall4.save()
         self.device_info4.default_password = False
         self.device_info4.save()
@@ -478,7 +476,8 @@ class FormsTests(TestCase):
 
     def test_ports_form(self):
         ports_form_data = self.portscan.ports_form_data()
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0']}
+        firewallstate = FirewallState.objects.create(device=self.device)
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': firewallstate.policy}
         form = PortsForm(data=form_data, ports_choices=ports_form_data[0])
         self.assertTrue(form.is_valid())
 
@@ -499,7 +498,7 @@ class ActionsViewTests(TestCase):
                                             certificate=TEST_CERT)
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO_TELNET,
                                                 netstat=OPEN_CONNECTIONS_INFO)
-        self.firewall = FirewallState.objects.create(device=self.device, enabled=False)
+        self.firewall = FirewallState.objects.create(device=self.device)
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
         self.url = reverse('actions')
 
@@ -509,7 +508,7 @@ class ActionsViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            f'We found disabled firewall present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            f'We found permissive firewall policy present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
         self.assertContains(
             response,
@@ -539,7 +538,7 @@ class DeviceDetailViewTests(TestCase):
         )
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
-        self.firewall = FirewallState.objects.create(device=self.device)
+        self.firewall = FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
 
@@ -659,7 +658,7 @@ class DeviceDetailViewTests(TestCase):
 
     def test_open_ports(self):
         self.client.login(username='test', password='123')
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0']}
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
         self.client.post(self.url2, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22, False]])
