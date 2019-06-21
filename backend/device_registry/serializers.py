@@ -60,7 +60,7 @@ class CredentialsListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value', 'pk', 'tags_data']
+        fields = ['name', 'key', 'value', 'linux_user', 'pk', 'tags_data']
 
 
 class CredentialSerializer(serializers.ModelSerializer):
@@ -68,7 +68,7 @@ class CredentialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value', 'tags']
+        fields = ['name', 'key', 'value', 'linux_user', 'tags']
 
 
 class CreateDeviceSerializer(serializers.ModelSerializer):

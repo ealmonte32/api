@@ -216,7 +216,7 @@ class CredentialsViewTest(APITestCase):
         self.user.set_password('123')
         self.user.save()
         self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1',
-                                                    tags="tag1,tag2")
+                                                    tags="tag1,tag2", linux_user='nobody')
         self.tags = self.credential.tags.tags;
         self.client.login(username='test', password='123')
 
@@ -224,7 +224,8 @@ class CredentialsViewTest(APITestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertDictEqual(response.data, {'data': [OrderedDict(
-            [('name', 'name1'), ('key', 'key1'), ('value', 'value1'), ('pk', self.credential.pk),
+            [('name', 'name1'), ('key', 'key1'), ('value', 'value1'),
+             ('linux_user', 'nobody'),('pk', self.credential.pk),
              ('tags_data', [OrderedDict([('name', 'tag1'), ('pk', self.tags[0].pk)]),
                        OrderedDict([('name', 'tag2'), ('pk', self.tags[1].pk)])])])]})
 
@@ -257,7 +258,8 @@ class UpdateCredentialViewTest(APITestCase, AssertTaggedMixin):
         self.credential1 = Credential.objects.create(owner=self.user, name='name1', key='key1', value='value1')
         self.url = reverse('ajax_creds_update', kwargs={'pk': self.credential1.pk})
         self.client.login(username='test', password='123')
-        self.data = {'name': 'name2', 'key': 'key2', 'value': 'value2', 'tags': [{'name': 'tag1'}, {'name': 'tag2'}]}
+        self.data = {'name': 'name2', 'key': 'key2', 'value': 'value2', 'linux_user': 'nobody',
+                     'tags': [{'name': 'tag1'}, {'name': 'tag2'}]}
 
     def test_patch(self):
         self.assertEqual(Credential.objects.count(), 1)
@@ -294,7 +296,8 @@ class CreateCredentialViewTest(APITestCase, AssertTaggedMixin):
         self.user.set_password('123')
         self.user.save()
         self.client.login(username='test', password='123')
-        self.data = {'name': 'name1', 'key': 'key1', 'value': 'value1', 'tags': [{'name': 'tag1'}, {'name': 'tag2'}]}
+        self.data = {'name': 'name1', 'key': 'key1', 'value': 'value1', 'linux_user': 'nobody',
+                     'tags': [{'name': 'tag1'}, {'name': 'tag2'}]}
 
     def test_post(self):
         self.assertEqual(Credential.objects.count(), 0)

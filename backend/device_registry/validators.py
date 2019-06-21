@@ -12,3 +12,12 @@ class UnicodeNameValidator(validators.RegexValidator):
         'numbers, and @/./+/-/_/: characters.'
     )
     flags = re.UNICODE
+
+@deconstructible
+class LinuxUserNameValidator(validators.RegexValidator):
+    regex = r'^[a-z_][a-z0-9_-]*[$]?$'
+    message = _(
+        'Enter a valid username. This value may contain only lowercase letters, '
+        'numbers, and "_" or "-"  characters.'
+    )
+    flags = re.ASCII

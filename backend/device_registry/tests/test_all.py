@@ -692,7 +692,8 @@ class APICredsTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1',
-                                                    value='as9dfyaoiufhoasdfjh', tags='tag1')
+                                                    value='as9dfyaoiufhoasdfjh', tags='tag1',
+                                                    linux_user='nobody')
         self.credential2 = Credential.objects.create(owner=self.user, name='name2', key='key2',
                                                     value='iuoiuoifpojoijccm', tags='tag2')
         self.tag1_pk = self.credential.tags.tags[0].pk
@@ -711,7 +712,7 @@ class APICredsTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.json(),
                              [{
-                                 'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh',
+                                 'key': 'key1', 'name': 'name1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
                                   'pk': self.credential.pk, 'tags_data': [{'name': 'tag1', 'pk': self.tag1_pk}],
                              }])
 
