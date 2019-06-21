@@ -263,9 +263,12 @@ def mtls_ping_view(request, format=None):
         device_object.last_ping = timezone.now()
         device_object.save(update_fields=['last_ping'])
         portscan_object, _ = PortScan.objects.get_or_create(device=device_object)
+        firewallstate_object, _ = FirewallState.objects.get_or_create(device=device_object)
         block_networks = portscan_object.block_networks.copy()
         block_networks.extend(settings.SPAM_NETWORKS)
-        return Response({'block_ports': portscan_object.block_ports, 'block_networks': block_networks})
+        return Response({'policy': firewallstate_object.policy_string,
+                         firewallstate_object.ports_field_name: portscan_object.block_ports,
+                         'block_networks': block_networks})
 
     elif request.method == 'POST':
         data = request.data
@@ -302,7 +305,6 @@ def mtls_ping_view(request, format=None):
         portscan_object.netstat = data.get('netstat', [])
         portscan_object.save()
         firewall_state, _ = FirewallState.objects.get_or_create(device=device_object)
-        firewall_state.enabled = data.get('firewall_enabled')
         firewall_rules = data.get('firewall_rules', {})
         if isinstance(firewall_rules, str):
             firewall_rules = json.loads(firewall_rules)

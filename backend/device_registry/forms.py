@@ -1,7 +1,8 @@
 from django import forms
 
-from .models import Device
 import tagulous.forms
+
+from .models import Device, FirewallState
 
 
 class ClaimDeviceForm(forms.Form):
@@ -31,15 +32,17 @@ class DeviceAttrsForm(forms.ModelForm):
 
 
 class PortsForm(forms.Form):
+    policy = forms.ChoiceField(choices=FirewallState.POLICY_CHOICES,
+                               widget=forms.Select(attrs={'class': 'form-control'}))
     open_ports = forms.MultipleChoiceField(
         required=False,
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'list-unstyled'}))
     is_ports_form = forms.CharField(widget=forms.HiddenInput, initial='true')
 
     def __init__(self, *args, **kwargs):
-        open_ports_choices = kwargs.pop('open_ports_choices')
+        ports_choices = kwargs.pop('ports_choices')
         super().__init__(*args, **kwargs)
-        self.fields['open_ports'].choices = open_ports_choices
+        self.fields['open_ports'].choices = ports_choices
 
 
 class ConnectionsForm(forms.Form):

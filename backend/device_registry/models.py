@@ -7,11 +7,11 @@ from django.db import models
 from django.db.models import F
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
-from django.core.validators import ValidationError, _
+
 import yaml
+import tagulous.models
 
 from device_registry import ca_helper, validators
-import tagulous.models
 
 
 def get_bootstrap_color(val):
@@ -120,11 +120,16 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
+        if self.firewallstate.policy == FirewallState.POLICY_ENABLED_ALLOW:
+            telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
+                portscan__block_ports__contains=[[23]]).exists()
+        elif self.firewallstate.policy == FirewallState.POLICY_ENABLED_BLOCK:
+            telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}],
+                                                   portscan__block_ports__contains=[[23]]).exists()
+        else:
+            raise NotImplementedError
         return sum((self.deviceinfo.default_password is True,
-                    self.firewallstate.enabled is False,
-                    self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
-                        portscan__block_ports__contains=[[23]]).exists()
-                    ))
+                    self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK, telnet))
 
     @property
     def has_actions(self):
@@ -163,7 +168,7 @@ class Device(models.Model):
 
         return self.calculate_trust_score(
             app_armor_enabled=zero_if_none(self.deviceinfo.app_armor_enabled),
-            firewall_enabled=zero_if_none(self.firewallstate.enabled),
+            firewall_enabled=self.firewallstate.policy == FirewallState.POLICY_ENABLED_BLOCK,
             selinux_enabled=selinux.get('enabled', False),
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
@@ -265,14 +270,14 @@ class DeviceInfo(models.Model):
 
 
 class PortScan(models.Model):
+    GOOD_PORTS = [22, 443]
+    BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(auto_now=True)
     scan_info = JSONField(blank=True, default=list)  # Ports open for incoming connection to.
     netstat = JSONField(blank=True, default=list)  # Currently open network connections.
     block_ports = JSONField(blank=True, default=list)
     block_networks = JSONField(blank=True, default=list)
-    GOOD_PORTS = [22, 443]
-    BAD_PORTS = [21, 23, 25, 53, 80, 161, 162, 512, 513]
 
     def get_score(self):
         score = 1
@@ -364,10 +369,34 @@ class PortScan(models.Model):
 
 
 class FirewallState(models.Model):
+    POLICY_ENABLED_ALLOW = 1
+    POLICY_ENABLED_BLOCK = 2
+    POLICY_CHOICES = (
+        (POLICY_ENABLED_ALLOW, 'Allow by default'),
+        (POLICY_ENABLED_BLOCK, 'Block by default')
+    )
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
-    enabled = models.BooleanField(null=True, blank=True)
     scan_date = models.DateTimeField(null=True, auto_now_add=True)
     rules = JSONField(blank=True, default=dict)
+    policy = models.PositiveSmallIntegerField(choices=POLICY_CHOICES, default=POLICY_ENABLED_ALLOW)
+
+    @property
+    def policy_string(self):
+        if self.policy == self.__class__.POLICY_ENABLED_ALLOW:
+            return 'allow'
+        elif self.policy == self.__class__.POLICY_ENABLED_BLOCK:
+            return 'block'
+        else:
+            raise NotImplementedError
+
+    @property
+    def ports_field_name(self):
+        if self.policy == self.__class__.POLICY_ENABLED_ALLOW:
+            return 'block_ports'
+        elif self.policy == self.__class__.POLICY_ENABLED_BLOCK:
+            return 'allow_ports'
+        else:
+            raise NotImplementedError
 
     @property
     def beautified_rules(self):
