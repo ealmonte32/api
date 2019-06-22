@@ -29,6 +29,7 @@ services:
     depends_on:
     - psql
     - migrate
+    - nginx-static
 
   api-dev:
     hostname: api-dev0
