@@ -460,12 +460,15 @@ class DeviceModelTest(TestCase):
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
-        self.assertEqual(self.device0.trust_score, (4.0 + 0.6 * 1.5) / 5.5)
-        self.assertEqual(self.device1.trust_score, (4.0 + 0.7 * 1.5) / 5.5)
+        all_good_except_port_score = sum(Device.COEFFICIENTS.values()) - Device.COEFFICIENTS['port_score']
+        self.assertEqual(self.device0.trust_score, (all_good_except_port_score + 0.6 * Device.COEFFICIENTS['port_score']) /
+                         sum(Device.COEFFICIENTS.values()))
+        self.assertEqual(self.device1.trust_score, (all_good_except_port_score + 0.7 * Device.COEFFICIENTS['port_score']) /
+                         sum(Device.COEFFICIENTS.values()))
 
     def test_average_trust_score(self):
         score = average_trust_score(self.user1)
-        self.assertEqual(score, ((4.0 + 0.6 * 1.5) / 5.5 + (4.0 + 0.7 * 1.5) / 5.5) / 2.0)
+        self.assertEqual(score, ((self.device0.trust_score + self.device1.trust_score) / 2.0))
 
 
 class FormsTests(TestCase):
