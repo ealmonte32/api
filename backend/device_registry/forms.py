@@ -12,6 +12,14 @@ class ClaimDeviceForm(forms.Form):
 
 class DeviceAttrsForm(forms.ModelForm):
 
+    def __init__(self, user, *args, **kwargs):
+        super(DeviceAttrsForm, self).__init__(*args, **kwargs)
+        # Filter tags to added by this user
+        self.fields['tags'].autocomplete_tags = \
+            self.fields['tags'].autocomplete_tags.filter_or_initial(
+                device__owner=user
+            ).distinct()
+
     def clean_name(self):
         data = self.cleaned_data['name'].strip()
         if data:
