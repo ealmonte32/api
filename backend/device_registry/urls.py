@@ -80,6 +80,11 @@ if settings.IS_DASH:
             views.DeviceDetailHardwareView.as_view(),
             name='device-detail-hardware'
         ),
+        path(
+            'devices/<int:pk>/metadata/',
+            views.DeviceDetailMetadataView.as_view(),
+            name='device-detail-metadata'
+        ),
         path('credentials/',
              views.CredentialsView.as_view(),
              name='credentials'),

@@ -1,0 +1,99 @@
+{% extends "admin_base.html" %}
+
+{% block css %}
+    {{ form_media.css }}
+{% endblock %}
+
+{% block js %}
+    {{ form_media.js }}
+{% endblock %}
+
+{% load split_string %}
+
+{% block title %}WoTT - Device Info{% endblock title %}
+
+{% block dashboard_title %}
+  <h1 style="margin-bottom: 0">Device Profile</h1>
+{% endblock dashboard_title %}
+
+{% block admin_content %}
+  {% include 'device_info_top_block.html' %}
+  <div class="row">
+    <div class="col-12">
+      <div class="tab">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail' object.pk %}" role="tab" aria-selected="false">Overview</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-software' object.pk %}" role="tab" aria-selected="false">Software</a>
+          </li>
+        {% if portscan and firewall %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-security' object.pk %}" role="tab" aria-selected="false">Security</a>
+          </li>
+        {% endif %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-network' object.pk %}" role="tab" aria-selected="false">Network</a>
+          </li>
+        {% if portscan %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-hardware' object.pk %}" role="tab" aria-selected="false">Hardware</a>
+          </li>
+        {% endif %}
+          <li class="nav-item">
+            <a class="nav-link active" href="{% url 'device-detail-metadata' object.pk %}" role="tab" aria-selected="true">Metadata</a>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active" id="device-metadata" role="tabpanel">
+            <h4 class="tab-title">Metadata</h4>
+            <form method="POST" action="">
+              <table class="table table-striped table-responsive-xs">
+                <tbody>
+                <tr>
+                  <th scope="row" width="20%">Device Name</th>
+                  <td width="80%">{{ object.name|default_if_none:object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%">Device ID</th>
+                  <td width="80%">{{  object.device_id|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%">Manufacturer</th>
+                  <td width="80%">{{  object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%">Model</th>
+                  <td width="80%">{{  object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%">User values</th>
+                  <td width="80%">
+                    <div class="form-group">
+                      {% csrf_token %}
+                      {{ form.non_field_errors }}
+                      {{ form.device_metadata.errors }}
+                      {{ form.device_metadata }}
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%"> </th>
+                  <td>
+                    <div class="form-group">
+                      {% csrf_token %}
+                      <button class="btn btn-primary" type="submit">Save</button>
+                    </div>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock admin_content %}
+

@@ -2,13 +2,23 @@ from django import forms
 
 import tagulous.forms
 
-from .models import Device, FirewallState
+from .models import Device, FirewallState, DeviceInfo
+from django_json_widget.widgets import JSONEditorWidget
 
 
 class ClaimDeviceForm(forms.Form):
     device_id = forms.CharField()
     claim_token = forms.CharField()
 
+class DeviceMetadataForm(forms.ModelForm):
+
+    class Meta:
+        model = DeviceInfo
+        fields = ['device_metadata']
+        widgets = {
+            # choose one mode from ['text', 'code', 'tree', 'form', 'view']
+            'device_metadata': JSONEditorWidget(mode='tree')
+        }
 
 class DeviceAttrsForm(forms.ModelForm):
 

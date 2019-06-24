@@ -229,6 +229,7 @@ class DeviceInfo(models.Model):
 
     # We need this for the YC demo.
     detected_mirai = models.BooleanField(default=False, blank=True)
+    device_metadata = JSONField(blank=True, default=dict)
 
     RASPBERRY_MODEL_MAP = {
         '0002': 'Model B Rev 1',

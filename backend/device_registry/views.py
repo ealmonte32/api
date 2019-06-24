@@ -11,7 +11,7 @@ from django.db import transaction
 
 from tagulous.forms import TagWidget
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import Credential, get_bootstrap_color
 
@@ -240,6 +240,44 @@ class DeviceDetailHardwareView(LoginRequiredMixin, DetailView):
         except FirewallState.DoesNotExist:
             context['firewall'] = None
         return context
+
+
+class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
+    model = Device
+    template_name = 'device_info_metadata.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            context['portscan'] = self.object.portscan
+        except PortScan.DoesNotExist:
+            context['portscan'] = None
+        try:
+            context['firewall'] = self.object.firewallstate
+        except FirewallState.DoesNotExist:
+            context['firewall'] = None
+        if 'form' not in context:
+            context['form'] = DeviceMetadataForm(instance=self.object.deviceinfo)
+            context['form_media'] = context['form'].media
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = DeviceMetadataForm(request.POST, instance=self.object)
+        if form.is_valid():
+            if 'revoke_button' in form.data:
+                self.object.owner = None
+                self.object.claim_token = uuid.uuid4()
+                self.object.save(update_fields=['owner', 'claim_token'])
+                return HttpResponseRedirect(reverse('root'))
+            else:
+                form.save()
+                return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 class CredentialsView(LoginRequiredMixin, ListView):
