@@ -399,7 +399,10 @@ class DeviceModelTest(TestCase):
         self.portscan4 = PortScan.objects.create(device=self.device4, scan_info=[
             {"host": "0.0.0.0", "port": 23, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
-            {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6}
+            {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6},
+            {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
+            {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
+            {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
         ])
         self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
 
@@ -410,7 +413,9 @@ class DeviceModelTest(TestCase):
         # fix issues: enable firewall, remove telnet, set non-default password
         self.portscan4.scan_info = [
             {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
-            {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6}
+            {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6},
+            {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
+            {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
         ]
         self.portscan4.save()
         self.firewall4.policy = FirewallState.POLICY_ENABLED_BLOCK

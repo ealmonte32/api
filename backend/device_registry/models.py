@@ -137,12 +137,12 @@ class Device(models.Model):
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,
-        'firewall_enabled': 1.0,
+        'firewall_enabled': 1.5,
         'selinux_enabled': .5,
         'selinux_enforcing': .5,
-        'default_password': .5,
+        'default_password': 1.0,
         'failed_logins': 1.0,
-        'port_score': 1.5,
+        'port_score': .3,
     }
     MAX_FAILED_LOGINS = 10
     MIN_FAILED_LOGINS = 1
