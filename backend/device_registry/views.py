@@ -267,16 +267,10 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        form = DeviceMetadataForm(request.POST, instance=self.object)
+        form = DeviceMetadataForm(request.POST, instance=self.object.deviceinfo)
         if form.is_valid():
-            if 'revoke_button' in form.data:
-                self.object.owner = None
-                self.object.claim_token = uuid.uuid4()
-                self.object.save(update_fields=['owner', 'claim_token'])
-                return HttpResponseRedirect(reverse('root'))
-            else:
-                form.save()
-                return HttpResponseRedirect(reverse('device-detail', kwargs={'pk': kwargs['pk']}))
+            form.save()
+            return HttpResponseRedirect(reverse('device-detail-metadata', kwargs={'pk': kwargs['pk']}))
         return self.render_to_response(self.get_context_data(form=form))
 
 

@@ -44,6 +44,9 @@ if settings.IS_MTLS_API:
         path('api/{}/creds'.format(api_version),
              api_views.mtls_creds_view,
              name='mtls-creds'),
+        path('api/{}/dev-md'.format(api_version),
+             api_views.mtls_device_metadata_view,
+             name='mtls-dev-md'),
     ]
 
 # Front-end

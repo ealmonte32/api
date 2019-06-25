@@ -457,6 +457,33 @@ def mtls_creds_view(request, format=None):
     serializer = CredentialsListSerializer(qs, many=True)
     return Response(serializer.data)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def mtls_device_metadata_view(request, format=None):
+    """
+    Return all user's credentials.
+    """
+    device_id = is_mtls_authenticated(request)
+
+    if not device_id:
+        return Response(
+            'Invalid request.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if type(device_id) is Response:
+        return device_id
+
+    device = Device.objects.get(device_id=device_id)
+    if device.owner:
+        metadata = device.deviceinfo.device_metadata
+        metadata['device_id'] = device_id
+        metadata['manufacturer'] = device.deviceinfo.device_manufacturer
+        metadata['model'] = device.deviceinfo.device_model
+        metadata['model-decoded'] = device.deviceinfo.get_model()
+        return Response(metadata)
+    else:
+        return Response({})
+
 
 class CredentialsQSMixin(object):
     def get_queryset(self):

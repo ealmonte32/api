@@ -170,7 +170,8 @@ class DeviceListViewTest(APITestCase):
             device_model='900092',
             selinux_state={'enabled': True, 'mode': 'enforcing'},
             app_armor_enabled=True,
-            logins={'pi': {'failed': 1, 'success': 1}}
+            logins={'pi': {'failed': 1, 'success': 1}},
+            device_metadata={'test-key': 'test-value'}
         )
         self.client.login(username='test', password='123')
 
@@ -206,7 +207,10 @@ class DeviceListViewTest(APITestCase):
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
                                                           ('app_armor_enabled', True),
                                                           ('logins', {'pi': {'failed': 1, 'success': 1}}),
-                                                          ('default_password', None), ('detected_mirai', False)])])
+                                                          ('default_password', None),
+                                                          ('detected_mirai', False),
+                                                          ('device_metadata', {'test-key': 'test-value'})
+                                                          ])])
 
 
 class CredentialsViewTest(APITestCase):
