@@ -480,6 +480,7 @@ def mtls_device_metadata_view(request, format=None):
         metadata['manufacturer'] = device.deviceinfo.device_manufacturer
         metadata['model'] = device.deviceinfo.device_model
         metadata['model-decoded'] = device.deviceinfo.get_model()
+        metadata['device-name'] = device.name
         return Response(metadata)
     else:
         return Response({})

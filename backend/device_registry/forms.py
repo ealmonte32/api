@@ -10,6 +10,7 @@ class ClaimDeviceForm(forms.Form):
     device_id = forms.CharField()
     claim_token = forms.CharField()
 
+
 class DeviceMetadataForm(forms.ModelForm):
 
     class Meta:
@@ -19,6 +20,7 @@ class DeviceMetadataForm(forms.ModelForm):
             # choose one mode from ['text', 'code', 'tree', 'form', 'view']
             'device_metadata': JSONEditorWidget(mode='tree')
         }
+
 
 class DeviceAttrsForm(forms.ModelForm):
 

@@ -804,7 +804,8 @@ class APIDevMetadataTest(APITestCase):
         self.url = reverse('mtls-dev-md')
         User = get_user_model()
         self.user = User.objects.create_user('test')
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
+                                            tags='tag1', name='the-device-name')
         self.device_info = DeviceInfo.objects.create(
             device=self.device,
             device_manufacturer='Raspberry Pi',
@@ -829,5 +830,6 @@ class APIDevMetadataTest(APITestCase):
                 'device_id': 'device0.d.wott-dev.local',
                 'manufacturer': 'Raspberry Pi',
                 'model': '900092',
-                'model-decoded': 'Pi Zero v1.2'
+                'model-decoded': 'Pi Zero v1.2',
+                'device-name': 'the-device-name'
         })
