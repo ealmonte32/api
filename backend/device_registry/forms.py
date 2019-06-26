@@ -1,9 +1,9 @@
 from django import forms
+from django_json_widget.widgets import JSONEditorWidget
 
 import tagulous.forms
 
 from .models import Device, FirewallState, DeviceInfo
-from django_json_widget.widgets import JSONEditorWidget
 
 
 class ClaimDeviceForm(forms.Form):

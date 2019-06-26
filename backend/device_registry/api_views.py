@@ -457,11 +457,12 @@ def mtls_creds_view(request, format=None):
     serializer = CredentialsListSerializer(qs, many=True)
     return Response(serializer.data)
 
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def mtls_device_metadata_view(request, format=None):
     """
-    Return all user's credentials.
+    Return device specific metadata.
     """
     device_id = is_mtls_authenticated(request)
 
@@ -476,14 +477,15 @@ def mtls_device_metadata_view(request, format=None):
     device = Device.objects.get(device_id=device_id)
     if device.owner:
         metadata = device.deviceinfo.device_metadata
+        metadata['device-name'] = device.name
         metadata['device_id'] = device_id
         metadata['manufacturer'] = device.deviceinfo.device_manufacturer
         metadata['model'] = device.deviceinfo.device_model
         metadata['model-decoded'] = device.deviceinfo.get_model()
-        metadata['device-name'] = device.name
-        return Response(metadata)
     else:
-        return Response({})
+        metadata = {}
+
+    return Response(metadata)
 
 
 class CredentialsQSMixin(object):
