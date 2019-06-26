@@ -475,7 +475,7 @@ def mtls_device_metadata_view(request, format=None):
         return device_id
 
     device = Device.objects.get(device_id=device_id)
-    if device.owner:
+    if device.claimed:
         metadata = device.deviceinfo.device_metadata
         metadata['device-name'] = device.name
         metadata['device_id'] = device_id

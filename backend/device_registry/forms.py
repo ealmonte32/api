@@ -18,7 +18,7 @@ class DeviceMetadataForm(forms.ModelForm):
         fields = ['device_metadata']
         widgets = {
             # choose one mode from ['text', 'code', 'tree', 'form', 'view']
-            'device_metadata': JSONEditorWidget(mode='tree')
+            'device_metadata': JSONEditorWidget(mode='code')
         }
 
 
