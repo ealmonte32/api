@@ -250,15 +250,15 @@ class DeviceInfo(models.Model):
         '0014': 'Compute Module',
         '0012': 'Model A+',
         '0015': 'Model A+',
-        'a01041': 'Pi 2 Model B v1.1',
-        'a21041': 'Pi 2 Model B v1.1',
-        'a22042': 'Pi 2 Model B v1.2',
-        '900092': 'Pi Zero v1.2',
-        '900093': 'Pi Zero v1.3',
-        '9000c1': 'Pi Zero W',
-        'a02082': 'Pi 3 Model B',
-        'a22082': 'Pi 3 Model B',
-        'a020d3': 'Pi 3 Model B+'
+        'a01041': '2 Model B v1.1',
+        'a21041': '2 Model B v1.1',
+        'a22042': '2 Model B v1.2',
+        '900092': 'Zero v1.2',
+        '900093': 'Zero v1.3',
+        '9000c1': 'Zero W',
+        'a02082': '3 Model B',
+        'a22082': '3 Model B',
+        'a020d3': '3 Model B+'
     }
 
     def __str__(self):
