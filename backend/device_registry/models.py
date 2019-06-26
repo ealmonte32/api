@@ -24,6 +24,7 @@ def get_bootstrap_color(val):
 
 
 class Tag(tagulous.models.TagModel):
+
     class TagMeta:
         # Tag options
         initial = ""

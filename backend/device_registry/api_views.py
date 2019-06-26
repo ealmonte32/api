@@ -21,7 +21,8 @@ from device_registry import ca_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
+from tagulous.views import autocomplete, login_required
 
 logger = logging.getLogger(__name__)
 
@@ -555,3 +556,13 @@ def mtls_is_claimed_view(request, format=None):
 
     device = Device.objects.get(device_id=device_id)
     return Response({'claimed': device.claimed, 'claim_token': device.claim_token})
+
+
+@login_required
+def autocomplete_tags(request):
+    return autocomplete(
+        request,
+        Tag.objects.filter_or_initial(device__owner=request.user).distinct() |
+        Tag.objects.filter_or_initial(credential__owner=request.user).distinct()
+    )
+
