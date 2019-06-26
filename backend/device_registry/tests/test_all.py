@@ -830,6 +830,6 @@ class APIDevMetadataTest(APITestCase):
                 'device_id': 'device0.d.wott-dev.local',
                 'manufacturer': 'Raspberry Pi',
                 'model': '900092',
-                'model-decoded': 'Pi Zero v1.2',
+                'model-decoded': 'Zero v1.2',
                 'device-name': 'the-device-name'
         })
