@@ -42,15 +42,14 @@ class Command(BaseCommand):
             'active_users_monthly': active_users_monthly,
             'active_users_daily': active_users_daily,
             'active_devices': len(active_devices),
-            'avg_score_active': average_trust_score(active_devices),
-            'avg_score_inactive': average_trust_score(inactive_devices)
+            'avg_score_active': 0, # FIXME: average_trust_score(active_devices),
+            'avg_score_inactive': 0, # FIXME: average_trust_score(inactive_devices)
         }
         print(metrics)
 
         client = bigquery.Client(project=google_cloud_helper.project,
                                  credentials=google_cloud_helper.credentials)
-        dataset = bigquery.Dataset(f'{PROJECT}.{DATASET}')
-        dataset = client.create_dataset(dataset, exists_ok=True)
+        dataset = client.create_dataset(bigquery.Dataset(f'{PROJECT}.{DATASET}'), exists_ok=True)
 
         schema = [
             bigquery.SchemaField("time", "DATETIME", mode="REQUIRED", description='Time of this sample'),
@@ -59,24 +58,17 @@ class Command(BaseCommand):
             bigquery.SchemaField("active_users_monthly", "INTEGER", mode="REQUIRED", description='Users who have been signed in in the last 30 days'),
             bigquery.SchemaField("active_users_daily", "INTEGER", mode="REQUIRED", description='Users who have been signed in in the last 24 hours'),
             bigquery.SchemaField("active_devices", "INTEGER", mode="REQUIRED", description='Devices who have pinged in the last 7 days'),
-            bigquery.SchemaField("avg_score_active", "INTEGER", mode="REQUIRED", description='Average Trust Score of active devices'),
-            bigquery.SchemaField("avg_score_inactive", "INTEGER", mode="REQUIRED", description='Average Trust Score of inactive devices'),
+            bigquery.SchemaField("avg_score_active", "NUMERIC", mode="REQUIRED", description='Average Trust Score of active devices'),
+            bigquery.SchemaField("avg_score_inactive", "NUMERIC", mode="REQUIRED", description='Average Trust Score of inactive devices'),
         ]
         print(f'{PROJECT}.{DATASET}.{TABLE}')
         table = bigquery.Table(f'{PROJECT}.{DATASET}.{TABLE}', schema=schema)
         table = client.create_table(table, exists_ok=True)
         print(f'{table}')
 
-        client.insert_rows(table, [{
-            'time': datetime.datetime.utcnow(),
-            'all_devices': all_devices,
-            'all_users': all_users,
-            'active_users_monthly': active_users_monthly,
-            'active_users_daily': active_users_daily,
-            'active_devices': len(active_devices),
-            'avg_score_active': average_trust_score(active_devices),
-            'avg_score_inactive': average_trust_score(inactive_devices)
-        }])
+        client.insert_rows(table, [metrics])
+        print('DONE')
+
 
     def add_arguments(self, parser):
         parser.add_argument(
