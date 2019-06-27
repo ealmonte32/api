@@ -12,6 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 
+from google.cloud import datastore
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -21,12 +23,19 @@ from rest_framework.permissions import AllowAny
 from netaddr import IPAddress
 
 from device_registry import ca_helper
+from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
-from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
 
 logger = logging.getLogger(__name__)
+
+
+if google_cloud_helper.credentials and google_cloud_helper.project:
+    datastore_client = datastore.Client(project=google_cloud_helper.project,
+                                        credentials=google_cloud_helper.credentials)
+else:
+    datastore_client = None
 
 
 class RenewExpiredCertView(UpdateAPIView):
@@ -316,7 +325,7 @@ def mtls_ping_view(request, format=None):
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
-            entity = dicts_to_ds_entities(data, task_key)
+            entity = google_cloud_helper.dicts_to_ds_entities(data, task_key)
             entity['device_id'] = device_id  # Will be indexed.
             entity['last_ping'] = timezone.now()  # Will be indexed.
             datastore_client.put(entity)
