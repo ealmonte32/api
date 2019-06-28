@@ -7,9 +7,11 @@
       color: black;
       display: none;
     }
+
     input[failed]{
       border-color: red;
     }
+
     </style>
 {% endblock %}
 
@@ -46,7 +48,6 @@
       </div>
     </div>
   </div>
-
   <div class="row">
     <div class="col-12">
       <div class="tab">
@@ -249,7 +250,7 @@
                   catch(e)
                   {
                       let id = '#md_' + rowIdx + '_value';
-                      $(id).removeClass("failed").addClass("failed");
+                      $(id).attr("failed", true);
                       json_errors.push( "'" + data[1] + "' value error: " + e.message);
                   }
               }
@@ -285,7 +286,7 @@
     function kv_update(e){
         cell = table.cell(e.parentElement)[0][0];
         table.data()[cell.row][cell.column] = e.value;
-        $(e).removeClass("failed");
+        $(e).removeAttr("failed");
         edited = true;
     }
 
