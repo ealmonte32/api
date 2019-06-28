@@ -1,4 +1,5 @@
 import uuid
+import json
 
 from django.views.generic import DetailView, ListView
 from django.http import HttpResponseRedirect
@@ -260,6 +261,14 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
             context['firewall'] = self.object.firewallstate
         except FirewallState.DoesNotExist:
             context['firewall'] = None
+        if 'dev_md' not in context:
+            device_metadata = self.object.deviceinfo.device_metadata
+            context['dev_md'] = []
+            for key, value in device_metadata.items():
+                if isinstance(value, str):
+                    context['dev_md'].append([key, value])
+                else:
+                    context['dev_md'].append([key, json.dumps(value)])
         if 'form' not in context:
             context['form'] = DeviceMetadataForm(instance=self.object.deviceinfo)
             context['form_media'] = context['form'].media
