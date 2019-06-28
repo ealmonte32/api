@@ -101,18 +101,18 @@
                   <th scope="row" width="20%">
                     User values<br>
                     <select size="1" id="editor-mode-select">
-                      <option value="kv_editor">Key-Value List Mode</option>
-                      <option value="json_editor">JSON Editor Mode</option>
+                      <option value="kv-editor">Key-Value List Mode</option>
+                      <option value="json-editor">JSON Editor Mode</option>
                     </select>
                   </th>
                   <td width="80%">
-                    <div class="form-group" id="kv_editor">
+                    <div class="form-group" id="kv-editor">
                       {% csrf_token %}
                       <table id="dev-md-table" class="table table-striped table-responsive-xs" style="width:100%" >
                       </table>
                       <button class="btn btn-primary" id="add-row" type="button">+</button>
                     </div>
-                    <div class="form-group" id="json_editor" style="display: none">
+                    <div class="form-group" id="json-editor" style="display: none">
                       {% csrf_token %}
                       {{ form.non_field_errors }}
                       {{ form.device_metadata.errors }}
@@ -207,7 +207,7 @@
           previous_mode = this.value;
       }).change(function() {
 
-          if( previous_mode == "kv_editor" && edited )
+          if( previous_mode == "kv-editor" && edited )
           {
               $('#wott-confirm-modal').on("click", {from:previous_mode, to:this.value}, switch_editor_mode );
               $('#wott-confirm-modal').modal('toggle');
@@ -265,12 +265,12 @@
       /* save values */
       $('#dev-md-form').submit(function() {
           $('.wott-form-alert')[0].style.display = 'none';
-          if( $("#kv_editor").is(":visible") )
+          if( $("#kv-editor").is(":visible") )
           {
               if( !kv_to_json_widget() ) {
                   return false;
               }
-          } else if( $("#json_editor").is(":visible") ){
+          } else if( $("#json-editor").is(":visible") ){
               error_gutter = $("#device_metadata_editor").find(".ace_error");
               if( error_gutter != undefined && error_gutter.length > 0)
               {
