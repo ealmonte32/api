@@ -2,7 +2,7 @@ apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: cron-bi-metrics-hourly
-  namespace: core
+  namespace: {{ .Values.namespace }}
   labels:
     app: "cronjob-metrics-hourly"
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
