@@ -264,9 +264,17 @@
 
       /* save values */
       $('#dev-md-form').submit(function() {
+          $('.wott-form-alert')[0].style.display = 'none';
           if( $("#kv_editor").is(":visible") )
           {
               if( !kv_to_json_widget() ) {
+                  return false;
+              }
+          } else if( $("#js_editor").is(":visible") ){
+              error_gutter = $("#device_metadata_editor").find(".ace_error");
+              if( error_gutter != undefined && error_gutter.length > 0)
+              {
+                  wott_alert_strings(["Syntax error in json editor at line: " + error_gutter[0].innerText])
                   return false;
               }
           }
