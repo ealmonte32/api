@@ -1,0 +1,38 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cron-bi-metrics-hourly
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: "cronjob-metrics-hourly"
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    chart: {{ include "api.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  schedule: "@hourly"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: bi-metrics
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            command: ["python", "manage.py", "metrics"]
+            env:
+            - name: WOTT_METRICS_PROJECT
+              value: "wott-prod"
+            - name: WOTT_METRICS_DATASET
+              value: "wott_bi_metrics"
+            - name: WOTT_METRICS_TABLE
+              value: "metrics"
+            - name: GOOGLE_CLOUD_KEY_JSON
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: bigQueryKey
+          restartPolicy: Never
