@@ -103,18 +103,14 @@
                 </tr>
                 <tr>
                   <th scope="row" width="20%">
-                    User values<br>
-                    <select size="1" id="editor-mode-select">
-                      <option value="kv-editor">Key-Value List Mode</option>
-                      <option value="json-editor">JSON Editor Mode</option>
-                    </select>
+                    User values
                   </th>
                   <td width="80%">
                     <div class="form-group" id="kv-editor">
                       {% csrf_token %}
                       <table id="dev-md-table" class="table table-striped table-responsive-xs" style="width:100%" >
                       </table>
-                      <button class="btn btn-primary" id="add-row" type="button">+</button>
+                      <button class="btn btn-success" id="add-row" type="button">+</button>
                     </div>
                     <div class="form-group" id="json-editor" style="display: none">
                       {% csrf_token %}
@@ -132,7 +128,7 @@
                     </div>
                     <div class="form-group">
                       {% csrf_token %}
-                      <button class="btn btn-primary" type="submit">Save</button>
+                      <button class="btn btn-success" type="submit">Save</button>
                     </div>
                   </td>
                 </tr>
@@ -191,40 +187,6 @@
         table.row.add(["",""]).draw(false);
       });
 
-
-        /***
-         *  toggle key-vale or json editor.
-         *  @param e.data = { from: editor-div-id, to: editor-div-id }
-         */
-      function switch_editor_mode(e)
-      {
-          $("#"+e.data.from).hide();
-          $("#"+e.data.to).show();
-          previous_mode = e.data.to;
-          $("#editor-mode-select").val(e.data.to);
-          if( $("#wott-confirm-modal").is(":visible") )
-              $('#wott-confirm-modal').modal('toggle');
-      }
-
-      $("#editor-mode-select").on('focus', function () {
-          // Store the current value on focus and on change
-          previous_mode = this.value;
-      }).change(function() {
-
-          if( previous_mode == "kv-editor" && edited )
-          {
-              $('#confirm-btn').on("click", {from:previous_mode, to:this.value}, switch_editor_mode );
-              show_dialog("Confirm mode change",
-                  "You do not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?",
-                  "Yes"
-              );
-              this.value = previous_mode;
-              return;
-          }
-
-          switch_editor_mode( {data:{from:previous_mode, to:this.value}} );
-      });
-
       /**
        * copy data from key-value editor to json-widget textarea. (used before  save)
        * @returns if some value are not valid for json then show warinng and returns false
@@ -239,22 +201,31 @@
               var left = (s === '') ?  s : s.substr(0,1);
               var right = (s === '') ? s : s.slice(-1);
 
-              if ( s === "true" || s === "fasle" || s === "null" || (left === right && left === '"' )
-                 || ( left === "{"  && right === "}" ) || ( left === "[" && right === "]" ) || isFinite(s))
+              if( data[0] in result )
               {
-                  try
-                  {
-                      result[data[0]] = JSON.parse(s);
-                  }
-                  catch(e)
-                  {
-                      let id = '#md_' + rowIdx + '_value';
-                      $(id).attr("failed", true);
-                      json_errors.push( "'" + data[1] + "' value error: " + e.message);
-                  }
+                  let id = '#md_' + rowIdx + '_key';
+                  $(id).attr("failed", true);
+                  json_errors.push( "'" + data[0] + "' : duplicate key error.");
               }
               else
-                result[ data[0] ] = data[1];
+              {
+                  if ( s === "true" || s === "fasle" || s === "null" || (left === right && left === '"' )
+                     || ( left === "{"  && right === "}" ) || ( left === "[" && right === "]" ) || isFinite(s))
+                  {
+                      try
+                      {
+                          result[data[0]] = JSON.parse(s);
+                      }
+                      catch(e)
+                      {
+                          let id = '#md_' + rowIdx + '_value';
+                          $(id).attr("failed", true);
+                          json_errors.push( "'" + data[1] + "' value error: " + e.message);
+                      }
+                  }
+                  else
+                      result[ data[0] ] = data[1];
+              }
           });
           $('#id_device_metadata').html( JSON.stringify(result) );
           if (json_errors.length != 0) wott_alert_strings(json_errors, "main-alert" );
@@ -267,13 +238,6 @@
           if( $("#kv-editor").is(":visible") )
           {
               if( !kv_to_json_widget() ) {
-                  return false;
-              }
-          } else if( $("#json-editor").is(":visible") ){
-              error_gutter = $("#device_metadata_editor").find(".ace_error");
-              if( error_gutter != undefined && error_gutter.length > 0)
-              {
-                  wott_alert_strings(["Syntax error in json editor at line: " + error_gutter[0].innerText], "main-alert")
                   return false;
               }
           }

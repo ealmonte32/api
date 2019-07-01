@@ -16,9 +16,6 @@ class DeviceMetadataForm(forms.ModelForm):
     class Meta:
         model = DeviceInfo
         fields = ['device_metadata']
-        widgets = {
-            'device_metadata': JSONEditorWidget()
-        }
 
 
 class DeviceAttrsForm(forms.ModelForm):
