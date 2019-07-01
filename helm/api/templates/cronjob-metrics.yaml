@@ -35,4 +35,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
                   key: bigQueryKey
+            - name: DB_HOST
+              value: "{{ .Values.databaseHost }}"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: databasePassword
           restartPolicy: Never
