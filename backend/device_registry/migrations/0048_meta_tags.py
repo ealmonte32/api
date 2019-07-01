@@ -18,7 +18,8 @@ def update_existing_devices_meta_tags(apps, schema_editor):
     for device in Device.objects.all():
         if all_devices_tag not in device.tags:
             device.tags.add(all_devices_tag)
-        if device.deviceinfo.device_manufacturer == 'Raspberry Pi' and raspberry_pi_tag not in device.tags:
+        if (hasattr(device, 'deviceinfo') and device.deviceinfo.device_manufacturer == 'Raspberry Pi' and
+                raspberry_pi_tag not in device.tags):
             device.tags.add(raspberry_pi_tag)
 
 
