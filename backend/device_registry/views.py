@@ -277,8 +277,9 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         form = DeviceMetadataForm(request.POST, instance=self.object.deviceinfo)
-        if form.is_valid():
-            form.save()
+        if form.is_valid() and "device_metadata" in form.cleaned_data:
+            self.object.deviceinfo.device_metadata = form.cleaned_data["device_metadata"]
+            self.object.deviceinfo.save(update_fields=['device_metadata'])
             return HttpResponseRedirect(reverse('device-detail-metadata', kwargs={'pk': kwargs['pk']}))
         return self.render_to_response(self.get_context_data(form=form))
 

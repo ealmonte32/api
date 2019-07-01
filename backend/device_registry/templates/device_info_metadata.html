@@ -29,25 +29,29 @@
 
 {% block admin_content %}
   {% include 'device_info_top_block.html' %}
-    <div class="modal" tabindex="-1" role="dialog" id="wott-confirm-modal">
+  <div class="modal" tabindex="-1" role="dialog" id="wott-confirm-modal">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Confirm mode change</h5>
+          <h5 class="modal-title" id="confirm-title">Confirm mode change</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <div class="modal-body">
-          <p id="confirm_msg">You do not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?</p>
+          <p id="confirm-msg">You do not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?</p>
+        </div>
+        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="confirm-alert">
+          Server error
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-danger">Yes</button>
+          <button type="button" class="btn btn-danger" id="confirm-btn">Yes</button>
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
         </div>
       </div>
     </div>
   </div>
+
   <div class="row">
     <div class="col-12">
       <div class="tab">
@@ -123,7 +127,7 @@
                 <tr>
                   <th scope="row" width="20%"> </th>
                   <td>
-                    <div class="alert alert-warning wott-form-alert p-1" role="alert" id="edit_alert">
+                    <div class="alert alert-warning wott-form-alert p-1" role="alert" id="main-alert">
                       Server error
                     </div>
                     <div class="form-group">
@@ -175,7 +179,7 @@
         columns: [
             { title: 'key', width:'45%', render: kv_render},
             { title: 'value', width:'45%', render: kv_render},
-            { title: '', width:'10%', data: null, render: kv_render_remove_btn, sorting: false }
+            { title: '', width:'10%', data: null, render: kv_render_btns, sorting: false }
         ],
         columnDefs: [
             { type: "str-add", targets: 0 },
@@ -190,7 +194,7 @@
 
         /***
          *  toggle key-vale or json editor.
-          * @param e.data = { from: editor-div-id, to: editor-div-id }
+         *  @param e.data = { from: editor-div-id, to: editor-div-id }
          */
       function switch_editor_mode(e)
       {
@@ -209,9 +213,11 @@
 
           if( previous_mode == "kv-editor" && edited )
           {
-              $('#wott-confirm-modal').on("click", {from:previous_mode, to:this.value}, switch_editor_mode );
-              $('#wott-confirm-modal').modal('toggle');
-
+              $('#confirm-btn').on("click", {from:previous_mode, to:this.value}, switch_editor_mode );
+              show_dialog("Confirm mode change",
+                  "You do not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?",
+                  "Yes"
+              );
               this.value = previous_mode;
               return;
           }
@@ -219,17 +225,10 @@
           switch_editor_mode( {data:{from:previous_mode, to:this.value}} );
       });
 
-      function wott_alert_strings(messages){
-          alertbox = $('.wott-form-alert')[0];
-          alertbox.style.display = 'block';
-          alertbox.innerText = messages.join("\n");
-          return;
-      }
-
-        /**
-         * copy data from key-value editor to json-widget textarea. (used before  save)
-         * @returns if some value are not valid for json then show warinng and returns false
-         */
+      /**
+       * copy data from key-value editor to json-widget textarea. (used before  save)
+       * @returns if some value are not valid for json then show warinng and returns false
+       */
       function kv_to_json_widget(){
           let json_errors = [];
           let result = {};
@@ -258,7 +257,7 @@
                 result[ data[0] ] = data[1];
           });
           $('#id_device_metadata').html( JSON.stringify(result) );
-          if (json_errors.length != 0) wott_alert_strings(json_errors);
+          if (json_errors.length != 0) wott_alert_strings(json_errors, "main-alert" );
           return json_errors.length == 0;
       }
 
@@ -274,7 +273,7 @@
               error_gutter = $("#device_metadata_editor").find(".ace_error");
               if( error_gutter != undefined && error_gutter.length > 0)
               {
-                  wott_alert_strings(["Syntax error in json editor at line: " + error_gutter[0].innerText])
+                  wott_alert_strings(["Syntax error in json editor at line: " + error_gutter[0].innerText], "main-alert")
                   return false;
               }
           }
@@ -282,7 +281,15 @@
       });
     });
 
-    /* key-value table functions.  */
+    /* key-value table functions. */
+
+    /***
+     * DataTable render function for key/value cells
+     * @param: data - cell data
+     * @param: type - if 'sort' then render for sort, otherwise for output
+     * @param: row - row data
+     * @param: meta - some additional info, such as meta.row, meta.column
+     */
     function kv_render(data, type, row, meta){
       if( type == 'sort' ) return data;
       let data_h = htmlEntities(data);
@@ -291,6 +298,10 @@
              '" oninput="kv_update(this)">';
     }
 
+    /***
+     * key/value inputs oninput handler.
+     * @param e - input.this
+     */
     function kv_update(e){
         cell = table.cell(e.parentElement)[0][0];
         table.data()[cell.row][cell.column] = e.value;
@@ -298,17 +309,64 @@
         edited = true;
     }
 
-    function kv_render_remove_btn(data, type, row, meta){
+    /***
+     * DataTable add/del buttons cell render function
+     */
+    function kv_render_btns(data, type, row, meta){
       if( type == 'sort' ) return data;
       return '<button type="button" class="btn btn-danger" onclick="kv_remove(this)">x</i>';
     }
 
+    /***
+     * del buttons onclick handler
+     * @param e - button.this
+     */
     function kv_remove(e){
-        table.rows(e.parentElement.parentElement).remove().draw(false);
+        $('#confirm-btn').on("click", {row: e.parentElement.parentElement}, delete_row );
+        show_dialog("Confirm Removal",
+            "Are you sure you want to delete?",
+            "Delete"
+        );
+    }
+
+    /***
+     *  on confirm delete
+     *  @param e - e.data.row <- DataTable.row
+     */
+    function delete_row(e){
+        table.rows(e.data.row).remove().draw(false);
+        $('#dev-md-form').submit();
     }
 
     function htmlEntities(str) {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /***
+     *  setup dialog parameters and toggle on
+     *  @param title - dialog title
+     *  @param message - dialog message
+     *  @param btn_text - dialog confirm button text
+     */
+    function show_dialog(title, message, btn_text )
+    {
+        $('#confirm-title')[0].innerText = title;
+        $('#confirm-msg')[0].innerText = message;
+        $('#confirm-btn')[0].innerText = btn_text;
+        $('#confirm-alert')[0].style.display = 'none';
+        $('#wott-confirm-modal').modal('toggle');
+    }
+
+    /**
+     * show alert msg
+     * @param messages  - array of error messages
+     * @param alert_box_id - html element id of message placeholder
+     */
+    function wott_alert_strings(messages, alert_box_id){
+        let alertbox = $("#"+alert_box_id)[0];
+        alertbox.style.display = 'block';
+        alertbox.innerText = messages.join("\n");
+        return;
     }
 
   </script>
