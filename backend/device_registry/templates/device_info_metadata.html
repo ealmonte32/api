@@ -146,26 +146,10 @@
     var edited = false;
     var previous_mode;
     document.addEventListener("DOMContentLoaded", function () {
-        // data-table sorting. to place empty at the end
-      jQuery.extend( jQuery.fn.dataTableExt.oSort, {
-        "str-add-pre": function ( a ) {
-            if ( a == "" || a == undefined ) return "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
-            return a;
-        },
-
-        "str-add-asc": function ( a, b ) {
-          return ((a < b) ? -1 : ((a > b) ? 1 : 0));
-        },
-
-        "str-add-desc": function ( a, b ) {
-          return ((a < b) ? 1 : ((a > b) ? -1 : 0));
-        }
-      } );
-
         // data-table
       table = $('#dev-md-table').DataTable({
         searching: false,
-        sorting:false,
+        sorting:true,
         paging: false,
         info: false,
         data: {{ dev_md|safe }},
@@ -173,13 +157,13 @@
           emptyTable: "No user values defined."
         },
         columns: [
-            { title: 'key', width:'45%', render: kv_render},
-            { title: 'value', width:'45%', render: kv_render},
+            { title: 'key', width:'45%', render: kv_render, sorting: false },
+            { title: 'value', width:'45%', render: kv_render, sorting: false },
             { title: '', width:'10%', data: null, render: kv_render_btns, sorting: false }
         ],
         columnDefs: [
-            { type: "str-add", targets: 0 },
-            { type: "str-add", targets: 1 }
+            { type: "string", targets: 0 },
+            { type: "string", targets: 1 }
         ]
       });
 
@@ -255,7 +239,7 @@
      * @param: meta - some additional info, such as meta.row, meta.column
      */
     function kv_render(data, type, row, meta){
-      if( type == 'sort' ) return data;
+      if( type == 'sort' ) return data ? data : "\xFF";
       let data_h = htmlEntities(data);
       let columns=['key','value']
       return '<input type="text" value="' + data_h +'" style="width:100%" id="md_' + meta.row + '_' + columns[meta.col] +

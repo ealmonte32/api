@@ -2,6 +2,7 @@ import json
 import logging
 import uuid
 import re
+from netaddr import IPAddress
 
 from django.http import HttpResponse
 from django.utils import timezone
@@ -20,7 +21,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
 from rest_framework.permissions import AllowAny
-from netaddr import IPAddress
 
 from device_registry import ca_helper
 from device_registry import google_cloud_helper

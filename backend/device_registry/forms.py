@@ -1,5 +1,4 @@
 from django import forms
-from django_json_widget.widgets import JSONEditorWidget
 
 import tagulous.forms
 

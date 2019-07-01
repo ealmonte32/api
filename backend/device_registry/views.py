@@ -253,13 +253,13 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        try:
+        if hasattr(self.object, 'portscan'):
             context['portscan'] = self.object.portscan
-        except PortScan.DoesNotExist:
+        else:
             context['portscan'] = None
-        try:
+        if hasattr(self.object, 'firewallstate'):
             context['firewall'] = self.object.firewallstate
-        except FirewallState.DoesNotExist:
+        else:
             context['firewall'] = None
         if 'dev_md' not in context:
             device_metadata = self.object.deviceinfo.device_metadata
