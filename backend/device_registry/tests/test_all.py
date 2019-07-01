@@ -705,7 +705,7 @@ class APICredsTest(APITestCase):
                                                     value='as9dfyaoiufhoasdfjh', tags='tag1',
                                                     linux_user='nobody')
         self.credential2 = Credential.objects.create(owner=self.user, name='name2', key='key2',
-                                                     value='iuoiuoifpojoijccm', tags='Raspberry_Pi')
+                                                     value='iuoiuoifpojoijccm', tags='Hardware: Raspberry Pi,')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
         self.deviceinfo = DeviceInfo.objects.create(device=self.device)
         self.headers = {
@@ -754,7 +754,8 @@ class APICredsTest(APITestCase):
                                'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}]},
                               {'name': 'name2', 'key': 'key2', 'value': 'iuoiuoifpojoijccm', 'linux_user': '',
                                'pk': self.credential2.pk,
-                               'tags_data': [{'name': 'Raspberry_Pi', 'pk': self.credential2.tags.tags[0].pk}]}])
+                               'tags_data': [{'name': 'Hardware: Raspberry Pi',
+                                              'pk': self.credential2.tags.tags[0].pk}]}])
 
 
 class APIIsClaimedTest(APITestCase):
