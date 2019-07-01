@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import F
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
+from django.db import transaction
 
 import yaml
 import tagulous.models
@@ -24,10 +25,9 @@ def get_bootstrap_color(val):
 
 
 class Tag(tagulous.models.TagModel):
-
     class TagMeta:
         # Tag options
-        initial = ""
+        initial = "Hardware: All, Hardware: Raspberry Pi"
         force_lowercase = True
         autocomplete_view = 'ajax-tags-autocomplete'
 
@@ -179,7 +179,7 @@ class Device(models.Model):
 
     @classmethod
     def calculate_trust_score(cls, **kwargs):
-        return sum([v*cls.COEFFICIENTS[k] for k, v in kwargs.items()]) / \
+        return sum([v * cls.COEFFICIENTS[k] for k, v in kwargs.items()]) / \
                sum(cls.COEFFICIENTS.values())
 
     def trust_score_percent(self):
@@ -187,6 +187,20 @@ class Device(models.Model):
 
     def trust_score_color(self):
         return get_bootstrap_color(self.trust_score_percent())
+
+    def set_meta_tags(self):
+        """
+        Add proper meta tags in accordance with the device's hardware type.
+        Since we use OR-based filtering of credentials all RPI-based devices
+         should have both  `Hardware: All` and `Hardware: Raspberry Pi` tags.
+         The rest of devices - only `Hardware: All`.
+        """
+        all_devices_tag = Tag.objects.get(name='Hardware: All')
+        raspberry_pi_tag = Tag.objects.get(name='Hardware: Raspberry Pi')
+        if all_devices_tag not in self.tags:
+            self.tags.add(all_devices_tag)
+        if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
+            self.tags.add(raspberry_pi_tag)
 
     class Meta:
         ordering = ('created',)
@@ -265,9 +279,14 @@ class DeviceInfo(models.Model):
             logins = self.logins
             if '' in logins:
                 logins['<unknown>'] = self.logins['']
-                del(logins[''])
+                del (logins[''])
             return yaml.dump(logins)
         return "none"
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            self.device.set_meta_tags()
 
 
 class PortScan(models.Model):
@@ -405,7 +424,6 @@ class FirewallState(models.Model):
 
 
 class Credential(models.Model):
-
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
     name = models.CharField(
         max_length=64,

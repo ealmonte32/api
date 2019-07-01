@@ -8,6 +8,9 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models.query import QuerySet
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -22,7 +25,6 @@ from device_registry.serializers import DeviceInfoSerializer, CredentialsListSer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.datastore_helper import datastore_client, dicts_to_ds_entities
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
-from tagulous.views import autocomplete, login_required
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +230,7 @@ def is_mtls_authenticated(request):
     matchObj = re.match(
         r'.*CN=(.*.{cn_domain})'.format(cn_domain=cn_domain),
         request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'),
-        re.M|re.I
+        re.M | re.I
     )
     if not matchObj:
         logging.error('[MTLS-Auth] No valid CN found in header HTTP_SSL_CLIENT_SUBJECT_DN.')
@@ -440,7 +442,7 @@ def mtls_creds_view(request, format=None):
 
     device = Device.objects.get(device_id=device_id)
     if device.owner:
-        qs = device.owner.credentials.filter(tags__in=device.tags.tags)
+        qs = device.owner.credentials.filter(tags__in=device.tags.tags).distinct()
     else:
         qs = Credential.objects.none()
     serializer = CredentialsListSerializer(qs, many=True)
@@ -480,27 +482,19 @@ class DeleteCredentialView(CredentialsQSMixin, DestroyAPIView):
 class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
     serializer_class = CredentialSerializer
 
-    def perform_update(self, serializer):
-        """
-        overwrite default 'perform_update' method in order to replace tags to tag field
-        """
-        instance = serializer.save()
-        tags = [
-            tag['name'] for tag in serializer.initial_data['tags']
-        ]
-        instance.tags.set(*tags)
-
     def update(self, request, *args, **kwargs):
         """
-        Overwritten default `update` method in order to catch unique constraint violation.
+        Overwritten the default `update` method in order to catch unique constraint violation.
         """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        if Credential.objects.filter(owner=request.user, key=serializer.validated_data['key'],
-                                     name=serializer.validated_data['name']).exclude(pk=instance.pk) .exists():
-            return Response({'error': 'Name/Key combo should be unique'}, status=status.HTTP_400_BAD_REQUEST)
+        if Credential.objects.filter(
+                owner=request.user, key=serializer.validated_data['key'], name=serializer.validated_data['name'],
+                linux_user=serializer.validated_data['linux_user']).exclude(pk=instance.pk).exists():
+            return Response({'error': '\'Name\'/\'Key\'/\'File owner\' combination should be unique'},
+                            status=status.HTTP_400_BAD_REQUEST)
         self.perform_update(serializer)
 
         if getattr(instance, '_prefetched_objects_cache', None):
@@ -510,30 +504,46 @@ class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
 
         return Response(serializer.data)
 
+    def perform_update(self, serializer):
+        """
+        Overwrite the default 'perform_update' method in order to properly handle tags received as values.
+        """
+        instance = serializer.save()
+        # Lowercase all unprotected tags.
+        tags = [
+            tag['name'] if Tag.objects.filter(name=tag['name'], protected=True).exists() else tag['name'].lower()
+            for tag in serializer.initial_data['tags']
+        ]
+        instance.tags.set(*tags)
+
 
 class CreateCredentialView(CreateAPIView):
     serializer_class = CredentialSerializer
 
     def create(self, request, *args, **kwargs):
         """
-        Overwritten default `create` method in order to catch unique constraint violation.
+        Overwritten the default `create` method in order to catch unique constraint violation.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if Credential.objects.filter(owner=request.user, key=serializer.validated_data['key'],
-                                     name=serializer.validated_data['name']).exists():
-            return Response({'error': 'Name/Key combo should be unique'}, status=status.HTTP_400_BAD_REQUEST)
+        if Credential.objects.filter(
+                owner=request.user, key=serializer.validated_data['key'], name=serializer.validated_data['name'],
+                linux_user=serializer.validated_data['linux_user']).exists():
+            return Response({'error': '\'Name\'/\'Key\'/\'File owner\' combination should be unique'},
+                            status=status.HTTP_400_BAD_REQUEST)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
         """
-        overwrite default 'perform_create' method in order to add tags to tag field
+        Overwrite the default 'perform_create' method in order to properly handle tags received as values.
         """
         instance = serializer.save(owner=self.request.user)
+        # Lowercase all unprotected tags.
         tags = [
-            tag['name'] for tag in serializer.initial_data['tags']
+            tag['name'] if Tag.objects.filter(name=tag['name'], protected=True).exists() else tag['name'].lower()
+            for tag in serializer.initial_data['tags']
         ]
         instance.tags.add(*tags)
 
@@ -558,6 +568,71 @@ def mtls_is_claimed_view(request, format=None):
     return Response({'claimed': device.claimed, 'claim_token': device.claim_token})
 
 
+def autocomplete(request, tag_model):
+    """
+    The 'django-tagulous' `autocomplete` method overwritten in order to set proper tags ordering
+    (meta-tags 1st, regular tags 2nd).
+
+    Arguments:
+        request
+            The request object from the dispatcher
+        tag_model
+            Reference to the tag model (eg MyModel.tags.tag_model), or a
+            queryset of the tag model (eg MyModel.tags.tag_model.objects.all())
+
+    The following GET parameters can be set:
+        q   The query string to filter by (match against start of string)
+        p   The current page
+
+    Response is a JSON object with following keys:
+        results     List of tags
+        more        Boolean if there is more
+    }
+    """
+    # Get model, queryset and tag options
+    if isinstance(tag_model, QuerySet):
+        queryset = tag_model
+        tag_model = queryset.model
+    else:
+        queryset = tag_model.objects
+    options = tag_model.tag_options
+
+    # Get query string
+    query = request.GET.get('q', '')
+    page = int(request.GET.get('p', 1))
+
+    # Perform search
+    if query:
+        if options.force_lowercase:
+            query = query.lower()
+
+        if options.case_sensitive:
+            results = queryset.filter(name__startswith=query)
+        else:
+            results = queryset.filter(name__istartswith=query)
+    else:
+        results = queryset.all()
+
+    results = results.order_by('-protected', 'name')
+
+    # Limit results
+    if options.autocomplete_limit:
+        start = options.autocomplete_limit * (page - 1)
+        end = options.autocomplete_limit * page
+        more = results.count() > end
+        results = results[start:end]
+
+    # Build response
+    response = {
+        'results': [tag.name for tag in results],
+        'more': more,
+    }
+    return HttpResponse(
+        json.dumps(response, cls=DjangoJSONEncoder),
+        content_type='application/json',
+    )
+
+
 @login_required
 def autocomplete_tags(request):
     return autocomplete(
@@ -565,4 +640,3 @@ def autocomplete_tags(request):
         Tag.objects.filter_or_initial(device__owner=request.user).distinct() |
         Tag.objects.filter_or_initial(credential__owner=request.user).distinct()
     )
-

@@ -44,6 +44,7 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 class DeviceInfoSerializer(serializers.ModelSerializer):
     device = DeviceSerializer(read_only=True)
+
     class Meta:
         model = DeviceInfo
         fields = '__all__'
