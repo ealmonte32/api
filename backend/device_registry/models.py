@@ -1,7 +1,6 @@
 import datetime
 from statistics import mean
 import json
-import yaml
 
 from django.conf import settings
 from django.db import models
@@ -10,6 +9,7 @@ from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
 from django.db import transaction
 
+import yaml
 import tagulous.models
 
 from device_registry import ca_helper, validators
