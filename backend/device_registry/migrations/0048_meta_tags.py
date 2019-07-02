@@ -26,7 +26,7 @@ def update_existing_devices_meta_tags(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('device_registry', '0047_merge_20190622_0343'),
+        ('device_registry', '0046_auto_20190621_0603'),
     ]
 
     operations = [
