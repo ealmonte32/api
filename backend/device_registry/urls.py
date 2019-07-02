@@ -29,24 +29,24 @@ if settings.IS_API:
 # Only load if mTLS
 if settings.IS_MTLS_API:
     urlpatterns += [
-        path('mtls/{}/sign-csr'.format(api_version),  # TODO: change to some unique path.
+        path('api/{}/sign-csr'.format(api_version),  # TODO: change to some unique path.
              api_views.mtls_renew_cert_view,
              name='mtls-sign-device-cert'),
-        path('mtls/{}/ping'.format(api_version),
+        path('api/{}/ping'.format(api_version),
              api_views.mtls_ping_view,
              name='mtls-ping'),
-        path('mtls/{}/hello'.format(api_version),
+        path('api/{}/hello'.format(api_version),
              api_views.mtls_tester_view,
              name='mtls-tester'),
-        path('mtls/{}/action/<int:action_id>/<str:action_name>'.format(api_version),
+        path('api/{}/action/<int:action_id>/<str:action_name>'.format(api_version),
              api_views.action_view, name='action'),
-        path('mtls/{}/claimed'.format(api_version),
+        path('api/{}/claimed'.format(api_version),
              api_views.mtls_is_claimed_view,
              name='mtls-is_claimed'),
-        path('mtls/{}/creds'.format(api_version),
+        path('api/{}/creds'.format(api_version),
              api_views.mtls_creds_view,
              name='mtls-creds'),
-        path('mtls/{}/dev-md'.format(api_version),
+        path('api/{}/dev-md'.format(api_version),
              api_views.mtls_device_metadata_view,
              name='mtls-dev-md'),
     ]
