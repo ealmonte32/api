@@ -134,6 +134,14 @@ REST_FRAMEWORK = {
 CFSSL_SERVER = os.getenv('CFSSL_SERVER', '127.0.0.1')
 CFSSL_PORT = int(os.getenv('CFSSL_PORT', 8888))
 
+
+# SMTP
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = os.getenv('SMTP_PASSWORD')
+EMAIL_PORT = 2525
+
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 

@@ -50,6 +50,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
                   key: sentryDsn
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: smtpPassword
           livenessProbe:
             httpGet:
               path: /healthz
