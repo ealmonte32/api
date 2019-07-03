@@ -1,5 +1,12 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LogoutView as DjangoLogoutView
+from django.contrib.auth import logout
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+from django.http import HttpResponseRedirect
+from django.contrib import messages
+
 from .forms import ProfileForm
 from .models import Profile
 
@@ -19,3 +26,20 @@ def profile_view(request):
             profile.save()
             user.save()
     return render(request, 'profile.html')
+
+
+class LogoutView(DjangoLogoutView):
+    """
+    Overwritten default Django's `LogoutView` in order to make it send a message
+     with `django.contrib.messages` app.
+    """
+
+    @method_decorator(never_cache)
+    def dispatch(self, request, *args, **kwargs):
+        logout(request)
+        next_page = self.get_next_page()
+        if next_page:
+            messages.add_message(request, messages.INFO, 'You have successfully logged out. Now you can log in again.')
+            # Redirect to this page until the session has been cleared.
+            return HttpResponseRedirect(next_page)
+        return super().dispatch(request, *args, **kwargs)
