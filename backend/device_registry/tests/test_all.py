@@ -476,8 +476,18 @@ class DeviceModelTest(TestCase):
 class FormsTests(TestCase):
     def setUp(self):
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local')
+        self.device_info = DeviceInfo.objects.create(
+            device=self.device,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+        )
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
+
+    def test_device_metadata_form(self):
+        form_data = {'device_metadata': {"test": "value"}}
+        form = DeviceAttrsForm(data=form_data, instance=self.device)
+        self.assertTrue(form.is_valid())
 
     def test_device_attrs_form(self):
         form_data = {'comment': 'Test comment', 'name': 'My device 1'}
@@ -551,6 +561,7 @@ class DeviceDetailViewTests(TestCase):
         self.firewall = FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+        self.url3 = reverse('device-detail-metadata', kwargs={'pk': self.device.pk})
 
         self.device_no_portscan = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user,
                                                         certificate=TEST_CERT)
@@ -649,6 +660,14 @@ class DeviceDetailViewTests(TestCase):
         self.assertContains(response, 'Device Profile')
         self.assertContains(response, '>Hardware<')
         self.assertNotContains(response, '>Security<')
+
+    def test_device_metadata(self):
+        self.client.login(username='test', password='123')
+        form_data = {'device_metadata': '{"test": "value"}'}
+        self.client.post(self.url3, form_data)
+        response = self.client.get(self.url3)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.context_data["device"].deviceinfo.device_metadata, {"test": "value"})
 
     def test_comment(self):
         self.client.login(username='test', password='123')
@@ -777,3 +796,40 @@ class APIIsClaimedTest(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {'claim_token': '', 'claimed': True})
+
+
+class APIDevMetadataTest(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('mtls-dev-md')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
+                                            tags='tag1', name='the-device-name')
+        self.device_info = DeviceInfo.objects.create(
+            device=self.device,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            device_metadata={"test": "value"}
+        )
+
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(
+            self.url,
+            **self.headers,
+            format='json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {
+                'test': 'value',
+                'device_id': 'device0.d.wott-dev.local',
+                'manufacturer': 'Raspberry Pi',
+                'model': '900092',
+                'model-decoded': 'Zero v1.2',
+                'device-name': 'the-device-name'
+        })

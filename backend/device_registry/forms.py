@@ -2,12 +2,19 @@ from django import forms
 
 import tagulous.forms
 
-from .models import Device, FirewallState
+from .models import Device, FirewallState, DeviceInfo
 
 
 class ClaimDeviceForm(forms.Form):
     device_id = forms.CharField()
     claim_token = forms.CharField()
+
+
+class DeviceMetadataForm(forms.ModelForm):
+
+    class Meta:
+        model = DeviceInfo
+        fields = ['device_metadata']
 
 
 class DeviceAttrsForm(forms.ModelForm):

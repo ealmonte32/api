@@ -49,6 +49,9 @@
             <a class="nav-link" href="{% url 'device-detail-hardware' object.pk %}" role="tab" aria-selected="false">Hardware</a>
           </li>
         {% endif %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-metadata' object.pk %}" role="tab" aria-selected="false">Metadata</a>
+          </li>
         </ul>
         <div class="tab-content">
           <div class="tab-pane active" id="overview" role="tabpanel">

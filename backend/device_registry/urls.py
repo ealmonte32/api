@@ -1,7 +1,9 @@
 from django.conf import settings
 from django.urls import path
-from device_registry import views, api_views
+
 from rest_framework.schemas import get_schema_view
+
+from device_registry import views, api_views
 
 
 schema_view = get_schema_view(title='WoTT API')
@@ -44,6 +46,9 @@ if settings.IS_MTLS_API:
         path('api/{}/creds'.format(api_version),
              api_views.mtls_creds_view,
              name='mtls-creds'),
+        path('api/{}/dev-md'.format(api_version),
+             api_views.mtls_device_metadata_view,
+             name='mtls-dev-md'),
     ]
 
 # Front-end
@@ -79,6 +84,11 @@ if settings.IS_DASH:
             'devices/<int:pk>/hardware/',
             views.DeviceDetailHardwareView.as_view(),
             name='device-detail-hardware'
+        ),
+        path(
+            'devices/<int:pk>/metadata/',
+            views.DeviceDetailMetadataView.as_view(),
+            name='device-detail-metadata'
         ),
         path('credentials/',
              views.CredentialsView.as_view(),

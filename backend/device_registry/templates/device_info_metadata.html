@@ -1,0 +1,322 @@
+{% extends "admin_base.html" %}
+
+{% block css %}
+    {{ form_media.css }}
+    <style type="text/css">
+    .wott-form-alert {
+      color: black;
+      display: none;
+    }
+
+    input[failed]{
+      border-color: red;
+    }
+
+    </style>
+{% endblock %}
+
+{% block js %}
+    {{ form_media.js }}
+{% endblock %}
+
+{% load split_string %}
+
+{% block title %}WoTT - Device Info{% endblock title %}
+
+{% block dashboard_title %}
+  <h1 style="margin-bottom: 0">Device Profile</h1>
+{% endblock dashboard_title %}
+
+{% block admin_content %}
+  {% include 'device_info_top_block.html' %}
+  <div class="modal" tabindex="-1" role="dialog" id="wott-confirm-modal">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirm-title">Confirm mode change</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="confirm-msg">You do not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?</p>
+        </div>
+        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="confirm-alert">
+          Server error
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" id="confirm-btn">Yes</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="tab">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail' object.pk %}" role="tab" aria-selected="false">Overview</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-software' object.pk %}" role="tab" aria-selected="false">Software</a>
+          </li>
+        {% if portscan and firewall %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-security' object.pk %}" role="tab" aria-selected="false">Security</a>
+          </li>
+        {% endif %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-network' object.pk %}" role="tab" aria-selected="false">Network</a>
+          </li>
+        {% if portscan %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'device-detail-hardware' object.pk %}" role="tab" aria-selected="false">Hardware</a>
+          </li>
+        {% endif %}
+          <li class="nav-item">
+            <a class="nav-link active" href="{% url 'device-detail-metadata' object.pk %}" role="tab" aria-selected="true">Metadata</a>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active" id="device-metadata" role="tabpanel">
+            <h4 class="tab-title">Metadata</h4>
+            <form method="POST" action="" id="dev-md-form">
+              <table class="table table-striped table-responsive-xs">
+                <tbody>
+                <tr>
+                  <th scope="row" width="20%">Device Name</th>
+                  <td width="80%">{{ object.name|default_if_none:object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%">Device ID</th>
+                  <td width="80%">{{  object.device_id|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%">Manufacturer</th>
+                  <td width="80%">{{  object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%">Model</th>
+                  <td width="80%">{{  object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%">
+                    User values
+                  </th>
+                  <td width="80%">
+                    <div class="form-group" id="kv-editor">
+                      {% csrf_token %}
+                      <table id="dev-md-table" class="table table-striped table-responsive-xs" style="width:100%" >
+                      </table>
+                      <button class="btn btn-success" id="add-row" type="button">+</button>
+                    </div>
+                    <div class="form-group" id="json-editor" style="display: none">
+                      {% csrf_token %}
+                      {{ form.non_field_errors }}
+                      {{ form.device_metadata.errors }}
+                      {{ form.device_metadata }}
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" width="20%"> </th>
+                  <td>
+                    <div class="alert alert-warning wott-form-alert p-1" role="alert" id="main-alert">
+                      Server error
+                    </div>
+                    <div class="form-group">
+                      {% csrf_token %}
+                      <button class="btn btn-success" type="submit">Save</button>
+                    </div>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+
+    var table;
+    var edited = false;
+    var previous_mode;
+    document.addEventListener("DOMContentLoaded", function () {
+        // data-table
+      table = $('#dev-md-table').DataTable({
+        searching: false,
+        sorting:true,
+        paging: false,
+        info: false,
+        data: {{ dev_md|safe }},
+        language: {
+          emptyTable: "No user values defined."
+        },
+        columns: [
+            { title: 'key', width:'45%', render: kv_render, sorting: false },
+            { title: 'value', width:'45%', render: kv_render, sorting: false },
+            { title: '', width:'10%', data: null, render: kv_render_btns, sorting: false }
+        ],
+        columnDefs: [
+            { type: "string", targets: 0 },
+            { type: "string", targets: 1 }
+        ]
+      });
+
+      $('#add-row').on( 'click', function (){
+        table.row.add(["",""]).draw(false);
+      });
+
+      /**
+       * copy data from key-value editor to json-widget textarea. (used before  save)
+       * @returns if some value are not valid for json then show warinng and returns false
+       */
+      function kv_to_json_widget(){
+          let json_errors = [];
+          let result = {};
+          table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
+              var data = table.row( rowIdx ).data();
+              var s = String(data[1]).trim();
+
+              var left = (s === '') ?  s : s.substr(0,1);
+              var right = (s === '') ? s : s.slice(-1);
+
+              if( data[0] in result )
+              {
+                  let id = '#md_' + rowIdx + '_key';
+                  $(id).attr("failed", true);
+                  json_errors.push( "'" + data[0] + "' : duplicate key error.");
+              }
+              else
+              {
+                  if ( s === "true" || s === "fasle" || s === "null" || (left === right && left === '"' )
+                     || ( left === "{"  && right === "}" ) || ( left === "[" && right === "]" ) || isFinite(s))
+                  {
+                      try
+                      {
+                          result[data[0]] = JSON.parse(s);
+                      }
+                      catch(e)
+                      {
+                          let id = '#md_' + rowIdx + '_value';
+                          $(id).attr("failed", true);
+                          json_errors.push( "'" + data[1] + "' value error: " + e.message);
+                      }
+                  }
+                  else
+                      result[ data[0] ] = data[1];
+              }
+          });
+          $('#id_device_metadata').html( JSON.stringify(result) );
+          if (json_errors.length != 0) wott_alert_strings(json_errors, "main-alert" );
+          return json_errors.length == 0;
+      }
+
+      /* save values */
+      $('#dev-md-form').submit(function() {
+          $('.wott-form-alert')[0].style.display = 'none';
+          if( $("#kv-editor").is(":visible") )
+          {
+              if( !kv_to_json_widget() ) {
+                  return false;
+              }
+          }
+          return true;
+      });
+    });
+
+    /* key-value table functions. */
+
+    /***
+     * DataTable render function for key/value cells
+     * @param: data - cell data
+     * @param: type - if 'sort' then render for sort, otherwise for output
+     * @param: row - row data
+     * @param: meta - some additional info, such as meta.row, meta.column
+     */
+    function kv_render(data, type, row, meta){
+      if( type == 'sort' ) return data ? data : "\xFF";
+      let data_h = htmlEntities(data);
+      let columns=['key','value']
+      return '<input type="text" value="' + data_h +'" style="width:100%" id="md_' + meta.row + '_' + columns[meta.col] +
+             '" oninput="kv_update(this)">';
+    }
+
+    /***
+     * key/value inputs oninput handler.
+     * @param e - input.this
+     */
+    function kv_update(e){
+        cell = table.cell(e.parentElement)[0][0];
+        table.data()[cell.row][cell.column] = e.value;
+        $(e).removeAttr("failed");
+        edited = true;
+    }
+
+    /***
+     * DataTable add/del buttons cell render function
+     */
+    function kv_render_btns(data, type, row, meta){
+      if( type == 'sort' ) return data;
+      return '<button type="button" class="btn btn-danger" onclick="kv_remove(this)">x</i>';
+    }
+
+    /***
+     * del buttons onclick handler
+     * @param e - button.this
+     */
+    function kv_remove(e){
+        $('#confirm-btn').on("click", {row: e.parentElement.parentElement}, delete_row );
+        show_dialog("Confirm Removal",
+            "Are you sure you want to delete?",
+            "Delete"
+        );
+    }
+
+    /***
+     *  on confirm delete
+     *  @param e - e.data.row <- DataTable.row
+     */
+    function delete_row(e){
+        table.rows(e.data.row).remove().draw(false);
+        $('#dev-md-form').submit();
+    }
+
+    function htmlEntities(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /***
+     *  setup dialog parameters and toggle on
+     *  @param title - dialog title
+     *  @param message - dialog message
+     *  @param btn_text - dialog confirm button text
+     */
+    function show_dialog(title, message, btn_text )
+    {
+        $('#confirm-title')[0].innerText = title;
+        $('#confirm-msg')[0].innerText = message;
+        $('#confirm-btn')[0].innerText = btn_text;
+        $('#confirm-alert')[0].style.display = 'none';
+        $('#wott-confirm-modal').modal('toggle');
+    }
+
+    /**
+     * show alert msg
+     * @param messages  - array of error messages
+     * @param alert_box_id - html element id of message placeholder
+     */
+    function wott_alert_strings(messages, alert_box_id){
+        let alertbox = $("#"+alert_box_id)[0];
+        alertbox.style.display = 'block';
+        alertbox.innerText = messages.join("\n");
+        return;
+    }
+
+  </script>
+{% endblock admin_content %}
+

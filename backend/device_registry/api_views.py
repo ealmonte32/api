@@ -13,7 +13,6 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 
 from google.cloud import datastore
-
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -456,6 +455,36 @@ def mtls_creds_view(request, format=None):
         qs = Credential.objects.none()
     serializer = CredentialsListSerializer(qs, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def mtls_device_metadata_view(request, format=None):
+    """
+    Return device specific metadata.
+    """
+    device_id = is_mtls_authenticated(request)
+
+    if not device_id:
+        return Response(
+            'Invalid request.',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if type(device_id) is Response:
+        return device_id
+
+    device = Device.objects.get(device_id=device_id)
+    if device.claimed:
+        metadata = device.deviceinfo.device_metadata
+        metadata['device-name'] = device.name
+        metadata['device_id'] = device_id
+        metadata['manufacturer'] = device.deviceinfo.device_manufacturer
+        metadata['model'] = device.deviceinfo.device_model
+        metadata['model-decoded'] = device.deviceinfo.get_model()
+    else:
+        metadata = {}
+
+    return Response(metadata)
 
 
 class CredentialsQSMixin(object):

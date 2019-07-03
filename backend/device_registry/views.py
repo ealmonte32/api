@@ -1,4 +1,5 @@
 import uuid
+import json
 
 from django.views.generic import DetailView, ListView
 from django.http import HttpResponseRedirect
@@ -11,7 +12,7 @@ from django.db import transaction
 
 from tagulous.forms import TagWidget
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import Credential, get_bootstrap_color
 
@@ -240,6 +241,47 @@ class DeviceDetailHardwareView(LoginRequiredMixin, DetailView):
         except FirewallState.DoesNotExist:
             context['firewall'] = None
         return context
+
+
+class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
+    model = Device
+    template_name = 'device_info_metadata.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if hasattr(self.object, 'portscan'):
+            context['portscan'] = self.object.portscan
+        else:
+            context['portscan'] = None
+        if hasattr(self.object, 'firewallstate'):
+            context['firewall'] = self.object.firewallstate
+        else:
+            context['firewall'] = None
+        if 'dev_md' not in context:
+            device_metadata = self.object.deviceinfo.device_metadata
+            context['dev_md'] = []
+            for key, value in device_metadata.items():
+                if isinstance(value, str):
+                    context['dev_md'].append([key, value])
+                else:
+                    context['dev_md'].append([key, json.dumps(value)])
+        if 'form' not in context:
+            context['form'] = DeviceMetadataForm(instance=self.object.deviceinfo)
+            context['form_media'] = context['form'].media
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = DeviceMetadataForm(request.POST, instance=self.object.deviceinfo)
+        if form.is_valid() and "device_metadata" in form.cleaned_data:
+            self.object.deviceinfo.device_metadata = form.cleaned_data["device_metadata"]
+            self.object.deviceinfo.save(update_fields=['device_metadata'])
+            return HttpResponseRedirect(reverse('device-detail-metadata', kwargs={'pk': kwargs['pk']}))
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 class CredentialsView(LoginRequiredMixin, ListView):
