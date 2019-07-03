@@ -10,6 +10,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.authtoken.models import Token
 
 from device_registry.models import Credential, Device, DeviceInfo, Tag
 
@@ -173,44 +174,60 @@ class DeviceListViewTest(APITestCase):
             logins={'pi': {'failed': 1, 'success': 1}},
             device_metadata={'test-key': 'test-value'}
         )
-        self.client.login(username='test', password='123')
 
     def test_get(self):
+        self.client.login(username='test', password='123')
         response = self.client.get(self.url)
+        self.client.logout()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertListEqual(response.data, [OrderedDict([('id', self.device_info.id),
-                                                          ('device', OrderedDict(
-                                                              [('id', self.device.id),
-                                                               ('device_id', self.device.device_id),
-                                                               ('created', datetime_to_str(self.device.created)),
-                                                               ('last_ping', None), ('certificate', None),
-                                                               ('certificate_csr', None),
-                                                               ('certificate_expires', None),
-                                                               ('comment', None), ('claim_token', ''),
-                                                               ('fallback_token', ''), ('name', ''),
-                                                               ('agent_version', None),
-                                                               ('owner', self.user.id),
-                                                               ('tags', list(self.device.tags.values_list('pk',
-                                                                                                          flat=True)))
-                                                               ]
-                                                          )),
-                                                          (
-                                                              'device_manufacturer',
-                                                              self.device_info.device_manufacturer),
+        self.assertListEqual(response.data, [OrderedDict([('device', OrderedDict(
+            [('id', self.device.id), ('device_id', self.device.device_id), ('owner', self.user.id),
+             ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
+             ('comment', None), ('name', ''), ('agent_version', None),
+             ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
+                                                          ('device_manufacturer', self.device_info.device_manufacturer),
                                                           ('device_model', self.device_info.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
-                                                          ('device_operating_system_version', None),
-                                                          ('distr_id', None), ('distr_release', None),
-                                                          ('trust_score', None), ('fqdn', None),
-                                                          ('ipv4_address', None),
+                                                          ('device_operating_system_version', None), ('distr_id', None),
+                                                          ('distr_release', None), ('trust_score', None),
+                                                          ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
                                                           ('app_armor_enabled', True),
                                                           ('logins', {'pi': {'failed': 1, 'success': 1}}),
-                                                          ('default_password', None),
-                                                          ('detected_mirai', False),
-                                                          ('device_metadata', {'test-key': 'test-value'})
-                                                          ])])
+                                                          ('default_password', None), ('detected_mirai', False),
+                                                          ('device_metadata', {'test-key': 'test-value'})])])
+
+    def test_get_token_auth_success(self):
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token %s' % token.key)
+        response = self.client.get(self.url)
+        self.client.credentials()  # Reset previously set HTTP headers.
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertListEqual(response.data, [OrderedDict([('device', OrderedDict(
+            [('id', self.device.id), ('device_id', self.device.device_id), ('owner', self.user.id),
+             ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
+             ('comment', None), ('name', ''), ('agent_version', None),
+             ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
+                                                          ('device_manufacturer', self.device_info.device_manufacturer),
+                                                          ('device_model', self.device_info.device_model),
+                                                          ('device_architecture', None),
+                                                          ('device_operating_system', None),
+                                                          ('device_operating_system_version', None), ('distr_id', None),
+                                                          ('distr_release', None), ('trust_score', None),
+                                                          ('fqdn', None), ('ipv4_address', None),
+                                                          ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
+                                                          ('app_armor_enabled', True),
+                                                          ('logins', {'pi': {'failed': 1, 'success': 1}}),
+                                                          ('default_password', None), ('detected_mirai', False),
+                                                          ('device_metadata', {'test-key': 'test-value'})])])
+
+    def test_get_token_auth_fail(self):
+        Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token random_string')
+        response = self.client.get(self.url)
+        self.client.credentials()  # Reset previously set HTTP headers.
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class CredentialsViewTest(APITestCase):

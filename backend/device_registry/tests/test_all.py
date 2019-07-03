@@ -733,11 +733,7 @@ class APICredsTest(APITestCase):
         }
 
     def test_get(self):
-        response = self.client.get(
-            self.url,
-            **self.headers,
-            format='json'
-        )
+        response = self.client.get(self.url, **self.headers, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.json(),
                              [{'name': 'name1', 'key': 'key1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_json_widget',
     'rest_framework',
+    'rest_framework.authtoken',
     'tagulous',
     'device_registry.apps.DeviceRegistryConfig',
     'profile_page.apps.ProfilePageConfig',
@@ -127,6 +128,7 @@ LOGIN_REDIRECT_URL = 'root'
 LOGOUT_REDIRECT_URL = 'auth_login'
 
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
