@@ -39,7 +39,8 @@ class RequiredValidator(object):
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Device
-        fields = '__all__'
+        fields = ['id', 'device_id', 'owner', 'created', 'last_ping', 'certificate_expires', 'comment', 'name',
+                  'agent_version', 'tags']
 
 
 class DeviceInfoSerializer(serializers.ModelSerializer):
@@ -47,7 +48,10 @@ class DeviceInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DeviceInfo
-        fields = '__all__'
+        fields = ['device', 'device_manufacturer', 'device_model', 'device_architecture', 'device_operating_system',
+                  'device_operating_system_version', 'distr_id', 'distr_release', 'trust_score', 'fqdn', 'ipv4_address',
+                  'selinux_state', 'app_armor_enabled', 'logins', 'default_password', 'detected_mirai',
+                  'device_metadata']
 
 
 class TagsSerializer(serializers.ModelSerializer):

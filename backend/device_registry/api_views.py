@@ -18,6 +18,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import AllowAny
 from netaddr import IPAddress
 
@@ -214,6 +215,7 @@ class DeviceListView(ListAPIView):
     List all of the users devices.
     """
     serializer_class = DeviceInfoSerializer
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
     def get_queryset(self):
         return DeviceInfo.objects.filter(device__owner=self.request.user)

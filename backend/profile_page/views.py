@@ -4,8 +4,13 @@ from django.contrib.auth.views import LogoutView as DjangoLogoutView
 from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from django.http import HttpResponseRedirect
 from django.contrib import messages
+from django.views.generic import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+from rest_framework.authtoken.models import Token
 
 from .forms import ProfileForm
 from .models import Profile
@@ -43,3 +48,17 @@ class LogoutView(DjangoLogoutView):
             # Redirect to this page until the session has been cleared.
             return HttpResponseRedirect(next_page)
         return super().dispatch(request, *args, **kwargs)
+
+
+class GenerateAPITokenView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        if not hasattr(request.user, 'auth_token'):
+            Token.objects.create(user=request.user)
+        return HttpResponseRedirect(reverse('profile') + '#token')
+
+
+class RevokeAPITokenView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        if hasattr(request.user, 'auth_token'):
+            Token.objects.filter(user=request.user).delete()
+        return HttpResponseRedirect(reverse('profile') + '#token')
