@@ -11,5 +11,5 @@ def user_save_lower(sender, instance, *args, **kwargs):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    company_name = models.CharField(blank=True, null=True, max_length=128)
     last_active = models.DateField(null=True, blank=True)
+    company_name = models.CharField(blank=True, max_length=128)

@@ -1,9 +1,14 @@
 from django.urls import path
+from django.contrib.auth.views import PasswordChangeView
+from django.urls import reverse_lazy
 
-from .views import profile_view, GenerateAPITokenView, RevokeAPITokenView
+from .views import GenerateAPITokenView, RevokeAPITokenView, ProfileAccountView, ProfileAPITokenView
 
 urlpatterns = [
-    path('profile/', profile_view, name='profile'),
+    path('profile/', ProfileAccountView.as_view(), name='profile'),
+    path('profile/password/', PasswordChangeView.as_view(
+        success_url=reverse_lazy('profile_password'), template_name='profile_password.html'), name='profile_password'),
+    path('profile/token/', ProfileAPITokenView.as_view(), name='profile_token'),
     path('generate-api-token/', GenerateAPITokenView.as_view(), name='generate_api_token'),
     path('revoke-api-token/', RevokeAPITokenView.as_view(), name='revoke_api_token')
 ]

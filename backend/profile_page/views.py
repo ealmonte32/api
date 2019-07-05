@@ -1,11 +1,10 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LogoutView as DjangoLogoutView
 from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
-from django.views.generic import View
+from django.views.generic import View, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -16,21 +15,35 @@ from .forms import ProfileForm
 from .models import Profile
 
 
-@login_required
-def profile_view(request):
-    user = request.user
-    profile, _ = Profile.objects.get_or_create(user=user)
-    if request.method == 'POST':
-        form = ProfileForm(request.POST)
+class ProfileAccountView(LoginRequiredMixin, View):
 
+    def dispatch(self, request, *args, **kwargs):
+        self.user = request.user
+        self.profile, _ = Profile.objects.get_or_create(user=self.user)
+        self.initial_form_data = {'username': self.user.username, 'email': self.user.email,
+                                  'first_name': self.user.first_name, 'last_name': self.user.last_name,
+                                  'company': self.profile.company_name}
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        form = ProfileForm(initial=self.initial_form_data)
+        return render(request, 'profile_account.html', {'form': form})
+
+    def post(self, request, *args, **kwargs):
+        form = ProfileForm(request.POST, initial=self.initial_form_data)
         if form.is_valid():
-            user.email = form.cleaned_data['email']
-            user.first_name = form.cleaned_data['first_name']
-            user.last_name = form.cleaned_data['last_name']
-            profile.company_name = form.cleaned_data['company']
-            profile.save()
-            user.save()
-    return render(request, 'profile.html')
+            self.user.email = form.cleaned_data['email']
+            self.user.first_name = form.cleaned_data['first_name']
+            self.user.last_name = form.cleaned_data['last_name']
+            self.profile.company_name = form.cleaned_data['company']
+            self.user.save(update_fields=['email', 'first_name', 'last_name'])
+            self.profile.save(update_fields=['company_name'])
+            return HttpResponseRedirect(reverse('profile'))
+        return render(request, 'profile_account.html', {'form': form})
+
+
+class ProfileAPITokenView(LoginRequiredMixin, TemplateView):
+    template_name = 'profile_token.html'
 
 
 class LogoutView(DjangoLogoutView):
@@ -54,11 +67,11 @@ class GenerateAPITokenView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         if not hasattr(request.user, 'auth_token'):
             Token.objects.create(user=request.user)
-        return HttpResponseRedirect(reverse('profile') + '#token')
+        return HttpResponseRedirect(reverse('profile_token'))
 
 
 class RevokeAPITokenView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         if hasattr(request.user, 'auth_token'):
             Token.objects.filter(user=request.user).delete()
-        return HttpResponseRedirect(reverse('profile') + '#token')
+        return HttpResponseRedirect(reverse('profile_token'))
