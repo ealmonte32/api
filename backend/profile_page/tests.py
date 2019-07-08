@@ -1,6 +1,7 @@
 from django.test import TestCase, RequestFactory
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.utils import timezone
 
 
 class ProfileViewTest(TestCase):
@@ -14,6 +15,7 @@ class ProfileViewTest(TestCase):
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Profile Settings')
+        self.assertEqual(self.user0.profile.last_active, timezone.localdate())
 
     def test_comment(self):
         self.client.login(username='test', password='123')

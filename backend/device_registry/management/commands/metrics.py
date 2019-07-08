@@ -22,13 +22,15 @@ class Command(BaseCommand):
             return mean(scores) if scores else 0
 
         now = timezone.now()
-        day_ago = now - timezone.timedelta(hours=24)
+        today = now.date()
+        month_ago_date = today - timezone.timedelta(days=30)
+        day_ago_date = today - timezone.timedelta(days=1)
         week_ago = now - timezone.timedelta(days=7)
-        month_ago = now - timezone.timedelta(days=30)
+
         all_users = User.objects.count()
         all_devices = Device.objects.count()
-        active_users_monthly = User.objects.filter(last_login__gte=month_ago).count()
-        active_users_daily = User.objects.filter(last_login__gte=day_ago).count()
+        active_users_monthly = User.objects.filter(profile__last_active__gte=month_ago_date).count()
+        active_users_daily = User.objects.filter(profile__last_active__gte=day_ago_date).count()
         active_devices = Device.objects.filter(last_ping__gte=week_ago)
         inactive_devices = Device.objects.filter(last_ping__lt=week_ago)
         metrics = {
