@@ -136,7 +136,7 @@ class SignNewDeviceView(CreateAPIView):
 
 class DeviceCertView(APIView):
     """
-    Returns a device certificate from the database.
+    Return a device certificate from the database.
     """
     permission_classes = [AllowAny]
 
@@ -146,18 +146,9 @@ class DeviceCertView(APIView):
         except ObjectDoesNotExist:
             return Response('Device not found', status=status.HTTP_404_NOT_FOUND)
 
-        if 'format' in request.GET:
-            return Response({
-                'certificate': device.certificate,
-                'certificate_expires': device.certificate_expires,
-                'is_expired':
-                    device.certificate_expires < timezone.now() if device.certificate_expires is not None else False,
-                'device_id': device.device_id,
-            })
-        else:
-            response = HttpResponse(device.certificate, content_type='application/x-pem-file')
-            response['Content-Disposition'] = 'attachment; filename={}.crt'.format(device.device_id)
-            return response
+        response = HttpResponse(device.certificate, content_type='application/x-pem-file')
+        response['Content-Disposition'] = 'attachment; filename={}.crt'.format(device.device_id)
+        return response
 
 
 class DeviceIDView(APIView):

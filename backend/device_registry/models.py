@@ -112,13 +112,6 @@ class Device(models.Model):
         except ValueError:
             pass
 
-    def get_cert_url(self):
-        if settings.IS_DEV:
-            cert_url = f'http://localhost:8001/api/v0.2/device-cert/{self.device_id}'
-        else:
-            cert_url = f'https://api.wott.io/v0.2/device-cert/{self.device_id}'
-        return cert_url
-
     @property
     def actions_count(self):
         if self.firewallstate.policy == FirewallState.POLICY_ENABLED_ALLOW:

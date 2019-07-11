@@ -104,4 +104,5 @@ if settings.IS_DASH:
              api_views.autocomplete_tags,
              name='ajax-tags-autocomplete',
         ),
+        path('devices/device-cert/<str:device_id>/', api_views.DeviceCertView.as_view(), name='download_device_cert')
     ]
