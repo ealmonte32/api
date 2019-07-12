@@ -146,6 +146,17 @@ class RenewCertSerializer(serializers.ModelSerializer):
         validators = [RequiredValidator(fields=['device_id', 'certificate_csr'])]
 
 
+class UpdatePairingKeySrializer(serializers.Serializer):
+
+    key = serializers.UUIDField()
+    comment = serializers.CharField()
+
+    def validate_key(self, value):
+        if not PairingKey.objects.filter(key=value, action='enroll').exists():
+            raise serializers.ValidationError('Pairnig-token not found')
+        return value
+
+
 class EnrollDeviceSerializer(serializers.Serializer):
 
     device_id = serializers.CharField()

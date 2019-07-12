@@ -51,14 +51,19 @@
               <table id="datatables-basic" class="table table-striped table-responsive-xs" style="width:100%">
                 <thead>
                 <tr>
-                  <th>Created</th>
-                  <th>Key</th>
-                  <th></th>
+                  <th width="20%">Created</th>
+                  <th width="25%">Key</th>
+                  <th width="10%">Action</th>
+                  <th width="25%">Comment</th>
+                  <th width="20%"></th>
                 </tr>
                 </thead>
                 <tbody>
                 </tbody>
               </table>
+            </div>
+            <div class="alert alert-warning wott-form-alert p-1" role="alert" id="main-alert">
+              Server error
             </div>
           </div>
         </div>
@@ -107,6 +112,14 @@
       });
     });
 
+    const cols = {
+        created: 0,
+        key: 1,
+        action: 2,
+        comment: 3,
+        buttons: 4
+    }
+
     var table;
     document.addEventListener("DOMContentLoaded", function () {
       // Datatables basic
@@ -116,9 +129,11 @@
         columns: [
             { data: 'created', sorting: true },
             { data: 'key', sorting: false },
+            { data: 'action', sorting: true },
+            { data: 'comment', render: render_comment, sorting: true },
         ],
         columnDefs: [ {
-          targets: 2,
+          targets: cols.buttons,
           orderable: false,
           data: null,
           className: 'wott-cred-btns',
@@ -131,6 +146,13 @@
       });
     });
 
+    function render_comment( data, type, row, meta )
+    {
+        if( type == 'sort' ) return data;
+        let h_data = htmlEntities(data);
+        return '<input type="text" value="' + h_data + '" style="width:100%" ></input>'
+    }
+
     function fa_button( type, btn, fa, onclick, popover=undefined)
     {
         let pop = ( popover === undefined ) ? "" : ' data-toggle="popover" data-placement="top" title="' +
@@ -140,24 +162,25 @@
               + fa + '" aria-hidden="true" onclick="' + onclick + '"' + pop + '></span></button>';
     }
 
-    function render_buttons(data, type, row, meta){
+    function render_buttons(data, type, row, meta)
+    {
         let save_url = "location.href='{{ request.path }}?pk=" + row.key + ";'";
 
-        return fa_button( "button", "btn-primary", "fas fa-copy fa-lg", "copy_key('" + row.key + "')",
+        return  fa_button( "button", "btn-info", "fas fa-check fa-lg", "update_comment(this)",
+                { title:"Update key comment", content: "Save enrollment key comment."} )
+            + fa_button( "button", "btn-primary", "fas fa-copy fa-lg", "copy_key('" + row.key + "')",
                 {
                     title: "Copy key to clipboard",
                     content: "Copy the enrollment string to the clipboard. The string is in the form 'key = value' " +
-                             "to simply paste to config.ini file"
+                             "to simply paste to config.ini file."
                 })
             + fa_button( "button", "btn-success", "fas fa-save fa-lg", save_url,
-                { title:"Store key to disk", content: "Store generated enrollment key as ready to go config.ini file" } )
+                { title:"Store key to disk", content: "Store generated enrollment key as ready to go config.ini file." } )
             + fa_button( "button", "btn-danger", "fas fa-trash fa-lg", "revoke_key(this)",
                 { title:"Revoke the enrollment key"} )
     }
 
     function revoke_key(a){
-
-
       $('#confirm-btn').on("click", {key: a.parentElement.parentElement.parentElement.id}, delete_key );
       show_dialog("Confirm Revoke Key",
           "Are you sure you want to revoke?",
@@ -175,7 +198,8 @@
      *  on confirm delete
      *  @param e - e.data.key <- key to delete
      */
-    function delete_key(e){
+    function delete_key(e)
+    {
         $.ajax({
             url: '{{ request.path }}',
             type: "DELETE",
@@ -188,6 +212,25 @@
             console.log('error');
             console.log(a.status, a.responseText);
             alertbox_on_ajax_fail(a, "confirm-alert");
+        });
+    }
+
+    function update_comment(e)
+    {
+        let row = e.parentElement.parentElement.parentElement;
+        let comment = row.children[cols.comment].children[0].value
+        $.ajax({
+            url: '{{ request.path }}',
+            type: "PATCH",
+            data: JSON.stringify({ key: row.id, comment: comment }),
+            contentType: 'application/json',
+        }).done(function () {
+            console.log('success');
+            location.href='{{ request.path }}'
+        }).fail(function (a) {
+            console.log('error');
+            console.log(a.status, a.responseText);
+            alertbox_on_ajax_fail(a, "main-alert");
         });
     }
 
@@ -225,8 +268,6 @@
 
         errMsgs = []
         if(a.status == 400 || a.status == 404 || a.status == 405) {
-            errMsg = "";
-            firstFailed = "";
             for (key in a.responseJSON) {
                 errMsgss.push( key + " : " + a.responseJSON[key] );
             }
@@ -254,6 +295,10 @@
             document.getSelection().addRange(selected); // Restore the original selection
         }
     };
+
+    function htmlEntities(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
 
   </script>
 {% endblock scripts %}

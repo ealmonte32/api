@@ -485,6 +485,7 @@ class PairingKey(models.Model):
     key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     action = models.CharField(max_length=64, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
+    comment = models.CharField(blank=True, null=True, max_length=512)
 
     class Meta:
         ordering = ('created',)

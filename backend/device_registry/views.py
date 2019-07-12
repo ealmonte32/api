@@ -2,7 +2,7 @@ import uuid
 import json
 
 from django.views.generic import DetailView, ListView
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -15,6 +15,7 @@ from tagulous.forms import TagWidget
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import Credential, PairingKey, get_bootstrap_color
+from device_registry.serializers import UpdatePairingKeySrializer
 
 
 @login_required
@@ -313,13 +314,28 @@ class PairingKeysView(LoginRequiredMixin, ListView):
         context['data'] = [
             {"created": key.created.strftime("%Y-%m-%d %H:%M:%S"),
              "key": key.key.hex,
-             "action": key.action
+             "action": key.action,
+             "comment": key.comment if key.comment is not None else ""
              } for key in context['pairingkey_list']
         ]
         return context
 
+    def patch(self, request, *args, **kwargs ):
+
+        data = json.loads(request.body)
+        serializer = UpdatePairingKeySrializer(data=data)
+        if not serializer.is_valid():
+            return HttpResponseBadRequest(serializer.errors)
+        pair_key = PairingKey.objects.get(key=serializer.validated_data['key'])
+        pair_key.comment = serializer.validated_data['comment']
+        try:
+            pair_key.save(update_fields=['comment'])
+        except ValueError as e:
+            return HttpResponseBadRequest({'comment': 'Incorrect value or server error.'})
+        return HttpResponse("OK")
+
     def post(self, request, *args, **kwargs):
-        obj = PairingKey.objects.create(action='enroll', owner=self.request.user)
+        PairingKey.objects.create(action='enroll', owner=self.request.user)
         return HttpResponseRedirect(reverse('pairing-keys'))
 
     def delete(self, request, *args, **kwargs):
