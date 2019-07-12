@@ -1,6 +1,7 @@
 import datetime
 from statistics import mean
 import json
+import uuid
 
 from django.conf import settings
 from django.db import models
@@ -471,3 +472,19 @@ def average_trust_score(user):
     scores = [p.trust_score for p in Device.objects.filter(owner=user).all()]
     scores = [s for s in scores if s is not None]
     return mean(scores) if scores else None
+
+
+class PairingKey(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='pairing_keys',
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+    )
+    key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    action = models.CharField(max_length=64, blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('created',)

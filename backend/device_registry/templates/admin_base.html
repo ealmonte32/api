@@ -26,6 +26,9 @@
               <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
                   <a class="sidebar-link" href="{% url 'claim-device' %}">Claim Device</a>
               </li>
+              <li class="sidebar-item {% if url_name|is_menu_highlight_id:'pairing-keys' %}active{% endif %}">
+                  <a class="sidebar-link" href="{% url 'pairing-keys' %}">Pairing Keys</a>
+              </li>
               <li class="sidebar-item {% if url_name|is_menu_highlight_id:'credentials' %}active{% endif %}">
                   <a class="sidebar-link" href="{% url 'credentials' %}">Credentials</a>
               </li>

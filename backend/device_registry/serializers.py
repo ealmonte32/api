@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
 from rest_framework.compat import unicode_to_repr
 
-from device_registry.models import Device, DeviceInfo, Credential, Tag
+from device_registry.models import Device, DeviceInfo, Credential, Tag, PairingKey
 
 
 class RequiredValidator(object):
@@ -144,3 +144,25 @@ class RenewCertSerializer(serializers.ModelSerializer):
         fields = ['device_id', 'csr', 'device_manufacturer', 'device_model', 'device_architecture',
                   'device_operating_system', 'device_operating_system_version', 'fqdn', 'ipv4_address']
         validators = [RequiredValidator(fields=['device_id', 'certificate_csr'])]
+
+
+class EnrollDeviceSerializer(serializers.Serializer):
+
+    device_id = serializers.CharField()
+    key = serializers.UUIDField()
+    claim_token = serializers.CharField()
+
+    def validate_device_id(self, value):
+        if not Device.objects.filter(device_id=value).exists():
+            raise serializers.ValidationError('Device not found')
+        return value
+
+    def validate_key(self, value):
+        if not PairingKey.objects.filter(key=value, action='enroll').exists():
+            raise serializers.ValidationError('Pairnig-token not found')
+        return value
+
+    def validate_claim_token(self, value):
+        if not Device.objects.filter(claim_token=value).exists():
+            raise serializers.ValidationError('Claim-token not found')
+        return value

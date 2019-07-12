@@ -24,9 +24,9 @@ from device_registry import ca_helper
 from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
-from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer
+from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer, EnrollDeviceSerializer
 from device_registry.authentication import MTLSAuthentication
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
 
 logger = logging.getLogger(__name__)
 
@@ -380,6 +380,32 @@ class ClaimByLink(APIView):
         device.claim_token = ''
         device.save(update_fields=['owner', 'claim_token'])
         return Response(f'Device {device.device_id} claimed!')
+
+
+class EnrollByKey(UpdateAPIView):
+
+    permission_classes = [AllowAny]
+    serializer_class = EnrollDeviceSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        pair_key = PairingKey.objects.get(key=serializer.validated_data['key'])
+
+        device = Device.objects.get(
+            claim_token=serializer.validated_data['claim_token'],
+            device_id=serializer.validated_data['device_id'],
+            owner__isnull=True
+        )
+        device.owner = pair_key.owner
+        device.claim_token = ''
+        device.save(update_fields=['owner', 'claim_token'])
+        pair_key.delete()
+        return Response({
+            'message': f'Device {device.device_id} claimed!'
+        })
 
 
 class DeviceListView(ListAPIView):

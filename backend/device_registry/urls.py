@@ -24,6 +24,7 @@ if settings.IS_API:
         path('api/{}/sign-expired-csr'.format(api_version), api_views.RenewExpiredCertView.as_view(),
              name='sign_expired_cert'),
         path('api/{}/claim-device'.format(api_version), api_views.ClaimByLink.as_view(), name='claim_by_link'),
+        path('api/{}/enroll-device'.format(api_version), api_views.EnrollByKey.as_view(), name='enroll_by_key'),
     ]
 
 # Only load if mTLS
@@ -98,5 +99,8 @@ if settings.IS_DASH:
              api_views.autocomplete_tags,
              name='ajax-tags-autocomplete',
         ),
+        path('pairing-keys/',
+             views.PairingKeysView.as_view(),
+             name='pairing-keys'),
         path('devices/device-cert/<str:device_id>/', api_views.DeviceCertView.as_view(), name='download_device_cert')
     ]

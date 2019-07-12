@@ -14,7 +14,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
-from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan
+from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, , PairingKey
+
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
@@ -801,3 +802,73 @@ class MtlsPingViewTest(APITestCase):
         portscan = PortScan.objects.get(device=self.device)
         self.assertListEqual(scan_info, portscan.scan_info)
         self.assertDictEqual(firewall_rules, firewall_state.rules)
+
+
+class EnrollByKeyViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.claim_token = uuid.uuid4()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', claim_token=self.claim_token)
+        self.pairing_key = PairingKey.objects.create(owner=self.user, action='enroll')
+        self.url = reverse('enroll_by_key')
+
+    def test_post_success(self):
+        device = Device.objects.get(pk=self.device.pk)
+        payload = {
+            'key': self.pairing_key.key.hex,
+            'device_id': device.device_id,
+            'claim_token': device.claim_token
+        }
+        self.assertFalse(device.claimed)
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {'message': 'Device device0.d.wott-dev.local claimed!'})
+        device = Device.objects.get(pk=self.device.pk)
+        self.assertTrue(device.claimed)
+        self.assertFalse(PairingKey.objects.filter(key=self.pairing_key.key).exists())
+
+    def test_post_fail_on_token(self):
+        device = Device.objects.get(pk=self.device.pk)
+        fail_key = uuid.UUID(int=(self.pairing_key.key.int + 1))
+        payload = {
+            'key': fail_key.hex,
+            'device_id': device.device_id,
+            'claim_token': device.claim_token
+        }
+        self.assertFalse(device.claimed)
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, {'key': [ErrorDetail(string='Pairnig-token not found', code='invalid')]})
+        device = Device.objects.get(pk=self.device.pk)
+        self.assertFalse(device.claimed)
+        self.assertTrue(PairingKey.objects.filter(key=self.pairing_key.key).exists())
+
+    def test_post_fail_on_device_id_and_claim_token(self):
+        payload = {
+            'key': self.pairing_key.key.hex,
+            'device_id': 'incorrect-device.d.wott-dev.local',
+            'claim_token': 'incorrect-claim-token'
+        }
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        error_data = {
+            'device_id': [ErrorDetail(string='Device not found', code='invalid')],
+            'claim_token': [ErrorDetail(string='Claim-token not found', code='invalid')]
+        }
+        self.assertEqual(response.data, error_data)
+        self.assertTrue(PairingKey.objects.filter(key=self.pairing_key.key).exists())
+
+    def test_post_fail_on_insufficient_args(self):
+        payload = {}
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        error_data = {
+            'device_id': [ErrorDetail(string='This field is required.', code='required')],
+            'key': [ErrorDetail(string='This field is required.', code='required')],
+            'claim_token': [ErrorDetail(string='This field is required.', code='required')]
+        }
+        self.assertEqual(response.data, error_data)
+        self.assertTrue(PairingKey.objects.filter(key=self.pairing_key.key).exists())

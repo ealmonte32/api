@@ -2,7 +2,7 @@ import uuid
 import json
 
 from django.views.generic import DetailView, ListView
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -14,7 +14,7 @@ from tagulous.forms import TagWidget
 
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
-from device_registry.models import Credential, get_bootstrap_color
+from device_registry.models import Credential, PairingKey, get_bootstrap_color
 
 
 @login_required
@@ -298,6 +298,49 @@ class CredentialsView(LoginRequiredMixin, ListView):
         context['pi_credentials_path'] = self.pi_credentials_path
         context['form_media'] = TagWidget().media
         return context
+
+
+class PairingKeysView(LoginRequiredMixin, ListView):
+    model = PairingKey
+    template_name = 'pairing_keys.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super(PairingKeysView, self).get_context_data(**kwargs)
+        context['data'] = [
+            {"created": key.created.strftime("%Y-%m-%d %H:%M:%S"),
+             "key": key.key.hex,
+             "action": key.action
+             } for key in context['pairingkey_list']
+        ]
+        return context
+
+    def post(self, request, *args, **kwargs):
+        obj = PairingKey.objects.create(action='enroll', owner=self.request.user)
+        return HttpResponseRedirect(reverse('pairing-keys'))
+
+    def delete(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        PairingKey.objects.filter(key=data['key'], owner=self.request.user).delete()
+        return HttpResponse("OK")
+
+    def get(self, request, *args, **kwargs):
+        if 'pk' in self.request.GET:
+            return self._save_file_response(
+                PairingKey.objects.get(key=self.request.GET['pk'], owner=self.request.user)
+            )
+        else:
+            return super(PairingKeysView, self).get(request, *args, **kwargs)
+
+    def _save_file_response(self, key_object):
+
+        data = "[DEFAULT]\n\nenroll_token = {}".format(key_object.key.hex)
+        response = HttpResponse(data, content_type='text/plain')
+        response['Content-Disposition'] = 'attachment; filename = "config.ini"'
+        return response
 
 
 @login_required
