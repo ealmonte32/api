@@ -59,13 +59,6 @@ class DeviceCertViewTest(APITestCase):
         self.assertIsInstance(response.content, bytes)
         self.assertEqual(response.content, TEST_CERT.encode('utf8'))
 
-    def test_get_with_format(self):
-        response = self.client.get(self.url + '?format')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIsInstance(response.data, dict)
-        self.assertDictEqual(response.data, {'certificate': TEST_CERT, 'certificate_expires': self.expires,
-                                             'is_expired': False, 'device_id': self.device.device_id})
-
 
 class DeviceIDViewTest(APITestCase):
     def setUp(self):
