@@ -44,14 +44,18 @@
             <table class="table table-striped table-responsive-xs">
               <tbody>
               <tr>
-                  <th scope="row">Default Password Detected</th>
+                  <th scope="row">
+                      Default Credentials
+                      <a href="https://wott.io/documentation/faq#default-credentials" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                  </th>
                 <td>
                   {% if object.deviceinfo.default_password is None %}N/A{% else %}
-                    {{ object.deviceinfo.default_password|title }}
                     {% if not object.deviceinfo.default_password %}
                       {% include "badge.html" with icon="check" color="success" %}
+                      No default credentials detected.
                     {% else %}
-                      {% include "badge.html" with icon="times-circle" color="danger" %}
+                      {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                      Default credentials detected!
                     {% endif %}
                   {% endif %}
                 </td>
@@ -62,37 +66,42 @@
                     {% if object.deviceinfo.logins %}
                         <pre>{{ object.deviceinfo.beautified_logins }}</pre>
                     {% else %}
-                        No recent login attempts detected
+                        No recent login attempts detected.
                     {% endif %}
                 </td>
               </tr>
               <tr>
-                  <th scope="row">SELinux Status</th>
-                  <td>
-                  {% if object.deviceinfo.selinux_state.enabled %}
-                    {{ object.deviceinfo.selinux_state.mode|default:'Enabled (unknown)' }}
-                  {%  elif object.deviceinfo.selinux_state.enabled is False %}
-                    Disabled
-                  {%  else %}
-                      N/A
-                  {% endif %}
+                  <th scope="row">
+                      SELinux
+                      <a href="https://wott.io/documentation/faq#selinux" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
 
+                  </th>
+                  <td>
                   {% if object.deviceinfo.selinux_state.enabled and object.deviceinfo.selinux_state.mode == 'enforcing'%}
                     {% include "badge.html" with icon="check" color="success" %}
                   {% elif object.deviceinfo.selinux_state.enabled is not None %}
-                    {% include "badge.html" with icon="exclamation-triangle" color="warning" %}
+                    {% include "badge.html" with icon="exclamation-circle" color="warning" %}
+                  {% endif %}
+
+                  {% if object.deviceinfo.selinux_state.enabled %}
+                    {{ object.deviceinfo.selinux_state.mode|default:'Enabled (unknown)' }}
+                  {%  elif object.deviceinfo.selinux_state.enabled is False %}
+                  {%  else %}
+                      N/A
                   {% endif %}
                   </td>
               </tr>
               <tr>
-                  <th scope="row">AppArmor Enabled</th>
+                  <th scope="row">
+                      AppArmor
+                      <a href="https://wott.io/documentation/faq#apparmor" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                  </th>
                 <td>
                   {% if object.deviceinfo.app_armor_enabled is None %}N/A{% else %}
-                    {{ object.deviceinfo.app_armor_enabled|title }}
                     {% if object.deviceinfo.app_armor_enabled %}
                       {% include "badge.html" with icon="check" color="success" %}
                     {% else %}
-                      {% include "badge.html" with icon="exclamation-triangle" color="warning" %}
+                      {% include "badge.html" with icon="exclamation-circle" color="warning" %}
                     {% endif %}
                   {% endif %}
                 </td>
@@ -124,7 +133,12 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row">Firewall Ports Policy</th>
+                <th scope="row">
+                    Firewall Ports Policy
+                    <a href="https://wott.io/documentation/faq#firewall-policy" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+
+                </th>
+
                 <td>
                   <form method="POST" action="">
                     {% csrf_token %}
@@ -164,7 +178,10 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row">Open Connections</th>
+                <th scope="row">
+                    Open Connections
+                    <a href="https://wott.io/documentation/faq#open-connections" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                </th>
                 <td>
                   {% if connections_choices %}
                     <form method="POST" action="">
@@ -209,7 +226,10 @@
               </tr>
               {% if not is_expired %}
                 <tr>
-                  <th scope="row">Download Certificate</th>
+                  <th scope="row">
+                      Download Device Certificate
+                      <a href="https://wott.io/documentation/faq#device-certificate" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                  </th>
                   <td>
                     <a href="{% url 'download_device_cert' object.device_id %}">{{ object.device_id }}.crt</a>
                   </td>
