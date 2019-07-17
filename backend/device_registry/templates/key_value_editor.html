@@ -1,0 +1,210 @@
+  <style>
+    td.wott-kv-btns .btn {
+      visibility: hidden;
+    }
+    #kv-editor-table tr:hover td.wott-kv-btns .btn {
+      visibility: visible;
+    }
+  </style>
+
+  <script>
+      function create_kv_editor(data, options=null) {
+
+        const cols = {
+            key: 0,
+            value: 1,
+            buttons: 2
+        }
+
+
+        const defaultOptions = {
+            key_value_class: "",              /* css class for key/value inputs */
+            on_delete_row: undefined,         /* function if needed after row deleted. for example ajax or submit call */
+            ask_delete_confirmation: true,
+        }
+
+        if( options == null )
+            options = defaultOptions;
+        else
+            for ( let key in defaultOptions ){
+                if (!(key in options)){
+                  options[key] = defaultOptions[key];
+                }
+            }
+
+
+        let table = $('#kv-editor-table').DataTable({
+            searching: false,
+            sorting: true,
+            paging: false,
+            info: false,
+            data: data,
+            language: {
+                emptyTable: "No values defined."
+            },
+            columns: [
+                { title: 'key', width: '45%', render: kv_render, sorting: false},
+                { title: 'value', width: '45%', render: kv_render, sorting: false},
+                { title: '', width: '10%', sorting: false}
+            ],
+            columnDefs: [
+                {type: "string", targets: cols.key},
+                {type: "string", targets: cols.value},
+                {
+                  targets: cols.buttons,
+                  orderable: false,
+                  data: null,
+                  className: 'wott-kv-btns',
+                  render: render_buttons,
+              }
+            ],
+            rowId: 'key',
+        });
+
+        $('#add-kv-row-btn').on('click', function () {
+            table.row.add(["", ""]).draw(false);
+        });
+
+        table.on( 'draw.dt', function () {
+            $('#kv-editor-table tr td input').on('input', kv_update);
+            if( options.ask_delete_confirmation )
+              $('#kv-editor-table tr td.wott-kv-btns .btn').on('click', kv_remove);
+            else
+              $('#kv-editor-table tr td.wott-kv-btns .btn').on('click', kv_remove_noask);
+
+        });
+
+        /* key-value table functions. */
+
+        /***
+         * DataTable render function for key/value cells
+         * @param: data - cell data
+         * @param: type - if 'sort' then render for sort, otherwise for output
+         * @param: row - row data
+         * @param: meta - some additional info, such as meta.row, meta.column
+         */
+        function kv_render(data, type, row, meta) {
+            if (type == 'sort') return data ? data : "\xFF";
+            let data_h = htmlEntities(data);
+            let columns = ['key', 'value']
+            let kv_class = (options.key_value_class == "") ? "" : 'class="' + options.key_value_class + '"';
+            return '<input type="text" ' + kv_class + ' value="' + data_h + '" style="width:100%" >';
+        }
+
+        /***
+         * key/value inputs oninput handler.
+         * @param e - input.this
+         */
+        function kv_update(e) {
+            let input = e.currentTarget;
+            let cell = table.cell(input.parentElement)[0][0];
+            table.data()[cell.row][cell.column] = input.value;
+            $(input).removeAttr("failed");
+            edited = true;
+        }
+
+
+        function fa_button( type, btn, fa, onclick=undefined, popover=undefined)
+        {
+            let pop = ( popover === undefined ) ? "" : ' data-toggle="popover" data-placement="top" title="' +
+                popover.title + (popover.content === undefined ? '"' : ('" data-content="' +  popover.content + '"'));
+
+            let click = ( onclick === undefined ) ? "" : ' onclick="' + onclick + '" '
+            return '<button type="' + type + '" class="btn ' + btn + '" aria-label="Left Align"><span class="'
+                  + fa + '" aria-hidden="true"' + click + pop + '></span></button>';
+        }
+
+        /***
+         * DataTable add/del buttons cell render function
+         */
+        function render_buttons(data, type, row, meta){
+          if( type == 'sort' ) return data;
+          //return '<button type="button" class="btn btn-danger" onclick="kv_remove(this)">x</i>';
+          return fa_button( "button", "btn-danger", "fas fa-trash fa-lg", undefined,
+                { title:"Remove key/value pair."} )
+        }
+
+        /***
+         * del buttons onclick handler
+         * @param e - button.this
+         */
+        function kv_remove(e){
+            e.preventDefault();
+            $('#confirm-btn').on("click", {row: e.currentTarget.parentElement.parentElement}, delete_row );
+            show_confirm_dialog("Confirm Removal",
+                  "Are you sure you want to delete?",
+                  "Delete"
+            );
+        }
+
+        function kv_remove_noask(e){
+            e.preventDefault();
+            table.rows(e.currentTarget.parentElement.parentElement).remove().draw(false);
+            if( options.on_delete_row !== undefined )options.on_delete_row(e.data.row);
+        }
+
+        /***
+         *  on confirm delete
+         *  @param e - e.data.row <- DataTable.row
+         */
+        function delete_row(e){
+            table.rows(e.data.row).remove().draw(false);
+            if( options.on_delete_row !== undefined )options.on_delete_row(e.data.row);
+            hide_confirm_dialog();
+        }
+
+        if( htmlEntities === undefined ){
+          function htmlEntities(str) {
+              return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          }
+        }
+
+
+        /**
+         * copy data from key-value editor to json-widget textarea. (used before  save)
+         * @returns if some value are not valid for json then show warinng and returns false
+         */
+        function kv_to_json(json_element_id){
+            let json_errors = [];
+            let result = {};
+            table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
+                var data = table.row( rowIdx ).data();
+                var s = String(data[cols.key]).trim();
+
+                var left = (s === '') ?  s : s.substr(0,1);
+                var right = (s === '') ? s : s.slice(-1);
+
+                if( data[cols.key] in result )
+                {
+                    let id = '#md_' + rowIdx + '_key';
+                    $(id).attr("failed", true);
+                    json_errors.push( "'" + data[cols.key] + "' : duplicate key error.");
+                }
+                else
+                {
+                    if ( s === "true" || s === "fasle" || s === "null" || (left === right && left === '"' )
+                       || ( left === "{"  && right === "}" ) || ( left === "[" && right === "]" ) || isFinite(s))
+                    {
+                        try
+                        {
+                            result[data[cols.key]] = JSON.parse(s);
+                        }
+                        catch(e)
+                        {
+                            let id = '#md_' + rowIdx + '_value';
+                            $(id).attr("failed", true);
+                            json_errors.push( "'" + data[cols.value] + "' value error: " + e.message);
+                        }
+                    }
+                    else
+                        result[ data[cols.key] ] = data[cols.value];
+                }
+            });
+            $(json_element_id).html( JSON.stringify(result) );
+            if (json_errors.length != 0) wott_alert_strings(json_errors, "main-alert" );
+            return json_errors.length == 0;
+        }
+      table.kv_to_json = kv_to_json;
+      return table;
+    }
+  </script>
