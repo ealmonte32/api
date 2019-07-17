@@ -7,7 +7,6 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
@@ -17,7 +16,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
+from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView, RetrieveAPIView
+from rest_framework.generics import get_object_or_404
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import AllowAny
 from netaddr import IPAddress
@@ -26,16 +26,67 @@ from device_registry import ca_helper
 from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
+from device_registry.serializers import IsDeviceClaimedSerializer
+from device_registry.authentication import MTLSAuthentication
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
 
 logger = logging.getLogger(__name__)
-
 
 if google_cloud_helper.credentials and google_cloud_helper.project:
     datastore_client = datastore.Client(project=google_cloud_helper.project,
                                         credentials=google_cloud_helper.credentials)
 else:
     datastore_client = None
+
+
+def is_mtls_authenticated(request):
+    """
+    Returns the device id if authenticated properly
+    through mTLS.
+
+    This should probably be moved to a permission class.
+    """
+
+    if not request.META.get('HTTP_SSL_CLIENT_VERIFY') == 'SUCCESS':
+        return Response(
+            'You shall not pass!',
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    cn_domain = re.match(r'.{1}\.(?P<domain>.*)', settings.COMMON_NAME_PREFIX).groupdict()['domain']
+
+    # @TODO clean up this as it will likely break
+    matchObj = re.match(
+        r'.*CN=(.*.{cn_domain})'.format(cn_domain=cn_domain),
+        request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'),
+        re.M | re.I
+    )
+    if not matchObj:
+        logging.error('[MTLS-Auth] No valid CN found in header HTTP_SSL_CLIENT_SUBJECT_DN.')
+        return False
+
+    cn = matchObj.group(1)
+    if cn.endswith(settings.COMMON_NAME_PREFIX):
+        return cn
+    else:
+        logging.error('[MTLS-Auth] CN does not match {}'.format(settings.COMMON_NAME_PREFIX))
+        return False
+
+
+class IsDeviceClaimedView(RetrieveAPIView):
+    """Return claimed status of a device."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+    queryset = Device.objects.all()
+    serializer_class = IsDeviceClaimedSerializer
+
+    def get_object(self):
+        """
+        Standard `get_object` method overwritten in order to get device_id
+         from the request instance which received it from MTLSAuthentication.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        obj = get_object_or_404(queryset, **{'device_id': self.request.device_id})
+        return obj
 
 
 class RenewExpiredCertView(UpdateAPIView):
@@ -210,39 +261,6 @@ class DeviceListView(ListAPIView):
 
     def get_queryset(self):
         return DeviceInfo.objects.filter(device__owner=self.request.user)
-
-
-def is_mtls_authenticated(request):
-    """
-    Returns the device id if authenticated properly
-    through mTLS.
-
-    This should probably be moved to a permission class.
-    """
-
-    if not request.META.get('HTTP_SSL_CLIENT_VERIFY') == 'SUCCESS':
-        return Response(
-            'You shall not pass!',
-            status=status.HTTP_403_FORBIDDEN,
-        )
-    cn_domain = re.match(r'.{1}\.(?P<domain>.*)', settings.COMMON_NAME_PREFIX).groupdict()['domain']
-
-    # @TODO clean up this as it will likely break
-    matchObj = re.match(
-        r'.*CN=(.*.{cn_domain})'.format(cn_domain=cn_domain),
-        request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'),
-        re.M | re.I
-    )
-    if not matchObj:
-        logging.error('[MTLS-Auth] No valid CN found in header HTTP_SSL_CLIENT_SUBJECT_DN.')
-        return False
-
-    cn = matchObj.group(1)
-    if cn.endswith(settings.COMMON_NAME_PREFIX):
-        return cn
-    else:
-        logging.error('[MTLS-Auth] CN does not match {}'.format(settings.COMMON_NAME_PREFIX))
-        return False
 
 
 @api_view(['GET', 'POST'])
@@ -577,26 +595,6 @@ class CreateCredentialView(CreateAPIView):
             for tag in serializer.initial_data['tags']
         ]
         instance.tags.add(*tags)
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mtls_is_claimed_view(request, format=None):
-    """
-    Return claimed status of a device.
-    """
-    device_id = is_mtls_authenticated(request)
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    if type(device_id) is Response:
-        return device_id
-
-    device = Device.objects.get(device_id=device_id)
-    return Response({'claimed': device.claimed, 'claim_token': device.claim_token})
 
 
 def autocomplete(request, tag_model):

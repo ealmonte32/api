@@ -773,27 +773,6 @@ class APICredsTest(APITestCase):
                                               'pk': self.credential2.tags.tags[0].pk}]}])
 
 
-class APIIsClaimedTest(APITestCase):
-    def setUp(self):
-        self.url = reverse('mtls-is_claimed')
-        User = get_user_model()
-        self.user = User.objects.create_user('test')
-        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
-        self.headers = {
-            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
-            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
-        }
-
-    def test_get(self):
-        response = self.client.get(
-            self.url,
-            **self.headers,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.json(), {'claim_token': '', 'claimed': True})
-
-
 class APIDevMetadataTest(APITestCase):
 
     def setUp(self):
@@ -822,10 +801,10 @@ class APIDevMetadataTest(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {
-                'test': 'value',
-                'device_id': 'device0.d.wott-dev.local',
-                'manufacturer': 'Raspberry Pi',
-                'model': '900092',
-                'model-decoded': 'Zero v1.2',
-                'device-name': 'the-device-name'
+            'test': 'value',
+            'device_id': 'device0.d.wott-dev.local',
+            'manufacturer': 'Raspberry Pi',
+            'model': '900092',
+            'model-decoded': 'Zero v1.2',
+            'device-name': 'the-device-name'
         })

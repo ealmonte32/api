@@ -121,3 +121,9 @@ class DeviceIDSerializer(serializers.Serializer):
         if not Device.objects.filter(device_id=value).exists():
             raise serializers.ValidationError('Device not found')
         return value
+
+
+class IsDeviceClaimedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Device
+        fields = ['claimed', 'claim_token']
