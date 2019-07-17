@@ -72,6 +72,15 @@ def is_mtls_authenticated(request):
         return False
 
 
+class MtlsTesterView(APIView):
+    """Return the Device ID of the sender."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        return Response({'message': 'Hello {}'.format(request.device_id)})
+
+
 class IsDeviceClaimedView(RetrieveAPIView):
     """Return claimed status of a device."""
     permission_classes = [AllowAny]
@@ -341,29 +350,6 @@ def mtls_ping_view(request, format=None):
             datastore_client.put(entity)
 
         return Response({'message': 'pong'})
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mtls_tester_view(request, format=None):
-    """
-    Simply returns the Device ID of the sender.
-    """
-
-    device_id = is_mtls_authenticated(request)
-
-    if type(device_id) is Response:
-        return device_id
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    return Response({
-        'message': 'Hello {}'.format(device_id)
-    })
 
 
 @api_view(['POST'])
