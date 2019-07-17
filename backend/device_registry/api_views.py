@@ -72,6 +72,14 @@ def is_mtls_authenticated(request):
         return False
 
 
+class ActionView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, *args, **kwargs):
+        return Response({'id': kwargs['action_id'], 'name': kwargs['action_name']})
+
+
 class MtlsTesterView(APIView):
     """Return the Device ID of the sender."""
     permission_classes = [AllowAny]
@@ -416,16 +424,6 @@ def mtls_renew_cert_view(request, format=None):
         'claim_token': device_object.claim_token,
         'fallback_token': device_object.fallback_token,
         'claimed': device_object.claimed
-    })
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def action_view(request, action_id, action_name):
-    # Perform action
-    return Response({
-        'id': action_id,
-        'name': action_name
     })
 
 

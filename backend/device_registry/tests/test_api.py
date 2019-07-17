@@ -507,3 +507,13 @@ class MtlsTesterViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {'message': 'Hello device0.d.wott-dev.local'})
+
+
+class ActionViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('action', kwargs={'action_id': 77, 'action_name': 'action1'})
+
+    def test_get(self):
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {'id': 77, 'name': 'action1'})
