@@ -72,6 +72,21 @@ def is_mtls_authenticated(request):
         return False
 
 
+class MtlsCredsView(APIView):
+    """Return all user's credentials."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        device = Device.objects.get(device_id=request.device_id)
+        if device.owner:
+            qs = device.owner.credentials.filter(tags__in=device.tags.tags).distinct()
+        else:
+            qs = Credential.objects.none()
+        serializer = CredentialsListSerializer(qs, many=True)
+        return Response(serializer.data)
+
+
 class ActionView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -425,31 +440,6 @@ def mtls_renew_cert_view(request, format=None):
         'fallback_token': device_object.fallback_token,
         'claimed': device_object.claimed
     })
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mtls_creds_view(request, format=None):
-    """
-    Return all user's credentials.
-    """
-    device_id = is_mtls_authenticated(request)
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    if type(device_id) is Response:
-        return device_id
-
-    device = Device.objects.get(device_id=device_id)
-    if device.owner:
-        qs = device.owner.credentials.filter(tags__in=device.tags.tags).distinct()
-    else:
-        qs = Credential.objects.none()
-    serializer = CredentialsListSerializer(qs, many=True)
-    return Response(serializer.data)
 
 
 @api_view(['GET'])

@@ -517,3 +517,53 @@ class ActionViewTest(APITestCase):
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {'id': 77, 'name': 'action1'})
+
+
+class APICredsTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('mtls-creds')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1',
+                                                    value='as9dfyaoiufhoasdfjh', tags='tag1',
+                                                    linux_user='nobody')
+        self.credential2 = Credential.objects.create(owner=self.user, name='name2', key='key2',
+                                                     value='iuoiuoifpojoijccm', tags='Hardware: Raspberry Pi,')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
+        self.deviceinfo = DeviceInfo.objects.create(device=self.device)
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(),
+                             [{'name': 'name1', 'key': 'key1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
+                               'pk': self.credential.pk,
+                               'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}]}])
+
+    def test_get_revoked_device(self):
+        Device.objects.create(device_id='device1.d.wott-dev.local')
+        headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device1.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+        response = self.client.get(self.url, **headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(), [])
+
+    def test_get_limited_by_meta_tags(self):
+        self.deviceinfo.device_manufacturer = 'Raspberry Pi'
+        self.deviceinfo.save(update_fields=['device_manufacturer'])
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(),
+                             [{'name': 'name1', 'key': 'key1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
+                               'pk': self.credential.pk,
+                               'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}]},
+                              {'name': 'name2', 'key': 'key2', 'value': 'iuoiuoifpojoijccm', 'linux_user': '',
+                               'pk': self.credential2.pk,
+                               'tags_data': [{'name': 'Hardware: Raspberry Pi',
+                                              'pk': self.credential2.tags.tags[0].pk}]}])
