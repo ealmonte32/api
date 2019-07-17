@@ -20,7 +20,7 @@
         const defaultOptions = {
             key_value_class: "",              /* css class for key/value inputs */
             on_delete_row: undefined,         /* function if needed after row deleted. for example ajax or submit call */
-            ask_delete_confirmation: true,
+            ask_delete_confirmation: true,    /* run show_confirm_dialog before delete row */
         }
 
         if( options == null )
@@ -119,7 +119,6 @@
          */
         function render_buttons(data, type, row, meta){
           if( type == 'sort' ) return data;
-          //return '<button type="button" class="btn btn-danger" onclick="kv_remove(this)">x</i>';
           return fa_button( "button", "btn-danger", "fas fa-trash fa-lg", undefined,
                 { title:"Remove key/value pair."} )
         }
