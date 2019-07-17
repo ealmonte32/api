@@ -1,6 +1,5 @@
 import re
 
-from django.contrib.auth.models import AnonymousUser
 from django.conf import settings
 
 from rest_framework.authentication import BaseAuthentication
@@ -13,6 +12,9 @@ class MTLSAuthentication(BaseAuthentication):
     """
     Custom authentication backend for mutual TLS (mTLS) auth
      based on http headers data.
+    Passes further device_id in a newly added request property.
+    It's not a real authentication (in terms of DRF),
+     just few checks done before a view call.
     """
 
     def authenticate(self, request):
@@ -35,4 +37,4 @@ class MTLSAuthentication(BaseAuthentication):
             raise exceptions.PermissionDenied()
 
         request.device_id = cn
-        return AnonymousUser(), None
+        return None
