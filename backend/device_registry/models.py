@@ -251,7 +251,13 @@ class DeviceInfo(models.Model):
         '9000c1': 'Zero W',
         'a02082': '3 Model B',
         'a22082': '3 Model B',
-        'a020d3': '3 Model B+'
+        'a32082': '3 Model B',
+        'a52082': '3 Model B',
+        'a22083': '3 Model B',
+        'a020d3': '3 Model B+',
+        'a03111': '4 Model B',
+        'b03111': '4 Model B',
+        'c03111': '4 Model B'
     }
 
     def __str__(self):
