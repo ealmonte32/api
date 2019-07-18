@@ -1,5 +1,4 @@
 import datetime
-import json
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -13,10 +12,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
-from rest_framework.test import APIRequestFactory
 
 from device_registry import ca_helper
-from device_registry.api_views import mtls_ping_view
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm
 
@@ -108,9 +105,6 @@ class CsrHelperTests(TestCase):
         )
 
 
-TEST_RULES = {'INPUT': [{'src': '15.15.15.50/32', 'target': 'DROP'}, {'src': '15.15.15.51/32', 'target': 'DROP'}],
-              'OUTPUT': [], 'FORWARD': []}
-
 OPEN_PORTS_INFO = [{"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4}]
 OPEN_PORTS_INFO_TELNET = [{"host": "192.168.1.178", "port": 23, "proto": "tcp", "state": "open", "ip_version": 4}]
 
@@ -118,186 +112,6 @@ OPEN_CONNECTIONS_INFO = [
     {'ip_version': 4, 'type': 'tcp', 'local_address': ['192.168.1.178', 4567],
      'remote_address': ['192.168.1.177', 5678], 'status': 'open', 'pid': 3425}
 ]
-
-
-class APIPingTest(TestCase):
-    def setUp(self):
-        self.api = APIRequestFactory()
-        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
-        self.ping_payload = {
-            'device_operating_system_version': 'linux',
-            'fqdn': 'test-device0',
-            'ipv4_address': '127.0.0.1',
-            'uptime': '0',
-            'distr_id': 'Raspbian',
-            'distr_release': '9.4',
-            'scan_info': OPEN_PORTS_INFO,
-            'netstat': OPEN_CONNECTIONS_INFO,
-            'firewall_rules': TEST_RULES
-        }
-        self.ping_headers = {
-            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
-            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
-        }
-
-    def test_ping_endpoint(self):
-        request = self.api.get(
-            '/v0.2/ping/',
-            **self.ping_headers,
-            format='json'
-        )
-        response = mtls_ping_view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'policy': self.device0.firewallstate.policy_string,
-                                             'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
-
-    def test_pong_data(self):
-        # 1st request
-        request = self.api.get(
-            '/v0.2/ping/',
-            **self.ping_headers,
-            format='json'
-        )
-        response = mtls_ping_view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
-                                             'policy': self.device0.firewallstate.policy_string})
-        # 2nd request
-        self.device0.portscan.block_ports = [['192.168.1.178', 'tcp', 22, False]]
-        self.device0.portscan.block_networks = [['192.168.1.177', False]]
-        self.device0.portscan.save(update_fields=['block_ports', 'block_networks'])
-        request = self.api.post(
-            '/v0.2/ping/',
-            self.ping_payload,
-            **self.ping_headers,
-            format='json'
-        )
-        response = mtls_ping_view(request)
-        self.assertEqual(response.status_code, 200)
-
-        request = self.api.get(
-            '/v0.2/ping/',
-            **self.ping_headers,
-            format='json'
-        )
-        response = mtls_ping_view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'policy': self.device0.firewallstate.policy_string,
-                                             'block_ports': [['192.168.1.178', 'tcp', 22, False]],
-                                             'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS})
-
-    def test_ping_creates_models(self):
-        request = self.api.post(
-            '/v0.2/ping/',
-            self.ping_payload,
-            **self.ping_headers,
-            format='json'
-        )
-        devinfo_obj_count_before = DeviceInfo.objects.count()
-        portscan_obj_count_before = PortScan.objects.count()
-        mtls_ping_view(request)
-        devinfo_obj_count_after = DeviceInfo.objects.count()
-        portscan_obj_count_after = PortScan.objects.count()
-        self.assertEqual(devinfo_obj_count_before, 0)
-        self.assertEqual(portscan_obj_count_before, 0)
-        self.assertEqual(devinfo_obj_count_after, 1)
-        self.assertEqual(portscan_obj_count_after, 1)
-
-    def test_ping_writes_scan_info(self):
-        request = self.api.post(
-            '/v0.2/ping/',
-            self.ping_payload,
-            **self.ping_headers,
-            format='json'
-        )
-        mtls_ping_view(request)
-        portscan = PortScan.objects.get(device=self.device0)
-        scan_info = portscan.scan_info
-        self.assertListEqual(scan_info, OPEN_PORTS_INFO)
-
-    def test_ping_writes_netstat(self):
-        request = self.api.post(
-            '/v0.2/ping/',
-            self.ping_payload,
-            **self.ping_headers,
-            format='json'
-        )
-        mtls_ping_view(request)
-        portscan = PortScan.objects.get(device=self.device0)
-        netstat = portscan.netstat
-        self.assertListEqual(netstat, OPEN_CONNECTIONS_INFO)
-
-    def test_ping_distr_info(self):
-        request = self.api.post(
-            '/v0.2/ping/',
-            self.ping_payload,
-            **self.ping_headers,
-            format='json'
-        )
-        mtls_ping_view(request)
-        self.assertEqual(self.device0.deviceinfo.distr_id, 'Raspbian')
-        self.assertEqual(self.device0.deviceinfo.distr_release, '9.4')
-
-    def test_ping_writes_firewall_info_pos(self):
-        request = self.api.post(
-            '/v0.2/ping/',
-            self.ping_payload,
-            **self.ping_headers,
-            format='json'
-        )
-        mtls_ping_view(request)
-        firewall_state = FirewallState.objects.get(device=self.device0)
-        self.assertDictEqual(firewall_state.rules, TEST_RULES)
-
-    def test_ping_writes_firewall_info_neg(self):
-        ping_payload = {
-            'device_operating_system_version': 'linux',
-            'fqdn': 'test-device0',
-            'ipv4_address': '127.0.0.1',
-            'uptime': '0',
-            'scan_info': OPEN_PORTS_INFO,
-            'netstat': OPEN_CONNECTIONS_INFO,
-            'firewall_rules': {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
-        }
-        request = self.api.post(
-            '/v0.2/ping/',
-            ping_payload,
-            **self.ping_headers,
-            format='json'
-        )
-        mtls_ping_view(request)
-        firewall_state = FirewallState.objects.get(device=self.device0)
-        self.assertDictEqual(firewall_state.rules, {'INPUT': [], 'OUTPUT': [], 'FORWARD': []})
-
-    def test_ping_converts_json(self):
-        scan_info = [{
-            "host": "localhost",
-            "port": 22,
-            "proto": "tcp",
-            "state": "open",
-            "ip_version": 4
-        }]
-        firewall_rules = {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
-        ping_payload = {
-            'device_operating_system_version': 'linux',
-            'fqdn': 'test-device0',
-            'ipv4_address': '127.0.0.1',
-            'uptime': '0',
-            'scan_info': json.dumps(scan_info),
-            'firewall_rules': json.dumps(firewall_rules)
-        }
-        request = self.api.post(
-            '/v0.2/ping/',
-            ping_payload,
-            **self.ping_headers,
-            format='json'
-        )
-        mtls_ping_view(request)
-        firewall_state = FirewallState.objects.get(device=self.device0)
-        portscan = PortScan.objects.get(device=self.device0)
-        self.assertListEqual(scan_info, portscan.scan_info)
-        self.assertDictEqual(firewall_rules, firewall_state.rules)
-
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
