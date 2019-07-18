@@ -583,7 +583,6 @@ class MtlsDeviceMetadataViewTest(APITestCase):
             device_model='900092',
             device_metadata={"test": "value"}
         )
-
         self.headers = {
             'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
             'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
@@ -600,3 +599,76 @@ class MtlsDeviceMetadataViewTest(APITestCase):
             'model-decoded': 'Zero v1.2',
             'device-name': 'the-device-name'
         })
+
+
+class MtlsRenewCertViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        DeviceInfo.objects.create(device=self.device)
+        self.url = reverse('mtls-sign-device-cert-test')
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+        self.expires = timezone.now() + timezone.timedelta(days=3)
+        self.uuid = uuid.uuid4()
+        self.post_data = {'device_id': 'device0.d.wott-dev.local', 'csr': 'asdfsdf', 'device_operating_system': 'linux',
+                          'device_operating_system_version': '2', 'device_architecture': '386', 'fqdn': 'domain.com',
+                          'ipv4_address': '192.168.1.15'}
+
+    def test_post_success(self):
+        with patch('cfssl.cfssl.CFSSL.sign') as sign, \
+                patch('device_registry.ca_helper.get_certificate_expiration_date') as gced, \
+                patch('device_registry.ca_helper.csr_is_valid') as civ, \
+                patch('uuid.uuid4') as uuid4:
+            sign.return_value = '010101'
+            gced.return_value = self.expires
+            civ.return_value = True
+            uuid4.return_value = self.uuid
+
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+            response = self.client.post(self.url, self.post_data, **self.headers)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertDictEqual(response.data, {
+                'certificate': '010101',
+                'certificate_expires': self.expires,
+                'claim_token': self.uuid,
+                'fallback_token': self.uuid,
+                'claimed': self.device.claimed
+            })
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+
+    def test_post_wrong_device_id(self):
+        post_data = self.post_data.copy()
+        post_data['device_id'] = 'no_such_device'
+        self.assertEqual(Device.objects.count(), 1)
+        self.assertEqual(DeviceInfo.objects.count(), 1)
+        response = self.client.post(self.url, post_data, **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, 'Invalid request.')
+        self.assertEqual(Device.objects.count(), 1)
+        self.assertEqual(DeviceInfo.objects.count(), 1)
+
+    def test_post_invalid_csr(self):
+        with patch('device_registry.ca_helper.csr_is_valid') as civ:
+            civ.return_value = False
+            response = self.client.post(self.url, self.post_data, **self.headers)
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(response.data, 'Invalid CSR.')
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+
+    def test_post_signing_error(self):
+        with patch('device_registry.ca_helper.csr_is_valid') as civ, \
+                patch('device_registry.ca_helper.sign_csr') as scsr:
+            civ.return_value = True
+            scsr.return_value = False
+            response = self.client.post(self.url, self.post_data, **self.headers)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data, 'Unknown error')
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)

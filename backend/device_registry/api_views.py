@@ -26,7 +26,7 @@ from device_registry import ca_helper
 from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
-from device_registry.serializers import IsDeviceClaimedSerializer
+from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer
 from device_registry.authentication import MTLSAuthentication
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
 
@@ -70,6 +70,52 @@ def is_mtls_authenticated(request):
     else:
         logging.error('[MTLS-Auth] CN does not match {}'.format(settings.COMMON_NAME_PREFIX))
         return False
+
+
+class MtlsRenewCertView(APIView):
+    """Renewal of certificate."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def post(self, request, *args, **kwargs):
+        device_id = request.device_id
+        device = Device.objects.get(device_id=device_id)
+
+        serializer = RenewCertSerializer(device, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        if serializer.validated_data['device_id'] != device_id:
+            return Response('Invalid request.', status=status.HTTP_400_BAD_REQUEST)
+
+        if not ca_helper.csr_is_valid(csr=serializer.validated_data['certificate_csr'], device_id=device_id):
+            return Response('Invalid CSR.', status=status.HTTP_400_BAD_REQUEST)
+
+        signed_certificate = ca_helper.sign_csr(serializer.validated_data['certificate_csr'], device_id)
+        if not signed_certificate:
+            return Response('Unknown error', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
+
+        serializer.save(certificate=signed_certificate, certificate_expires=certificate_expires,
+                        last_ping=timezone.now(), claim_token=uuid.uuid4(), fallback_token=uuid.uuid4())
+
+        device_info, _ = DeviceInfo.objects.get_or_create(device=device)
+        device_info.device_manufacturer = serializer.validated_data.get('device_manufacturer', '')
+        device_info.device_model = serializer.validated_data.get('device_model', '')
+        device_info.device_operating_system = serializer.validated_data['device_operating_system']
+        device_info.device_operating_system_version = serializer.validated_data['device_operating_system_version']
+        device_info.device_architecture = serializer.validated_data['device_architecture']
+        device_info.fqdn = serializer.validated_data['fqdn']
+        device_info.ipv4_address = serializer.validated_data['ipv4_address']
+        device_info.save()
+
+        return Response({
+            'certificate': signed_certificate,
+            'certificate_expires': certificate_expires,
+            'claim_token': device.claim_token,
+            'fallback_token': device.fallback_token,
+            'claimed': device.claimed
+        })
 
 
 class MtlsDeviceMetadataView(APIView):
@@ -392,73 +438,6 @@ def mtls_ping_view(request, format=None):
             datastore_client.put(entity)
 
         return Response({'message': 'pong'})
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def mtls_renew_cert_view(request, format=None):
-    """
-    Renewal of certificate.
-    """
-
-    csr = request.data.get('csr')
-    device_id = request.data.get('device_id')
-    tls_device_id = is_mtls_authenticated(request)
-
-    if not tls_device_id:
-        return Response(
-            'You shall not pass!.',
-            status=status.HTTP_403_FORBIDDEN
-        )
-
-    if not tls_device_id == device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if not ca_helper.csr_is_valid(csr=csr, device_id=device_id):
-        return Response(
-            'Invalid CSR.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    signed_certificate = ca_helper.sign_csr(csr, device_id)
-    if not signed_certificate:
-        return Response(
-            'Unknown error',
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-    certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
-
-    device_object = Device.objects.get(device_id=device_id)
-    device_object.certificate_csr = csr
-    device_object.certificate = signed_certificate
-    device_object.certificate_expires = certificate_expires
-    device_object.last_ping = timezone.now()
-    device_object.claim_token = uuid.uuid4()
-    device_object.fallback_token = uuid.uuid4()
-    device_object.save()
-
-    # @TODO: Log changes
-    device_info_object, _ = DeviceInfo.objects.get_or_create(device=device_object)
-    device_info_object.device_manufacturer = request.data.get('device_manufacturer')
-    device_info_object.device_model = request.data.get('device_model')
-    device_info_object.device_operating_system = request.data.get('device_operating_system')
-    device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
-    device_info_object.device_architecture = request.data.get('device_architecture')
-    device_info_object.fqdn = request.data.get('fqdn')
-    device_info_object.ipv4_address = request.data.get('ipv4_address')
-    device_info_object.save()
-
-    return Response({
-        'certificate': signed_certificate,
-        'certificate_expires': certificate_expires,
-        'claim_token': device_object.claim_token,
-        'fallback_token': device_object.fallback_token,
-        'claimed': device_object.claimed
-    })
 
 
 class CredentialsQSMixin(object):

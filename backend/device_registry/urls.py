@@ -30,8 +30,12 @@ if settings.IS_API:
 if settings.IS_MTLS_API:
     urlpatterns += [
         path('api/{}/sign-csr'.format(api_version),  # TODO: change to some unique path.
-             api_views.mtls_renew_cert_view,
+             api_views.MtlsRenewCertView.as_view(),
              name='mtls-sign-device-cert'),
+        # Only for tests! We need it because of IS_API and IS_MTLS_API url duplication.
+        path('api/{}/sign-csr-test'.format(api_version),
+             api_views.MtlsRenewCertView.as_view(),
+             name='mtls-sign-device-cert-test'),
         path('api/{}/ping'.format(api_version),
              api_views.mtls_ping_view,
              name='mtls-ping'),
