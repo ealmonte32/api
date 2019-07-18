@@ -72,6 +72,25 @@ def is_mtls_authenticated(request):
         return False
 
 
+class MtlsDeviceMetadataView(APIView):
+    """Return device specific metadata."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        device = Device.objects.get(device_id=request.device_id)
+        if device.claimed:
+            metadata = device.deviceinfo.device_metadata
+            metadata['device-name'] = device.name
+            metadata['device_id'] = request.device_id
+            metadata['manufacturer'] = device.deviceinfo.device_manufacturer
+            metadata['model'] = device.deviceinfo.device_model
+            metadata['model-decoded'] = device.deviceinfo.get_model()
+        else:
+            metadata = {}
+        return Response(metadata)
+
+
 class MtlsCredsView(APIView):
     """Return all user's credentials."""
     permission_classes = [AllowAny]
@@ -440,36 +459,6 @@ def mtls_renew_cert_view(request, format=None):
         'fallback_token': device_object.fallback_token,
         'claimed': device_object.claimed
     })
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mtls_device_metadata_view(request, format=None):
-    """
-    Return device specific metadata.
-    """
-    device_id = is_mtls_authenticated(request)
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    if type(device_id) is Response:
-        return device_id
-
-    device = Device.objects.get(device_id=device_id)
-    if device.claimed:
-        metadata = device.deviceinfo.device_metadata
-        metadata['device-name'] = device.name
-        metadata['device_id'] = device_id
-        metadata['manufacturer'] = device.deviceinfo.device_manufacturer
-        metadata['model'] = device.deviceinfo.device_model
-        metadata['model-decoded'] = device.deviceinfo.get_model()
-    else:
-        metadata = {}
-
-    return Response(metadata)
 
 
 class CredentialsQSMixin(object):

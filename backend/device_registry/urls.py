@@ -40,9 +40,7 @@ if settings.IS_MTLS_API:
              name='action'),
         path('api/{}/claimed'.format(api_version), api_views.IsDeviceClaimedView.as_view(), name='mtls-is_claimed'),
         path('api/{}/creds'.format(api_version), api_views.MtlsCredsView.as_view(), name='mtls-creds'),
-        path('api/{}/dev-md'.format(api_version),
-             api_views.mtls_device_metadata_view,
-             name='mtls-dev-md'),
+        path('api/{}/dev-md'.format(api_version), api_views.MtlsDeviceMetadataView.as_view(), name='mtls-dev-md')
     ]
 
 # Front-end

@@ -14,7 +14,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 from rest_framework.test import APIRequestFactory
-from rest_framework.test import APITestCase
 
 from device_registry import ca_helper
 from device_registry.api_views import mtls_ping_view
@@ -713,40 +712,3 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<pre>pi:')
         self.assertContains(response, 'success: 1')
-
-
-class APIDevMetadataTest(APITestCase):
-
-    def setUp(self):
-        self.url = reverse('mtls-dev-md')
-        User = get_user_model()
-        self.user = User.objects.create_user('test')
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
-                                            tags='tag1', name='the-device-name')
-        self.device_info = DeviceInfo.objects.create(
-            device=self.device,
-            device_manufacturer='Raspberry Pi',
-            device_model='900092',
-            device_metadata={"test": "value"}
-        )
-
-        self.headers = {
-            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
-            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
-        }
-
-    def test_get(self):
-        response = self.client.get(
-            self.url,
-            **self.headers,
-            format='json'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.json(), {
-            'test': 'value',
-            'device_id': 'device0.d.wott-dev.local',
-            'manufacturer': 'Raspberry Pi',
-            'model': '900092',
-            'model-decoded': 'Zero v1.2',
-            'device-name': 'the-device-name'
-        })

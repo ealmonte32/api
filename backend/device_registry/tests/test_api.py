@@ -519,7 +519,7 @@ class ActionViewTest(APITestCase):
         self.assertDictEqual(response.json(), {'id': 77, 'name': 'action1'})
 
 
-class APICredsTest(APITestCase):
+class MtlsCredsViewTest(APITestCase):
     def setUp(self):
         self.url = reverse('mtls-creds')
         User = get_user_model()
@@ -567,3 +567,36 @@ class APICredsTest(APITestCase):
                                'pk': self.credential2.pk,
                                'tags_data': [{'name': 'Hardware: Raspberry Pi',
                                               'pk': self.credential2.tags.tags[0].pk}]}])
+
+
+class MtlsDeviceMetadataViewTest(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('mtls-dev-md')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
+                                            tags='tag1', name='the-device-name')
+        self.device_info = DeviceInfo.objects.create(
+            device=self.device,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            device_metadata={"test": "value"}
+        )
+
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {
+            'test': 'value',
+            'device_id': 'device0.d.wott-dev.local',
+            'manufacturer': 'Raspberry Pi',
+            'model': '900092',
+            'model-decoded': 'Zero v1.2',
+            'device-name': 'the-device-name'
+        })
