@@ -479,13 +479,10 @@ class PairingKey(models.Model):
         settings.AUTH_USER_MODEL,
         related_name='pairing_keys',
         on_delete=models.CASCADE,
-        blank=True,
-        null=True,
     )
     key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    action = models.CharField(max_length=64, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)
-    comment = models.CharField(blank=True, null=True, max_length=512)
+    comment = models.CharField(blank=True, max_length=512)
 
     class Meta:
         ordering = ('created',)

@@ -304,44 +304,11 @@ class CredentialsView(LoginRequiredMixin, ListView):
 class PairingKeysView(LoginRequiredMixin, ListView):
     model = PairingKey
     template_name = 'pairing_keys.html'
+    context_object_name = 'pairing_key_list'
 
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
-
-    def get_context_data(self, **kwargs):
-        context = super(PairingKeysView, self).get_context_data(**kwargs)
-        context['data'] = [
-            {"created": key.created.strftime("%Y-%m-%d %H:%M:%S"),
-             "key": key.key.hex,
-             "action": key.action,
-             "comment": key.comment if key.comment is not None else ""
-             } for key in context['pairingkey_list']
-        ]
-        return context
-
-    def patch(self, request, *args, **kwargs ):
-
-        data = json.loads(request.body)
-        serializer = UpdatePairingKeySrializer(data=data)
-        if not serializer.is_valid():
-            return HttpResponseBadRequest(serializer.errors)
-        pair_key = PairingKey.objects.get(key=serializer.validated_data['key'])
-        pair_key.comment = serializer.validated_data['comment']
-        try:
-            pair_key.save(update_fields=['comment'])
-        except ValueError as e:
-            return HttpResponseBadRequest({'comment': 'Incorrect value or server error.'})
-        return HttpResponse("OK")
-
-    def post(self, request, *args, **kwargs):
-        PairingKey.objects.create(action='enroll', owner=self.request.user)
-        return HttpResponseRedirect(reverse('pairing-keys'))
-
-    def delete(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        PairingKey.objects.filter(key=data['key'], owner=self.request.user).delete()
-        return HttpResponse("OK")
 
     def get(self, request, *args, **kwargs):
         if 'pk' in self.request.GET:

@@ -159,9 +159,9 @@ class UpdatePairingKeySrializer(serializers.Serializer):
 
 class EnrollDeviceSerializer(serializers.Serializer):
 
-    device_id = serializers.CharField()
+    device_id = serializers.CharField(max_length=128)
     key = serializers.UUIDField()
-    claim_token = serializers.CharField()
+    claim_token = serializers.CharField(max_length=128)
 
     def validate_device_id(self, value):
         if not Device.objects.filter(device_id=value).exists():
@@ -169,7 +169,7 @@ class EnrollDeviceSerializer(serializers.Serializer):
         return value
 
     def validate_key(self, value):
-        if not PairingKey.objects.filter(key=value, action='enroll').exists():
+        if not PairingKey.objects.filter(key=value).exists():
             raise serializers.ValidationError('Pairnig-token not found')
         return value
 
@@ -177,3 +177,22 @@ class EnrollDeviceSerializer(serializers.Serializer):
         if not Device.objects.filter(claim_token=value).exists():
             raise serializers.ValidationError('Claim-token not found')
         return value
+
+    def validate(self, data):
+        if not Device.objects.filter(claim_token=data['claim_token'], device_id=data['device_id']).exists():
+            raise serializers.ValidationError('Claim-token for this device not found')
+        return data
+
+
+class PairingKeyListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PairingKey
+        fields = ['key', 'created', 'comment']
+
+
+class UpdatePairingKeySrializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PairingKey
+        fields = ['comment']

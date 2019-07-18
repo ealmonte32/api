@@ -24,8 +24,9 @@ from device_registry import ca_helper
 from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
-from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer, EnrollDeviceSerializer
+from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer
 from device_registry.authentication import MTLSAuthentication
+from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySrializer
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
 
 logger = logging.getLogger(__name__)
@@ -382,13 +383,12 @@ class ClaimByLink(APIView):
         return Response(f'Device {device.device_id} claimed!')
 
 
-class EnrollByKey(UpdateAPIView):
+class DeviceEnrollView(APIView):
 
     permission_classes = [AllowAny]
-    serializer_class = EnrollDeviceSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = EnrollDeviceSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -402,10 +402,7 @@ class EnrollByKey(UpdateAPIView):
         device.owner = pair_key.owner
         device.claim_token = ''
         device.save(update_fields=['owner', 'claim_token'])
-        pair_key.delete()
-        return Response({
-            'message': f'Device {device.device_id} claimed!'
-        })
+        return Response()
 
 
 class DeviceListView(ListAPIView):
@@ -590,3 +587,33 @@ def autocomplete_tags(request):
         Tag.objects.filter_or_initial(device__owner=request.user).distinct() |
         Tag.objects.filter_or_initial(credential__owner=request.user).distinct()
     )
+
+
+class PairingKeysQSMixin(object):
+    def get_queryset(self):
+        return self.request.user.pairing_keys.all()
+
+
+class PairingKeyListView(PairingKeysQSMixin, ListAPIView):
+    """
+    Return all current user's credentials.
+    """
+    serializer_class = PairingKeyListSerializer
+
+
+class DeletePairingKeyView(PairingKeysQSMixin, DestroyAPIView):
+    pass
+
+
+class CreatePairingKeyView(CreateAPIView):
+
+    def create(self, request, *args, **kwargs):
+        pairing_key = PairingKey.objects.create(owner=self.request.user)
+        serializer = PairingKeyListSerializer(instance=pairing_key)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class UpdatePairingKeyView(PairingKeysQSMixin, UpdateAPIView):
+    serializer_class = UpdatePairingKeySrializer
+

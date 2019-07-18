@@ -53,7 +53,6 @@
                 <tr>
                   <th width="20%">Created</th>
                   <th width="25%">Key</th>
-                  <th width="10%">Action</th>
                   <th width="25%">Comment</th>
                   <th width="20%"></th>
                 </tr>
@@ -70,7 +69,7 @@
     </div>
 {#  <div class="row">#}
     {% csrf_token %}
-    <button type="submit" class="btn btn-success" id="create-new-btn">＋ Create Pairing Key</button>
+    <button type="button" class="btn btn-success" id="create-new-btn" onclick="create_new_key()">＋ Create Pairing Key</button>
 {#  </div>#}
   </form>
 {% endblock admin_content %}
@@ -115,9 +114,8 @@
     const cols = {
         created: 0,
         key: 1,
-        action: 2,
-        comment: 3,
-        buttons: 4
+        comment: 2,
+        buttons: 3
     }
 
     var table;
@@ -125,11 +123,13 @@
       // Datatables basic
       table = $('#datatables-basic').DataTable({
         responsive: true,
-        data: {{ data | safe }},
+        ajax: {
+          url:  "/ajax-pairing-keys/",
+          dataSrc: "",
+        },
         columns: [
             { data: 'created', sorting: true },
             { data: 'key', sorting: false },
-            { data: 'action', sorting: true },
             { data: 'comment', render: render_comment, sorting: true },
         ],
         columnDefs: [ {
@@ -181,6 +181,7 @@
     }
 
     function revoke_key(a){
+      wott_alert_hide("main-alert");
       $('#confirm-btn').on("click", {key: a.parentElement.parentElement.parentElement.id}, delete_key );
       show_dialog("Confirm Revoke Key",
           "Are you sure you want to revoke?",
@@ -200,14 +201,13 @@
      */
     function delete_key(e)
     {
+        hide_dialog();
         $.ajax({
-            url: '{{ request.path }}',
+            url: `/ajax-pairing-keys/${e.data.key}/delete/`,
             type: "DELETE",
-            data: JSON.stringify({ key: e.data.key }),
-            contentType: 'application/json',
         }).done(function () {
             console.log('success');
-            location.href='{{ request.path }}'
+            table.ajax.reload();
         }).fail(function (a) {
             console.log('error');
             console.log(a.status, a.responseText);
@@ -217,16 +217,17 @@
 
     function update_comment(e)
     {
+        wott_alert_hide("main-alert");
         let row = e.parentElement.parentElement.parentElement;
         let comment = row.children[cols.comment].children[0].value
         $.ajax({
-            url: '{{ request.path }}',
+            url: `/ajax-pairing-keys/${row.id}/update/`,
             type: "PATCH",
-            data: JSON.stringify({ key: row.id, comment: comment }),
+            data: JSON.stringify({ comment: comment }),
             contentType: 'application/json',
         }).done(function () {
             console.log('success');
-            location.href='{{ request.path }}'
+            table.ajax.reload();
         }).fail(function (a) {
             console.log('error');
             console.log(a.status, a.responseText);
@@ -234,6 +235,22 @@
         });
     }
 
+    function create_new_key(){
+        wott_alert_hide("main-alert");
+        $.ajax({
+            url: '/ajax-pairing-keys/create/',
+            type: "POST",
+            data: JSON.stringify({}),
+            contentType: 'application/json',
+        }).done(function () {
+            console.log('success');
+            table.ajax.reload();
+        }).fail(function (a) {
+            console.log('error');
+            console.log(a.status, a.responseText);
+            alertbox_on_ajax_fail(a, "main-alert");
+        });
+    }
 
     /***
      *  setup dialog parameters and toggle on
@@ -250,6 +267,16 @@
         $('#wott-confirm-modal').modal('toggle');
     }
 
+    function hide_dialog()
+    {
+        $('#wott-confirm-modal').modal('hide');
+    }
+
+    function wott_alert_hide(alert_box_id)
+    {
+        let alertbox = $("#"+alert_box_id)[0];
+        alertbox.style.display = 'none';
+    }
     /**
      * show alert msg
      * @param messages  - array of error messages
@@ -269,7 +296,7 @@
         errMsgs = []
         if(a.status == 400 || a.status == 404 || a.status == 405) {
             for (key in a.responseJSON) {
-                errMsgss.push( key + " : " + a.responseJSON[key] );
+                errMsgs.push( key + " : " + a.responseJSON[key] );
             }
         }
         else errMsgs.push(a.responseText);
