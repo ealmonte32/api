@@ -164,7 +164,7 @@
 
     function render_buttons(data, type, row, meta)
     {
-        let save_url = "location.href='{{ request.path }}?pk=" + row.key + ";'";
+        let save_url = `location.href='/pairing-keys/download?pk=${row.key}';`;
 
         return  fa_button( "button", "btn-info", "fas fa-check fa-lg", "update_comment(this)",
                 { title:"Update key comment", content: "Save enrollment key comment."} )

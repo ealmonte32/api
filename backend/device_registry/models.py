@@ -481,7 +481,7 @@ class PairingKey(models.Model):
         on_delete=models.CASCADE,
     )
     key = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
     comment = models.CharField(blank=True, max_length=512)
 
     class Meta:

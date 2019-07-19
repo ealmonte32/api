@@ -1,7 +1,7 @@
 import uuid
 import json
 
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, TemplateView, View
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -301,25 +301,24 @@ class CredentialsView(LoginRequiredMixin, ListView):
         return context
 
 
-class PairingKeysView(LoginRequiredMixin, ListView):
+class PairingKeysView(LoginRequiredMixin, TemplateView):
     model = PairingKey
     template_name = 'pairing_keys.html'
-    context_object_name = 'pairing_key_list'
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.filter(owner=self.request.user)
+
+class PairingKeySaveFileView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         if 'pk' in self.request.GET:
-            return self._save_file_response(
-                PairingKey.objects.get(key=self.request.GET['pk'], owner=self.request.user)
-            )
+            try:
+                key = PairingKey.objects.get(key=self.request.GET['pk'], owner=self.request.user)
+                return self._save_file_response(key)
+            except PairingKey.DoesNotExist:
+                return HttpResponseBadRequest('Pairing-key not found')
         else:
-            return super(PairingKeysView, self).get(request, *args, **kwargs)
+            return HttpResponseRedirect(reverse('pairing-keys'))
 
     def _save_file_response(self, key_object):
-
         data = "[DEFAULT]\n\nenroll_token = {}".format(key_object.key.hex)
         response = HttpResponse(data, content_type='text/plain')
         response['Content-Disposition'] = 'attachment; filename = "config.ini"'

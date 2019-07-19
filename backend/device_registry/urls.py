@@ -102,6 +102,9 @@ if settings.IS_DASH:
         path('pairing-keys/',
              views.PairingKeysView.as_view(),
              name='pairing-keys'),
+        path('pairing-keys/download',
+             views.PairingKeySaveFileView.as_view(),
+             name='pairing-keys-download'),
         path('ajax-pairing-keys/', api_views.PairingKeyListView.as_view(), name='ajax_pairing_keys'),
         path('ajax-pairing-keys/create/', api_views.CreatePairingKeyView.as_view(), name='ajax_pairing_keys_create'),
         path(

@@ -804,13 +804,13 @@ class MtlsPingViewTest(APITestCase):
         self.assertDictEqual(firewall_rules, firewall_state.rules)
 
 
-class EnrollByKeyViewTest(APITestCase):
+class DeviceEnrollView(APITestCase):
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.claim_token = uuid.uuid4()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', claim_token=self.claim_token)
-        self.pairing_key = PairingKey.objects.create(owner=self.user, action='enroll')
+        self.pairing_key = PairingKey.objects.create(owner=self.user)
         self.url = reverse('enroll_by_key')
 
     def test_post_success(self):
@@ -882,3 +882,99 @@ class EnrollByKeyViewTest(APITestCase):
         self.assertEqual(response.data, error_data)
         self.assertTrue(PairingKey.objects.filter(key=self.pairing_key.key).exists())
 
+
+class PairingKeyCreatedStrMixin:
+    """
+    'created' field to string converer using the same format as models.Serializer.DateTimeField.to_representation()
+    """
+    def _created_str(self, key):
+        value = getattr(self, key).created.isoformat()
+        if value.endswith('+00:00'):
+            value = value[:-6] + 'Z'
+        return value
+
+
+class PairingKeyListViewTest(APITestCase, PairingKeyCreatedStrMixin):
+
+    def setUp(self):
+        self.url = reverse('ajax_pairing_keys')
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.client.login(username='test', password='123')
+        self.key1 = PairingKey.objects.create(owner=self.user, comment="1")
+        self.key2 = PairingKey.objects.create(owner=self.user, comment="2")
+        self.key3 = PairingKey.objects.create(owner=User.objects.create_user('test1', password='123'))
+
+    def test_get(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = [
+            OrderedDict(
+                [('key', self.key1.key.__str__()), ('created', self._created_str('key1')), ('comment', self.key1.comment)]
+            ), OrderedDict(
+                [('key', self.key2.key.__str__()), ('created', self._created_str('key2')), ('comment', self.key2.comment)]
+            )
+        ]
+        self.assertListEqual(response.data, data)
+
+
+class DeletePairingKeyViewTest(APITestCase):
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.client.login(username='test', password='123')
+        self.key1 = PairingKey.objects.create(owner=self.user)
+        self.url = reverse('ajax_pairing_keys_delete', kwargs={'pk': self.key1.pk})
+
+    def test_delete(self):
+        self.assertEqual(PairingKey.objects.count(), 1)
+        response = self.client.delete(self.url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(PairingKey.objects.count(), 0)
+
+
+class CreatePairingKeyViewTest(APITestCase, PairingKeyCreatedStrMixin):
+
+    def setUp(self):
+        self.url = reverse('ajax_pairing_keys_create')
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.client.login(username='test', password='123')
+        self.data = {}
+
+    def test_post(self):
+        self.assertEqual(PairingKey.objects.count(), 0)
+        response = self.client.post(self.url, self.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(PairingKey.objects.count(), 1)
+        self.key1 = PairingKey.objects.get(owner=self.user)
+        data = {'key': self.key1.key.__str__(), 'created': self._created_str('key1'), 'comment': self.key1.comment}
+        self.assertDictEqual(data, response.data)
+
+
+class UpdatePairingKeyViewTest(APITestCase, PairingKeyCreatedStrMixin):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.key1 = PairingKey.objects.create(owner=self.user)
+        self.key2 = PairingKey.objects.create(owner=User.objects.create_user('test1', password='123'))
+        self.url = reverse('ajax_pairing_keys_update', kwargs={'pk': self.key1.pk})
+        self.url2 = reverse('ajax_pairing_keys_update', kwargs={'pk': self.key2.pk})
+        self.client.login(username='test', password='123')
+        self.data = {'comment': 'test comment'}
+
+    def test_patch(self):
+        self.assertEqual(PairingKey.objects.count(), 2)
+        response = self.client.patch(self.url, data=self.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertDictEqual(response.data, self.data)
+        self.assertEqual(PairingKey.objects.count(), 2)
+
+    def test_patch_foreign_token(self):
+        # check for deny to update with duplicate Name/Key/File owner combination
+        self.assertEqual(PairingKey.objects.count(), 2)
+        response = self.client.patch(self.url2, data=self.data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertDictEqual(response.data, {'detail': ErrorDetail(string='Not found.', code='not_found')})
+        self.assertEqual(PairingKey.objects.count(), 2)
