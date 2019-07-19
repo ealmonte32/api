@@ -66,6 +66,10 @@ class Device(models.Model):
     agent_version = models.CharField(max_length=36, blank=True, null=True)
     tags = tagulous.models.TagField(to=Tag, blank=True)
 
+    @property
+    def certificate_expired(self):
+        return self.certificate_expires < timezone.now()
+
     def get_name(self):
         if self.name:
             return self.name
@@ -94,12 +98,6 @@ class Device(models.Model):
     @property
     def has_valid_hostname(self):
         self.device_id.endswith(settings.COMMON_NAME_PREFIX)
-
-    def get_cert_expiration_date(self):
-        try:
-            return ca_helper.get_certificate_expiration_date(self.certificate)
-        except ValueError:
-            pass
 
     @property
     def actions_count(self):

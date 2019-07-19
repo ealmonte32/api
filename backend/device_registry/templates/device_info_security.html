@@ -224,36 +224,38 @@
                   {% endif %}
                 </td>
               </tr>
-              {% if not is_expired %}
-                <tr>
-                  <th scope="row">
-                      Download Device Certificate
-                      <a href="https://wott.io/documentation/faq#device-certificate" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                  </th>
-                  <td>
+              <tr>
+                <th scope="row">
+                  Download Device Certificate
+                  <a href="https://wott.io/documentation/faq#device-certificate"
+                     target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                </th>
+                <td>
+                  {% if object.certificate %}
                     <a href="{% url 'download_device_cert' object.device_id %}">{{ object.device_id }}.crt</a>
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Certificate Expires</th>
-                  <td>In {{ object.get_cert_expiration_date|timeuntil }}</td>
-                </tr>
-              {% else %}
-                <tr>
-                  <th scope="row">Download Certificate</th>
-                  <td>
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Certificate Expired</th>
-                  <td>On {{ object.get_cert_expiration_date|date:"Y-m-d" }}</td>
-                </tr>
-              {% endif %}
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">
+                  Certificate
+                  {% if object.certificate and object.certificate_expired %}Expired{% else %}Expires{% endif %}
+                </th>
+                <td>
+                  {% if object.certificate %}
+                    {% if object.certificate_expired %}
+                      {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                      On {{ object.certificate_expires|date:"Y-m-d" }}
+                    {% else %}
+                      In {{ object.certificate_expires|timeuntil }}
+                    {% endif %}
+                  {% endif %}
+                </td>
+              </tr>
               </tbody>
             </table>
           </div>
         {% endif %}
-
         </div>
       </div>
     </div>
