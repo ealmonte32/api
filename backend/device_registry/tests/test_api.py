@@ -538,11 +538,10 @@ class MtlsCredsViewTest(APITestCase):
         self.url = reverse('mtls-creds')
         User = get_user_model()
         self.user = User.objects.create_user('test')
-        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1',
-                                                    value='as9dfyaoiufhoasdfjh', tags='tag1',
-                                                    linux_user='nobody')
-        self.credential2 = Credential.objects.create(owner=self.user, name='name2', key='key2',
-                                                     value='iuoiuoifpojoijccm', tags='Hardware: Raspberry Pi,')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', data={'key1': 'as9dfyaoiufhoasdfjh'},
+                                                    tags='tag1', linux_user='nobody')
+        self.credential2 = Credential.objects.create(owner=self.user, name='name2', data={'key2': 'iuoiuoifpojoijccm'},
+                                                     tags='Hardware: Raspberry Pi,')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
         self.deviceinfo = DeviceInfo.objects.create(device=self.device)
         self.headers = {
@@ -554,7 +553,7 @@ class MtlsCredsViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.json(),
-                             [{'name': 'name1', 'key': 'key1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
+                             [{'name': 'name1', 'data':{'key1': 'as9dfyaoiufhoasdfjh'}, 'linux_user': 'nobody',
                                'pk': self.credential.pk,
                                'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}]}])
 
@@ -574,10 +573,10 @@ class MtlsCredsViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.json(),
-                             [{'name': 'name1', 'key': 'key1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
+                             [{'name': 'name1', 'data': {'key1': 'as9dfyaoiufhoasdfjh'}, 'linux_user': 'nobody',
                                'pk': self.credential.pk,
                                'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}]},
-                              {'name': 'name2', 'key': 'key2', 'value': 'iuoiuoifpojoijccm', 'linux_user': '',
+                              {'name': 'name2', 'data': {'key2': 'iuoiuoifpojoijccm'}, 'linux_user': '',
                                'pk': self.credential2.pk,
                                'tags_data': [{'name': 'Hardware: Raspberry Pi',
                                               'pk': self.credential2.tags.tags[0].pk}]}])
