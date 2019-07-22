@@ -34,7 +34,6 @@ def gather_kv_fields_to_jsonfields(apps, schema_editor):
         credential.data = records_to_update[cid]['data']
         credential.save(update_fields=['data'])
         credential.tags.set(*records_to_update[cid]['tags'])
-
     Credential.objects.filter(pk__in=pk_to_remove).delete()
 
 
