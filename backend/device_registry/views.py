@@ -284,19 +284,16 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class CredentialsView(LoginRequiredMixin, ListView):
+class CredentialsView(LoginRequiredMixin, TemplateView):
     model = Credential
     template_name = 'credentials.html'
     pi_credentials_path = '/opt/wott/credentials'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.filter(owner=self.request.user)
+    form_media = TagWidget().media
 
     def get_context_data(self, **kwargs):
         context = super(CredentialsView, self).get_context_data(**kwargs)
         context['pi_credentials_path'] = self.pi_credentials_path
-        context['form_media'] = TagWidget().media
+        context['form_media'] = self.form_media
         return context
 
 

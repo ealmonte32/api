@@ -3,7 +3,12 @@
 import django.contrib.postgres.fields.jsonb
 from django.db import migrations
 
-def conclude_all_kv_to_json(apps, schema_editor):
+
+def gather_kv_fields_to_jsonfields(apps, schema_editor):
+    """
+    Collects all key / value pairs of each owner's credentials into json fields.
+    Grouping by name + linux_user
+    """
     Credential = apps.get_model('device_registry', 'Credential')
     pk_to_remove = []
     records_to_update = {}
@@ -32,6 +37,7 @@ def conclude_all_kv_to_json(apps, schema_editor):
 
     Credential.objects.filter(pk__in=pk_to_remove).delete()
 
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -44,5 +50,5 @@ class Migration(migrations.Migration):
             name='data',
             field=django.contrib.postgres.fields.jsonb.JSONField(blank=True, default=dict),
         ),
-        migrations.RunPython(conclude_all_kv_to_json),
+        migrations.RunPython(gather_kv_fields_to_jsonfields),
     ]

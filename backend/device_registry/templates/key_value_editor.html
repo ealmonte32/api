@@ -8,6 +8,15 @@
   </style>
 
   <script>
+      /**
+       * Create DataTable object over `#kv-editor-table` html tabe as key/value editor.
+       * Table could be simple. For example: <table id="kv-editor-table"></table> is enough
+       * Also `#add-kv-row-btn` button needed to be. Used to add row to k/v editor.
+       * Using 'failed' attribute class to mark failed controls. Must be implemented in css if needed.
+       * @param data - js array of data for table [[key, value],[key, value]...]
+       * @param options - see defaultOptions below
+       * @returns {jQuery} DataTable
+       */
       function create_kv_editor(data, options=null) {
 
         const cols = {
@@ -16,11 +25,13 @@
             buttons: 2
         }
 
-
+        //input-with-icon
         const defaultOptions = {
-            key_value_class: "",              /* css class for key/value inputs */
+            key_class: "",                    /* css class for key inputs */
+            value_class: "",                  /* css class for value inputs */
+            value_type: "text",               /* "text", "password", "email"... */
             on_delete_row: undefined,         /* function if needed after row deleted. for example ajax or submit call */
-            ask_delete_confirmation: true,    /* run show_confirm_dialog before delete row */
+            ask_delete_confirmation: true,    /* run show_confirm_dialog() before delete row */
         }
 
         if( options == null )
@@ -71,7 +82,6 @@
               $('#kv-editor-table tr td.wott-kv-btns .btn').on('click', kv_remove);
             else
               $('#kv-editor-table tr td.wott-kv-btns .btn').on('click', kv_remove_noask);
-
         });
 
         /* key-value table functions. */
@@ -81,29 +91,44 @@
          * @param: data - cell data
          * @param: type - if 'sort' then render for sort, otherwise for output
          * @param: row - row data
-         * @param: meta - some additional info, such as meta.row, meta.column
+         * @param: meta - some additional info, such as meta.row, meta.col
          */
         function kv_render(data, type, row, meta) {
             if (type == 'sort') return data ? data : "\xFF";
             let data_h = htmlEntities(data);
-            let columns = ['key', 'value']
-            let kv_class = (options.key_value_class == "") ? "" : 'class="' + options.key_value_class + '"';
-            return '<input type="text" ' + kv_class + ' value="' + data_h + '" style="width:100%" >';
+            let kv_class = "";
+            let kv_type = "text";
+
+            if ( meta.col == cols.key )kv_class = options.key_class;
+            if ( meta.col == cols.value ){
+                kv_class = options.value_class;
+                kv_type = options.value_type;
+            }
+
+            kv_class = (kv_class == "") ? "" : 'class="' + kv_class + '"';
+            return `<input type="${kv_type}" ${kv_class} value="${data_h}" style="width:100%" >`;
         }
 
         /***
          * key/value inputs oninput handler.
-         * @param e - input.this
+         * @param e - input event
          */
         function kv_update(e) {
             let input = e.currentTarget;
             let cell = table.cell(input.parentElement)[0][0];
             table.data()[cell.row][cell.column] = input.value;
             $(input).removeAttr("failed");
-            edited = true;
         }
 
-
+        /**
+         * Create Font Awesome Button Conrol
+         * @param type - is a button type ("submit", "button"...)
+         * @param btn  - button btn class. ("btn-danger", "btn-info"...)
+         * @param fa   - fa icon class ("fas fa-trash fa-lg" ...)
+         * @param onclick - onclick event handler, if needed. in string form
+         * @param popover - title and content params for bootstrap popover, if needed.
+         *                  { title:"title", content:"content" }. The content is optional
+         */
         function fa_button( type, btn, fa, onclick=undefined, popover=undefined)
         {
             let pop = ( popover === undefined ) ? "" : ' data-toggle="popover" data-placement="top" title="' +
@@ -115,7 +140,7 @@
         }
 
         /***
-         * DataTable add/del buttons cell render function
+         * DataTable del buttons cell render function
          */
         function render_buttons(data, type, row, meta){
           if( type == 'sort' ) return data;
@@ -124,8 +149,8 @@
         }
 
         /***
-         * del buttons onclick handler
-         * @param e - button.this
+         * del buttons onclick handler. used if confirmation required.
+         * @param e - button click event
          */
         function kv_remove(e){
             e.preventDefault();
@@ -136,6 +161,10 @@
             );
         }
 
+        /***
+         * del buttons onclick handler. used if confirmation not required.
+         * @param e - button click event
+         */
         function kv_remove_noask(e){
             e.preventDefault();
             table.rows(e.currentTarget.parentElement.parentElement).remove().draw(false);
@@ -152,6 +181,10 @@
             hide_confirm_dialog();
         }
 
+
+        /**
+         * convert string or object to html form
+         */
         if( htmlEntities === undefined ){
           function htmlEntities(str) {
               return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
