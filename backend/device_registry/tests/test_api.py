@@ -14,7 +14,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
-from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, , PairingKey
+from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
 
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
@@ -883,18 +883,7 @@ class DeviceEnrollView(APITestCase):
         self.assertTrue(PairingKey.objects.filter(key=self.pairing_key.key).exists())
 
 
-class PairingKeyCreatedStrMixin:
-    """
-    'created' field to string converer using the same format as models.Serializer.DateTimeField.to_representation()
-    """
-    def _created_str(self, key):
-        value = getattr(self, key).created.isoformat()
-        if value.endswith('+00:00'):
-            value = value[:-6] + 'Z'
-        return value
-
-
-class PairingKeyListViewTest(APITestCase, PairingKeyCreatedStrMixin):
+class PairingKeyListViewTest(APITestCase):
 
     def setUp(self):
         self.url = reverse('ajax_pairing_keys')
@@ -910,9 +899,11 @@ class PairingKeyListViewTest(APITestCase, PairingKeyCreatedStrMixin):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = [
             OrderedDict(
-                [('key', self.key1.key.__str__()), ('created', self._created_str('key1')), ('comment', self.key1.comment)]
+                [('key', self.key1.key.__str__()), ('created',  datetime_to_str(self.key1.created)),
+                 ('comment', self.key1.comment)]
             ), OrderedDict(
-                [('key', self.key2.key.__str__()), ('created', self._created_str('key2')), ('comment', self.key2.comment)]
+                [('key', self.key2.key.__str__()), ('created',  datetime_to_str(self.key2.created)),
+                 ('comment', self.key2.comment)]
             )
         ]
         self.assertListEqual(response.data, data)
@@ -934,7 +925,7 @@ class DeletePairingKeyViewTest(APITestCase):
         self.assertEqual(PairingKey.objects.count(), 0)
 
 
-class CreatePairingKeyViewTest(APITestCase, PairingKeyCreatedStrMixin):
+class CreatePairingKeyViewTest(APITestCase):
 
     def setUp(self):
         self.url = reverse('ajax_pairing_keys_create')
@@ -949,11 +940,12 @@ class CreatePairingKeyViewTest(APITestCase, PairingKeyCreatedStrMixin):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(PairingKey.objects.count(), 1)
         self.key1 = PairingKey.objects.get(owner=self.user)
-        data = {'key': self.key1.key.__str__(), 'created': self._created_str('key1'), 'comment': self.key1.comment}
+        data = {'key': self.key1.key.__str__(), 'created': datetime_to_str(self.key1.created),
+                'comment': self.key1.comment}
         self.assertDictEqual(data, response.data)
 
 
-class UpdatePairingKeyViewTest(APITestCase, PairingKeyCreatedStrMixin):
+class UpdatePairingKeyViewTest(APITestCase):
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test', password='123')
