@@ -30,25 +30,19 @@ if settings.IS_API:
 if settings.IS_MTLS_API:
     urlpatterns += [
         path('api/{}/sign-csr'.format(api_version),  # TODO: change to some unique path.
-             api_views.mtls_renew_cert_view,
+             api_views.MtlsRenewCertView.as_view(),
              name='mtls-sign-device-cert'),
-        path('api/{}/ping'.format(api_version),
-             api_views.mtls_ping_view,
-             name='mtls-ping'),
-        path('api/{}/hello'.format(api_version),
-             api_views.mtls_tester_view,
-             name='mtls-tester'),
-        path('api/{}/action/<int:action_id>/<str:action_name>'.format(api_version),
-             api_views.action_view, name='action'),
-        path('api/{}/claimed'.format(api_version),
-             api_views.mtls_is_claimed_view,
-             name='mtls-is_claimed'),
-        path('api/{}/creds'.format(api_version),
-             api_views.mtls_creds_view,
-             name='mtls-creds'),
-        path('api/{}/dev-md'.format(api_version),
-             api_views.mtls_device_metadata_view,
-             name='mtls-dev-md'),
+        # Only for tests! We need it because of IS_API and IS_MTLS_API url duplication.
+        path('api/{}/sign-csr-test'.format(api_version),
+             api_views.MtlsRenewCertView.as_view(),
+             name='mtls-sign-device-cert-test'),
+        path('api/{}/ping'.format(api_version), api_views.MtlsPingView.as_view(), name='mtls-ping'),
+        path('api/{}/hello'.format(api_version), api_views.MtlsTesterView.as_view(), name='mtls-tester'),
+        path('api/{}/action/<int:action_id>/<str:action_name>'.format(api_version), api_views.ActionView.as_view(),
+             name='action'),
+        path('api/{}/claimed'.format(api_version), api_views.IsDeviceClaimedView.as_view(), name='mtls-is_claimed'),
+        path('api/{}/creds'.format(api_version), api_views.MtlsCredsView.as_view(), name='mtls-creds'),
+        path('api/{}/dev-md'.format(api_version), api_views.MtlsDeviceMetadataView.as_view(), name='mtls-dev-md')
     ]
 
 # Front-end

@@ -1,23 +1,21 @@
 import json
 import logging
 import uuid
-import re
 
 from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 
 from google.cloud import datastore
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView
+from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, UpdateAPIView, RetrieveAPIView
+from rest_framework.generics import get_object_or_404
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import AllowAny
 from netaddr import IPAddress
@@ -26,16 +24,199 @@ from device_registry import ca_helper
 from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
+from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer
+from device_registry.authentication import MTLSAuthentication
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag
 
 logger = logging.getLogger(__name__)
-
 
 if google_cloud_helper.credentials and google_cloud_helper.project:
     datastore_client = datastore.Client(project=google_cloud_helper.project,
                                         credentials=google_cloud_helper.credentials)
 else:
     datastore_client = None
+
+
+class MtlsPingView(APIView):
+    """Endpoint for sending a heartbeat."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        device = Device.objects.get(device_id=request.device_id)
+        device.last_ping = timezone.now()
+        device.save(update_fields=['last_ping'])
+        portscan_object, _ = PortScan.objects.get_or_create(device=device)
+        firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
+        block_networks = portscan_object.block_networks.copy()
+        block_networks.extend(settings.SPAM_NETWORKS)
+        return Response({'policy': firewallstate_object.policy_string,
+                         firewallstate_object.ports_field_name: portscan_object.block_ports,
+                         'block_networks': block_networks})
+
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        device = Device.objects.get(device_id=request.device_id)
+        device.last_ping = timezone.now()
+        device.agent_version = data.get('agent_version')
+        device.save(update_fields=['last_ping', 'agent_version'])
+
+        device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
+        device_info_object.device__last_ping = timezone.now()
+        device_info_object.device_operating_system_version = data.get('device_operating_system_version')
+        device_info_object.fqdn = data.get('fqdn')
+        device_info_object.ipv4_address = data.get('ipv4_address')
+        device_info_object.device_manufacturer = data.get('device_manufacturer')
+        device_info_object.device_model = data.get('device_model')
+        device_info_object.distr_id = data.get('distr_id')
+        device_info_object.distr_release = data.get('distr_release')
+        device_info_object.selinux_state = data.get('selinux_status', {})
+        device_info_object.app_armor_enabled = data.get('app_armor_enabled')
+        device_info_object.logins = data.get('logins', {})
+        device_info_object.default_password = data.get('default_password')
+        device_info_object.save()
+
+        portscan_object, _ = PortScan.objects.get_or_create(device=device)
+        scan_info = data.get('scan_info', [])
+        if isinstance(scan_info, str):
+            scan_info = json.loads(scan_info)
+        # Add missing IP protocol version info.
+        for record in scan_info:
+            if 'ip_version' not in record:
+                ipaddr = IPAddress(record['host'])
+                record['ip_version'] = ipaddr.version
+        portscan_object.scan_info = scan_info
+        portscan_object.netstat = data.get('netstat', [])
+        portscan_object.save()
+        firewall_state, _ = FirewallState.objects.get_or_create(device=device)
+        firewall_rules = data.get('firewall_rules', {})
+        if isinstance(firewall_rules, str):
+            firewall_rules = json.loads(firewall_rules)
+        firewall_state.rules = firewall_rules
+        firewall_state.save()
+
+        if datastore_client:
+            task_key = datastore_client.key('Ping')
+            entity = google_cloud_helper.dicts_to_ds_entities(data, task_key)
+            entity['device_id'] = device.device_id  # Will be indexed.
+            entity['last_ping'] = timezone.now()  # Will be indexed.
+            datastore_client.put(entity)
+
+        return Response({'message': 'pong'})
+
+
+class MtlsRenewCertView(APIView):
+    """Renewal of certificate."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def post(self, request, *args, **kwargs):
+        device_id = request.device_id
+        device = Device.objects.get(device_id=device_id)
+
+        serializer = RenewCertSerializer(device, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        if serializer.validated_data['device_id'] != device_id:
+            return Response('Invalid request.', status=status.HTTP_400_BAD_REQUEST)
+
+        if not ca_helper.csr_is_valid(csr=serializer.validated_data['certificate_csr'], device_id=device_id):
+            return Response('Invalid CSR.', status=status.HTTP_400_BAD_REQUEST)
+
+        signed_certificate = ca_helper.sign_csr(serializer.validated_data['certificate_csr'], device_id)
+        if not signed_certificate:
+            return Response('Unknown error', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
+
+        serializer.save(certificate=signed_certificate, certificate_expires=certificate_expires,
+                        last_ping=timezone.now(), claim_token=uuid.uuid4(), fallback_token=uuid.uuid4())
+
+        device_info, _ = DeviceInfo.objects.get_or_create(device=device)
+        device_info.device_manufacturer = serializer.validated_data.get('device_manufacturer', '')
+        device_info.device_model = serializer.validated_data.get('device_model', '')
+        device_info.device_operating_system = serializer.validated_data['device_operating_system']
+        device_info.device_operating_system_version = serializer.validated_data['device_operating_system_version']
+        device_info.device_architecture = serializer.validated_data['device_architecture']
+        device_info.fqdn = serializer.validated_data['fqdn']
+        device_info.ipv4_address = serializer.validated_data['ipv4_address']
+        device_info.save()
+
+        return Response({
+            'certificate': signed_certificate,
+            'certificate_expires': certificate_expires,
+            'claim_token': device.claim_token,
+            'fallback_token': device.fallback_token,
+            'claimed': device.claimed
+        })
+
+
+class MtlsDeviceMetadataView(APIView):
+    """Return device specific metadata."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        device = Device.objects.get(device_id=request.device_id)
+        if device.claimed:
+            metadata = device.deviceinfo.device_metadata
+            metadata['device-name'] = device.name
+            metadata['device_id'] = request.device_id
+            metadata['manufacturer'] = device.deviceinfo.device_manufacturer
+            metadata['model'] = device.deviceinfo.device_model
+            metadata['model-decoded'] = device.deviceinfo.get_model()
+        else:
+            metadata = {}
+        return Response(metadata)
+
+
+class MtlsCredsView(APIView):
+    """Return all user's credentials."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        device = Device.objects.get(device_id=request.device_id)
+        if device.owner:
+            qs = device.owner.credentials.filter(tags__in=device.tags.tags).distinct()
+        else:
+            qs = Credential.objects.none()
+        serializer = CredentialsListSerializer(qs, many=True)
+        return Response(serializer.data)
+
+
+class ActionView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, *args, **kwargs):
+        return Response({'id': kwargs['action_id'], 'name': kwargs['action_name']})
+
+
+class MtlsTesterView(APIView):
+    """Return the Device ID of the sender."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+
+    def get(self, request, *args, **kwargs):
+        return Response({'message': 'Hello {}'.format(request.device_id)})
+
+
+class IsDeviceClaimedView(RetrieveAPIView):
+    """Return claimed status of a device."""
+    permission_classes = [AllowAny]
+    authentication_classes = [MTLSAuthentication]
+    queryset = Device.objects.all()
+    serializer_class = IsDeviceClaimedSerializer
+
+    def get_object(self):
+        """
+        Standard `get_object` method overwritten in order to get device_id
+         from the request instance which received it from MTLSAuthentication.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        obj = get_object_or_404(queryset, **{'device_id': self.request.device_id})
+        return obj
 
 
 class RenewExpiredCertView(UpdateAPIView):
@@ -212,274 +393,6 @@ class DeviceListView(ListAPIView):
         return DeviceInfo.objects.filter(device__owner=self.request.user)
 
 
-def is_mtls_authenticated(request):
-    """
-    Returns the device id if authenticated properly
-    through mTLS.
-
-    This should probably be moved to a permission class.
-    """
-
-    if not request.META.get('HTTP_SSL_CLIENT_VERIFY') == 'SUCCESS':
-        return Response(
-            'You shall not pass!',
-            status=status.HTTP_403_FORBIDDEN,
-        )
-    cn_domain = re.match(r'.{1}\.(?P<domain>.*)', settings.COMMON_NAME_PREFIX).groupdict()['domain']
-
-    # @TODO clean up this as it will likely break
-    matchObj = re.match(
-        r'.*CN=(.*.{cn_domain})'.format(cn_domain=cn_domain),
-        request.META.get('HTTP_SSL_CLIENT_SUBJECT_DN'),
-        re.M | re.I
-    )
-    if not matchObj:
-        logging.error('[MTLS-Auth] No valid CN found in header HTTP_SSL_CLIENT_SUBJECT_DN.')
-        return False
-
-    cn = matchObj.group(1)
-    if cn.endswith(settings.COMMON_NAME_PREFIX):
-        return cn
-    else:
-        logging.error('[MTLS-Auth] CN does not match {}'.format(settings.COMMON_NAME_PREFIX))
-        return False
-
-
-@api_view(['GET', 'POST'])
-@permission_classes([AllowAny])
-def mtls_ping_view(request, format=None):
-    """
-    Endpoint for sending a heartbeat.
-    """
-
-    device_id = is_mtls_authenticated(request)
-    if type(device_id) is Response:
-        return device_id
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if request.method == 'GET':
-        device_object = Device.objects.get(device_id=device_id)
-        device_object.last_ping = timezone.now()
-        device_object.save(update_fields=['last_ping'])
-        portscan_object, _ = PortScan.objects.get_or_create(device=device_object)
-        firewallstate_object, _ = FirewallState.objects.get_or_create(device=device_object)
-        block_networks = portscan_object.block_networks.copy()
-        block_networks.extend(settings.SPAM_NETWORKS)
-        return Response({'policy': firewallstate_object.policy_string,
-                         firewallstate_object.ports_field_name: portscan_object.block_ports,
-                         'block_networks': block_networks})
-
-    elif request.method == 'POST':
-        data = request.data
-        device_object = Device.objects.get(device_id=device_id)
-        device_object.last_ping = timezone.now()
-        device_object.agent_version = data.get('agent_version')
-        device_object.save(update_fields=['last_ping', 'agent_version'])
-
-        device_info_object, _ = DeviceInfo.objects.get_or_create(device=device_object)
-        device_info_object.device__last_ping = timezone.now()
-        device_info_object.device_operating_system_version = data.get('device_operating_system_version')
-        device_info_object.fqdn = data.get('fqdn')
-        device_info_object.ipv4_address = data.get('ipv4_address')
-        device_info_object.device_manufacturer = data.get('device_manufacturer')
-        device_info_object.device_model = data.get('device_model')
-        device_info_object.distr_id = data.get('distr_id', None)
-        device_info_object.distr_release = data.get('distr_release', None)
-        device_info_object.selinux_state = data.get('selinux_status', {})
-        device_info_object.app_armor_enabled = data.get('app_armor_enabled', None)
-        device_info_object.logins = data.get('logins', {})
-        device_info_object.default_password = data.get('default_password')
-        device_info_object.save()
-
-        portscan_object, _ = PortScan.objects.get_or_create(device=device_object)
-        scan_info = data.get('scan_info', [])
-        if isinstance(scan_info, str):
-            scan_info = json.loads(scan_info)
-        # Add missing IP protocol version info.
-        for record in scan_info:
-            if 'ip_version' not in record:
-                ipaddr = IPAddress(record['host'])
-                record['ip_version'] = ipaddr.version
-        portscan_object.scan_info = scan_info
-        portscan_object.netstat = data.get('netstat', [])
-        portscan_object.save()
-        firewall_state, _ = FirewallState.objects.get_or_create(device=device_object)
-        firewall_rules = data.get('firewall_rules', {})
-        if isinstance(firewall_rules, str):
-            firewall_rules = json.loads(firewall_rules)
-        firewall_state.rules = firewall_rules
-        firewall_state.save()
-
-        if datastore_client:
-            task_key = datastore_client.key('Ping')
-            entity = google_cloud_helper.dicts_to_ds_entities(data, task_key)
-            entity['device_id'] = device_id  # Will be indexed.
-            entity['last_ping'] = timezone.now()  # Will be indexed.
-            datastore_client.put(entity)
-
-        return Response({'message': 'pong'})
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mtls_tester_view(request, format=None):
-    """
-    Simply returns the Device ID of the sender.
-    """
-
-    device_id = is_mtls_authenticated(request)
-
-    if type(device_id) is Response:
-        return device_id
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    return Response({
-        'message': 'Hello {}'.format(device_id)
-    })
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def mtls_renew_cert_view(request, format=None):
-    """
-    Renewal of certificate.
-    """
-
-    csr = request.data.get('csr')
-    device_id = request.data.get('device_id')
-    tls_device_id = is_mtls_authenticated(request)
-
-    if not tls_device_id:
-        return Response(
-            'You shall not pass!.',
-            status=status.HTTP_403_FORBIDDEN
-        )
-
-    if not tls_device_id == device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if not ca_helper.csr_is_valid(csr=csr, device_id=device_id):
-        return Response(
-            'Invalid CSR.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    signed_certificate = ca_helper.sign_csr(csr, device_id)
-    if not signed_certificate:
-        return Response(
-            'Unknown error',
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-    certificate_expires = ca_helper.get_certificate_expiration_date(signed_certificate)
-
-    device_object = Device.objects.get(device_id=device_id)
-    device_object.certificate_csr = csr
-    device_object.certificate = signed_certificate
-    device_object.certificate_expires = certificate_expires
-    device_object.last_ping = timezone.now()
-    device_object.claim_token = uuid.uuid4()
-    device_object.fallback_token = uuid.uuid4()
-    device_object.save()
-
-    # @TODO: Log changes
-    device_info_object, _ = DeviceInfo.objects.get_or_create(device=device_object)
-    device_info_object.device_manufacturer = request.data.get('device_manufacturer')
-    device_info_object.device_model = request.data.get('device_model')
-    device_info_object.device_operating_system = request.data.get('device_operating_system')
-    device_info_object.device_operating_system_version = request.data.get('device_operating_system_version')
-    device_info_object.device_architecture = request.data.get('device_architecture')
-    device_info_object.fqdn = request.data.get('fqdn')
-    device_info_object.ipv4_address = request.data.get('ipv4_address')
-    device_info_object.save()
-
-    return Response({
-        'certificate': signed_certificate,
-        'certificate_expires': certificate_expires,
-        'claim_token': device_object.claim_token,
-        'fallback_token': device_object.fallback_token,
-        'claimed': device_object.claimed
-    })
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def action_view(request, action_id, action_name):
-    # Perform action
-    return Response({
-        'id': action_id,
-        'name': action_name
-    })
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mtls_creds_view(request, format=None):
-    """
-    Return all user's credentials.
-    """
-    device_id = is_mtls_authenticated(request)
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    if type(device_id) is Response:
-        return device_id
-
-    device = Device.objects.get(device_id=device_id)
-    if device.owner:
-        qs = device.owner.credentials.filter(tags__in=device.tags.tags).distinct()
-    else:
-        qs = Credential.objects.none()
-    serializer = CredentialsListSerializer(qs, many=True)
-    return Response(serializer.data)
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mtls_device_metadata_view(request, format=None):
-    """
-    Return device specific metadata.
-    """
-    device_id = is_mtls_authenticated(request)
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    if type(device_id) is Response:
-        return device_id
-
-    device = Device.objects.get(device_id=device_id)
-    if device.claimed:
-        metadata = device.deviceinfo.device_metadata
-        metadata['device-name'] = device.name
-        metadata['device_id'] = device_id
-        metadata['manufacturer'] = device.deviceinfo.device_manufacturer
-        metadata['model'] = device.deviceinfo.device_model
-        metadata['model-decoded'] = device.deviceinfo.get_model()
-    else:
-        metadata = {}
-
-    return Response(metadata)
-
-
 class CredentialsQSMixin(object):
     def get_queryset(self):
         return self.request.user.credentials.all()
@@ -577,26 +490,6 @@ class CreateCredentialView(CreateAPIView):
             for tag in serializer.initial_data['tags']
         ]
         instance.tags.add(*tags)
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mtls_is_claimed_view(request, format=None):
-    """
-    Return claimed status of a device.
-    """
-    device_id = is_mtls_authenticated(request)
-
-    if not device_id:
-        return Response(
-            'Invalid request.',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    if type(device_id) is Response:
-        return device_id
-
-    device = Device.objects.get(device_id=device_id)
-    return Response({'claimed': device.claimed, 'claim_token': device.claim_token})
 
 
 def autocomplete(request, tag_model):

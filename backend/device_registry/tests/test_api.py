@@ -1,10 +1,12 @@
 from collections import OrderedDict
 import uuid
 from unittest.mock import patch, mock_open
+import json
 
 from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -12,7 +14,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
-from device_registry.models import Credential, Device, DeviceInfo, Tag
+from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
@@ -33,6 +35,16 @@ czUUClEc0OJDMw8PsHyYvrl+jk0JFXgDqBgAutPzSiC+pWL3H/5DO8t/NcccNNlR
 1lti7kgwF5QeRU2eEn3VC2F5JreBMpTkeA==
 -----END CERTIFICATE-----
 """
+
+OPEN_PORTS_INFO = [{"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4}]
+
+OPEN_CONNECTIONS_INFO = [
+    {'ip_version': 4, 'type': 'tcp', 'local_address': ['192.168.1.178', 4567],
+     'remote_address': ['192.168.1.177', 5678], 'status': 'open', 'pid': 3425}
+]
+
+TEST_RULES = {'INPUT': [{'src': '15.15.15.50/32', 'target': 'DROP'}, {'src': '15.15.15.51/32', 'target': 'DROP'}],
+              'OUTPUT': [], 'FORWARD': []}
 
 
 def datetime_to_str(value):
@@ -461,3 +473,331 @@ class RenewExpiredCertViewTest(APITestCase):
             response = self.client.post(self.url, self.post_data)
             self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
             self.assertEqual(response.data, 'Unknown error')
+
+
+class IsDeviceClaimedViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('mtls-is_claimed')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {'claim_token': '', 'claimed': True})
+
+    def test_get_fail_wrong_header(self):
+        headers = self.headers
+        headers['HTTP_SSL_CLIENT_VERIFY'] = 'random_text'
+        response = self.client.get(self.url, **headers)
+        self.assertEqual(response.status_code, 403)
+        self.assertDictEqual(response.json(), {'detail': 'You do not have permission to perform this action.'})
+
+    def test_get_fail_wrong_device_id(self):
+        headers = self.headers
+        headers['HTTP_SSL_CLIENT_SUBJECT_DN'] = 'CN=device1.d.wott-dev.local'
+        response = self.client.get(self.url, **headers)
+        self.assertEqual(response.status_code, 403)
+        self.assertDictEqual(response.json(), {'detail': 'You do not have permission to perform this action.'})
+
+
+class MtlsTesterViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('mtls-tester')
+        self.device0 = Device.objects.create(device_id='device0.d.wott-dev.local')
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {'message': 'Hello device0.d.wott-dev.local'})
+
+
+class ActionViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('action', kwargs={'action_id': 77, 'action_name': 'action1'})
+
+    def test_get(self):
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {'id': 77, 'name': 'action1'})
+
+
+class MtlsCredsViewTest(APITestCase):
+    def setUp(self):
+        self.url = reverse('mtls-creds')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.credential = Credential.objects.create(owner=self.user, name='name1', key='key1',
+                                                    value='as9dfyaoiufhoasdfjh', tags='tag1',
+                                                    linux_user='nobody')
+        self.credential2 = Credential.objects.create(owner=self.user, name='name2', key='key2',
+                                                     value='iuoiuoifpojoijccm', tags='Hardware: Raspberry Pi,')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
+        self.deviceinfo = DeviceInfo.objects.create(device=self.device)
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(),
+                             [{'name': 'name1', 'key': 'key1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
+                               'pk': self.credential.pk,
+                               'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}]}])
+
+    def test_get_revoked_device(self):
+        Device.objects.create(device_id='device1.d.wott-dev.local')
+        headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device1.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+        response = self.client.get(self.url, **headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(), [])
+
+    def test_get_limited_by_meta_tags(self):
+        self.deviceinfo.device_manufacturer = 'Raspberry Pi'
+        self.deviceinfo.save(update_fields=['device_manufacturer'])
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.json(),
+                             [{'name': 'name1', 'key': 'key1', 'value': 'as9dfyaoiufhoasdfjh', 'linux_user': 'nobody',
+                               'pk': self.credential.pk,
+                               'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}]},
+                              {'name': 'name2', 'key': 'key2', 'value': 'iuoiuoifpojoijccm', 'linux_user': '',
+                               'pk': self.credential2.pk,
+                               'tags_data': [{'name': 'Hardware: Raspberry Pi',
+                                              'pk': self.credential2.tags.tags[0].pk}]}])
+
+
+class MtlsDeviceMetadataViewTest(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('mtls-dev-md')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
+                                            tags='tag1', name='the-device-name')
+        self.device_info = DeviceInfo.objects.create(
+            device=self.device,
+            device_manufacturer='Raspberry Pi',
+            device_model='900092',
+            device_metadata={"test": "value"}
+        )
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_get(self):
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json(), {
+            'test': 'value',
+            'device_id': 'device0.d.wott-dev.local',
+            'manufacturer': 'Raspberry Pi',
+            'model': '900092',
+            'model-decoded': 'Zero v1.2',
+            'device-name': 'the-device-name'
+        })
+
+
+class MtlsRenewCertViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        DeviceInfo.objects.create(device=self.device)
+        self.url = reverse('mtls-sign-device-cert-test')
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+        self.expires = timezone.now() + timezone.timedelta(days=3)
+        self.uuid = uuid.uuid4()
+        self.post_data = {'device_id': 'device0.d.wott-dev.local', 'csr': 'asdfsdf', 'device_operating_system': 'linux',
+                          'device_operating_system_version': '2', 'device_architecture': '386', 'fqdn': 'domain.com',
+                          'ipv4_address': '192.168.1.15'}
+
+    def test_post_success(self):
+        with patch('cfssl.cfssl.CFSSL.sign') as sign, \
+                patch('device_registry.ca_helper.get_certificate_expiration_date') as gced, \
+                patch('device_registry.ca_helper.csr_is_valid') as civ, \
+                patch('uuid.uuid4') as uuid4:
+            sign.return_value = '010101'
+            gced.return_value = self.expires
+            civ.return_value = True
+            uuid4.return_value = self.uuid
+
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+            response = self.client.post(self.url, self.post_data, **self.headers)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertDictEqual(response.data, {
+                'certificate': '010101',
+                'certificate_expires': self.expires,
+                'claim_token': self.uuid,
+                'fallback_token': self.uuid,
+                'claimed': self.device.claimed
+            })
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+
+    def test_post_wrong_device_id(self):
+        post_data = self.post_data.copy()
+        post_data['device_id'] = 'no_such_device'
+        self.assertEqual(Device.objects.count(), 1)
+        self.assertEqual(DeviceInfo.objects.count(), 1)
+        response = self.client.post(self.url, post_data, **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, 'Invalid request.')
+        self.assertEqual(Device.objects.count(), 1)
+        self.assertEqual(DeviceInfo.objects.count(), 1)
+
+    def test_post_invalid_csr(self):
+        with patch('device_registry.ca_helper.csr_is_valid') as civ:
+            civ.return_value = False
+            response = self.client.post(self.url, self.post_data, **self.headers)
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(response.data, 'Invalid CSR.')
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+
+    def test_post_signing_error(self):
+        with patch('device_registry.ca_helper.csr_is_valid') as civ, \
+                patch('device_registry.ca_helper.sign_csr') as scsr:
+            civ.return_value = True
+            scsr.return_value = False
+            response = self.client.post(self.url, self.post_data, **self.headers)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            self.assertEqual(response.data, 'Unknown error')
+            self.assertEqual(Device.objects.count(), 1)
+            self.assertEqual(DeviceInfo.objects.count(), 1)
+
+
+class MtlsPingViewTest(APITestCase):
+    def setUp(self):
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local')
+        self.ping_payload = {
+            'device_operating_system_version': 'linux',
+            'fqdn': 'test-device0',
+            'ipv4_address': '127.0.0.1',
+            'uptime': '0',
+            'distr_id': 'Raspbian',
+            'distr_release': '9.4',
+            'scan_info': OPEN_PORTS_INFO,
+            'netstat': OPEN_CONNECTIONS_INFO,
+            'firewall_rules': TEST_RULES
+        }
+        self.url = reverse('mtls-ping')
+        self.headers = {
+            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
+        }
+
+    def test_ping_get_success(self):
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, {'policy': self.device.firewallstate.policy_string,
+                                             'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
+
+    def test_pong_data(self):
+        # 1st request
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
+                                             'policy': self.device.firewallstate.policy_string})
+        # 2nd request
+        self.device.portscan.block_ports = [['192.168.1.178', 'tcp', 22, False]]
+        self.device.portscan.block_networks = [['192.168.1.177', False]]
+        self.device.portscan.save(update_fields=['block_ports', 'block_networks'])
+        response = self.client.post(self.url, self.ping_payload, **self.headers)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, {'policy': self.device.firewallstate.policy_string,
+                                             'block_ports': [['192.168.1.178', 'tcp', 22, False]],
+                                             'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS})
+
+    def test_ping_creates_models(self):
+        devinfo_obj_count_before = DeviceInfo.objects.count()
+        portscan_obj_count_before = PortScan.objects.count()
+        self.client.post(self.url, self.ping_payload, **self.headers)
+        devinfo_obj_count_after = DeviceInfo.objects.count()
+        portscan_obj_count_after = PortScan.objects.count()
+        self.assertEqual(devinfo_obj_count_before, 0)
+        self.assertEqual(portscan_obj_count_before, 0)
+        self.assertEqual(devinfo_obj_count_after, 1)
+        self.assertEqual(portscan_obj_count_after, 1)
+
+    def test_ping_writes_scan_info(self):
+        self.client.post(self.url, self.ping_payload, **self.headers)
+        portscan = PortScan.objects.get(device=self.device)
+        scan_info = portscan.scan_info
+        self.assertListEqual(scan_info, OPEN_PORTS_INFO)
+
+    def test_ping_writes_netstat(self):
+        self.client.post(self.url, self.ping_payload, **self.headers)
+        portscan = PortScan.objects.get(device=self.device)
+        netstat = portscan.netstat
+        self.assertListEqual(netstat, OPEN_CONNECTIONS_INFO)
+
+    def test_ping_distr_info(self):
+        self.client.post(self.url, self.ping_payload, **self.headers)
+        self.assertEqual(self.device.deviceinfo.distr_id, 'Raspbian')
+        self.assertEqual(self.device.deviceinfo.distr_release, '9.4')
+
+    def test_ping_writes_firewall_info_pos(self):
+        self.client.post(self.url, self.ping_payload, **self.headers)
+        firewall_state = FirewallState.objects.get(device=self.device)
+        self.assertDictEqual(firewall_state.rules, TEST_RULES)
+
+    def test_ping_writes_firewall_info_neg(self):
+        ping_payload = {
+            'device_operating_system_version': 'linux',
+            'fqdn': 'test-device0',
+            'ipv4_address': '127.0.0.1',
+            'uptime': '0',
+            'scan_info': OPEN_PORTS_INFO,
+            'netstat': OPEN_CONNECTIONS_INFO,
+            'firewall_rules': {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
+        }
+        self.client.post(self.url, ping_payload, **self.headers)
+        firewall_state = FirewallState.objects.get(device=self.device)
+        self.assertDictEqual(firewall_state.rules, {'INPUT': [], 'OUTPUT': [], 'FORWARD': []})
+
+    def test_ping_converts_json(self):
+        scan_info = [{
+            "host": "localhost",
+            "port": 22,
+            "proto": "tcp",
+            "state": "open",
+            "ip_version": 4
+        }]
+        firewall_rules = {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
+        ping_payload = {
+            'device_operating_system_version': 'linux',
+            'fqdn': 'test-device0',
+            'ipv4_address': '127.0.0.1',
+            'uptime': '0',
+            'scan_info': json.dumps(scan_info),
+            'firewall_rules': json.dumps(firewall_rules)
+        }
+
+        self.client.post(self.url, ping_payload, **self.headers)
+        firewall_state = FirewallState.objects.get(device=self.device)
+        portscan = PortScan.objects.get(device=self.device)
+        self.assertListEqual(scan_info, portscan.scan_info)
+        self.assertDictEqual(firewall_rules, firewall_state.rules)
