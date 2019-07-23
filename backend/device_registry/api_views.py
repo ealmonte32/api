@@ -26,7 +26,7 @@ from device_registry.serializers import DeviceInfoSerializer, CredentialsListSer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer
 from device_registry.authentication import MTLSAuthentication
-from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySrializer
+from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
 
 logger = logging.getLogger(__name__)
@@ -615,5 +615,5 @@ class CreatePairingKeyView(CreateAPIView):
 
 
 class UpdatePairingKeyView(PairingKeysQSMixin, UpdateAPIView):
-    serializer_class = UpdatePairingKeySrializer
+    serializer_class = UpdatePairingKeySerializer
 

@@ -15,7 +15,7 @@ from tagulous.forms import TagWidget
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import Credential, PairingKey, get_bootstrap_color
-from device_registry.serializers import UpdatePairingKeySrializer
+from device_registry.serializers import UpdatePairingKeySerializer
 
 
 @login_required
