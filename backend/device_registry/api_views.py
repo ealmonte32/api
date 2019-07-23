@@ -189,11 +189,6 @@ class ActionView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
-    def get(self, request, *args, **kwargs):
-        r = dict((header, value) for (header, value)
-             in request.META.items() if header.startswith('HTTP_') or header.startswith('REMOTE'))
-        return Response(r)
-
     def post(self, request, *args, **kwargs):
         return Response({'id': kwargs['action_id'], 'name': kwargs['action_name']})
 
