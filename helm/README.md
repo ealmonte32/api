@@ -31,6 +31,7 @@ $ kubectl create ns nginx
 $ helm install stable/nginx-ingress \
     --name nginx0 \
     --namespace nginx \
+    --set controller.service.externalTrafficPolicy=Local \
     --set controller.stats.enabled=true
 ```
 
