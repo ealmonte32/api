@@ -631,3 +631,12 @@ class UpdatePairingKeyView(PairingKeysQSMixin, UpdateAPIView):
     """
     serializer_class = UpdatePairingKeySerializer
 
+
+class InstallInstructionKeyView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        pairing_key,_ = PairingKey.objects.get_or_create(owner=self.request.user,
+                                                       comment="Key used for the 'Add device' functionality")
+        serializer = PairingKeyListSerializer(instance=pairing_key)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+

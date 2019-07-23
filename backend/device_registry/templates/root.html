@@ -109,8 +109,17 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header">
-            <h5 class="card-title">Device List</h5>
-            <h6 class="card-subtitle text-muted">View registered devices.</h6>
+            <div class="row">
+              <div class="col-6">
+                <h5 class="card-title">Device List</h5>
+                <h6 class="card-subtitle text-muted">View registered devices.</h6>
+              </div>
+              <div class="col-6">
+                <button type="button" class="btn btn-success" style="float: right;" id="inst-btn">
+                  Add Device
+                </button>
+              </div>
+            </div>
           </div>
           <div class="card-body">
             <table id="datatables-basic" class="table table-striped table-responsive-xs" style="width:100%">
@@ -144,6 +153,47 @@
               {% endfor %}
               </tbody>
             </table>
+
+            <script>
+              document.addEventListener("DOMContentLoaded", function () {
+                $('#inst-btn').on('click', show_install_msg );
+
+                // Datatables basic
+                $('#datatables-basic').DataTable({
+                  responsive: true
+                });
+              });
+
+              function hide_install_msg(){
+                  $('#inst-btn').off('click');
+                  $('#inst-btn').popover('hide');
+                  $('#inst-btn').on('click', show_install_msg );
+              }
+
+              function show_install_msg(a){
+                $('#inst-btn').off('click');
+                $.ajax({
+                    url: '/ajax-pairing-keys/add_dev/',
+                    type: "POST",
+                    data: JSON.stringify({}),
+                    contentType: 'application/json',
+                }).done(function (e) {
+                    console.log('success');
+                    let title = "To add a devices, simply SSH into your Raspberry Pi and run the following commands:"
+                    let msg = `$ sudo mkdir /opt/wott<br>`
+                       + `$ sudo echo -e "[DEFAULT]\\nenroll_token = ${e.key}" > /opt/wott/config<br>`
+                       + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash<br>`
+                       + `$ sudo apt install wott-agent`
+                    $('#inst-btn').popover({ title: title, content: msg, html:true}).popover('show');
+                    $('#inst-btn').on('click', hide_install_msg );
+                }).fail(function (e) {
+                    console.log('error');
+                    console.log(e.status, e.responseText);
+                    $('#inst-btn').popover({title:e.status, content: e.responseText}).popover('show');
+                    $('#inst-btn').on('click', hide_install_msg );
+                })
+              }
+            </script>
           </div>
         </div>
       </div>
