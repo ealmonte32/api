@@ -481,10 +481,7 @@ class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
         """
         Overwrite the default 'perform_update' method in order to properly handle tags received as values.
         """
-        data = self.request.data['data']
-        if isinstance(data, str):
-            data = json.loads(data)
-        instance = serializer.save(data=data)
+        instance = serializer.save()
         # Lowercase all unprotected tags.
         tags = [
             tag['name'] if Tag.objects.filter(name=tag['name'], protected=True).exists() else tag['name'].lower()
@@ -515,10 +512,7 @@ class CreateCredentialView(CreateAPIView):
         """
         Overwrite the default 'perform_create' method in order to properly handle tags received as values.
         """
-        data = self.request.data['data']
-        if isinstance(data, str):
-            data = json.loads(data)
-        instance = serializer.save(owner=self.request.user, data=data)
+        instance = serializer.save(owner=self.request.user)
         # Lowercase all unprotected tags.
         tags = [
             tag['name'] if Tag.objects.filter(name=tag['name'], protected=True).exists() else tag['name'].lower()

@@ -32,6 +32,8 @@
             value_type: "text",               /* "text", "password", "email"... */
             on_delete_row: undefined,         /* function if needed after row deleted. for example ajax or submit call */
             ask_delete_confirmation: true,    /* run show_confirm_dialog() before delete row */
+            show_err_msg_func: function( errors ){alert(errors.join("\n"));}
+                                              /* display error messages array function */
         }
 
         if( options == null )
@@ -69,7 +71,6 @@
                   render: render_buttons,
               }
             ],
-            rowId: 'key',
         });
 
         $('#add-kv-row-btn').on('click', function () {
@@ -106,7 +107,7 @@
             }
 
             kv_class = (kv_class == "") ? "" : 'class="' + kv_class + '"';
-            return `<input type="${kv_type}" ${kv_class} value="${data_h}" style="width:100%" >`;
+            return `<input type="${kv_type}" ${kv_class} value="${data_h}" style="width:100%"" >`;
         }
 
         /***
@@ -208,8 +209,8 @@
 
                 if( data[cols.key] in result )
                 {
-                    let id = '#md_' + rowIdx + '_key';
-                    $(id).attr("failed", true);
+                    let cell_node = table.cell(rowIdx, cols.key).node();
+                    $(cell_node.childNodes[0]).attr("failed", true);
                     json_errors.push( "'" + data[cols.key] + "' : duplicate key error.");
                 }
                 else
@@ -223,8 +224,8 @@
                         }
                         catch(e)
                         {
-                            let id = '#md_' + rowIdx + '_value';
-                            $(id).attr("failed", true);
+                            let cell_node = table.cell(rowIdx, cols.value).node();
+                            $(cell_node.childNodes[0]).attr("failed", true);
                             json_errors.push( "'" + data[cols.value] + "' value error: " + e.message);
                         }
                     }
@@ -233,7 +234,7 @@
                 }
             });
             $(json_element_id).html( JSON.stringify(result) );
-            if (json_errors.length != 0) wott_alert_strings(json_errors, "main-alert" );
+            if (json_errors.length != 0) options.show_err_msg_func(json_errors);
             return json_errors.length == 0;
         }
       table.kv_to_json = kv_to_json;
