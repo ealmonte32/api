@@ -161,7 +161,7 @@
       });
       $("div.toolbar").html(`
       <div class="dropdown" id="device-list-columns">
-        <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
           Columns
         </button>
         <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
@@ -208,12 +208,37 @@
         </div>
       </div>
 
-      <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+      <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
         Filters
       </button>
       <div class="collapse" id="collapseExample">
         <div class="card card-body">
-          Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident.
+            <form>
+                <div class="form-row mb-3">
+                    <div class="col">
+                        <select class="form-control" id="exampleFormControlSelect1">
+                          <option>Device Name</option>
+                          <option>Hostname</option>
+                          <option>Last Ping</option>
+                          <option>Trust Score</option>
+                          <option>Comment</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <select class="form-control" id="exampleFormControlSelect2">
+                          <option>Is</option>
+                          <option>Is not</option>
+                          <option>Contains</option>
+                          <option>Greater than</option>
+                          <option>Less than</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <input type="text" class="form-control" placeholder="Value">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary float-none">Apply</button>
+            </form>
         </div>
       </div>
       `);
