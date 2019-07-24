@@ -139,18 +139,84 @@
               {% endfor %}
               </tbody>
             </table>
-
-            <script>
-              document.addEventListener("DOMContentLoaded", function () {
-                // Datatables basic
-                $('#datatables-basic').DataTable({
-                  responsive: true
-                });
-              });
-            </script>
           </div>
         </div>
       </div>
     </div>
   </div>
-{% endblock %}
+{% endblock admin_content %}
+
+{% block scripts %}
+  <style>
+    #device-list-columns {
+      display: inline;
+    }
+    .toolbar { float: left; }
+  </style>
+  <script>
+  $(() => {
+      $('#datatables-basic').DataTable({
+        responsive: true,
+        dom: '<"toolbar">frtip'
+      });
+      $("div.toolbar").html(`
+      <div class="dropdown" id="device-list-columns">
+        <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Columns
+        </button>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+          <div class="dropdown-item form-group">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="dropdownCheck">
+              <label class="form-check-label" for="dropdownCheck">
+                Device Name
+              </label>
+            </div>
+          </div>
+          <div class="dropdown-item form-group">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="dropdownCheck">
+              <label class="form-check-label" for="dropdownCheck">
+                Hostname
+              </label>
+            </div>
+          </div>
+          <div class="dropdown-item form-group">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="dropdownCheck">
+              <label class="form-check-label" for="dropdownCheck">
+                Last Ping
+              </label>
+            </div>
+          </div>
+          <div class="dropdown-item form-group">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="dropdownCheck">
+              <label class="form-check-label" for="dropdownCheck">
+                Trust Score
+              </label>
+            </div>
+          </div>
+          <div class="dropdown-item form-group">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="dropdownCheck">
+              <label class="form-check-label" for="dropdownCheck">
+                Comment
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+        Filters
+      </button>
+      <div class="collapse" id="collapseExample">
+        <div class="card card-body">
+          Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident.
+        </div>
+      </div>
+      `);
+  });
+  </script>
+{% endblock scripts %}
