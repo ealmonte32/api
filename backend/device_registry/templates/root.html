@@ -153,40 +153,40 @@
       <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
         <div class="dropdown-item form-group">
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="dropdownCheck">
-            <label class="form-check-label" for="dropdownCheck">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck1" data-column="0" checked>
+            <label class="form-check-label" for="dropdownCheck1">
               Device Name
             </label>
           </div>
         </div>
         <div class="dropdown-item form-group">
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="dropdownCheck">
-            <label class="form-check-label" for="dropdownCheck">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck2" data-column="1" checked>
+            <label class="form-check-label" for="dropdownCheck2">
               Hostname
             </label>
           </div>
         </div>
         <div class="dropdown-item form-group">
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="dropdownCheck">
-            <label class="form-check-label" for="dropdownCheck">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck3" data-column="2" checked>
+            <label class="form-check-label" for="dropdownCheck3">
               Last Ping
             </label>
           </div>
         </div>
         <div class="dropdown-item form-group">
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="dropdownCheck">
-            <label class="form-check-label" for="dropdownCheck">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck4" data-column="3" checked>
+            <label class="form-check-label" for="dropdownCheck4">
               Trust Score
             </label>
           </div>
         </div>
         <div class="dropdown-item form-group">
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="dropdownCheck">
-            <label class="form-check-label" for="dropdownCheck">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck5" data-column="4" checked>
+            <label class="form-check-label" for="dropdownCheck5">
               Comment
             </label>
           </div>
@@ -250,13 +250,19 @@
   </style>
   <script>
   $(() => {
-      $('#datatables-basic').DataTable({
+      var table = $('#datatables-basic').DataTable({
         responsive: true,
         dom: '<"toolbar">frtip'
       });
       $("div.toolbar").html($('#device-list-toolbar-template').html());
       $('#filters-expand').click((e) => {
           $(e.target).toggleClass('active');
+      })
+
+      $('.form-check-input').click((e) => {
+          var column = table.column( e.target.getAttribute('data-column') );
+          console.log('CLICK', column);
+          column.visible( e.target.checked );
       })
   });
   </script>
