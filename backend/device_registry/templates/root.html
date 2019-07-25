@@ -164,14 +164,7 @@
                 });
               });
 
-              function hide_install_msg(){
-                  $('#inst-btn').off('click');
-                  $('#inst-btn').popover('hide');
-                  $('#inst-btn').on('click', show_install_msg );
-              }
-
               function show_install_msg(a){
-                $('#inst-btn').off('click');
                 $.ajax({
                     url: '/ajax-pairing-keys/add_dev/',
                     type: "POST",
@@ -180,18 +173,35 @@
                 }).done(function (e) {
                     console.log('success');
                     let title = "To add a devices, simply SSH into your Raspberry Pi and run the following commands:"
-                    let msg = `$ sudo mkdir /opt/wott<br>`
-                       + `$ sudo echo -e "[DEFAULT]\\nenroll_token = ${e.key}" > /opt/wott/config<br>`
-                       + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash<br>`
-                       + `$ sudo apt install wott-agent`
-                    $('#inst-btn').popover({ title: title, content: msg, html:true}).popover('show');
-                    $('#inst-btn').on('click', hide_install_msg );
+                    let msg = `$ sudo mkdir /opt/wott\n`
+                       + `$ sudo echo -e "[DEFAULT]\\nenroll_token = ${e.key}" > /opt/wott/config.ini\n`
+                       + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash\n`
+                       + `$ sudo apt install wott-agent\n`;
+                    show_dialog(title, msg);
                 }).fail(function (e) {
                     console.log('error');
                     console.log(e.status, e.responseText);
-                    $('#inst-btn').popover({title:e.status, content: e.responseText}).popover('show');
-                    $('#inst-btn').on('click', hide_install_msg );
+                    show_dialog('Error', e.status, e.responseText);
                 })
+              }
+
+              /***
+               *  setup dialog parameters and toggle on
+               *  @param title - dialog title
+               *  @param message - dialog message
+               */
+              function show_dialog(title, message, errors=null )
+              {
+                  $('#modal-title')[0].innerText = title;
+                  $('#modal-msg')[0].value = message;
+                  if(errors == null)
+                    $('#modal-alert')[0].style.display = 'none';
+                  else
+                  {
+                    $('#modal-alert')[0].style.display = 'block';
+                    $('#modal-alert')[0].innerText = errors;
+                  }
+                  $('#wott-instruction-modal').modal('toggle');
               }
             </script>
           </div>
@@ -350,8 +360,32 @@
         </form>
       </div>
     </div>
-
   </template>
+
+  <div class="modal" tabindex="-1" role="dialog" id="wott-instruction-modal">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Add new device</h2>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-header">
+          <h4 class="modal-title" id="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <textarea id="modal-msg" rows="10" style="width:100%"></textarea>
+        </div>
+        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="modal-alert">
+          Server error
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock admin_content %}
 
 {% block scripts %}
@@ -443,6 +477,8 @@
       if(type == 'tags')
         Tagulous.select2($('#filter-tags'));
   }
+
+{% endblock %}
 
   function updateFilter(opt_type) {
         $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
