@@ -26,7 +26,21 @@ def root_view(request):
         'avg_trust_score_color': get_bootstrap_color(
             int(avg_trust_score * 100)) if avg_trust_score is not None else None,
         'active_inactive': Device.get_active_inactive(request.user),
-        'devices': get_device_list(request.user)
+        'devices': get_device_list(request.user),
+        'column_names': [
+            'Device Name',
+            'Hostname',
+            'Last Ping',
+            'Trust Score',
+            'Comment'
+        ],
+        'filter_params': [
+            'Device Name',
+            'Hostname',
+            'Last Ping',
+            'Trust Score',
+            'Comment'
+        ]
     })
 
 
