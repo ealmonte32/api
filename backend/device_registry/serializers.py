@@ -78,6 +78,7 @@ class CredentialSerializer(serializers.ModelSerializer):
     def validate_data(self, value):
         if not value:
             raise serializers.ValidationError('At least one key-value pair is required.')
+        return value
 
 class CreateDeviceSerializer(serializers.ModelSerializer):
     csr = serializers.CharField(source='certificate_csr')

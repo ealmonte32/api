@@ -285,15 +285,12 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
 
 
 class CredentialsView(LoginRequiredMixin, TemplateView):
-    model = Credential
     template_name = 'credentials.html'
-    pi_credentials_path = '/opt/wott/credentials'
-    form_media = TagWidget().media
 
     def get_context_data(self, **kwargs):
         context = super(CredentialsView, self).get_context_data(**kwargs)
-        context['pi_credentials_path'] = self.pi_credentials_path
-        context['form_media'] = self.form_media
+        context['pi_credentials_path'] = '/opt/wott/credentials'
+        context['form_media'] = TagWidget().media
         return context
 
 

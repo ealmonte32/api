@@ -67,3 +67,7 @@ class FirewallStateAdmin(admin.ModelAdmin):
 class CredentialAdmin(admin.ModelAdmin):
     list_display = ['owner', 'name', 'data', 'linux_user']
     list_filter = ['owner']
+
+    formfield_overrides = {
+        JSONField: {'widget': JSONEditorWidget},
+    }
