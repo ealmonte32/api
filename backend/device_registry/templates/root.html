@@ -144,6 +144,101 @@
       </div>
     </div>
   </div>
+
+  <template id="device-list-toolbar-template">
+    <div class="dropdown" id="device-list-columns">
+      <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Columns
+      </button>
+      <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+        <div class="dropdown-item form-group">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck">
+            <label class="form-check-label" for="dropdownCheck">
+              Device Name
+            </label>
+          </div>
+        </div>
+        <div class="dropdown-item form-group">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck">
+            <label class="form-check-label" for="dropdownCheck">
+              Hostname
+            </label>
+          </div>
+        </div>
+        <div class="dropdown-item form-group">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck">
+            <label class="form-check-label" for="dropdownCheck">
+              Last Ping
+            </label>
+          </div>
+        </div>
+        <div class="dropdown-item form-group">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck">
+            <label class="form-check-label" for="dropdownCheck">
+              Trust Score
+            </label>
+          </div>
+        </div>
+        <div class="dropdown-item form-group">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck">
+            <label class="form-check-label" for="dropdownCheck">
+              Comment
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
+      Filters
+    </button>
+    <div class="collapse" id="collapseExample">
+      <div class="card card-body">
+        <form>
+          <div class="form-row mb-3">
+            <div class="col-md-auto">
+                <select class="form-control" id="exampleFormControlSelect1">
+                  <option>Device Name</option>
+                  <option>Hostname</option>
+                  <option>Last Ping</option>
+                  <option>Trust Score</option>
+                  <option>Comment</option>
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <select class="form-control" id="exampleFormControlSelect2">
+                  <option>Is</option>
+                  <option>Is not</option>
+                  <option>Contains</option>
+                  <option>Greater than</option>
+                  <option>Less than</option>
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <input type="text" class="form-control" placeholder="Value">
+            </div>
+            <!--
+            TODO: these buttons should be enabled when we can have multiple filters.
+            <div class="col">
+              <button type="button" class="btn btn-outline-primary" title="Add new filter after this one">
+                <i class="fas fa-plus" ></i>
+              </button>
+              <button type="button" class="btn btn-outline-danger" title="Remove this filter">
+                <i class="fas fa-ban" ></i>
+              </button>
+            </div>
+            -->
+          </div>
+          <button type="submit" class="btn btn-primary float-none">Apply</button>
+        </form>
+      </div>
+    </div>
+  </template>
 {% endblock admin_content %}
 
 {% block scripts %}
@@ -159,89 +254,10 @@
         responsive: true,
         dom: '<"toolbar">frtip'
       });
-      $("div.toolbar").html(`
-      <div class="dropdown" id="device-list-columns">
-        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          Columns
-        </button>
-        <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-          <div class="dropdown-item form-group">
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="dropdownCheck">
-              <label class="form-check-label" for="dropdownCheck">
-                Device Name
-              </label>
-            </div>
-          </div>
-          <div class="dropdown-item form-group">
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="dropdownCheck">
-              <label class="form-check-label" for="dropdownCheck">
-                Hostname
-              </label>
-            </div>
-          </div>
-          <div class="dropdown-item form-group">
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="dropdownCheck">
-              <label class="form-check-label" for="dropdownCheck">
-                Last Ping
-              </label>
-            </div>
-          </div>
-          <div class="dropdown-item form-group">
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="dropdownCheck">
-              <label class="form-check-label" for="dropdownCheck">
-                Trust Score
-              </label>
-            </div>
-          </div>
-          <div class="dropdown-item form-group">
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="dropdownCheck">
-              <label class="form-check-label" for="dropdownCheck">
-                Comment
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
-        Filters
-      </button>
-      <div class="collapse" id="collapseExample">
-        <div class="card card-body">
-            <form>
-                <div class="form-row mb-3">
-                    <div class="col">
-                        <select class="form-control" id="exampleFormControlSelect1">
-                          <option>Device Name</option>
-                          <option>Hostname</option>
-                          <option>Last Ping</option>
-                          <option>Trust Score</option>
-                          <option>Comment</option>
-                        </select>
-                    </div>
-                    <div class="col">
-                        <select class="form-control" id="exampleFormControlSelect2">
-                          <option>Is</option>
-                          <option>Is not</option>
-                          <option>Contains</option>
-                          <option>Greater than</option>
-                          <option>Less than</option>
-                        </select>
-                    </div>
-                    <div class="col">
-                        <input type="text" class="form-control" placeholder="Value">
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary float-none">Apply</button>
-            </form>
-        </div>
-      </div>
-      `);
+      $("div.toolbar").html($('#device-list-toolbar-template').html());
+      $('#filters-expand').click((e) => {
+          $(e.target).toggleClass('active');
+      })
   });
   </script>
 {% endblock scripts %}
