@@ -8,10 +8,14 @@ from django.views.generic import View, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.contrib.auth import authenticate
+from django.contrib.auth import login
 
 from rest_framework.authtoken.models import Token
+from registration.views import RegistrationView as BaseRegistrationView
+from registration.signals import user_registered
 
-from .forms import ProfileForm
+from .forms import ProfileForm, RegistrationForm
 from .models import Profile
 
 
@@ -22,7 +26,8 @@ class ProfileAccountView(LoginRequiredMixin, View):
         self.profile, _ = Profile.objects.get_or_create(user=self.user)
         self.initial_form_data = {'username': self.user.username, 'email': self.user.email,
                                   'first_name': self.user.first_name, 'last_name': self.user.last_name,
-                                  'company': self.profile.company_name}
+                                  'company': self.profile.company_name,
+                                  'payment_plan': self.profile.get_payment_plan_display()}
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
@@ -75,3 +80,33 @@ class RevokeAPITokenView(LoginRequiredMixin, View):
         if hasattr(request.user, 'auth_token'):
             Token.objects.filter(user=request.user).delete()
         return HttpResponseRedirect(reverse('profile_token'))
+
+
+class RegistrationView(BaseRegistrationView):
+    """Overwritten standard registration view from the 'django-registration-redux' 3rd party app."""
+    success_url = '/'
+    form_class = RegistrationForm
+    template_name = 'registration/registration_form.html'
+
+    def register(self, form):
+        """Standard `register` method overwritten in order to properly handle our custom `payment_plan` form field."""
+        new_user = form.save()
+        username_field = getattr(new_user, 'USERNAME_FIELD', 'username')
+        new_user = authenticate(username=getattr(new_user, username_field), password=form.cleaned_data['password1'])
+        login(self.request, new_user)
+        user_registered.send(sender=self.__class__, user=new_user, request=self.request)
+        profile, _ = Profile.objects.get_or_create(user=new_user)
+        profile.payment_plan = int(form.cleaned_data['payment_plan'])
+        profile.save(update_fields=['payment_plan'])
+        if profile.payment_plan != Profile.PAYMENT_PLAN_FREE:
+            messages.add_message(self.request, messages.INFO,
+                                 'Congratulations! We won\'t charge you for this plan for now.')
+        return new_user
+
+    def get_initial(self):
+        """
+        Take a payment plan GET parameter value and pass it to the form
+         as an initial value of its `payment_plan` field.
+         All irrelevant values will be simply ignored by the form.
+        """
+        return {'payment_plan': self.request.GET.get('plan')}

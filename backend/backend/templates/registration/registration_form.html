@@ -1,5 +1,8 @@
 {% extends "registration/registration_base.html" %}
+
 {% load i18n %}
+
+{% load bootstrap4 %}
 
 {% block title %}WoTT - {% trans "Register for an account" %}{% endblock %}
 
@@ -16,66 +19,15 @@
                 Enter your details below
               </p>
             </div>
-
             <div class="card">
               <div class="card-body">
                 <div class="m-sm-4">
                   <form method="post" action="">
-                    {%  csrf_token %}
-                    <div class="form-group">
-                      <label>Username</label>
-                      <input class="form-control form-control-lg" type="text" name="username"
-                             placeholder="Enter your username"/>
-                      {% if form.username.errors %}
-                        {% for error in form.username.errors %}
-                          <label class="error form-text invalid-feedback small"
-                                 style="display: block">{{ error | escape }}</label>
-                        {% endfor %}
-                      {% endif %}
-                    </div>
-                    <div class="form-group">
-                      <label>Email</label>
-                      <input class="form-control form-control-lg" type="email" name="email"
-                             placeholder="Enter your e-mail"/>
-                      {% if form.email.errors %}
-                        {% for error in form.email.errors %}
-                          <label class="error form-text invalid-feedback small"
-                                 style="display: block">{{ error | escape }}</label>
-                        {% endfor %}
-                      {% endif %}
-                    </div>
-                    <div class="form-group">
-                      <label>Password</label>
-                      <input class="form-control form-control-lg" type="password" name="password1"
-                             placeholder="Enter your password"/>
-                      {% if form.password1.errors %}
-                        {% for error in form.password1.errors %}
-                          <label class="error form-text invalid-feedback small"
-                                 style="display: block">{{ error | escape }}</label>
-                        {% endfor %}
-                      {% endif %}
-                    </div>
-                    <div class="form-group">
-                      <label>Confirm Password</label>
-                      <input class="form-control form-control-lg" type="password" name="password2"
-                             placeholder="Confirm your password"/>
-                      {% if form.password2.errors %}
-                        {% for error in form.password2.errors %}
-                          <label class="error form-text invalid-feedback small"
-                                 style="display: block">{{ error | escape }}</label>
-                        {% endfor %}
-                      {% endif %}
-                    </div>
-
-                    {% if form.non_field_errors %}
-                        {% for error in form.non_field_errors %}
-                            <div class="alert alert-warning">{{ error }}</div>
-                        {% endfor %}
-                    {% endif %}
-
-                    <div class="text-center mt-3">
-                      <input class="btn btn-lg btn-primary" type="submit" value="{% trans 'Submit' %}" />
-                    </div>
+                    {% csrf_token %}
+                    {% bootstrap_form form %}
+                    {% buttons %}
+                      <button type="submit" class="btn btn-lg btn-primary">{% trans 'Submit' %}</button>
+                    {% endbuttons %}
                   </form>
                 </div>
               </div>

@@ -70,6 +70,13 @@
         </div>
       </nav>
       <main style="min-height: calc(100% - 125px);" class="content">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-success" role="alert">
+              <div class="alert alert-success text-center" role="alert"><h4><br>{{ message }}</h4></div>
+            </div>
+          {% endfor %}
+        {% endif %}
         {% block admin_content %}
         {% endblock admin_content %}
       </main>
