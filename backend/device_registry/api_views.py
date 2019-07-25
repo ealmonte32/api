@@ -384,7 +384,13 @@ class ClaimByLink(APIView):
 
 
 class DeviceEnrollView(APIView):
-
+    """
+    enroll the device using enroll token (pairing key) to authorize
+    params:
+    key - enroll token
+    claim_token - claim token
+    device_id - device id to be enrolled
+    """
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -596,17 +602,22 @@ class PairingKeysQSMixin(object):
 
 class PairingKeyListView(PairingKeysQSMixin, ListAPIView):
     """
-    Return all current user's credentials.
+    Return all current user's pairing keys
     """
     serializer_class = PairingKeyListSerializer
 
 
 class DeletePairingKeyView(PairingKeysQSMixin, DestroyAPIView):
+    """
+    Delete specified pairing key of current user
+    """
     pass
 
 
 class CreatePairingKeyView(CreateAPIView):
-
+    """
+    Create a new pairing key for the current user
+    """
     def create(self, request, *args, **kwargs):
         pairing_key = PairingKey.objects.create(owner=self.request.user)
         serializer = PairingKeyListSerializer(instance=pairing_key)
@@ -615,5 +626,8 @@ class CreatePairingKeyView(CreateAPIView):
 
 
 class UpdatePairingKeyView(PairingKeysQSMixin, UpdateAPIView):
+    """
+    Update specified pairing key of current user. Only the `comment` field could be updated.
+    """
     serializer_class = UpdatePairingKeySerializer
 
