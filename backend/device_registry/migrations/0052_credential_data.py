@@ -40,7 +40,7 @@ def gather_kv_fields_to_jsonfields(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('device_registry', '0051_device_last_external_ip_address'),
+        ('device_registry', '0050_deviceinfo_device_metadata'),
     ]
 
     operations = [
