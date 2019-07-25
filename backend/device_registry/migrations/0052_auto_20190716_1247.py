@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('device_registry', '0052_credential_data'),
+        ('device_registry', '0051_credential_data'),
     ]
 
     operations = [
