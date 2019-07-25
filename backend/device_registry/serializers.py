@@ -169,7 +169,7 @@ class EnrollDeviceSerializer(serializers.Serializer):
 
     def validate(self, data):
         if not Device.objects.filter(claim_token=data['claim_token'], device_id=data['device_id']).exists():
-            raise serializers.ValidationError('Claim-token for this device not found')
+            raise serializers.ValidationError('Device id and claim token do not match')
         return data
 
 
