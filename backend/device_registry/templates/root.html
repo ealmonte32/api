@@ -157,6 +157,54 @@
               {% endfor %}
               </tbody>
             </table>
+              <tfoot>
+                <tr><td>
+                  <div class="row">
+                    <div class="input-group mb-3 col-1">
+                      <select class="custom-select" id="subject_select">
+                        <option selected>Subject...</option>
+                      </select>
+                    </div>
+                    <div class="input-group mb-3 col-1">
+                      <select class="custom-select" id="action_select">
+                        <option selected>Action...</option>
+                      </select>
+                    </div>
+                    <div class="col-1" id="subj_element_div">
+                    </div>
+                    <div class="col-1">
+                      <button type="button" class="btn btn-secondary">Apply</button>
+                    </div>
+                </td></tr>
+              </tfoot>
+            <script>
+              document.addEventListener("DOMContentLoaded", function () {
+                  let subjects=[];
+                  let actions=[];
+
+                  $('#subject_select').on('change', function(e){
+                      console.log(this.value,
+                      this.options[this.selectedIndex].value,
+                      $(this).find("option:selected").val(),);
+                  });
+                  $('#subject_select').on('change', function(e){
+                      console.log(this.value,
+                      this.options[this.selectedIndex].value,
+                      $(this).find("option:selected").val(),);
+                  });
+
+                  $.ajax(
+                      'ajax-batch/list/device'
+                  )
+
+              });
+              document.addEventListener("DOMContentLoaded", function () {
+                // Datatables basic
+                $('#datatables-basic').DataTable({
+                  responsive: true
+                });
+              });
+            </script>
           </div>
         </div>
       </div>

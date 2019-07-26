@@ -652,16 +652,17 @@ class BatchAction:
     Batch Actions Base Class
     """
 
-    def __init__(self, object, subject='', name='', display_name=None, js_init=None, js_init_ext='', url='/', **kwargs):
+    def __init__(self, target, subject='', name='', display_name=None, js_init=None, js_init_ext='', url='/', **kwargs):
         """
         Create BatchAction Object
-        :param object: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
+        :param target: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
         :param subject: Model/object name which applied to target
         :param name: Action name. Used as method name
         :param display_name: Action name. What is displayed in control. If None then `name` is used
         :param js_init: Html element creation JS script
         """
-        self.object = object
+        self.object = target.lower()
+        self.model = target
         self.subject = subject
         self.name = name
         self.display_name = name if display_name is None else display_name
@@ -689,14 +690,14 @@ class GetBatchActionsView(APIView):
                 input.setAttribute('data-tag-url', "/ajax/tags/autocomplete/");                             
                 Tagulous.select2($(input));'''
         batch_actions = {
-            'Device': [
-              BatchAction('Device', 'Tag', name='add', display_name='Add Tags', url='/', js_init_ext=js_init_ext),
-              BatchAction('Device', 'Tag', name='set', display_name='Set Tags', url='/', js_init_ext=js_init_ext)
+            'device': [
+              BatchAction('Device', 'Tag', name='add', display_name='Add Tags', url='#', js_init_ext=js_init_ext),
+              BatchAction('Device', 'Tag', name='set', display_name='Set Tags', url='#', js_init_ext=js_init_ext)
             ],
-            'Default': []
+            'default': []
         }
         if selector not in batch_actions:
-            selector = 'Default'
+            selector = 'default'
 
         return Response(batch_actions[selector])
 
