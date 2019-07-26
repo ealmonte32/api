@@ -307,7 +307,7 @@ class PairingKeysView(LoginRequiredMixin, TemplateView):
 class PairingKeySaveFileView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
-        if 'pk' in self.request.GET:
+        if 'pk' in request.GET:
             try:
                 key = PairingKey.objects.get(key=self.request.GET['pk'], owner=self.request.user)
                 return self._save_file_response(key)
