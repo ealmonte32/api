@@ -193,9 +193,18 @@
                       $(this).find("option:selected").val(),);
                   });
 
-                  $.ajax(
-                      'ajax-batch/list/device'
-                  )
+                  $.ajax({
+                      url: 'ajax-batch/list/device',
+                      method: 'GET',
+                  }).done(function(a) {
+                     actions = a;
+                     for(let action in a){
+                         if (! action.subject in subjects )
+                         {
+                             $('#subject_select').append(`<option value="action.subject">action.model</option>`);
+                         }
+                     }
+                  });
 
               });
               document.addEventListener("DOMContentLoaded", function () {
