@@ -152,19 +152,9 @@ class EnrollDeviceSerializer(serializers.Serializer):
     key = serializers.UUIDField()
     claim_token = serializers.CharField(max_length=128)
 
-    def validate_device_id(self, value):
-        if not Device.objects.filter(device_id=value).exists():
-            raise serializers.ValidationError('Device not found')
-        return value
-
     def validate_key(self, value):
         if not PairingKey.objects.filter(key=value).exists():
             raise serializers.ValidationError('Pairnig-token not found')
-        return value
-
-    def validate_claim_token(self, value):
-        if not Device.objects.filter(claim_token=value).exists():
-            raise serializers.ValidationError('Claim-token not found')
         return value
 
     def validate(self, data):

@@ -849,8 +849,7 @@ class DeviceEnrollView(APITestCase):
         response = self.client.post(self.url, data=payload)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         error_data = {
-            'device_id': [ErrorDetail(string='Device not found', code='invalid')],
-            'claim_token': [ErrorDetail(string='Claim-token not found', code='invalid')]
+            'non_field_errors': [ErrorDetail(string='Device id and claim token do not match', code='invalid')]
         }
         self.assertEqual(response.data, error_data)
 
