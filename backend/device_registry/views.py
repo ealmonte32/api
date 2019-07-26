@@ -309,7 +309,7 @@ class PairingKeySaveFileView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         if 'pk' in request.GET:
             try:
-                key = PairingKey.objects.get(key=self.request.GET['pk'], owner=self.request.user)
+                key = PairingKey.objects.get(key=request.GET['pk'], owner=request.user)
                 return self._save_file_response(key)
             except PairingKey.DoesNotExist:
                 return HttpResponseBadRequest('Pairing-key not found')
