@@ -645,3 +645,67 @@ class InstallInstructionKeyView(APIView):
         serializer = PairingKeyListSerializer(instance=pairing_key)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
+
+class BatchAction:
+    """
+    Batch Actions Base Class
+    """
+
+    def __init__(self, object, subject='', name='', display_name=None, js_init=None, js_init_ext='', url='/', **kwargs):
+        """
+        Create BatchAction Object
+        :param object: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
+        :param subject: Model/object name which applied to target
+        :param name: Action name. Used as method name
+        :param display_name: Action name. What is displayed in control. If None then `name` is used
+        :param js_init: Html element creation JS script
+        """
+        self.object = object
+        self.subject = subject
+        self.name = name
+        self.display_name = name if display_name is None else display_name
+        self.js_init = js_init if js_init is not None else f'''\
+            function(){{
+                let input = document.createElement("input");
+                input.type = "text";
+                input.name = batch_{self.name};
+                input.id = batch_{self.name}; {js_init_ext}
+                return input;
+            }}
+        '''
+        self.url = url
+
+
+class GetBatchActionsView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        params = request.query_params
+        if 'object' not in params:
+            return Response({'error': 'Invalid Arguments'}, status=status.HTTP_400_BAD_REQUEST)
+        selector = params['object']
+        js_init_ext = '''
+                input.setAttribute('data-tagulous', true);
+                input.setAttribute('data-tag-url', "/ajax/tags/autocomplete/");                             
+                Tagulous.select2($(input));'''
+        batch_actions = {
+            'Device': [
+              BatchAction('Device', 'Tag', name='add', display_name='Add Tags', url='/', js_init_ext=js_init_ext),
+              BatchAction('Device', 'Tag', name='set', display_name='Set Tags', url='/', js_init_ext=js_init_ext)
+            ],
+            'Default': []
+        }
+        if selector not in batch_actions:
+            selector = 'Default'
+
+        return Response(batch_actions[selector])
+
+
+class UpdateDeviceTagsView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        device = Device(device_id=serializer.validated_data['device_id'],
+                        certificate_csr=serializer.validated_data['certificate_csr'])
+
