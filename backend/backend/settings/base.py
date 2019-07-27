@@ -67,7 +67,8 @@ INSTALLED_APPS = [
     'tagulous',
     'device_registry.apps.DeviceRegistryConfig',
     'profile_page.apps.ProfilePageConfig',
-    'bootstrap4'
+    'bootstrap4',
+    "bootstrap_datepicker_plus"
 ]
 
 MIDDLEWARE = [

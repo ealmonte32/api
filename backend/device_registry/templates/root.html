@@ -143,6 +143,21 @@
     </div>
   </div>
 
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <form method="post" action=".">
+{#            {% csrf_token %}#}
+{#            {{ form.as_p }}#}
+{#              <input type="text" name="datetime_field" required="True" id="id_datetime_field" class="form-control  datetimepicker-input">#}
+{#              <input type="text" name="datetime_field" required="True" id="id_datetime_field1" class="form-control  datetimepicker-input">#}
+              <input type="text" name="datetime_field" class="form-control" required="" id="id_datetime_field" dp_config="{&quot;id&quot;: &quot;dp_1&quot;, &quot;picker_type&quot;: &quot;DATETIME&quot;, &quot;linked_to&quot;: null, &quot;options&quot;: {&quot;showClose&quot;: true, &quot;showClear&quot;: true, &quot;showTodayButton&quot;: true, &quot;format&quot;: &quot;MM/DD/YYYY HH:mm&quot;}}">
+              <input type="text" name="datetime_field" class="form-control" required="" id="id_datetime_field_1" dp_config="{&quot;id&quot;: &quot;dp_2&quot;, &quot;picker_type&quot;: &quot;DATETIME&quot;, &quot;linked_to&quot;: null, &quot;options&quot;: {&quot;showClose&quot;: true, &quot;showClear&quot;: true, &quot;showTodayButton&quot;: true, &quot;format&quot;: &quot;MM/DD/YYYY HH:mm&quot;}}">
+          </form>
+        </div>
+      </div>
+    </div>
+
   <template id="device-list-toolbar-template">
     <div class="dropdown" id="device-list-columns">
       <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -178,11 +193,12 @@
             </div>
             <div class="col-md-auto">
                 <select class="form-control" id="exampleFormControlSelect2">
-                  <option>Is</option>
-                  <option>Is not</option>
-                  <option>Contains</option>
-                  <option>Greater than</option>
-                  <option>Less than</option>
+                  <option>matches</option>
+                  <option>not matches</option>
+                  <option>contains</option>
+                  <option>not contains</option>
+                  <option>greater than</option>
+                  <option>less than</option>
                 </select>
             </div>
             <div class="col-md-auto">
@@ -208,6 +224,9 @@
 {% endblock admin_content %}
 
 {% block scripts %}
+    {{ block.super }}
+    {{ form.media }}
+
   <style>
     #device-list-columns {
       display: inline;

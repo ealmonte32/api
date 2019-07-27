@@ -12,14 +12,18 @@ from django.db import transaction
 
 from tagulous.forms import TagWidget
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm, FilterForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
 from device_registry.models import PairingKey, get_bootstrap_color
+
+import logging
 
 
 @login_required
 def root_view(request):
     avg_trust_score = average_trust_score(request.user)
+    the_form = FilterForm()
+    logging.warning('{}'.format(request.GET))
     return render(request, 'root.html', {
         'avg_trust_score': avg_trust_score,
         'avg_trust_score_percent': int(avg_trust_score * 100) if avg_trust_score is not None else None,
@@ -40,7 +44,8 @@ def root_view(request):
             'Last Ping',
             'Trust Score',
             'Comment'
-        ]
+        ],
+        'form': the_form
     })
 
 
