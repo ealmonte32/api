@@ -22,7 +22,7 @@ import logging
 @login_required
 def root_view(request):
     avg_trust_score = average_trust_score(request.user)
-    the_form = FilterForm()
+    filter_form = FilterForm()
     logging.warning('{}'.format(request.GET))
 
     # TODO: use getlist() instead of get() to retrieve multiple filters
@@ -36,7 +36,7 @@ def root_view(request):
         'avg_trust_score_color': get_bootstrap_color(
             int(avg_trust_score * 100)) if avg_trust_score is not None else None,
         'active_inactive': Device.get_active_inactive(request.user),
-        'devices': get_device_list(request.user),
+        'devices': get_device_list(request.user, filter_by, filter_predicate, filter_value),
         'column_names': [
             'Device Name',
             'Hostname',
@@ -52,7 +52,7 @@ def root_view(request):
             ('comment', 'Comment', 'str'),
             ('default-creds', 'Default Credentials Found', 'bool')
         ],
-        'form': the_form,
+        'form': filter_form,
 
         # TODO: convert this into a list of dicts for multiple filters
         'filter': {

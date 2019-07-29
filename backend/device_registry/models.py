@@ -5,7 +5,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
 from django.db import transaction
@@ -459,10 +459,60 @@ class Action:
         self.actions = actions
 
 
-def get_device_list(user):
+def get_device_list(user, filter_field=None, filter_predicate=None, filter_value=None):
     """Get list of devices ordered by last ping.
     """
-    return Device.objects.filter(owner=user).order_by(F('last_ping').desc(nulls_last=True))
+    if filter_field and filter_predicate:
+        if filter_field == 'device-name':
+            query_by = ['deviceinfo__fqdn', 'name']
+            query_type = 'str'
+        elif filter_field == 'hostname':
+            query_by = 'deviceinfo__fqdn'
+            query_type = 'str'
+        elif filter_field == 'last-ping':
+            query_by = 'last_ping'
+            query_type = 'datetime'
+        elif filter_field == 'trust-score':
+            query_by = 'trust_score'
+            query_type = 'number'
+
+        invert = filter_predicate[0] == 'n'
+        if invert:
+            filter_predicate = filter_predicate[1:]
+        predicates = {
+            'str': {
+                'eq': 'iexact',
+                'c': 'icontains'
+            },
+            'number': {
+                'eq': 'exact',
+                'lt': 'lt',
+                'gt': 'gt'
+            },
+            'datetime': {
+                'eq': 'exact',
+                'lt': 'lt',
+                'gt': 'gt'
+            }
+        }
+        predicate = predicates[query_type][filter_predicate]
+
+        if isinstance(query_by, list):
+            q = Q()
+            for field in query_by:
+                query = Q(**{field + '__' + predicate: filter_value})
+                if invert:
+                    query = ~query
+                q.add(query, Q.OR)
+            q0 = Q(owner=user) & q
+            print(q0)
+            return Device.objects.filter(q0).all()
+        else:
+            query = Q(owner=user) & Q(**{filter_field+'__'+predicate: filter_value})
+            if invert:
+                query = ~query
+            return Device.objects.filter(query).all()
+    return Device.objects.filter(owner=user).all()
 
 
 def average_trust_score(user):
