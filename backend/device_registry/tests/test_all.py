@@ -256,10 +256,6 @@ class DeviceModelTest(TestCase):
         active_inactive = Device.get_active_inactive(self.user0)
         self.assertListEqual(active_inactive, [2, 0])
 
-    def test_get_expiration_date(self):
-        exp_date = self.device0.get_cert_expiration_date()
-        self.assertEqual(exp_date.date(), datetime.date(2019, 4, 4))
-
     def test_bad_ports_score(self):
         ps = self.device0.portscan
         assert ps
@@ -360,8 +356,9 @@ class DeviceDetailViewTests(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
-                                            certificate=TEST_CERT)
+        self.device = Device.objects.create(
+            device_id='device0.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
+            certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc))
         self.deviceinfo = DeviceInfo.objects.create(
             device=self.device,
             device_manufacturer='Raspberry Pi',
@@ -386,8 +383,9 @@ class DeviceDetailViewTests(TestCase):
         self.portscan2 = PortScan.objects.create(device=self.device_no_firewall, scan_info=OPEN_PORTS_INFO,
                                                  netstat=OPEN_CONNECTIONS_INFO)
 
-        self.device_no_logins = Device.objects.create(device_id='device3.d.wott-dev.local', owner=self.user,
-                                                      certificate=TEST_CERT)
+        self.device_no_logins = Device.objects.create(
+            device_id='device3.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
+            certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc))
         self.deviceinfo3 = DeviceInfo.objects.create(
             device=self.device_no_logins,
             device_manufacturer='Raspberry Pi',
@@ -530,7 +528,6 @@ class DeviceDetailViewTests(TestCase):
 
 
 class PairingKeysView(TestCase):
-
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user(username='test', password='123')
