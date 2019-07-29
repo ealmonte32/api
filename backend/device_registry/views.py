@@ -39,11 +39,12 @@ def root_view(request):
             'Comment'
         ],
         'filter_params': [
-            'Device Name',
-            'Hostname',
-            'Last Ping',
-            'Trust Score',
-            'Comment'
+            ('device-name', 'Device Name', 'str'),
+            ('hostname', 'Hostname', 'str'),
+            ('last-ping', 'Last Ping', 'datetime'),
+            ('trust-score', 'Trust Score', 'float'),
+            ('comment', 'Comment', 'str'),
+            ('default-creds', 'Default Credentials Found', 'bool')
         ],
         'form': the_form
     })
