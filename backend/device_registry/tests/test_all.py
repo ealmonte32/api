@@ -14,7 +14,8 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score
+from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, Credential
+from device_registry.models import PairingKey
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm
 
 
@@ -526,3 +527,30 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<pre>pi:')
         self.assertContains(response, 'success: 1')
+
+
+class PairingKeysView(TestCase):
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='test', password='123')
+        self.url = reverse('pairing-keys')
+        self.pairing_key = PairingKey.objects.create(owner=self.user)
+
+    def test_not_logged_in(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_get(self):
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Pairing Keys')
+
+    def test_get_file(self):
+        self.client.login(username='test', password='123')
+        url = f'/pairing-keys/download?pk={self.pairing_key.pk}'
+        data = f'[DEFAULT]\n\nenroll_token = {self.pairing_key.key.hex}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode("utf-8"), data)

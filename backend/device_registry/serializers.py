@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
 from rest_framework.compat import unicode_to_repr
 
-from device_registry.models import Device, DeviceInfo, Credential, Tag
+from device_registry.models import Device, DeviceInfo, Credential, Tag, PairingKey
 
 
 class RequiredValidator(object):
@@ -144,3 +144,34 @@ class RenewCertSerializer(serializers.ModelSerializer):
         fields = ['device_id', 'csr', 'device_manufacturer', 'device_model', 'device_architecture',
                   'device_operating_system', 'device_operating_system_version', 'fqdn', 'ipv4_address']
         validators = [RequiredValidator(fields=['device_id', 'certificate_csr'])]
+
+
+class EnrollDeviceSerializer(serializers.Serializer):
+
+    device_id = serializers.CharField(max_length=128)
+    key = serializers.UUIDField()
+    claim_token = serializers.CharField(max_length=128)
+
+    def validate_key(self, value):
+        if not PairingKey.objects.filter(key=value).exists():
+            raise serializers.ValidationError('Pairnig-token not found')
+        return value
+
+    def validate(self, data):
+        if not Device.objects.filter(claim_token=data['claim_token'], device_id=data['device_id']).exists():
+            raise serializers.ValidationError('Device id and claim token do not match')
+        return data
+
+
+class PairingKeyListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PairingKey
+        fields = ['key', 'created', 'comment']
+
+
+class UpdatePairingKeySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PairingKey
+        fields = ['comment']

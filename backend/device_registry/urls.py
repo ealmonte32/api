@@ -24,6 +24,7 @@ if settings.IS_API:
         path('api/{}/sign-expired-csr'.format(api_version), api_views.RenewExpiredCertView.as_view(),
              name='sign_expired_cert'),
         path('api/{}/claim-device'.format(api_version), api_views.ClaimByLink.as_view(), name='claim_by_link'),
+        path('api/{}/enroll-device'.format(api_version), api_views.DeviceEnrollView.as_view(), name='enroll_by_key'),
     ]
 
 # Only load if mTLS
@@ -97,6 +98,24 @@ if settings.IS_DASH:
              'ajax/tags/autocomplete/',
              api_views.autocomplete_tags,
              name='ajax-tags-autocomplete',
+        ),
+        path('pairing-keys/',
+             views.PairingKeysView.as_view(),
+             name='pairing-keys'),
+        path('pairing-keys/download',
+             views.PairingKeySaveFileView.as_view(),
+             name='pairing-keys-download'),
+        path('ajax-pairing-keys/', api_views.PairingKeyListView.as_view(), name='ajax_pairing_keys'),
+        path('ajax-pairing-keys/create/', api_views.CreatePairingKeyView.as_view(), name='ajax_pairing_keys_create'),
+        path(
+            'ajax-pairing-keys/<uuid:pk>/delete/',
+             api_views.DeletePairingKeyView.as_view(),
+             name='ajax_pairing_keys_delete'
+        ),
+        path(
+            'ajax-pairing-keys/<uuid:pk>/update/',
+             api_views.UpdatePairingKeyView.as_view(),
+             name='ajax_pairing_keys_update'
         ),
         path('devices/device-cert/<str:device_id>/', api_views.DeviceCertView.as_view(), name='download_device_cert')
     ]

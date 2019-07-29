@@ -14,7 +14,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
-from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan
+from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
+
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
@@ -801,3 +802,170 @@ class MtlsPingViewTest(APITestCase):
         portscan = PortScan.objects.get(device=self.device)
         self.assertListEqual(scan_info, portscan.scan_info)
         self.assertDictEqual(firewall_rules, firewall_state.rules)
+
+
+class DeviceEnrollView(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.claim_token = uuid.uuid4()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', claim_token=self.claim_token)
+        self.pairing_key = PairingKey.objects.create(owner=self.user)
+        self.url = reverse('enroll_by_key')
+
+    def test_post_success(self):
+        payload = {
+            'key': self.pairing_key.key.hex,
+            'device_id': self.device.device_id,
+            'claim_token': self.device.claim_token
+        }
+        self.assertFalse(self.device.claimed)
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, None)
+        self.device.refresh_from_db()
+        self.assertTrue(self.device.claimed)
+
+    def test_post_fail_on_token(self):
+        fail_key = uuid.UUID(int=(self.pairing_key.key.int + 1))
+        payload = {
+            'key': fail_key.hex,
+            'device_id': self.device.device_id,
+            'claim_token': self.device.claim_token
+        }
+        self.assertFalse(self.device.claimed)
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, {'key': [ErrorDetail(string='Pairnig-token not found', code='invalid')]})
+        self.device.refresh_from_db()
+        self.assertFalse(self.device.claimed)
+
+    def test_post_fail_on_device_id_and_claim_token(self):
+        payload = {
+            'key': self.pairing_key.key.hex,
+            'device_id': 'incorrect-device.d.wott-dev.local',
+            'claim_token': 'incorrect-claim-token'
+        }
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        error_data = {
+            'non_field_errors': [ErrorDetail(string='Device id and claim token do not match', code='invalid')]
+        }
+        self.assertEqual(response.data, error_data)
+
+    def test_post_fail_on_insufficient_args(self):
+        payload = {}
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        error_data = {
+            'device_id': [ErrorDetail(string='This field is required.', code='required')],
+            'key': [ErrorDetail(string='This field is required.', code='required')],
+            'claim_token': [ErrorDetail(string='This field is required.', code='required')]
+        }
+        self.assertEqual(response.data, error_data)
+        self.assertTrue(PairingKey.objects.filter(key=self.pairing_key.key).exists())
+
+    def test_post_fail_on_foreign_claim_token(self):
+        claim_token2 = uuid.uuid4()
+        device2 = Device.objects.create(device_id='device2.d.wott-dev.local', claim_token=claim_token2)
+        payload = {
+            'key': self.pairing_key.key.hex,
+            'device_id': self.device.device_id,
+            'claim_token': device2.claim_token
+        }
+        response = self.client.post(self.url, data=payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        error_data = {
+            'non_field_errors': [ErrorDetail(string='Device id and claim token do not match', code='invalid')]
+        }
+        self.assertEqual(response.data, error_data)
+        self.assertTrue(PairingKey.objects.filter(key=self.pairing_key.key).exists())
+
+
+class PairingKeyListViewTest(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('ajax_pairing_keys')
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.client.login(username='test', password='123')
+        self.key1 = PairingKey.objects.create(owner=self.user, comment="1")
+        self.key2 = PairingKey.objects.create(owner=self.user, comment="2")
+        self.key3 = PairingKey.objects.create(owner=User.objects.create_user('test1', password='123'))
+
+    def test_get(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = [
+            OrderedDict(
+                [('key', self.key1.key.__str__()), ('created',  datetime_to_str(self.key1.created)),
+                 ('comment', self.key1.comment)]
+            ), OrderedDict(
+                [('key', self.key2.key.__str__()), ('created',  datetime_to_str(self.key2.created)),
+                 ('comment', self.key2.comment)]
+            )
+        ]
+        self.assertListEqual(response.data, data)
+
+
+class DeletePairingKeyViewTest(APITestCase):
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.client.login(username='test', password='123')
+        self.key1 = PairingKey.objects.create(owner=self.user)
+        self.url = reverse('ajax_pairing_keys_delete', kwargs={'pk': self.key1.pk})
+
+    def test_delete(self):
+        self.assertEqual(PairingKey.objects.count(), 1)
+        response = self.client.delete(self.url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(PairingKey.objects.count(), 0)
+
+
+class CreatePairingKeyViewTest(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('ajax_pairing_keys_create')
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.client.login(username='test', password='123')
+        self.data = {}
+
+    def test_post(self):
+        self.assertEqual(PairingKey.objects.count(), 0)
+        response = self.client.post(self.url, self.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(PairingKey.objects.count(), 1)
+        self.key1 = PairingKey.objects.get(owner=self.user)
+        data = {'key': self.key1.key.__str__(), 'created': datetime_to_str(self.key1.created),
+                'comment': self.key1.comment}
+        self.assertDictEqual(data, response.data)
+
+
+class UpdatePairingKeyViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.key1 = PairingKey.objects.create(owner=self.user)
+        self.key2 = PairingKey.objects.create(owner=User.objects.create_user('test1', password='123'))
+        self.url = reverse('ajax_pairing_keys_update', kwargs={'pk': self.key1.pk})
+        self.url2 = reverse('ajax_pairing_keys_update', kwargs={'pk': self.key2.pk})
+        self.client.login(username='test', password='123')
+        self.data = {'comment': 'test comment'}
+
+    def test_patch(self):
+        self.assertEqual(PairingKey.objects.count(), 2)
+        response = self.client.patch(self.url, data=self.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertDictEqual(response.data, self.data)
+        self.assertEqual(PairingKey.objects.count(), 2)
+
+    def test_patch_foreign_token(self):
+        # check for deny to update with duplicate Name/Key/File owner combination
+        self.assertEqual(PairingKey.objects.count(), 2)
+        response = self.client.patch(self.url2, data=self.data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertDictEqual(response.data, {'detail': ErrorDetail(string='Not found.', code='not_found')})
+        self.assertEqual(PairingKey.objects.count(), 2)
