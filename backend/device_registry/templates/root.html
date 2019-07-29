@@ -172,7 +172,7 @@
                     contentType: 'application/json',
                 }).done(function (e) {
                     console.log('success');
-                    let title = "To add a devices, simply SSH into your Raspberry Pi and run the following commands:"
+                    let title = "To add a devices, simply SSH into your Raspberry Pi and run the following commands:";
                     let msg = `$ sudo mkdir /opt/wott\n`
                        + `$ sudo echo -e "[DEFAULT]\\nenroll_token = ${e.key}" > /opt/wott/config.ini\n`
                        + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash\n`
@@ -186,9 +186,10 @@
               }
 
               /***
-               *  setup dialog parameters and toggle on
+               *  setup dialog parameters and toggle on.
                *  @param title - dialog title
                *  @param message - dialog message
+               *  @param errors - the errors string to display, if is not null.
                */
               function show_dialog(title, message, errors=null )
               {

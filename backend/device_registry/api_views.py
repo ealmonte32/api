@@ -633,12 +633,12 @@ class UpdatePairingKeyView(PairingKeysQSMixin, UpdateAPIView):
 
 
 class InstallInstructionKeyView(APIView):
-    default_comment = "Key used for the 'Add device' functionality"
 
     def post(self, request, *args, **kwargs):
-        pairing_key = PairingKey.objects.filter(owner=self.request.user, comment=self.default_comment)
+        default_comment = "Key used for the 'Add device' functionality"
+        pairing_key = PairingKey.objects.filter(owner=self.request.user, comment=default_comment)
         if not pairing_key.exists():
-            pairing_key = PairingKey.objects.create(owner=self.request.user, comment=self.default_comment)
+            pairing_key = PairingKey.objects.create(owner=self.request.user, comment=default_comment)
         else:
             pairing_key = pairing_key[0]
         serializer = PairingKeyListSerializer(instance=pairing_key)
