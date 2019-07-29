@@ -24,6 +24,12 @@ def root_view(request):
     avg_trust_score = average_trust_score(request.user)
     the_form = FilterForm()
     logging.warning('{}'.format(request.GET))
+
+    # TODO: use getlist() instead of get() to retrieve multiple filters
+    filter_by = request.GET.get('filter_by')
+    filter_predicate = request.GET.get('filter_predicate')
+    filter_value = request.GET.get('filter_value')
+
     return render(request, 'root.html', {
         'avg_trust_score': avg_trust_score,
         'avg_trust_score_percent': int(avg_trust_score * 100) if avg_trust_score is not None else None,
@@ -46,7 +52,14 @@ def root_view(request):
             ('comment', 'Comment', 'str'),
             ('default-creds', 'Default Credentials Found', 'bool')
         ],
-        'form': the_form
+        'form': the_form,
+
+        # TODO: convert this into a list of dicts for multiple filters
+        'filter': {
+            'by': filter_by,
+            'predicate': filter_predicate,
+            'value': filter_value
+        } if filter_by and filter_predicate else None
     })
 
 

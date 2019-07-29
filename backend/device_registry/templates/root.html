@@ -144,11 +144,11 @@
   </div>
 
   <template id="str_options">
-    <select class="form-control" id="filter-select">
-      <option>matches</option>
-      <option>not matches</option>
-      <option>contains</option>
-      <option>not contains</option>
+    <select class="form-control" id="filter-predicate">
+      <option value="eq">matches</option>
+      <option value="neq">not matches</option>
+      <option value="c">contains</option>
+      <option value="nc">not contains</option>
     </select>
   </template>
   <template id="str_value">
@@ -156,11 +156,11 @@
   </template>
 
   <template id="datetime_options">
-    <select class="form-control" id="filter-select">
-      <option>matches</option>
-      <option>not matches</option>
-      <option>greater than</option>
-      <option>less than</option>
+    <select class="form-control" id="filter-predicate">
+      <option value="eq">matches</option>
+      <option value="neq">not matches</option>
+      <option value="gt">greater than</option>
+      <option value="lt">less than</option>
     </select>
   </template>
   <template id="datetime_value">
@@ -177,11 +177,11 @@
   </template>
 
   <template id="float_options">
-    <select class="form-control" id="filter-select">
-      <option>matches</option>
-      <option>not matches</option>
-      <option>greater than</option>
-      <option>less than</option>
+    <select class="form-control" id="filter-predicate">
+      <option value="eq">matches</option>
+      <option value="neq">not matches</option>
+      <option value="gt">greater than</option>
+      <option value="lt">less than</option>
     </select>
   </template>
   <template id="float_value">
@@ -189,9 +189,9 @@
   </template>
 
   <template id="bool_options">
-    <select class="form-control" id="filter-select">
-      <option>matches</option>
-      <option>not matches</option>
+    <select class="form-control" id="filter-predicate">
+      <option value="eq">matches</option>
+      <option value="neq">not matches</option>
     </select>
   </template>
   <template id="bool_value">
@@ -235,10 +235,10 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-auto" id="filter-options">
+            <div class="col-md-auto" id="filter-predicate-div">
               <!-- <template id=..._options> -->
             </div>
-            <div class="col-md-auto" id="filter-value">
+            <div class="col-md-auto" id="filter-value-div">
               <!-- <template id=..._value> -->
             </div>
             <!--
@@ -253,7 +253,7 @@
             </div>
             -->
           </div>
-          <button type="submit" class="btn btn-primary float-none">Apply</button>
+          <button type="submit" class="btn btn-primary float-none" id="filter-apply">Apply</button>
         </form>
       </div>
     </div>
@@ -279,21 +279,44 @@
       $("div.toolbar").html($('#device-list-toolbar-template').html());
       $('#filters-expand').click((e) => {
           $(e.target).toggleClass('active');
-      })
+      });
 
       $('.form-check-input').click((e) => {
           var column = table.column( e.target.getAttribute('data-column') );
           console.log('CLICK', column);
           column.visible( e.target.checked );
-      })
+      });
 
-      $('#filter-selector').change((e) => {
-          let opt_type = e.target.value;
-          console.log(e, e.target.value);
-          $('#filter-options').html($(`#${opt_type}_options`).html())
-          $('#filter-value').html($(`#${opt_type}_value`).html())
+
+      function updateFilter(opt_type) {
+          $('#filter-predicate-div').html($(`#${opt_type}_options`).html())
+          $('#filter-value-div').html($(`#${opt_type}_value`).html())
           $('#datetime_field').datetimepicker();
-      })
+      }
+      $('#filter-selector').change((e) => {
+          updateFilter(e.target.value);
+      });
+
+      $('#filter-apply').click((e) => {
+          e.preventDefault();
+          let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name')
+          let predicate = $('#filter-predicate')[0].value;
+          let value = $('#filter-value-div input')[0].value;
+          document.location.replace(`/?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`);
+      });
+
+      updateFilter($('#filter-selector')[0].options[0].value);
+
+      {% if filter %}
+      setFilter("{{ filter.by }}", "{{ filter.predicate }}", "{{ filter.value }}");
+      {% endif %}
   });
+
+  function setFilter(name, predicate, value) {
+      $(`option[name=${name}`)[0].selected = true;
+      $('#filter-predicate')[0].value = predicate;
+      $('#filter-value-div input')[0].value = value;
+  }
+
   </script>
 {% endblock scripts %}
