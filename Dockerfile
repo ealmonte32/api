@@ -18,7 +18,8 @@ ENV DJANGO_SETTINGS_MODULE backend.settings.prod
 
 USER nobody
 CMD gunicorn \
-    --workers 4 \
+    --workers 8 \
+    --threads 2 \
     --access-logfile '-' \
     --bind 0.0.0.0:8000 \
     backend.wsgi
