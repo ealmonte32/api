@@ -460,25 +460,17 @@ class Action:
 
 
 def get_device_list(user, filter_field=None, filter_predicate=None, filter_value=None):
-    """Get list of devices ordered by last ping.
-    """
-    if filter_field and filter_predicate:
-        if filter_field == 'device-name':
-            query_by = ['deviceinfo__fqdn', 'name']
-            query_type = 'str'
-        elif filter_field == 'hostname':
-            query_by = 'deviceinfo__fqdn'
-            query_type = 'str'
-        elif filter_field == 'last-ping':
-            query_by = 'last_ping'
-            query_type = 'datetime'
-        elif filter_field == 'trust-score':
-            query_by = 'trust_score'
-            query_type = 'number'
+    common_query = Q(owner=user)
+    query = Q()
 
-        invert = filter_predicate[0] == 'n'
-        if invert:
-            filter_predicate = filter_predicate[1:]
+    if filter_field and filter_predicate:
+        fields = {
+            'device-name': (['deviceinfo__fqdn', 'name'], 'str'),
+            'hostname': ('deviceinfo__fqdn', 'str'),
+            'comment': ('comment', 'str'),
+            'last-ping': ('last_ping', 'datetime'),
+            'trust-score': ('trust_score', 'number')
+        }
         predicates = {
             'str': {
                 'eq': 'iexact',
@@ -495,24 +487,25 @@ def get_device_list(user, filter_field=None, filter_predicate=None, filter_value
                 'gt': 'gt'
             }
         }
+
+        query_by, query_type = fields[filter_field]
+
+        invert = filter_predicate[0] == 'n'
+        if invert:
+            filter_predicate = filter_predicate[1:]
         predicate = predicates[query_type][filter_predicate]
 
         if isinstance(query_by, list):
-            q = Q()
+            query = Q()
             for field in query_by:
-                query = Q(**{field + '__' + predicate: filter_value})
-                if invert:
-                    query = ~query
-                q.add(query, Q.OR)
-            q0 = Q(owner=user) & q
-            print(q0)
-            return Device.objects.filter(q0).all()
+                query.add(Q(**{field + '__' + predicate: filter_value}), Q.OR)
         else:
-            query = Q(owner=user) & Q(**{filter_field+'__'+predicate: filter_value})
-            if invert:
-                query = ~query
-            return Device.objects.filter(query).all()
-    return Device.objects.filter(owner=user).all()
+            query = Q(**{query_by+'__'+predicate: filter_value})
+
+        if invert:
+            query = ~query
+
+    return Device.objects.filter(common_query & query).all()
 
 
 def average_trust_score(user):
