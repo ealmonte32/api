@@ -170,27 +170,71 @@
                         <option selected>Action...</option>
                       </select>
                     </div>
-                    <div class="col-1" id="subj_element_div">
+                    <div class="col-2" id="subj_element_div">
                     </div>
                     <div class="col-1">
                       <button type="button" class="btn btn-secondary">Apply</button>
                     </div>
+                  </div>
                 </td></tr>
               </tfoot>
+              <!-- This two cycles are needed for tagulous support -->
+              {% for css in form_media.css.all %}
+                <link rel="stylesheet" href="{% static css %}">
+              {% endfor %}
+              {% for js in form_media.js %}
+                <script src="{% static js %}"></script>
+              {% endfor %}
             <script>
               document.addEventListener("DOMContentLoaded", function () {
                   let subjects=[];
                   let actions=[];
 
+                  const action_select_default = 'Action...';
+                  const subject_select_default = 'Subject...';
+
                   $('#subject_select').on('change', function(e){
                       console.log(this.value,
                       this.options[this.selectedIndex].value,
                       $(this).find("option:selected").val(),);
+
+                      let action_select = $('#action_select');
+                      action_select.empty().append(`<option selected>${action_select_default}</option>`);
+                      if( this.value != subject_select_default)
+                      {
+                          for(let i in actions){
+                              if( actions[i].subject == this.value )
+                              {
+                                 action_select.append(
+                                     `<option value="${i}">${actions[i].display_name}</option>`
+                                 );
+                              }
+                          }
+                      }
+
+
                   });
-                  $('#subject_select').on('change', function(e){
+
+                  $('#action_select').on('change', function(e){
                       console.log(this.value,
                       this.options[this.selectedIndex].value,
                       $(this).find("option:selected").val(),);
+
+                      let batch_args_div = document.getElementById("subj_element_div");
+                      while (batch_args_div.firstChild) {
+                          batch_args_div.removeChild(batch_args_div.firstChild);
+                      }
+
+                      if(this.value != action_select_default)
+                      {
+                          if( actions.length > this.value )
+                          {
+                              let elem = actions[this.value].init();
+                              batch_args_div.appendChild( elem );
+                              actions[this.value].post_process(elem);
+                          }
+                      }
+
                   });
 
                   $.ajax({
@@ -198,10 +242,19 @@
                       method: 'GET',
                   }).done(function(a) {
                      actions = a;
-                     for(let action in a){
-                         if (! action.subject in subjects )
+                     let subject_select = $('#subject_select')
+                     subject_select.empty().append(`<option selected>${subject_select_default}</option>`);
+
+                     for(let i in actions){
+                         actions[i].init = eval(`(${actions[i].js_init})`);
+                         actions[i].post_process = eval(`(${actions[i].js_postprocess})`);
+
+                         if (!(subjects.includes(actions[i].subject)) )
                          {
-                             $('#subject_select').append(`<option value="action.subject">action.model</option>`);
+                             subjects.push(actions[i].subject);
+                             subject_select.append(
+                                 `<option value="${actions[i].subject}">${actions[i].subject}</option>`
+                             );
                          }
                      }
                   });

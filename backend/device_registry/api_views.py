@@ -652,17 +652,29 @@ class BatchAction:
     Batch Actions Base Class
     """
 
-    def __init__(self, target, subject='', name='', display_name=None, js_init=None, js_init_ext='', url='/', **kwargs):
+    """
+    Create BatchAction Object
+    :param target: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
+    :param subject: Model/object name which applied to target
+    :param name: Action name. Used as method name
+    :param display_name: Action name. What is displayed in control. If None then `name` is used
+    :param js_init: Html element creation JS script
+    """
+
+    def __init__(self, target, subject='', subject_model=None, name='', display_name=None,
+                 js_init=None, js_init_ext='', js_postprocess=None, url='#', **kwargs):
         """
         Create BatchAction Object
         :param target: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
-        :param subject: Model/object name which applied to target
+        :param subject: Field name in the target object for applied acton
         :param name: Action name. Used as method name
         :param display_name: Action name. What is displayed in control. If None then `name` is used
-        :param js_init: Html element creation JS script
+        :param js_init: Html element creation JS script. If none <input text> will be created.
+        :param js_init_ext: If default <input 'text'> used, it could be customized here (see Tags initialization)
+        :param js_postprocess: Html element postpocessing script (to be called when element is placed on page)
+        :param url: if not default view used to apply action, use this parameter as url
         """
         self.object = target.lower()
-        self.model = target
         self.subject = subject
         self.name = name
         self.display_name = name if display_name is None else display_name
@@ -670,36 +682,47 @@ class BatchAction:
             function(){{
                 let input = document.createElement("input");
                 input.type = "text";
-                input.name = batch_{self.name};
-                input.id = batch_{self.name}; {js_init_ext}
+                input.name = "batch_{self.name}";
+                input.id = "batch_{self.name}";
+                input.action_name = "{self.name}"; 
+                {js_init_ext}
                 return input;
             }}
-        '''
+        '''.strip()
+        self.js_postprocess = js_postprocess if js_postprocess is not None else 'function(el){}'
         self.url = url
 
 
 class GetBatchActionsView(APIView):
-
-    def get(self, request, *args, **kwargs):
-        params = request.query_params
-        if 'object' not in params:
-            return Response({'error': 'Invalid Arguments'}, status=status.HTTP_400_BAD_REQUEST)
-        selector = params['object']
-        js_init_ext = '''
+    def __init__(self, *args, **kwargs):
+        super(GetBatchActionsView,self).__init__()
+        #  tags elements js init/post_place. (also needed to be included TagsWidget().Media to context)
+        tags_js_init_ext = '''
                 input.setAttribute('data-tagulous', true);
-                input.setAttribute('data-tag-url', "/ajax/tags/autocomplete/");                             
-                Tagulous.select2($(input));'''
-        batch_actions = {
+                input.setAttribute('data-tag-url', "/ajax/tags/autocomplete/");
+                input.autocomplete="off";
+                input.style.width = "100%";
+                '''.strip()
+        tags_js_postprocess = 'function(el){Tagulous.select2($(el));}'
+
+        #  batch actions lists initialization.
+        self.batch_actions = {
             'device': [
-              BatchAction('Device', 'Tag', name='add', display_name='Add Tags', url='#', js_init_ext=js_init_ext),
-              BatchAction('Device', 'Tag', name='set', display_name='Set Tags', url='#', js_init_ext=js_init_ext)
+              BatchAction('Device', 'tags', name='add', display_name='Add Tags', url='#',
+                          js_init_ext=tags_js_init_ext, js_postprocess=tags_js_postprocess).__dict__,
+              BatchAction('Device', 'tags', name='set', display_name='Set Tags', url='#',
+                          js_init_ext=tags_js_init_ext, js_postprocess=tags_js_postprocess).__dict__
             ],
             'default': []
         }
-        if selector not in batch_actions:
-            selector = 'default'
 
-        return Response(batch_actions[selector])
+    def get(self, request, *args, **kwargs):
+        if 'object' not in kwargs:
+            return Response({'error': 'Invalid Arguments'}, status=status.HTTP_400_BAD_REQUEST)
+        selector = kwargs['object']
+        if selector not in self.batch_actions:
+            selector = 'default'
+        return Response(self.batch_actions[selector])
 
 
 class UpdateDeviceTagsView(APIView):
