@@ -1,7 +1,7 @@
 import uuid
 import json
 
-from django.views.generic import DetailView, ListView, TemplateView, View
+from django.views.generic import DetailView, TemplateView, View
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -14,7 +14,7 @@ from tagulous.forms import TagWidget
 
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
-from device_registry.models import Credential, PairingKey, get_bootstrap_color
+from device_registry.models import PairingKey, get_bootstrap_color
 
 
 @login_required
