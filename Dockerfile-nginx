@@ -11,7 +11,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend ./
 COPY ./misc /usr/src/misc
 
-ENV DJANGO_SETTINGS_MODULE backend.settings.prod
+# This is such that we can override it during build
+ARG DJANGO_SETTINGS_MODULE=backend.settings.prod
+ENV DJANGO_SETTINGS_MODULE ${DJANGO_SETTINGS_MODULE}
 
 RUN python manage.py collectstatic --noinput
 

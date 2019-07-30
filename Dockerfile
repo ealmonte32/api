@@ -14,7 +14,10 @@ COPY backend ./
 COPY ./misc /usr/src/misc
 
 ENV CFSSL_SERVER wott-ca
-ENV DJANGO_SETTINGS_MODULE backend.settings.prod
+
+# This is such that we can override it during build
+ARG DJANGO_SETTINGS_MODULE=backend.settings.prod
+ENV DJANGO_SETTINGS_MODULE ${DJANGO_SETTINGS_MODULE}
 
 USER nobody
 CMD gunicorn \

@@ -7,7 +7,8 @@ if DEBUG:
 
 if IS_DASH or DEBUG:
     ALLOWED_HOSTS += [
-        'dash.wott.io'
+        'dash.wott.io',
+        '10.36.0.0/14'
     ]
 
 if IS_API or DEBUG:
@@ -21,6 +22,15 @@ if IS_MTLS_API or DEBUG:
         'mtls.wott.io'
     ]
 
+INSTALLED_APPS += [
+    'django_prometheus',
+]
+
+# This must go first
+MIDDLEWARE.insert(0, 'django_prometheus.middleware.PrometheusBeforeMiddleware')
+
+# This should go last
+MIDDLEWARE.append('django_prometheus.middleware.PrometheusAfterMiddleware')
 
 DATABASES = {
     'default': {
