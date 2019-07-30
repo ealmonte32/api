@@ -228,6 +228,10 @@
       <div class="card card-body">
         <form>
           <div class="form-row mb-3">
+            <div class="custom-control custom-checkbox">
+              <input type="checkbox" class="custom-control-input" id="customCheck1">
+              <label class="custom-control-label" for="customCheck1"></label>
+            </div>
             <div class="col-md-auto">
               <select class="form-control" id="filter-selector">
                 {% for filter_param in filter_params %}
@@ -269,6 +273,14 @@
       display: inline;
     }
     .toolbar { float: left; }
+
+    .custom-control-label:before {
+      background-color: white;
+    }
+    .custom-control-label:after,
+    .custom-control-label:before {
+      top: .45rem;
+    }
   </style>
   <script>
   $(() => {
@@ -307,6 +319,10 @@
           document.location.replace(`/?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`);
       });
 
+      $('#customCheck1').click((e) => {
+        enableFilter(e.target.checked);
+      });
+
       updateFilter($('#filter-selector')[0].options[0].value);
 
       {% if filter %}
@@ -317,6 +333,8 @@
           value = moment(value, "{{ date_format.store }}").format('{{ date_format.display }}');
       }
       setFilter("{{ filter.by }}", "{{ filter.predicate }}", value);
+      {% else %}
+      enableFilter(false);
       {% endif %}
   });
 
@@ -324,6 +342,13 @@
       $(`option[name=${name}`)[0].selected = true;
       $('#filter-predicate')[0].value = predicate;
       $('#filter-value-div').children(0).val(value);
+
+      $('#customCheck1').prop('checked', true);
+      enableFilter(true);
+  }
+
+  function enableFilter(b) {
+      $('.col-md-auto').children().attr('disabled', !b)
   }
 
   </script>

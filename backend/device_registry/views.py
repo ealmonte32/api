@@ -68,7 +68,7 @@ def root_view(request):
             'eq': 'iexact',
             'c': 'icontains'
         },
-        'number': {
+        'float': {
             'eq': 'exact',
             'lt': 'lt',
             'gt': 'gt'
