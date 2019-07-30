@@ -29,6 +29,74 @@ def root_view(request):
     filter_by = request.GET.get('filter_by')
     filter_predicate = request.GET.get('filter_predicate')
     filter_value = request.GET.get('filter_value')
+    filter = (filter_by, filter_predicate, filter_value) if filter_by and filter_predicate else None
+
+    filter_fields = {
+        'device-name': (
+            ['deviceinfo__fqdn', 'name'],
+            'Device Name',
+            'str'
+        ),
+        'hostname': (
+            'deviceinfo__fqdn',
+            'Hostname',
+            'str'
+        ),
+        'comment': (
+            'comment',
+            'Comment',
+            'str'
+        ),
+        'last-ping': (
+            'last_ping',
+            'Last Ping',
+            'datetime'
+        ),
+        'trust-score': (
+            'trust_score',
+            'Trust Score',
+            'float'
+        ),
+        'default-credentials': (
+            'deviceinfo__default_password',
+            'Default Credentials Found',
+            'bool'
+        )
+    }
+    predicates = {
+        'str': {
+            'eq': 'iexact',
+            'c': 'icontains'
+        },
+        'number': {
+            'eq': 'exact',
+            'lt': 'lt',
+            'gt': 'gt'
+        },
+        'datetime': {
+            'eq': 'exact',
+            'lt': 'lt',
+            'gt': 'gt'
+        },
+        'bool': {
+            'eq': 'exact'
+        }
+    }
+    if filter:
+        query_by, _, query_type = filter_fields[filter_by]
+        invert = filter_predicate[0] == 'n'
+        if invert:
+            filter_predicate = filter_predicate[1:]
+        predicate = predicates[query_type][filter_predicate]
+        filter_tuple = (query_by, predicate, filter_value, invert)
+        filter_dict = {
+            'by': filter_by,
+            'predicate': filter_predicate,
+            'value': filter_value,
+            'type': query_type
+        }
+    else:
+        filter_tuple = filter_dict = None
 
     return render(request, 'root.html', {
         'avg_trust_score': avg_trust_score,
@@ -36,7 +104,7 @@ def root_view(request):
         'avg_trust_score_color': get_bootstrap_color(
             int(avg_trust_score * 100)) if avg_trust_score is not None else None,
         'active_inactive': Device.get_active_inactive(request.user),
-        'devices': get_device_list(request.user, filter_by, filter_predicate, filter_value),
+        'devices': get_device_list(request.user, filter_tuple),
         'column_names': [
             'Device Name',
             'Hostname',
@@ -44,22 +112,11 @@ def root_view(request):
             'Trust Score',
             'Comment'
         ],
-        'filter_params': [
-            ('device-name', 'Device Name', 'str'),
-            ('hostname', 'Hostname', 'str'),
-            ('last-ping', 'Last Ping', 'datetime'),
-            ('trust-score', 'Trust Score', 'float'),
-            ('comment', 'Comment', 'str'),
-            ('default-creds', 'Default Credentials Found', 'bool')
-        ],
+        'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in filter_fields.items()],
         'form': filter_form,
 
         # TODO: convert this into a list of dicts for multiple filters
-        'filter': {
-            'by': filter_by,
-            'predicate': filter_predicate,
-            'value': filter_value
-        } if filter_by and filter_predicate else None
+        'filter': filter_dict
     })
 
 

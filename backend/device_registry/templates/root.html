@@ -289,8 +289,8 @@
 
 
       function updateFilter(opt_type) {
-          $('#filter-predicate-div').html($(`#${opt_type}_options`).html())
-          $('#filter-value-div').html($(`#${opt_type}_value`).html())
+          $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
+          $('#filter-value-div').html($(`#${opt_type}_value`).html());
           $('#datetime_field').datetimepicker();
       }
       $('#filter-selector').change((e) => {
@@ -299,9 +299,9 @@
 
       $('#filter-apply').click((e) => {
           e.preventDefault();
-          let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name')
-          let predicate = $('#filter-predicate')[0].value;
-          let value = $('#filter-value-div input')[0].value;
+          let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
+          let predicate = $('#filter-predicate').val();
+          let value = $('#filter-value-div').children(0).val();
           document.location.replace(`/?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`);
       });
 
@@ -309,6 +309,7 @@
 
       {% if filter %}
       setFilter("{{ filter.by }}", "{{ filter.predicate }}", "{{ filter.value }}");
+      updateFilter("{{ filter.type }}");
       {% endif %}
   });
 

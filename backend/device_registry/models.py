@@ -459,48 +459,18 @@ class Action:
         self.actions = actions
 
 
-def get_device_list(user, filter_field=None, filter_predicate=None, filter_value=None):
+def get_device_list(user, filter=None):
     common_query = Q(owner=user)
     query = Q()
 
-    if filter_field and filter_predicate:
-        fields = {
-            'device-name': (['deviceinfo__fqdn', 'name'], 'str'),
-            'hostname': ('deviceinfo__fqdn', 'str'),
-            'comment': ('comment', 'str'),
-            'last-ping': ('last_ping', 'datetime'),
-            'trust-score': ('trust_score', 'number')
-        }
-        predicates = {
-            'str': {
-                'eq': 'iexact',
-                'c': 'icontains'
-            },
-            'number': {
-                'eq': 'exact',
-                'lt': 'lt',
-                'gt': 'gt'
-            },
-            'datetime': {
-                'eq': 'exact',
-                'lt': 'lt',
-                'gt': 'gt'
-            }
-        }
-
-        query_by, query_type = fields[filter_field]
-
-        invert = filter_predicate[0] == 'n'
-        if invert:
-            filter_predicate = filter_predicate[1:]
-        predicate = predicates[query_type][filter_predicate]
-
+    if filter:
+        query_by, predicate, filter_value, invert = filter
         if isinstance(query_by, list):
             query = Q()
             for field in query_by:
-                query.add(Q(**{field + '__' + predicate: filter_value}), Q.OR)
+                query.add(Q(**{f'{field}__{predicate}': filter_value}), Q.OR)
         else:
-            query = Q(**{query_by+'__'+predicate: filter_value})
+            query = Q(**{f'{query_by}__{predicate}': filter_value})
 
         if invert:
             query = ~query
