@@ -9,7 +9,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
-from django.urls import reverse
 
 from google.cloud import datastore
 from rest_framework import status
@@ -645,7 +644,6 @@ class InstallInstructionKeyView(APIView):
             pairing_key = pairing_key[0]
         serializer = PairingKeyListSerializer(instance=pairing_key)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
 
 class BatchAction:
