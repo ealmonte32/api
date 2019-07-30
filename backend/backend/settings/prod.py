@@ -12,7 +12,8 @@ if IS_DASH or DEBUG:
 
 if IS_API or DEBUG:
     ALLOWED_HOSTS += [
-        'api.wott.io'
+        'api.wott.io',
+        '10.36.0.0/14'
     ]
 
 if IS_MTLS_API or DEBUG:
