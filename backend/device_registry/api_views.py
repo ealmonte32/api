@@ -9,6 +9,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
+from django.urls import reverse
 
 from google.cloud import datastore
 from rest_framework import status
@@ -24,7 +25,7 @@ from device_registry import ca_helper
 from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
-from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer
+from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer, BatchArgsTagsSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
@@ -662,7 +663,7 @@ class BatchAction:
     """
 
     def __init__(self, target, subject='', subject_model=None, name='', display_name=None,
-                 js_init=None, js_init_ext='', js_postprocess=None, url='#', **kwargs):
+                 js_init=None, js_init_ext='', js_postprocess=None, js_get = None, url='#', **kwargs):
         """
         Create BatchAction Object
         :param target: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
@@ -672,9 +673,10 @@ class BatchAction:
         :param js_init: Html element creation JS script. If none <input text> will be created.
         :param js_init_ext: If default <input 'text'> used, it could be customized here (see Tags initialization)
         :param js_postprocess: Html element postpocessing script (to be called when element is placed on page)
-        :param url: if not default view used to apply action, use this parameter as url
+        :param ls_get: js getter for args value. If none then default input text value getter used.
+        :param url: url to  view used to apply action
         """
-        self.object = target.lower()
+        self.object = target
         self.subject = subject
         self.name = name
         self.display_name = name if display_name is None else display_name
@@ -690,12 +692,13 @@ class BatchAction:
             }}
         '''.strip()
         self.js_postprocess = js_postprocess if js_postprocess is not None else 'function(el){}'
+        self.js_get = js_get if js_get is not None else 'function(value){ return value;}'
         self.url = url
 
 
 class GetBatchActionsView(APIView):
     def __init__(self, *args, **kwargs):
-        super(GetBatchActionsView,self).__init__()
+        super(GetBatchActionsView,self).__init__(**kwargs)
         #  tags elements js init/post_place. (also needed to be included TagsWidget().Media to context)
         tags_js_init_ext = '''
                 input.setAttribute('data-tagulous', true);
@@ -704,13 +707,23 @@ class GetBatchActionsView(APIView):
                 input.style.width = "100%";
                 '''.strip()
         tags_js_postprocess = 'function(el){Tagulous.select2($(el));}'
+        tags_js_get = '''function(value){
+            let tags=[];
+            Tagulous.parseTags( value, true, false ).forEach( function (tag) {
+                tags.push({ "name" : tag  })
+            });
+            return tags;
+          }
+        '''
 
         #  batch actions lists initialization.
         self.batch_actions = {
             'device': [
-              BatchAction('Device', 'tags', name='add', display_name='Add Tags', url='#',
+              BatchAction('device', 'tags', name='add', display_name='Add Tags',
+                          url=reverse('tags_batch', kwargs={'object': 'device'}), js_get=tags_js_get,
                           js_init_ext=tags_js_init_ext, js_postprocess=tags_js_postprocess).__dict__,
-              BatchAction('Device', 'tags', name='set', display_name='Set Tags', url='#',
+              BatchAction('device', 'tags', name='set', display_name='Set Tags',
+                          url=reverse('tags_batch', kwargs={'object': 'device'}), js_get=tags_js_get,
                           js_init_ext=tags_js_init_ext, js_postprocess=tags_js_postprocess).__dict__
             ],
             'default': []
@@ -725,11 +738,19 @@ class GetBatchActionsView(APIView):
         return Response(self.batch_actions[selector])
 
 
-class UpdateDeviceTagsView(APIView):
+class BatchUpdateTagsView(APIView):
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        objs = {'device': Device, 'credentials': Credential}
+        request.data['object'] = kwargs['object']
+        serializer = BatchArgsTagsSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        device = Device(device_id=serializer.validated_data['device_id'],
-                        certificate_csr=serializer.validated_data['certificate_csr'])
-
+        tags = [
+            tag['name'] if Tag.objects.filter(name=tag['name'], protected=True).exists() else tag['name'].lower()
+            for tag in serializer.initial_data['args']
+        ]
+        model = objs[serializer.validated_data['object']]
+        for obj in serializer.validated_data['objects']:
+            tag_field = model.objects.get(pk=obj['pk']).tags
+            getattr(tag_field, serializer.validated_data['action'])(*tags)
+        return Response(status=status.HTTP_200_OK)

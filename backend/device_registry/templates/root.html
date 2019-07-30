@@ -160,20 +160,20 @@
               <tfoot>
                 <tr><td>
                   <div class="row">
-                    <div class="input-group mb-3 col-1">
+                    <div class="input-group mb-3 col-2">
                       <select class="custom-select" id="subject_select">
                         <option selected>Subject...</option>
                       </select>
                     </div>
-                    <div class="input-group mb-3 col-1">
+                    <div class="input-group mb-3 col-2">
                       <select class="custom-select" id="action_select">
                         <option selected>Action...</option>
                       </select>
                     </div>
-                    <div class="col-2" id="subj_element_div">
+                    <div class="col-4" id="subj_element_div">
                     </div>
-                    <div class="col-1">
-                      <button type="button" class="btn btn-secondary">Apply</button>
+                    <div class="col-2">
+                      <button type="button" class="btn btn-secondary" id="action_button">Apply</button>
                     </div>
                   </div>
                 </td></tr>
@@ -194,10 +194,6 @@
                   const subject_select_default = 'Subject...';
 
                   $('#subject_select').on('change', function(e){
-                      console.log(this.value,
-                      this.options[this.selectedIndex].value,
-                      $(this).find("option:selected").val(),);
-
                       let action_select = $('#action_select');
                       action_select.empty().append(`<option selected>${action_select_default}</option>`);
                       if( this.value != subject_select_default)
@@ -216,10 +212,6 @@
                   });
 
                   $('#action_select').on('change', function(e){
-                      console.log(this.value,
-                      this.options[this.selectedIndex].value,
-                      $(this).find("option:selected").val(),);
-
                       let batch_args_div = document.getElementById("subj_element_div");
                       while (batch_args_div.firstChild) {
                           batch_args_div.removeChild(batch_args_div.firstChild);
@@ -234,7 +226,40 @@
                               actions[this.value].post_process(elem);
                           }
                       }
+                  });
 
+                  $('#action_button').on('click', function(e){
+                      e.preventDefault();
+                      let subject = $('#subject_select').val();
+                      let action_idx = $('#action_select').val();
+                      if( subject === subject_select_default || action_idx === subject_select_default){
+                          return;
+                      }
+
+                      let items_to_batch = []
+                      let a_table = $('#datatables-basic').dataTable().api();
+                      a_table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
+                          let data = this.data();
+                          // alert(JSON.stringify(data));
+                          let pk = get_object_pk_for_batch( actions[action_idx], data);
+                          if (pk !== null) items_to_batch.push({pk: pk});
+                      } );
+
+                      let action_name = actions[action_idx].name;
+                      let args = actions[action_idx].get_args( $(`#batch_${action_name}`).val() );
+
+                      $.ajax({
+                          url: `${actions[action_idx].url}`,
+                          data: JSON.stringify({
+                              action: action_name,
+                              objects: items_to_batch,
+                              args: args,
+                          }),
+                          method: 'POST',
+                          contentType: 'application/json',
+                      }).done(function(e){
+                         alert("ok");
+                      });
                   });
 
                   $.ajax({
@@ -248,7 +273,7 @@
                      for(let i in actions){
                          actions[i].init = eval(`(${actions[i].js_init})`);
                          actions[i].post_process = eval(`(${actions[i].js_postprocess})`);
-
+                         actions[i].get_args = eval(`(${actions[i].js_get})`);
                          if (!(subjects.includes(actions[i].subject)) )
                          {
                              subjects.push(actions[i].subject);
@@ -266,6 +291,23 @@
                   responsive: true
                 });
               });
+
+              /**
+               * callback function. called by batch action 'apply' button handler for each table row
+               *
+               * @param action. action object.
+               * @param row - row data. the array of table columns of processed row
+               * @returns {null|string | *} must return pk of object in a row to process batch function
+               * or null if you do not want to apply batch function to this object
+               */
+              function get_object_pk_for_batch( action, row )
+              {
+                  let re = /<a href="\/devices\/(\d+)\/">/i
+                  let res = row[0].match(re);
+                  if (res === null) return null;
+                  return Number(res[1]);
+              }
+
             </script>
           </div>
         </div>

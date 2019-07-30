@@ -120,5 +120,6 @@ if settings.IS_DASH:
         path('ajax-pairing-keys/add_dev/', api_views.InstallInstructionKeyView.as_view(), name='ajax_install_instruction'),
         path('devices/device-cert/<str:device_id>/', api_views.DeviceCertView.as_view(), name='download_device_cert')
         path('devices/device-cert/<str:device_id>/', api_views.DeviceCertView.as_view(), name='download_device_cert'),
-        path('ajax-batch/list/<str:object>/', api_views.GetBatchActionsView.as_view(), name='get_batch_list')
+        path('ajax-batch/list/<str:object>/', api_views.GetBatchActionsView.as_view(), name='get_batch_list'),
+        path('ajax-batch/apply/<str:object>/tags/', api_views.BatchUpdateTagsView.as_view(), name='tags_batch'),
     ]
