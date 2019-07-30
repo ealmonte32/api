@@ -17,7 +17,11 @@ DATABASES = {
 }
 COMMON_NAME_PREFIX = 'd.wott-dev.local'
 STATIC_URL = 'http://localhost:8003/'
-INSTALLED_APPS += ['django_extensions']
+
+INSTALLED_APPS += [
+    'django_extensions'
+]
+
 IS_DEV = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
