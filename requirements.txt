@@ -9,6 +9,7 @@ coreapi==2.3.3
 coreschema==0.0.4
 cryptography==2.4.2
 Django==2.1.10
+django-allow-cidr==0.3.1
 django-bootstrap4==0.0.8
 django-crispy-forms==1.7.2
 django-extensions==2.1.6

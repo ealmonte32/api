@@ -7,14 +7,12 @@ if DEBUG:
 
 if IS_DASH or DEBUG:
     ALLOWED_HOSTS += [
-        'dash.wott.io',
-        '10.36.0.0/14'
+        'dash.wott.io'
     ]
 
 if IS_API or DEBUG:
     ALLOWED_HOSTS += [
-        'api.wott.io',
-        '10.36.0.0/14'
+        'api.wott.io'
     ]
 
 if IS_MTLS_API or DEBUG:
@@ -25,6 +23,12 @@ if IS_MTLS_API or DEBUG:
 INSTALLED_APPS += [
     'django_prometheus',
 ]
+
+MIDDLEWARE += [
+    'allow_cidr.middleware.AllowCIDRMiddleware'
+]
+
+ALLOWED_CIDR_NETS = ['10.36.0.0/14']
 
 # This must go first
 MIDDLEWARE.insert(0, 'django_prometheus.middleware.PrometheusBeforeMiddleware')
