@@ -171,7 +171,7 @@
             "showClose": true,
             "showClear": true,
             "showTodayButton": true,
-            "format": "MM/DD/YYYY HH:mm"
+            "format": "{{ date_format.display }}"
         }
     }'>
   </template>
@@ -302,21 +302,28 @@
           let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
           let predicate = $('#filter-predicate').val();
           let value = $('#filter-value-div').children(0).val();
+          if($('#filter-selector').val() == 'datetime')
+              value = moment(value, "{{ date_format.display }}").format('{{ date_format.store }}');
           document.location.replace(`/?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`);
       });
 
       updateFilter($('#filter-selector')[0].options[0].value);
 
       {% if filter %}
-      setFilter("{{ filter.by }}", "{{ filter.predicate }}", "{{ filter.value }}");
-      updateFilter("{{ filter.type }}");
+      let type = "{{ filter.type }}",
+        value = "{{ filter.value }}";
+      updateFilter(type);
+      if(type == 'datetime') {
+          value = moment(value, "{{ date_format.store }}").format('{{ date_format.display }}');
+      }
+      setFilter("{{ filter.by }}", "{{ filter.predicate }}", value);
       {% endif %}
   });
 
   function setFilter(name, predicate, value) {
       $(`option[name=${name}`)[0].selected = true;
       $('#filter-predicate')[0].value = predicate;
-      $('#filter-value-div input')[0].value = value;
+      $('#filter-value-div').children(0).val(value);
   }
 
   </script>

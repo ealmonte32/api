@@ -114,6 +114,10 @@ def root_view(request):
         ],
         'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in filter_fields.items()],
         'form': filter_form,
+        'date_format': {
+            'display': "MM/DD/YYYY hh:mm",
+            'store': "YYYY-MM-DD hh:mm"
+        },
 
         # TODO: convert this into a list of dicts for multiple filters
         'filter': filter_dict
