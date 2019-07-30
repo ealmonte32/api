@@ -88,6 +88,8 @@ def root_view(request):
         if invert:
             filter_predicate = filter_predicate[1:]
         predicate = predicates[query_type][filter_predicate]
+        if query_type != 'str' and not filter_value:
+            filter_value = None
         filter_tuple = (query_by, predicate, filter_value, invert)
         filter_dict = {
             'by': filter_by,
@@ -115,8 +117,8 @@ def root_view(request):
         'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in filter_fields.items()],
         'form': filter_form,
         'date_format': {
-            'display': "MM/DD/YYYY hh:mm",
-            'store': "YYYY-MM-DD hh:mm"
+            'display': "MM/DD/YYYY hh:mm A",
+            'store': "YYYY-MM-DD HH:mm"
         },
 
         # TODO: convert this into a list of dicts for multiple filters

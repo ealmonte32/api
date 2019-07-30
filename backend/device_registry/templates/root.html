@@ -167,12 +167,7 @@
     <input type="text" class="form-control" id="datetime_field" dp_config='{
         "picker_type": "DATETIME",
         "linked_to": null,
-        "options": {
-            "showClose": true,
-            "showClear": true,
-            "showTodayButton": true,
-            "format": "{{ date_format.display }}"
-        }
+        "options": {}
     }'>
   </template>
 
@@ -303,7 +298,12 @@
       function updateFilter(opt_type) {
           $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
           $('#filter-value-div').html($(`#${opt_type}_value`).html());
-          $('#datetime_field').datetimepicker();
+          $('#datetime_field').datetimepicker({
+            "showClose": true,
+            "showClear": true,
+            "showTodayButton": true,
+            "format": "{{ date_format.display }}"
+          });
       }
       $('#filter-selector').change((e) => {
           updateFilter(e.target.value);
@@ -314,9 +314,12 @@
           let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
           let predicate = $('#filter-predicate').val();
           let value = $('#filter-value-div').children(0).val();
-          if($('#filter-selector').val() == 'datetime')
+          if($('#filter-selector').val() == 'datetime' && value)
               value = moment(value, "{{ date_format.display }}").format('{{ date_format.store }}');
-          document.location.replace(`/?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`);
+          let query = '/';
+          if($('#customCheck1').prop('checked'))
+              query = `/?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
+          document.location.replace(query);
       });
 
       $('#customCheck1').click((e) => {
@@ -327,9 +330,9 @@
 
       {% if filter %}
       let type = "{{ filter.type }}",
-        value = "{{ filter.value }}";
+          value = "{{ filter.value | default_if_none:'' }}";
       updateFilter(type);
-      if(type == 'datetime') {
+      if(type == 'datetime' && value) {
           value = moment(value, "{{ date_format.store }}").format('{{ date_format.display }}');
       }
       setFilter("{{ filter.by }}", "{{ filter.predicate }}", value);
