@@ -460,21 +460,22 @@ class FirewallState(models.Model):
     scan_date = models.DateTimeField(null=True, auto_now_add=True)
     rules = JSONField(blank=True, default=dict)
     policy = models.PositiveSmallIntegerField(choices=POLICY_CHOICES, default=POLICY_ENABLED_ALLOW)
+    global_policy = models.ForeignKey('GlobalPolicy', on_delete=models.SET_NULL, blank=True, null=True)
 
     @property
     def policy_string(self):
-        if self.policy == self.__class__.POLICY_ENABLED_ALLOW:
+        if self.policy == self.POLICY_ENABLED_ALLOW:
             return 'allow'
-        elif self.policy == self.__class__.POLICY_ENABLED_BLOCK:
+        elif self.policy == self.POLICY_ENABLED_BLOCK:
             return 'block'
         else:
             raise NotImplementedError
 
     @property
     def ports_field_name(self):
-        if self.policy == self.__class__.POLICY_ENABLED_ALLOW:
+        if self.policy == self.POLICY_ENABLED_ALLOW:
             return 'block_ports'
-        elif self.policy == self.__class__.POLICY_ENABLED_BLOCK:
+        elif self.policy == self.POLICY_ENABLED_BLOCK:
             return 'allow_ports'
         else:
             raise NotImplementedError
@@ -550,3 +551,47 @@ class PairingKey(models.Model):
 
     class Meta:
         ordering = ('created',)
+
+
+class GlobalPolicy(models.Model):
+    POLICY_ALLOW = 1
+    POLICY_BLOCK = 2
+    POLICY_CHOICES = (
+        (POLICY_ALLOW, 'Allow by default'),
+        (POLICY_BLOCK, 'Block by default')
+    )
+    name = models.CharField(max_length=32, blank=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='global_policies', on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    policy = models.PositiveSmallIntegerField(choices=POLICY_CHOICES, verbose_name='firewall ports policy')
+    ports = JSONField(blank=True, default=list)
+    networks = JSONField(blank=True, default=list)
+
+    @property
+    def policy_string(self):
+        if self.policy == self.POLICY_ALLOW:
+            return 'allow'
+        elif self.policy == self.POLICY_BLOCK:
+            return 'block'
+        else:
+            raise NotImplementedError
+
+    @property
+    def ports_field_name(self):
+        if self.policy == self.POLICY_ALLOW:
+            return 'block_ports'
+        elif self.policy == self.POLICY_BLOCK:
+            return 'allow_ports'
+        else:
+            raise NotImplementedError
+
+    def __str__(self):
+        return self.name or f'global_policy_{self.pk}'
+
+    def get_devices_nr(self):
+        return self.firewallstate_set.count()
+
+    class Meta:
+        verbose_name = 'global policy'
+        verbose_name_plural = 'global policies'
+        ordering = ['-pk']

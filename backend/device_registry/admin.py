@@ -2,7 +2,7 @@ from django.contrib import admin
 from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.postgres.fields import JSONField
 
-from device_registry.models import Device, DeviceInfo, PortScan, FirewallState, Credential
+from .models import Device, DeviceInfo, PortScan, FirewallState, Credential, GlobalPolicy
 
 
 @admin.register(Device)
@@ -12,7 +12,7 @@ class DeviceAdmin(admin.ModelAdmin):
         'created',
         'last_ping',
         'owner',
-        'claimed',
+        'claimed'
     ]
 
     list_filter = (
@@ -71,3 +71,10 @@ class CredentialAdmin(admin.ModelAdmin):
     formfield_overrides = {
         JSONField: {'widget': JSONEditorWidget},
     }
+
+
+@admin.register(GlobalPolicy)
+class GlobalPolicyAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'owner', 'name', 'policy', 'created']
+    list_filter = ['owner']
+    readonly_fields = ['created']

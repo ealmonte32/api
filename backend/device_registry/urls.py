@@ -5,7 +5,6 @@ from rest_framework.schemas import get_schema_view
 
 from device_registry import views, api_views
 
-
 schema_view = get_schema_view(title='WoTT API')
 api_version = 'v0.2'
 
@@ -59,6 +58,10 @@ if settings.IS_DASH:
         path('',
              views.RootView.as_view(),
              name='root'),
+        path('policies/', views.GlobalPoliciesListView.as_view(), name='global_policies'),
+        path('policies/add/', views.GlobalPolicyCreateView.as_view(), name='create_global_policy'),
+        path('policies/<int:pk>/', views.GlobalPolicyEditView.as_view(), name='edit_global_policy'),
+        path('policies/<int:pk>/delete/', views.GlobalPolicyDeleteView.as_view(), name='delete_global_policy'),
         path('claim-device/',
              views.claim_device_view,
              name='claim-device'),
@@ -72,11 +75,9 @@ if settings.IS_DASH:
             views.DeviceDetailSoftwareView.as_view(),
             name='device-detail-software'
         ),
-        path(
-            'devices/<int:pk>/security/',
-            views.DeviceDetailSecurityView.as_view(),
-            name='device-detail-security'
-        ),
+        path('devices/<int:pk>/security/', views.DeviceDetailSecurityView.as_view(), name='device-detail-security'),
+        path('devices/<int:pk>/security/save-as-policy/', views.SaveDeviceSettingsAsPolicyView.as_view(),
+             name='save_as_policy'),
         path(
             'devices/<int:pk>/network/',
             views.DeviceDetailNetworkView.as_view(),
@@ -99,12 +100,14 @@ if settings.IS_DASH:
         path('ajax-credentials/<int:pk>/delete/', api_views.DeleteCredentialView.as_view(), name='ajax-credentials-delete'),
         path('ajax-credentials/<int:pk>/update/', api_views.UpdateCredentialView.as_view(), name='ajax-credentials-update'),
         path('ajax-credentials/create/', api_views.CreateCredentialView.as_view(), name='ajax-credentials-create'),
+        path('ajax-policies/<int:pk>/device-nr/', api_views.PolicyDeviceNumberView.as_view(),
+             name='ajax_policy_device_nr'),
         path('actions/', views.actions_view, name='actions'),
         path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),
         path(
-             'ajax/tags/autocomplete/',
-             api_views.autocomplete_tags,
-             name='ajax-tags-autocomplete',
+            'ajax/tags/autocomplete/',
+            api_views.autocomplete_tags,
+            name='ajax-tags-autocomplete',
         ),
         path('pairing-keys/',
              views.PairingKeysView.as_view(),
@@ -116,13 +119,13 @@ if settings.IS_DASH:
         path('ajax-pairing-keys/create/', api_views.CreatePairingKeyView.as_view(), name='ajax_pairing_keys_create'),
         path(
             'ajax-pairing-keys/<uuid:pk>/delete/',
-             api_views.DeletePairingKeyView.as_view(),
-             name='ajax_pairing_keys_delete'
+            api_views.DeletePairingKeyView.as_view(),
+            name='ajax_pairing_keys_delete'
         ),
         path(
             'ajax-pairing-keys/<uuid:pk>/update/',
-             api_views.UpdatePairingKeyView.as_view(),
-             name='ajax_pairing_keys_update'
+            api_views.UpdatePairingKeyView.as_view(),
+            name='ajax_pairing_keys_update'
         ),
         path('ajax-pairing-keys/add_dev/', api_views.InstallInstructionKeyView.as_view(), name='ajax_install_instruction'),
         path('devices/device-cert/<str:device_id>/', api_views.DeviceCertView.as_view(), name='download_device_cert'),

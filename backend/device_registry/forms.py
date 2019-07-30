@@ -11,7 +11,6 @@ class ClaimDeviceForm(forms.Form):
 
 
 class DeviceMetadataForm(forms.ModelForm):
-
     class Meta:
         model = DeviceInfo
         fields = ['device_metadata']
@@ -62,3 +61,12 @@ class ConnectionsForm(forms.Form):
         open_connections_choices = kwargs.pop('open_connections_choices')
         super().__init__(*args, **kwargs)
         self.fields['open_connections'].choices = open_connections_choices
+
+
+class GlobalPolicyForm(forms.ModelForm):
+    class Meta:
+        model = FirewallState
+        fields = ['global_policy']
+        widgets = {
+            'global_policy': forms.Select(attrs={'class': 'form-control'}),
+        }

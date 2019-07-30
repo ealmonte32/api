@@ -1,0 +1,42 @@
+{% extends "admin_base.html" %}
+
+{% block title %}WoTT - Policies{% endblock title %}
+
+{% block dashboard_title %}
+  <h1>Policies</h1>
+{% endblock dashboard_title %}
+
+{% block admin_content %}
+  <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Policies</h5>
+          </div>
+          <div class="card-body">
+            <table id="datatables-basic" class="table table-striped table-responsive-xs" style="width:100%">
+              <thead>
+              <tr>
+                <th>Name</th>
+                <th>Created</th>
+                <th>Firewall Ports Policy</th>
+                <th>Devices number</th>
+              </tr>
+              </thead>
+              <tbody>
+              {% for object in object_list %}
+                  <tr>
+                  <td><a href="{% url 'edit_global_policy' object.pk %}">{{ object }}</a></td>
+                  <td>{{ object.created }}</td>
+                  <td>{{ object.get_policy_display }}</td>
+                  <td>{{ object.get_devices_nr }}</td>
+                  </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+  </div>
+  <a href="{% url 'create_global_policy' %}" class="btn btn-success" role="button">＋ Add Policy</a>
+{% endblock admin_content %}
