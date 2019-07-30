@@ -34,7 +34,7 @@ MIDDLEWARE.append('django_prometheus.middleware.PrometheusAfterMiddleware')
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django_prometheus.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME', 'wott-backend'),
         'USER': os.getenv('DB_USER', 'wott-backend'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
