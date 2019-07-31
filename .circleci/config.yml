@@ -15,6 +15,7 @@ jobs:
             python3 -m ensurepip
             pip3 install --upgrade pip
             pip3 install --upgrade-strategy only-if-needed paramiko==2.4.2 docker-compose
+            npm config set unsafe-perm true
             npm install -g snyk
       - run:
           name: Set environment variables
