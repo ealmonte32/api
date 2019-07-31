@@ -464,9 +464,9 @@ class UpdateCredentialView(CredentialsQSMixin, UpdateAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         if Credential.objects.filter(
-                owner=request.user, key=serializer.validated_data['key'], name=serializer.validated_data['name'],
+                owner=request.user, name=serializer.validated_data['name'],
                 linux_user=serializer.validated_data['linux_user']).exclude(pk=instance.pk).exists():
-            return Response({'error': '\'Name\'/\'Key\'/\'File owner\' combination should be unique'},
+            return Response({'error': '\'Name\'/\'File owner\' combination should be unique'},
                             status=status.HTTP_400_BAD_REQUEST)
         self.perform_update(serializer)
 
@@ -500,9 +500,9 @@ class CreateCredentialView(CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if Credential.objects.filter(
-                owner=request.user, key=serializer.validated_data['key'], name=serializer.validated_data['name'],
+                owner=request.user, name=serializer.validated_data['name'],
                 linux_user=serializer.validated_data['linux_user']).exists():
-            return Response({'error': '\'Name\'/\'Key\'/\'File owner\' combination should be unique'},
+            return Response({'error': '\'Name\'/\'File owner\' combination should be unique'},
                             status=status.HTTP_400_BAD_REQUEST)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)

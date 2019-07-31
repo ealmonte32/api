@@ -65,7 +65,7 @@ class CredentialsListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value', 'linux_user', 'pk', 'tags_data']
+        fields = ['name', 'linux_user', 'pk', 'tags_data', 'data']
 
 
 class CredentialSerializer(serializers.ModelSerializer):
@@ -73,8 +73,12 @@ class CredentialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Credential
-        fields = ['name', 'key', 'value', 'linux_user', 'tags']
+        fields = ['name', 'linux_user', 'tags', 'data']
 
+    def validate_data(self, value):
+        if not value:
+            raise serializers.ValidationError('At least one key-value pair is required.')
+        return value
 
 class CreateDeviceSerializer(serializers.ModelSerializer):
     csr = serializers.CharField(source='certificate_csr')

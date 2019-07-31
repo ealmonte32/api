@@ -1,7 +1,7 @@
 import uuid
 import json
 
-from django.views.generic import DetailView, ListView, TemplateView, View
+from django.views.generic import DetailView, TemplateView, View
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -14,7 +14,7 @@ from tagulous.forms import TagWidget
 
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
-from device_registry.models import Credential, PairingKey, get_bootstrap_color
+from device_registry.models import PairingKey, get_bootstrap_color
 
 
 @login_required
@@ -284,18 +284,12 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class CredentialsView(LoginRequiredMixin, ListView):
-    model = Credential
+class CredentialsView(LoginRequiredMixin, TemplateView):
     template_name = 'credentials.html'
-    pi_credentials_path = '/opt/wott/credentials'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset.filter(owner=self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super(CredentialsView, self).get_context_data(**kwargs)
-        context['pi_credentials_path'] = self.pi_credentials_path
+        context['pi_credentials_path'] = '/opt/wott/credentials'
         context['form_media'] = TagWidget().media
         return context
 

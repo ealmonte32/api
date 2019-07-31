@@ -417,8 +417,6 @@ class Credential(models.Model):
         validators=[
             validators.UnicodeNameValidator()
         ])
-    key = models.CharField(max_length=64)
-    value = models.CharField(max_length=1024)
     tags = tagulous.models.TagField(to=Tag, blank=True)
     linux_user = models.CharField(
         max_length=32,
@@ -426,14 +424,15 @@ class Credential(models.Model):
         validators=[
             validators.LinuxUserNameValidator()
         ])
+    data = JSONField(blank=True, default=dict)
 
     class Meta:
-        unique_together = ['owner', 'key', 'name', 'linux_user']
+        unique_together = ['owner', 'name', 'linux_user']
         verbose_name = 'credentials record'
         verbose_name_plural = 'credentials records'
 
     def __str__(self):
-        return f'{self.name}: {self.key}={self.value}'
+        return f'{self.name}: {self.data}'
 
     def clean_name(self):
         return self.cleaned_data["name"].lower()
