@@ -54,6 +54,7 @@ jobs:
           name: Check for vulnerabilities
           command: |
             ln -s /usr/bin/python3 /usr/bin/python
+            ln -s /usr/bin/pip3 /usr/bin/pip
             snyk monitor
       - run:
           name: Build docker images
