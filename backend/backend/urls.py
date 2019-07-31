@@ -17,13 +17,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls import url
 
-from profile_page.views import LogoutView
+from profile_page.views import RegistrationView, LogoutView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    url(r'^accounts/register/$', RegistrationView.as_view(), name='registration_register'),
     url(r'^accounts/logout/$', LogoutView.as_view(template_name='registration/logout.html'), name='auth_logout'),
     url(r'^accounts/', include('registration.backends.simple.urls')),
     path('user/', include('profile_page.urls')),
     path('', include('device_registry.urls')),
-    url('', include('django_prometheus.urls')),
+    url('', include('django_prometheus.urls'))
 ]
