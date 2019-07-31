@@ -134,6 +134,9 @@
                 {% endfor %}
               </tr>
               </thead>
+              <tfoot>
+                <th colspan="5"></th>
+              </tfoot>
               <tbody>
               {% for device in object_list %}
                 <tr>
@@ -207,8 +210,6 @@
                               }
                           }
                       }
-
-
                   });
 
                   $('#action_select').on('change', function(e){
@@ -288,7 +289,8 @@
               document.addEventListener("DOMContentLoaded", function () {
                 // Datatables basic
                 $('#datatables-basic').DataTable({
-                  responsive: true
+                  responsive: true,
+                  "footerCallback": batch_footer,
                 });
               });
 
