@@ -8,7 +8,7 @@
 
 {% block admin_content %}
   <div class="container-fluid p-0">
-{% for device in devices %}
+{% for device in object_list %}
 {% if device.deviceinfo.detected_mirai %}
 <div class="alert alert-danger" role="alert">
     <p><br />
@@ -115,7 +115,7 @@
               </tr>
               </thead>
               <tbody>
-              {% for device in devices %}
+              {% for device in object_list %}
                 <tr>
                   <td><a href="{% url 'device-detail' device.id %}">{{ device.get_name }}</a></td>
                   <td>{{ device.deviceinfo.fqdn }}</td>

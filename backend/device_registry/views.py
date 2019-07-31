@@ -1,7 +1,7 @@
 import uuid
 import json
 
-from django.views.generic import DetailView, TemplateView, View
+from django.views.generic import DetailView, TemplateView, ListView, View
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
@@ -9,29 +9,20 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
+from django.db.models import Q
 
 from tagulous.forms import TagWidget
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm, FilterForm
-from device_registry.models import Action, Device, get_device_list, average_trust_score, PortScan, FirewallState
+from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
+from device_registry.models import Action, Device, average_trust_score, PortScan, FirewallState
 from device_registry.models import PairingKey, get_bootstrap_color
 
-import logging
 
+class RootView(LoginRequiredMixin, ListView):
+    model = Device
+    template_name = 'root.html'
 
-@login_required
-def root_view(request):
-    avg_trust_score = average_trust_score(request.user)
-    filter_form = FilterForm()
-    logging.warning('{}'.format(request.GET))
-
-    # TODO: use getlist() instead of get() to retrieve multiple filters
-    filter_by = request.GET.get('filter_by')
-    filter_predicate = request.GET.get('filter_predicate')
-    filter_value = request.GET.get('filter_value')
-    filter = (filter_by, filter_predicate, filter_value) if filter_by and filter_predicate else None
-
-    filter_fields = {
+    FILTER_FIELDS = {
         'device-name': (
             ['deviceinfo__fqdn', 'name'],
             'Device Name',
@@ -63,7 +54,7 @@ def root_view(request):
             'bool'
         )
     }
-    predicates = {
+    PREDICATES = {
         'str': {
             'eq': 'iexact',
             'c': 'icontains'
@@ -82,48 +73,74 @@ def root_view(request):
             'eq': 'exact'
         }
     }
-    if filter:
-        query_by, _, query_type = filter_fields[filter_by]
-        invert = filter_predicate[0] == 'n'
-        if invert:
-            filter_predicate = filter_predicate[1:]
-        predicate = predicates[query_type][filter_predicate]
-        if query_type != 'str' and not filter_value:
-            filter_value = None
-        filter_tuple = (query_by, predicate, filter_value, invert)
-        filter_dict = {
-            'by': filter_by,
-            'predicate': filter_predicate,
-            'value': filter_value,
-            'type': query_type
-        }
-    else:
-        filter_tuple = filter_dict = None
 
-    return render(request, 'root.html', {
-        'avg_trust_score': avg_trust_score,
-        'avg_trust_score_percent': int(avg_trust_score * 100) if avg_trust_score is not None else None,
-        'avg_trust_score_color': get_bootstrap_color(
-            int(avg_trust_score * 100)) if avg_trust_score is not None else None,
-        'active_inactive': Device.get_active_inactive(request.user),
-        'devices': get_device_list(request.user, filter_tuple),
-        'column_names': [
-            'Device Name',
-            'Hostname',
-            'Last Ping',
-            'Trust Score',
-            'Comment'
-        ],
-        'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in filter_fields.items()],
-        'form': filter_form,
-        'date_format': {
-            'display': "MM/DD/YYYY hh:mm A",
-            'store': "YYYY-MM-DD HH:mm"
-        },
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        common_query = Q(owner=self.request.user)
+        query = Q()
 
-        # TODO: convert this into a list of dicts for multiple filters
-        'filter': filter_dict
-    })
+        filter_by = self.request.GET.get('filter_by')
+        filter_predicate = self.request.GET.get('filter_predicate')
+        filter_value = self.request.GET.get('filter_value')
+
+        if filter_by and filter_predicate:
+            query_by, _, query_type = self.FILTER_FIELDS[filter_by]
+            invert = filter_predicate[0] == 'n'
+            if invert:
+                filter_predicate = filter_predicate[1:]
+            predicate = self.PREDICATES[query_type][filter_predicate]
+            if query_type != 'str' and not filter_value:
+                filter_value = None
+            self.request.filter_dict = {
+                'by': filter_by,
+                'predicate': filter_predicate,
+                'value': filter_value,
+                'type': query_type
+            }
+            if isinstance(query_by, list):
+                query = Q()
+                for field in query_by:
+                    query.add(Q(**{f'{field}__{predicate}': filter_value}), Q.OR)
+            else:
+                query = Q(**{f'{query_by}__{predicate}': filter_value})
+
+            if invert:
+                query = ~query
+        else:
+            self.request.filter_dict = None
+
+        return queryset.filter(common_query & query)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        avg_trust_score = average_trust_score(self.request.user)
+        filter_form = FilterForm()
+
+        context.update({
+            'avg_trust_score': avg_trust_score,
+            'avg_trust_score_percent': int(avg_trust_score * 100) if avg_trust_score is not None else None,
+            'avg_trust_score_color': get_bootstrap_color(
+                int(avg_trust_score * 100)) if avg_trust_score is not None else None,
+            'active_inactive': Device.get_active_inactive(self.request.user),
+            'column_names': [
+                'Device Name',
+                'Hostname',
+                'Last Ping',
+                'Trust Score',
+                'Comment'
+            ],
+            'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in self.FILTER_FIELDS.items()],
+            'form': filter_form,
+            'date_format': {
+                'display': "MM/DD/YYYY hh:mm A",
+                'store': "YYYY-MM-DD HH:mm"
+            },
+
+            # TODO: convert this into a list of dicts for multiple filters
+            'filter': self.request.filter_dict
+        })
+        return context
 
 
 @login_required

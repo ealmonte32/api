@@ -81,7 +81,7 @@ class Device(models.Model):
 
     @staticmethod
     def get_active_inactive(user):
-        devices = get_device_list(user)
+        devices = Device.objects.filter(owner=user)
         device_count = devices.count()
         day_ago = timezone.now() - datetime.timedelta(hours=24)
         active = devices.filter(last_ping__gte=day_ago).count()
@@ -457,25 +457,6 @@ class Action:
         self.title = title
         self.description = description
         self.actions = actions
-
-
-def get_device_list(user, filter=None):
-    common_query = Q(owner=user)
-    query = Q()
-
-    if filter:
-        query_by, predicate, filter_value, invert = filter
-        if isinstance(query_by, list):
-            query = Q()
-            for field in query_by:
-                query.add(Q(**{f'{field}__{predicate}': filter_value}), Q.OR)
-        else:
-            query = Q(**{f'{query_by}__{predicate}': filter_value})
-
-        if invert:
-            query = ~query
-
-    return Device.objects.filter(common_query & query).all()
 
 
 def average_trust_score(user):

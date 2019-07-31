@@ -50,7 +50,7 @@ if settings.IS_MTLS_API:
 if settings.IS_DASH:
     urlpatterns += [
         path('',
-             views.root_view,
+             views.RootView.as_view(),
              name='root'),
         path('claim-device/',
              views.claim_device_view,
