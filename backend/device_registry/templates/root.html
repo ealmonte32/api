@@ -164,46 +164,6 @@
                 });
               });
 
-              function show_install_msg(a){
-                $.ajax({
-                    url: '/ajax-pairing-keys/add_dev/',
-                    type: "POST",
-                    data: JSON.stringify({}),
-                    contentType: 'application/json',
-                }).done(function (e) {
-                    console.log('success');
-                    let title = "To add a devices, simply SSH into your Raspberry Pi and run the following commands:";
-                    let msg = `$ sudo mkdir /opt/wott\n`
-                       + `$ sudo echo -e "[DEFAULT]\\nenroll_token = ${e.key}" > /opt/wott/config.ini\n`
-                       + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash\n`
-                       + `$ sudo apt install wott-agent\n`;
-                    show_dialog(title, msg);
-                }).fail(function (e) {
-                    console.log('error');
-                    console.log(e.status, e.responseText);
-                    show_dialog('Error', e.status, e.responseText);
-                })
-              }
-
-              /***
-               *  setup dialog parameters and toggle on.
-               *  @param title - dialog title
-               *  @param message - dialog message
-               *  @param errors - the errors string to display, if is not null.
-               */
-              function show_dialog(title, message, errors=null )
-              {
-                  $('#modal-title')[0].innerText = title;
-                  $('#modal-msg')[0].value = message;
-                  if(errors == null)
-                    $('#modal-alert')[0].style.display = 'none';
-                  else
-                  {
-                    $('#modal-alert')[0].style.display = 'block';
-                    $('#modal-alert')[0].innerText = errors;
-                  }
-                  $('#wott-instruction-modal').modal('toggle');
-              }
             </script>
           </div>
         </div>
@@ -376,7 +336,7 @@
           <h4 class="modal-title" id="modal-title"></h4>
         </div>
         <div class="modal-body">
-          <textarea id="modal-msg" rows="10" style="width:100%"></textarea>
+          <p id="modal-msg" rows="10" style="width:100%"></p>
         </div>
         <div class="alert alert-warning wott-form-alert p-1" role="alert" id="modal-alert">
           Server error
@@ -478,6 +438,102 @@
       if(type == 'tags')
         Tagulous.select2($('#filter-tags'));
   }
+
+  {% load static %}
+  <link rel="stylesheet" href="{% static "css/dark.css" %}">
+  <script src="{% static "js/highlight.pack.js" %}"></script>
+
+  <template id="bash_block">
+    <div class="col-12">
+      <div class="row">
+        <div class="col-11">
+          <pre><code class="bash rounded"><!-- text --></code></pre>
+        </div>
+        <div class="col-1">
+          <button type="button" class="btn btn-primary" aria-label="Left Align">
+            <span class="fas fa-copy" aria-hidden="true" onclick="copy_bash(this)" data-toggle="popover"
+                  data-placement="top" title="Copy to clipboard."></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+  <script>
+
+      function copy_bash(a){
+        let code = a.parentElement.parentElement.parentElement.children[0].children[0].children[0].innerText;
+        if (code.charAt(0) === '$') code = code.substr(1).trim();
+        copyToClipboard(code);
+      }
+
+      function bash_block(text){
+          let s = $('#bash_block').html();
+          return s.replace('<!-- text -->', text);
+      }
+
+      function show_install_msg(a){
+        $.ajax({
+            url: '/ajax-pairing-keys/add_dev/',
+            type: "POST",
+            data: JSON.stringify({}),
+            contentType: 'application/json',
+        }).done(function (e) {
+            console.log('success');
+            let title = "To add a devices, simply SSH into your Raspberry Pi and run the following commands:";
+            let msg = bash_block(`$ sudo mkdir -p /opt/wott && echo -e "[DEFAULT]\\\\nenroll_token = ${e.key}" | sudo tee -a /opt/wott/config.ini`)
+             + bash_block(`$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash`)
+             + bash_block(`$ sudo apt install wott-agent`);
+            show_dialog(title, msg);
+            document.querySelectorAll('pre code').forEach((block) => {
+              hljs.highlightBlock(block);
+            });
+        }).fail(function (e) {
+            console.log('error');
+            console.log(e.status, e.responseText);
+            show_dialog('Error', e.status, e.responseText);
+        })
+      }
+
+      /***
+       *  setup dialog parameters and toggle on.
+       *  @param title - dialog title
+       *  @param message - dialog message
+       *  @param errors - the errors string to display, if is not null.
+       */
+      function show_dialog(title, message, errors=null )
+      {
+          $('#modal-title')[0].innerText = title;
+          $('#modal-msg')[0].innerHTML = message;
+          if(errors == null)
+            $('#modal-alert')[0].style.display = 'none';
+          else
+          {
+            $('#modal-alert')[0].style.display = 'block';
+            $('#modal-alert')[0].innerText = errors;
+          }
+          $('#wott-instruction-modal').modal('toggle');
+      }
+
+      function copyToClipboard(str){
+          let el = document.createElement('textarea');  // Create a <textarea> element
+          el.value = str;                                 // Set its value to the string that you want copied
+          el.setAttribute('readonly', '');                // Make it readonly to be tamper-proof
+          el.style.position = 'absolute';
+          el.style.left = '-9999px';                      // Move outside the screen to make it invisible
+          document.body.appendChild(el);                  // Append the <textarea> element to the HTML document
+          let selected =
+            document.getSelection().rangeCount > 0        // Check if there is any content selected previously
+              ? document.getSelection().getRangeAt(0)     // Store selection if found
+              : false;                                    // Mark as false to know no selection existed before
+          el.select();                                    // Select the <textarea> content
+          document.execCommand('copy');                   // Copy - only works as a result of a user action (e.g. click events)
+          document.body.removeChild(el);                  // Remove the <textarea> element
+          if (selected) {                                 // If a selection existed before copying
+              document.getSelection().removeAllRanges();  // Unselect everything on the HTML document
+              document.getSelection().addRange(selected); // Restore the original selection
+          }
+      };
+  </script>
 
 {% endblock %}
 
