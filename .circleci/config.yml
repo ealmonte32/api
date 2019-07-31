@@ -53,6 +53,7 @@ jobs:
       - run:
           name: Check for vulnerabilities
           command: |
+            alias python='python3'
             snyk monitor
       - run:
           name: Build docker images
