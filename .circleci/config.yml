@@ -11,10 +11,11 @@ jobs:
           name: Install dependencies
           command: |
             apk add --no-cache \
-              curl python3 py3-pynacl py3-cffi py3-bcrypt py3-cryptography
+              curl python3 py3-pynacl py3-cffi py3-bcrypt py3-cryptography nodejs
             python3 -m ensurepip
             pip3 install --upgrade pip
             pip3 install --upgrade-strategy only-if-needed paramiko==2.4.2 docker-compose
+            npm install -g snyk
       - run:
           name: Set environment variables
           command: |
@@ -48,6 +49,10 @@ jobs:
             rm "helm-v$HELM_VERSION-linux-amd64.tar.gz"
             mv /tmp/linux-amd64/helm /usr/bin/
             mv /tmp/linux-amd64/tiller /usr/bin/
+      - run:
+          name: Check for vulnerabilities
+          command: |
+            snyk monitor
       - run:
           name: Build docker images
           command: |
