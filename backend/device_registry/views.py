@@ -111,6 +111,8 @@ class RootView(LoginRequiredMixin, ListView):
 
             if query_type == 'datetime':
                 number, measure = filter_value.split(',')
+                if not number:
+                    number = 0
                 number = int(number)
                 if filter_predicate == 'eq':
                     interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
