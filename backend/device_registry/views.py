@@ -111,7 +111,14 @@ class RootView(LoginRequiredMixin, ListView):
 
             if query_type == 'datetime':
                 number, measure = filter_value.split(',')
-                filter_value = timezone.now() - datetime.timedelta(**{measure: int(number)})
+                number = int(number)
+                if filter_predicate == 'eq':
+                    interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
+                    interval_end = timezone.now() - datetime.timedelta(**{measure: number})
+                    filter_value = (interval_start, interval_end)
+                    predicate = 'range'
+                else:
+                    filter_value = timezone.now() - datetime.timedelta(**{measure: number})
 
             if isinstance(query_by, list):
                 query = Q()
