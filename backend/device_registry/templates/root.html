@@ -129,17 +129,19 @@
             <table id="datatables-basic" class="table table-striped table-responsive-xs" style="width:100%">
               <thead>
               <tr>
+                <th width="5%" id="select-all"></th>
                 {% for column_name in column_names %}
                 <th>{{ column_name }}</th>
                 {% endfor %}
               </tr>
               </thead>
               <tfoot>
-                <th colspan="5"></th>
+                <th colspan="6"></th>
               </tfoot>
               <tbody>
               {% for device in object_list %}
                 <tr>
+                  <td></td>
                   <td><a href="{% url 'device-detail' device.id %}">{{ device.get_name }}</a></td>
                   <td>{{ device.deviceinfo.fqdn }}</td>
                   <td>{{ device.last_ping | timesince }} ago</td>
@@ -160,58 +162,69 @@
               {% endfor %}
               </tbody>
             </table>
-              <tfoot>
-                <tr><td>
-                  <div class="row">
-                    <div class="input-group mb-3 col-2">
-                      <select class="custom-select" id="subject_select">
-                        <option selected>Subject...</option>
-                      </select>
-                    </div>
-                    <div class="input-group mb-3 col-2">
-                      <select class="custom-select" id="action_select">
-                        <option selected>Action...</option>
-                      </select>
-                    </div>
-                    <div class="col-4" id="subj_element_div">
-                    </div>
-                    <div class="col-2">
-                      <button type="button" class="btn btn-secondary" id="action_button">Apply</button>
-                    </div>
-                  </div>
-                </td></tr>
-              </tfoot>
-              <!-- This two cycles are needed for tagulous support -->
-              {% for css in form_media.css.all %}
-                <link rel="stylesheet" href="{% static css %}">
-              {% endfor %}
-              {% for js in form_media.js %}
-                <script src="{% static js %}"></script>
-              {% endfor %}
             <script>
               document.addEventListener("DOMContentLoaded", function () {
-                  let subjects=[];
-                  let actions=[];
 
-                  const action_select_default = 'Action...';
-                  const subject_select_default = 'Subject...';
+                batchControl = initBatchControls();
 
-                  $('#subject_select').on('change', function(e){
-                      let action_select = $('#action_select');
-                      action_select.empty().append(`<option selected>${action_select_default}</option>`);
-                      if( this.value != subject_select_default)
-                      {
-                          for(let i in actions){
-                              if( actions[i].subject == this.value )
-                              {
-                                 action_select.append(
-                                     `<option value="${i}">${actions[i].display_name}</option>`
-                                 );
-                              }
-                          }
-                      }
-                  });
+                // Datatables basic
+                $('#datatables-basic').DataTable({
+                    responsive: true,
+                    "footerCallback": batch_footer,
+                    columns:[
+                        {data:'', orderable: false, sortable:false, className: 'select-checkbox'},
+                        {data:0},
+                        {data:1},
+                        {data:2},
+                        {data:3},
+                        {data:4},
+                    ],
+                    select: {
+                        style:    'multi+shift',
+                        selector: 'td:first-child'
+                    },
+                });
 
+                // apply 'select all' feature to table.
+                $("#select-all").html($("#select-all-template").html());
+
+                function batch_footer( row, data, start, end, display ) {
+                    var api = this.api();
+                    $(api.table().footer()).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
+                    batchControl.refresh();
+                }
+
+              });
+
+              /**
+               * callback function. called by batch action 'apply' button handler for each table row
+               *
+               * @param action. action object.
+               * @param row - row data. the array of table columns of processed row
+               * @returns {null|string | *} must return pk of object in a row to process batch function
+               * or null if you do not want to apply batch function to this object
+               */
+              function get_object_pk_for_batch( action, row )
+              {
+                  let re = /<a href="\/devices\/(\d+)\/">/i
+                  let res = row[0].match(re);
+                  if (res === null) return null;
+                  return Number(res[1]);
+              }
+
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% include "select_all_control.html" %}
+  {% include "batch_actions_control.html" %}
+
+  <script>
+  </script>
+{% endblock %}
                   $('#action_select').on('change', function(e){
                       let batch_args_div = document.getElementById("subj_element_div");
                       while (batch_args_div.firstChild) {

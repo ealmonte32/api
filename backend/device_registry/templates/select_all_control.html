@@ -1,0 +1,64 @@
+  <template id="select-all-template">
+    <div class="btn-group dropup">
+      <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <span class="far fa-check-square" data-toggle="popover" data-placement="top" title="Select page/all"></span>
+      </button>
+      <div class="dropdown-menu">
+        <p class="dropdown-item" onclick="select_all('all')">Select all</p>
+        <p class="dropdown-item" onclick="select_all('current')">Select page</p>
+        <p class="dropdown-item" onclick="deselect_all('all')">Deselect all</p>
+        <p class="dropdown-item" onclick="deselect_all('current')">Deselect page</p>
+        <p class="dropdown-item" onclick="inverse_all('all')">Inverse all</p>
+        <p class="dropdown-item" onclick="inverse_all('current')">Inverse page</p>
+      </div>
+    </div>
+  </template>
+
+  <script>
+      /* select all control for table */
+
+      function select_all(page)
+      {
+          $("#datatables-basic").dataTable().api().rows({page:page}).select();
+      }
+
+      function deselect_all(page)
+      {
+          $("#datatables-basic").dataTable().api().rows({page:page}).deselect();
+      }
+
+      function inverse_all(page){
+          let table = $("#datatables-basic").dataTable().api();
+
+          table.rows({page:page}).every( function ( rowIdx, tableLoop, rowLoop ){
+            if ( table.row( this, { selected: true } ).any() ) {
+                table.row( this ).deselect();
+            }
+            else {
+                table.row( this ).select();
+            }
+          });
+      }
+
+      /**
+       *    table id must be 'datatables-basic'
+       *    Applying sample, on table column header. <th id="select-all">:
+       *
+       *        $('#datatables-basic').DataTable({
+       *             responsive: true,
+       *             columns:[
+       *                 {data:'', orderable: false, sortable:false, className: 'select-checkbox'},
+       *                 {data:0},
+       *                 {data:1},
+       *                 {data:2},
+       *             ],
+       *             select: {
+       *                 style:    'multi+shift',
+       *                 selector: 'td:first-child'
+       *             },
+       *         });
+       *
+       *
+       *        $("#select-all").html($("#select-all-template").html());
+       */
+  </script>
