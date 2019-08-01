@@ -27,34 +27,56 @@
       /**
        *  Using sample:
        *
+       *  document.addEventListener("DOMContentLoaded", function () {
+       *      // batch control initialization.
+       *      batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
        *
+       *      $('#datatables-basic').DataTable({
+       *            responsive: true,
+       *            "footerCallback": function ( row, data, start, end, display ) {
+       *                let footer = this.api().table().footer();
+       *                $(footer).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
+       *                batchControl.refresh();  // to refresh batch controls on redraw footer
+       *            },
+       *      });
        *
-       *
-       * /
+       *      function get_object_pk_for_batch( action, row ){
+       *          let res = row[0].match( /<a href="\/devices\/(\d+)\/">/i );
+       *          if (res === null) return null;
+       *          return Number(res[1]);   // retrieve pk from url in column 0
+       *      }
+       */
 
 
       /**
        *  creates batch actions controls
+       *  @param: options:
+       *             options.table_id - HTML id of table. default: "datatables-basic"
+       *             options.get_row_pk( action, row ) - Call back funtion. Which returns pk of object
+       *                     in specified table row. Callbck function Arguments:
+       *                       row - is a table.row().data().
+       *                       action - action object.
        *  @returns batchControl object.
        *            batchControl.refresh() - refresh batch controls data and events
        **/
-       function initBatchControls(options){
+       function initBatchControls(options=null){
 
           let defaultOptions = {
-              get_object_pk_for_batch: function( action, row ) {
+              get_row_pk: function( action, row ) {
                   return row['pk'];
               },
               table_id: 'datatables-basic',
           };
 
+          if( options == null )
+              options = defaultOptions;
+          else
+              for ( let key in defaultOptions ){
+                  if (!(key in options)){
+                    options[key] = defaultOptions[key];
+                  }
+              }
 
-
-          function get_object_pk( action, row )
-          {
-              return row['pk'];
-          }
-
-          batchControl = {};
           let subjects=[];
           let actions=[];
 
@@ -146,10 +168,10 @@
                   }
 
                   let items_to_batch = []
-                  let a_table = $('#datatables-basic').dataTable().api();
+                  let a_table = $(`#${options.table_id}`).dataTable().api();
                   a_table.rows({ selected: true }).every( function ( rowIdx, tableLoop, rowLoop ) {
                       let data = this.data();
-                      let pk = get_object_pk_for_batch( actions[action_idx], data);
+                      let pk = options.get_row_pk( actions[action_idx], data);
                       if (pk !== null) items_to_batch.push({pk: pk});
                   } );
 
@@ -171,13 +193,16 @@
               });
           }
 
-          batchControl.refresh = function(){
-              refresh_subject_select();
-              refresh_subject_select_events();
-              refresh_action_select_events();
-              refresh_action_button_events();
-          }
+          let batchControl = {};
+
+          batchControl.refresh =  function() {
+                  refresh_subject_select();
+                  refresh_subject_select_events();
+                  refresh_action_select_events();
+                  refresh_action_button_events();
+          };
           return batchControl;
+
       }
 
   </script>

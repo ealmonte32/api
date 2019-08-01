@@ -165,7 +165,8 @@
             <script>
               document.addEventListener("DOMContentLoaded", function () {
 
-                batchControl = initBatchControls();
+                // batch control initialization.
+                batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
 
                 // Datatables basic
                 $('#datatables-basic').DataTable({
@@ -188,29 +189,34 @@
                 // apply 'select all' feature to table.
                 $("#select-all").html($("#select-all-template").html());
 
+                /**
+                 * DataTable footerCallback. Place batch action control to footer
+                 */
                 function batch_footer( row, data, start, end, display ) {
                     var api = this.api();
                     $(api.table().footer()).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
                     batchControl.refresh();
                 }
 
+                /**
+                 * callback function. called by batch action 'apply' button handler for each table row
+                 *
+                 * @param action. action object.
+                 * @param row - row data. the array of table columns of processed row
+                 * @returns {null|string | *} must return pk of object in a row to process batch function
+                 * or null if you do not want to apply batch function to this object
+                 */
+                function get_object_pk_for_batch( action, row )
+                {
+                    let re = /<a href="\/devices\/(\d+)\/">/i
+                    let res = row[0].match(re);
+                    if (res === null) return null;
+                    return Number(res[1]);
+                }
+
+
               });
 
-              /**
-               * callback function. called by batch action 'apply' button handler for each table row
-               *
-               * @param action. action object.
-               * @param row - row data. the array of table columns of processed row
-               * @returns {null|string | *} must return pk of object in a row to process batch function
-               * or null if you do not want to apply batch function to this object
-               */
-              function get_object_pk_for_batch( action, row )
-              {
-                  let re = /<a href="\/devices\/(\d+)\/">/i
-                  let res = row[0].match(re);
-                  if (res === null) return null;
-                  return Number(res[1]);
-              }
 
             </script>
           </div>
