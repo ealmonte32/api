@@ -6,11 +6,6 @@ from .models import Device, FirewallState, DeviceInfo
 from bootstrap_datepicker_plus import DateTimePickerInput
 
 
-class FilterForm(forms.Form):
-    datetime_field = forms.DateTimeField(
-         widget=DateTimePickerInput()
-     )
-
 class ClaimDeviceForm(forms.Form):
     device_id = forms.CharField()
     claim_token = forms.CharField()

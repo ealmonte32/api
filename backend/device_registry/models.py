@@ -5,7 +5,6 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F, Q
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
 from django.db import transaction

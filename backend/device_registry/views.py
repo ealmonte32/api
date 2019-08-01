@@ -1,5 +1,6 @@
-import uuid
+import datetime
 import json
+import uuid
 
 from django.views.generic import DetailView, TemplateView, ListView, View
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
@@ -10,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from tagulous.forms import TagWidget
 
@@ -52,10 +54,19 @@ class RootView(LoginRequiredMixin, ListView):
             'deviceinfo__default_password',
             'Default Credentials Found',
             'bool'
+        ),
+        'tags': (
+            'tags',
+            'Tags',
+            'tags'
         )
     }
     PREDICATES = {
         'str': {
+            'eq': 'iexact',
+            'c': 'icontains'
+        },
+        'tags': {
             'eq': 'iexact',
             'c': 'icontains'
         },
@@ -97,6 +108,11 @@ class RootView(LoginRequiredMixin, ListView):
                 'value': filter_value,
                 'type': query_type
             }
+
+            if query_type == 'datetime':
+                number, measure = filter_value.split(',')
+                filter_value = timezone.now() - datetime.timedelta(**{measure: int(number)})
+
             if isinstance(query_by, list):
                 query = Q()
                 for field in query_by:
@@ -115,7 +131,6 @@ class RootView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
 
         avg_trust_score = average_trust_score(self.request.user)
-        filter_form = FilterForm()
 
         context.update({
             'avg_trust_score': avg_trust_score,
@@ -131,11 +146,7 @@ class RootView(LoginRequiredMixin, ListView):
                 'Comment'
             ],
             'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in self.FILTER_FIELDS.items()],
-            'form': filter_form,
-            'date_format': {
-                'display': "MM/DD/YYYY hh:mm A",
-                'store': "YYYY-MM-DD HH:mm"
-            },
+            'form_media': TagWidget().media,
 
             # TODO: convert this into a list of dicts for multiple filters
             'filter': self.request.filter_dict

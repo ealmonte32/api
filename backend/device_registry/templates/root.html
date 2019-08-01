@@ -1,5 +1,12 @@
 {% extends "admin_base.html" %}
 
+{% block js %}
+  {{ form_media.js }}
+{% endblock %}
+{% block css %}
+  {{ form_media.css }}
+{% endblock %}
+
 {% block title %}WoTT - Dashboard{% endblock title %}
 
 {% block dashboard_title %}
@@ -159,16 +166,25 @@
     <select class="form-control" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
-      <option value="gt">greater than</option>
-      <option value="lt">less than</option>
+      <option value="lt">greater than</option>
+      <option value="gt">less than</option>
     </select>
   </template>
   <template id="datetime_value">
-    <input type="text" class="form-control" id="datetime_field" dp_config='{
-        "picker_type": "DATETIME",
-        "linked_to": null,
-        "options": {}
-    }'>
+    <div class="form-row">
+      <div class="col">
+        <input type="number" class="form-control" min="0">
+      </div>
+      <div class="col">
+        <select class="form-control" id="datetime-scale">
+          <option value="hours">hours</option>
+          <option value="days">days</option>
+        </select>
+      </div>
+      <div class="col mt-1">
+        <label for="datetime-scale">ago</label>
+      </div>
+    </div>
   </template>
 
   <template id="float_options">
@@ -194,6 +210,28 @@
       <option>True</option>
       <option>False</option>
     </select>
+  </template>
+
+  <template id="tags_options">
+    <select class="form-control" id="filter-predicate">
+      <option value="eq">matches</option>
+      <option value="neq">not matches</option>
+      <option value="c">contains</option>
+      <option value="nc">not contains</option>
+    </select>
+  </template>
+  <template id="tags_value">
+    <input type="text"
+           data-tagulous="true"
+           data-tag-url="/ajax/tags/autocomplete/"
+           data-tag-options='{
+              "force_lowercase": true,
+              "space_delimiter": true,
+              "required": false
+            }'
+           id="filter-tags"
+           data-tag-list=""
+           style="width:20rem;" >
   </template>
 
 
@@ -225,7 +263,7 @@
           <div class="form-row mb-3">
             <div class="custom-control custom-checkbox">
               <input type="checkbox" class="custom-control-input" id="customCheck1">
-              <label class="custom-control-label" for="customCheck1"></label>
+              <label class="custom-control-label mt-1" for="customCheck1"></label>
             </div>
             <div class="col-md-auto">
               <select class="form-control" id="filter-selector">
@@ -256,12 +294,12 @@
         </form>
       </div>
     </div>
+
   </template>
 {% endblock admin_content %}
 
 {% block scripts %}
     {{ block.super }}
-    {{ form.media }}
 
   <style>
     #device-list-columns {
@@ -271,10 +309,6 @@
 
     .custom-control-label:before {
       background-color: white;
-    }
-    .custom-control-label:after,
-    .custom-control-label:before {
-      top: .45rem;
     }
   </style>
   <script>
@@ -298,12 +332,8 @@
       function updateFilter(opt_type) {
           $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
           $('#filter-value-div').html($(`#${opt_type}_value`).html());
-          $('#datetime_field').datetimepicker({
-            "showClose": true,
-            "showClear": true,
-            "showTodayButton": true,
-            "format": "{{ date_format.display }}"
-          });
+          if(opt_type == 'tags')
+            Tagulous.select2($('#filter-tags'));
       }
       $('#filter-selector').change((e) => {
           updateFilter(e.target.value);
@@ -314,11 +344,12 @@
           let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
           let predicate = $('#filter-predicate').val();
           let value = $('#filter-value-div').children(0).val();
-          if($('#filter-selector').val() == 'datetime' && value)
-              value = moment(value, "{{ date_format.display }}").format('{{ date_format.store }}');
+          if($('#filter-selector').val() == 'datetime')
+              value = $('#filter-value-div input').val() + ','  + $('#filter-value-div select').val();
           let query = '/';
-          if($('#customCheck1').prop('checked'))
-              query = `/?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
+          if($('#customCheck1').prop('checked')) {
+              query += `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
+          }
           document.location.replace(query);
       });
 
@@ -332,19 +363,22 @@
       let type = "{{ filter.type }}",
           value = "{{ filter.value | default_if_none:'' }}";
       updateFilter(type);
-      if(type == 'datetime' && value) {
-          value = moment(value, "{{ date_format.store }}").format('{{ date_format.display }}');
-      }
-      setFilter("{{ filter.by }}", "{{ filter.predicate }}", value);
+      setFilter("{{ filter.by }}", "{{ filter.predicate }}", value, type);
       {% else %}
       enableFilter(false);
       {% endif %}
   });
 
-  function setFilter(name, predicate, value) {
+  function setFilter(name, predicate, value, type) {
       $(`option[name=${name}`)[0].selected = true;
       $('#filter-predicate')[0].value = predicate;
-      $('#filter-value-div').children(0).val(value);
+      if(type == 'datetime' && value) {
+          let [n, m] = value.split(',');
+          $('#filter-value-div input').val(n);
+          $('#filter-value-div select').val(m);
+      } else {
+          $('#filter-value-div').children(0).val(value);
+      }
 
       $('#customCheck1').prop('checked', true);
       enableFilter(true);
