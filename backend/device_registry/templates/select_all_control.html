@@ -1,7 +1,11 @@
   <template id="select-all-template">
-    <div class="btn-group dropup">
+    <div class="btn-group dropdown">
+      <button type="button" class="btn btn-secondary" onclick="toggle_page(this)">
+        <span class="far fa-check-square" data-toggle="popover" data-placement="top" title="Select/unselect"
+              id="select-all-toggle"></span>
+      </button>
       <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <span class="far fa-check-square" data-toggle="popover" data-placement="top" title="Select page/all"></span>
+        <span></span>
       </button>
       <div class="dropdown-menu">
         <p class="dropdown-item" onclick="select_all('all')">Select all</p>
@@ -16,6 +20,20 @@
 
   <script>
       /* select all control for table */
+      function toggle_page(e){
+          let toggle_control = $('#select-all-toggle');
+          let state = toggle_control.hasClass("fa-check-square");
+
+          if(state){
+              toggle_control.removeClass("fa-check-square");
+              toggle_control.addClass("fa-square");
+              select_all('current');
+          } else {
+              toggle_control.addClass("fa-check-square");
+              toggle_control.removeClass("fa-square");
+              deselect_all('current');
+          }
+      }
 
       function select_all(page)
       {
