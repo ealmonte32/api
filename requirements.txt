@@ -18,7 +18,6 @@ django-jsonfield==1.0.1
 django-prometheus==1.0.15
 django-registration-redux==2.6
 django-bootstrap4==0.0.8
-django-bootstrap-datepicker-plus
 django-tagulous==0.14.0
 djangorestframework==3.9.1
 dockerignore-generate==1.0.7

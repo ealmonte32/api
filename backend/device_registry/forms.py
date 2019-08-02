@@ -3,7 +3,6 @@ from django import forms
 import tagulous.forms
 
 from .models import Device, FirewallState, DeviceInfo
-from bootstrap_datepicker_plus import DateTimePickerInput
 
 
 class ClaimDeviceForm(forms.Form):
