@@ -749,7 +749,10 @@ class BatchUpdateTagsView(APIView):
             for tag in serializer.initial_data['args']
         ]
         model = objs[serializer.validated_data['object']]
+        cnt = 0
         for obj in serializer.validated_data['objects']:
             tag_field = model.objects.get(pk=obj['pk']).tags
             getattr(tag_field, serializer.validated_data['action'])(*tags)
-        return Response(status=status.HTTP_200_OK)
+            cnt += 1
+        msg = f"{cnt} {serializer.validated_data['object']} records updated successfully."
+        return Response(msg, status=status.HTTP_200_OK)

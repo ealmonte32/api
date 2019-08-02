@@ -1,3 +1,27 @@
+  <template id="batch-msg-modal-template">
+    <div class="modal" tabindex="-1" role="dialog" id="batch-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="batch-title">Title</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p id="batch-msg">Message Text</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+              <div class="alert alert-warning wott-form-alert p-1" role="alert" id="batch-alert">
+                Server error
+              </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
   <template id="batch-footer-tmplate">
     <div class="dropdown" id="device-list-columns">
       <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#batch-actions-collapse" id="batch-expand">
@@ -83,6 +107,7 @@
           const action_select_default = 'Action...';
           const subject_select_default = 'Subject...';
 
+          $('body').append($('#batch-msg-modal-template').html());
 
           refresh_subject_select_events();
           refresh_action_select_events();
@@ -167,7 +192,7 @@
                       return;
                   }
 
-                  let items_to_batch = []
+                  let items_to_batch = [];
                   let a_table = $(`#${options.table_id}`).dataTable().api();
                   a_table.rows({ selected: true }).every( function ( rowIdx, tableLoop, rowLoop ) {
                       let data = this.data();
@@ -188,9 +213,35 @@
                       method: 'POST',
                       contentType: 'application/json',
                   }).done(function(e){
-                     alert("ok");
+                      show_dialog('Batch action', e)
+                  }).fail(function(a){
+                      console.log('error');
+                      console.log(a.status, a.responseText);
+                      errMsgs = [];
+                      if(a.status == 400 || a.status == 404 || a.status == 405) {
+                          for (key in a.responseJSON) {
+                            errMsgs.push(`${key}:  ${a.responseJSON[key]}`);
+                          }
+                      }
+                      else errMsgs.push(a.responseText);
+                      show_dialog('Batch action', 'Batch action was failed.', errMsgs);
                   });
               });
+          }
+
+          function show_dialog(title, message, errors=null )
+          {
+              $('#batch-title')[0].innerText = title;
+              $('#batch-msg')[0].innerText = message;
+              if( errors == null)
+                $('#batch-alert')[0].style.display = 'none';
+              else
+              {
+                  let alertbox = $('#batch-alert')[0];
+                  alertbox.style.display = 'block';
+                  alertbox.innerText = messages.join("\n");
+              }
+              $('#batch-modal').modal('toggle');
           }
 
           let batchControl = {};
@@ -202,7 +253,6 @@
                   refresh_action_button_events();
           };
           return batchControl;
-
       }
 
   </script>
