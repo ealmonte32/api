@@ -56,7 +56,7 @@ class RootView(LoginRequiredMixin, ListView):
             'bool'
         ),
         'tags': (
-            'tags',
+            'tags__name',
             'Tags',
             'tags'
         )
@@ -67,8 +67,7 @@ class RootView(LoginRequiredMixin, ListView):
             'c': 'icontains'
         },
         'tags': {
-            'eq': 'iexact',
-            'c': 'icontains'
+            'c': 'in'
         },
         'float': {
             'eq': 'exact',
@@ -121,6 +120,9 @@ class RootView(LoginRequiredMixin, ListView):
                     predicate = 'range'
                 else:
                     filter_value = timezone.now() - datetime.timedelta(**{measure: number})
+            elif query_type == 'tags':
+                # this query may produce duplicate rows, that's why distinct() is added at the end
+                filter_value = filter_value.split(',') if filter_value else []
 
             if isinstance(query_by, list):
                 query = Q()
@@ -134,7 +136,7 @@ class RootView(LoginRequiredMixin, ListView):
         else:
             self.request.filter_dict = None
 
-        return queryset.filter(common_query & query)
+        return queryset.filter(common_query & query).distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

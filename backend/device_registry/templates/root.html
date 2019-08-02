@@ -214,8 +214,6 @@
 
   <template id="tags_options">
     <select class="form-control" id="filter-predicate">
-      <option value="eq">matches</option>
-      <option value="neq">not matches</option>
       <option value="c">contains</option>
       <option value="nc">not contains</option>
     </select>
@@ -230,6 +228,7 @@
               "required": false
             }'
            id="filter-tags"
+           name="filter-tags"
            data-tag-list=""
            style="width:20rem;" >
   </template>
@@ -262,8 +261,8 @@
         <form>
           <div class="form-row mb-3">
             <div class="custom-control custom-checkbox">
-              <input type="checkbox" class="custom-control-input" id="customCheck1">
-              <label class="custom-control-label mt-1" for="customCheck1"></label>
+              <input type="checkbox" class="custom-control-input" id="filter-check">
+              <label class="custom-control-label mt-1" for="filter-check"></label>
             </div>
             <div class="col-md-auto">
               <select class="form-control" id="filter-selector">
@@ -328,32 +327,30 @@
           column.visible( e.target.checked );
       });
 
-
-      function updateFilter(opt_type) {
-          $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
-          $('#filter-value-div').html($(`#${opt_type}_value`).html());
-          if(opt_type == 'tags')
-            Tagulous.select2($('#filter-tags'));
-      }
       $('#filter-selector').change((e) => {
           updateFilter(e.target.value);
       });
 
       $('#filter-apply').click((e) => {
           e.preventDefault();
-          let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
-          let predicate = $('#filter-predicate').val();
-          let value = $('#filter-value-div').children(0).val();
-          if($('#filter-selector').val() == 'datetime')
-              value = $('#filter-value-div input').val() + ','  + $('#filter-value-div select').val();
           let query = '/';
-          if($('#customCheck1').prop('checked')) {
-              query += `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
+          if($('#filter-check').prop('checked')) {
+            let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
+            let predicate = $('#filter-predicate').val();
+            let value = $('#filter-value-div').children(0).val(),
+                type = $('#filter-selector').val();
+            if(type == 'datetime') {
+                value = $('#filter-value-div input').val() + ',' + $('#filter-value-div select').val();
+            } else if(type == 'tags') {
+                value = $('form').serializeArray()[0].value;
+                value = Tagulous.parseTags(value).join(',');
+            }
+            query += `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
           }
           document.location.replace(query);
       });
 
-      $('#customCheck1').click((e) => {
+      $('#filter-check').click((e) => {
         enableFilter(e.target.checked);
       });
 
@@ -377,12 +374,25 @@
           $('#filter-value-div input').val(n);
           $('#filter-value-div select').val(m);
       } else {
+          if(type == 'tags' && value) {
+              let tags = value.split(',');
+              value = Tagulous.renderTags(tags);
+          }
           $('#filter-value-div').children(0).val(value);
       }
 
-      $('#customCheck1').prop('checked', true);
+      $('#filter-check').prop('checked', true);
       enableFilter(true);
+      if(type == 'tags')
+        Tagulous.select2($('#filter-tags'));
   }
+
+  function updateFilter(opt_type) {
+        $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
+        $('#filter-value-div').html($(`#${opt_type}_value`).html());
+        if(opt_type == 'tags')
+          Tagulous.select2($('#filter-tags'));
+    }
 
   function enableFilter(b) {
       $('.col-md-auto').children().attr('disabled', !b)
