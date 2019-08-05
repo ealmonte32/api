@@ -685,11 +685,10 @@ class BatchAction:
                 input.type = "text";
                 input.name = "batch_{self.name}";
                 input.id = "batch_{self.name}";
-                input.action_name = "{self.name}"; 
+                input.action_name = "{self.name}";
                 {js_init_ext}
                 return input;
-            }}
-        '''.strip()
+            }}'''.strip()
         self.js_postprocess = js_postprocess if js_postprocess is not None else 'function(el){}'
         self.js_get = js_get if js_get is not None else 'function(value){ return value;}'
         self.url = url
@@ -712,16 +711,15 @@ class GetBatchActionsView(APIView):
                 tags.push({ "name" : tag  })
             });
             return tags;
-          }
-        '''
+          }'''
 
         #  batch actions lists initialization.
         self.batch_actions = {
             'device': [
-              BatchAction('device', 'tags', name='add', display_name='Add Tags',
+              BatchAction('device', 'Tags', name='add', display_name='Add Tags',
                           url=reverse('tags_batch', kwargs={'object': 'device'}), js_get=tags_js_get,
                           js_init_ext=tags_js_init_ext, js_postprocess=tags_js_postprocess).__dict__,
-              BatchAction('device', 'tags', name='set', display_name='Set Tags',
+              BatchAction('device', 'Tags', name='set', display_name='Set Tags',
                           url=reverse('tags_batch', kwargs={'object': 'device'}), js_get=tags_js_get,
                           js_init_ext=tags_js_init_ext, js_postprocess=tags_js_postprocess).__dict__
             ],

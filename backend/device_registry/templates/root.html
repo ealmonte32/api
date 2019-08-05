@@ -171,6 +171,7 @@
                 // Datatables basic
                 $('#datatables-basic').DataTable({
                     responsive: true,
+                    dom: '<"toolbar">frtip',
                     "footerCallback": batch_footer,
                     columns:[
                         {data:'', orderable: false, sortable:false, className: 'select-checkbox'},
@@ -186,8 +187,9 @@
                     },
                 });
 
-                // apply 'select all' feature to table.
+                // apply 'select all' features to table.
                 $("#select-all").html($("#select-all-template").html());
+                $("#datatables-basic_filter").html($('#select-all-toolbar-template').html());
 
                 /**
                  * DataTable footerCallback. Place batch action control to footer
@@ -222,9 +224,9 @@
       </div>
     </div>
   </div>
-
   {% include "select_all_control.html" %}
   {% include "batch_actions_control.html" %}
+
 
 {% endblock %}
                   $('#action_select').on('change', function(e){

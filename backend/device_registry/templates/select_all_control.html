@@ -1,48 +1,84 @@
+ {% block css %}
+  <style xmlns:cursor="http://www.w3.org/1999/xhtml">
+  table.dataTable tbody tr.selected {
+    color: #2d3646;
+    background-color: #c2dbff;
+  }
+
+  table.dataTable tbody td.selected a,
+  table.dataTable tbody th.selected a,
+  table.dataTable tbody tr.selected a{
+        color: #355fff !important;
+  }
+  </style>
+ {% endblock %}
+
+  <template id="select-all-toolbar-template">
+    <div class="row">
+      <div class="col-6">
+        <span id="select-all-info-title"></span>
+        <button id="select-all-info-link" onclick="select_all('all', true)"
+          style="background:none; color:blue; border:none; padding:0!important; font: inherit; border-bottom:1px solid #444; cursor: pointer;" >
+        </button>
+      </div>
+      <div class="col-6">
+        <label>Search:<input type="search" class="form-control form-control-sm" placeholder="" aria-controls="datatables-basic"></label>
+      </div>
+    </div>
+  </template>
+
   <template id="select-all-template">
     <div class="btn-group dropdown">
-      <button type="button" class="btn btn-secondary" onclick="toggle_page(this)">
-        <span class="far fa-check-square" data-toggle="popover" data-placement="top" title="Select/unselect"
+      <button type="button" class="btn btn-facebook" onclick="toggle_page(this)">
+        <span class="far fa-square" data-toggle="popover" data-placement="top" title="Select/unselect"
               id="select-all-toggle"></span>
       </button>
-      <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <span></span>
-      </button>
-      <div class="dropdown-menu">
-        <p class="dropdown-item" onclick="select_all('all')">Select all</p>
-        <p class="dropdown-item" onclick="select_all('current')">Select page</p>
-        <p class="dropdown-item" onclick="deselect_all('all')">Deselect all</p>
-        <p class="dropdown-item" onclick="deselect_all('current')">Deselect page</p>
-        <p class="dropdown-item" onclick="inverse_all('all')">Inverse all</p>
-        <p class="dropdown-item" onclick="inverse_all('current')">Inverse page</p>
-      </div>
     </div>
   </template>
 
   <script>
       /* select all control for table */
+      function clear_select_all_info(){
+          $("#select-all-info-title").html('');
+          $("#select-all-info-link").html('');
+      }
+
       function toggle_page(e){
           let toggle_control = $('#select-all-toggle');
           let state = toggle_control.hasClass("fa-check-square");
 
-          if(state){
-              toggle_control.removeClass("fa-check-square");
-              toggle_control.addClass("fa-square");
-              select_all('current');
-          } else {
+          if(!state){
               toggle_control.addClass("fa-check-square");
               toggle_control.removeClass("fa-square");
-              deselect_all('current');
+              select_all('current', true);
+          } else {
+              toggle_control.removeClass("fa-check-square");
+              toggle_control.addClass("fa-square");
+              deselect_all('all');
           }
       }
 
-      function select_all(page)
+      function select_all(page, extend_on_toolbar=false)
       {
-          $("#datatables-basic").dataTable().api().rows({page:page}).select();
+          let table = $("#datatables-basic").dataTable().api();
+
+          let on_page = table.rows({page:'current'}).count();
+          let total = table.rows({page:'all'}).count();
+          table.rows({page:page}).select();
+          if(extend_on_toolbar){
+              if ( total > on_page && page == 'current'){
+                  $("#select-all-info-title").html(`${on_page} rows selected on page.`);
+                  $("#select-all-info-link").html(`Select all ${total} items.`);
+                  return;
+              }
+          }
+          clear_select_all_info();
       }
 
       function deselect_all(page)
       {
           $("#datatables-basic").dataTable().api().rows({page:page}).deselect();
+          clear_select_all_info();
       }
 
       function inverse_all(page){
@@ -56,6 +92,7 @@
                 table.row( this ).select();
             }
           });
+          clear_select_all_info();
       }
 
       /**
@@ -78,5 +115,6 @@
        *
        *
        *        $("#select-all").html($("#select-all-template").html());
+       *        $("#div.toolbar").html($('#select-all-toolbar-template').html());
        */
   </script>
