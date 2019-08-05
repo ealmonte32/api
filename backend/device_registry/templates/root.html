@@ -256,6 +256,13 @@
     <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
       Filters
     </button>
+
+    {% if filter %}
+    <span class="ml-3">
+      <a href="/" class="align-middle btn-link" style="text-decoration: underline">Clear filters</a>
+    </span>
+    {% endif %}
+
     <div class="collapse" id="collapseExample">
       <div class="card card-body">
         <form>
