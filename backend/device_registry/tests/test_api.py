@@ -1007,50 +1007,26 @@ class GetBatchActionsViewTest(APITestCase):
 
     def test_device(self):
         response = self.client.get(self.url)
+        args_control = '<input type="text" name="batch_{name}" id="batch_{name}" action_name="{name}" ' \
+                       'data-tagulous data-tag-url="/ajax/tags/autocomplete/" autocomplete="off" style="width:100%;" >'
+        js_get = 'function(el){\n'\
+                 '            let tags=[];\n'\
+                 '            Tagulous.parseTags( el.val(), true, false ).forEach( function (tag) {\n'\
+                 '                tags.push({ "name" : tag  })\n'\
+                 '            });\n'\
+                 '            return tags;\n'\
+                 '          }'
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         actions = [{'object': 'device', 'subject': 'Tags', 'name': 'add', 'display_name': 'Add Tags',
-                    'js_init': 'function(){\n'
-                               '                let input = document.createElement("input");\n'
-                               '                input.type = "text";\n'
-                               '                input.name = "batch_add";\n'
-                               '                input.id = "batch_add";\n'
-                               '                input.action_name = "add";\n'
-                               '                input.setAttribute(\'data-tagulous\', true);\n'
-                               '                input.setAttribute(\'data-tag-url\', "/ajax/tags/autocomplete/");\n'
-                               '                input.autocomplete="off";\n'
-                               '                input.style.width = "100%";\n'
-                               '                return input;\n'
-                               '            }',
-                    'js_postprocess': 'function(el){Tagulous.select2($(el));}',
-                    'js_get': 'function(value){\n'
-                              '            let tags=[];\n'
-                              '            Tagulous.parseTags( value, true, false ).forEach( function (tag) {\n'
-                              '                tags.push({ "name" : tag  })\n'
-                              '            });\n'
-                              '            return tags;\n'
-                              '          }',
+                    'args_control': args_control.format(name='add'),
+                    'js_postprocess': 'function(el){Tagulous.select2(el);}',
+                    'js_get': js_get,
                     'url': '/ajax-batch/apply/device/tags/'},
                    {'object': 'device', 'subject': 'Tags', 'name': 'set', 'display_name': 'Set Tags',
-                    'js_init': 'function(){\n'
-                               '                let input = document.createElement("input");\n'
-                               '                input.type = "text";\n'
-                               '                input.name = "batch_set";\n'
-                               '                input.id = "batch_set";\n'
-                               '                input.action_name = "set";\n'
-                               '                input.setAttribute(\'data-tagulous\', true);\n'
-                               '                input.setAttribute(\'data-tag-url\', "/ajax/tags/autocomplete/");\n'
-                               '                input.autocomplete="off";\n'
-                               '                input.style.width = "100%";\n'
-                               '                return input;\n'
-                               '            }',
-                    'js_postprocess': 'function(el){Tagulous.select2($(el));}',
-                    'js_get': 'function(value){\n'
-                              '            let tags=[];\n'
-                              '            Tagulous.parseTags( value, true, false ).forEach( function (tag) {\n'
-                              '                tags.push({ "name" : tag  })\n'
-                              '            });\n'
-                              '            return tags;\n'
-                              '          }',
+                    'args_control': args_control.format(name='set'),
+                    'js_postprocess': 'function(el){Tagulous.select2(el);}',
+                    'js_get': js_get,
                     'url': '/ajax-batch/apply/device/tags/'}]
 
         self.assertListEqual(actions, response.json())
