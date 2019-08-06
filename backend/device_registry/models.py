@@ -5,7 +5,6 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
 from django.db import transaction
@@ -81,7 +80,7 @@ class Device(models.Model):
 
     @staticmethod
     def get_active_inactive(user):
-        devices = get_device_list(user)
+        devices = Device.objects.filter(owner=user)
         device_count = devices.count()
         day_ago = timezone.now() - datetime.timedelta(hours=24)
         active = devices.filter(last_ping__gte=day_ago).count()
@@ -457,12 +456,6 @@ class Action:
         self.title = title
         self.description = description
         self.actions = actions
-
-
-def get_device_list(user):
-    """Get list of devices ordered by last ping.
-    """
-    return Device.objects.filter(owner=user).order_by(F('last_ping').desc(nulls_last=True))
 
 
 def average_trust_score(user):

@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.urls import reverse
 from django.test import TestCase
+from django.utils.http import urlencode
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -551,3 +552,125 @@ class PairingKeysView(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), data)
+
+
+class RootViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user,
+            certificate=TEST_CERT,
+            name='First',
+            last_ping=timezone.now()-datetime.timedelta(days=1, hours=1)
+        )
+        self.deviceinfo0 = DeviceInfo.objects.create(
+            device=self.device0,
+            fqdn='FirstFqdn',
+            default_password=False
+        )
+
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            owner=self.user,
+            certificate=TEST_CERT,
+            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23)
+        )
+        self.deviceinfo1 = DeviceInfo.objects.create(
+            device=self.device1,
+            fqdn='SecondFqdn',
+            default_password=True
+        )
+
+    def test_no_filter(self):
+        self.client.login(username='test', password='123')
+        url = reverse('root')
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device0, self.device1])
+
+    def test_filter_date(self):
+        self.client.login(username='test', password='123')
+
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'last-ping',
+            'filter_predicate': 'eq',
+            'filter_value': '1,days'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device0])
+
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'last-ping',
+            'filter_predicate': 'eq',
+            'filter_value': '2,days'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device1])
+
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'last-ping',
+            'filter_predicate': 'lt',
+            'filter_value': '1,days'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device0, self.device1])
+
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'last-ping',
+            'filter_predicate': 'gt',
+            'filter_value': '1,days'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [])
+
+    def test_filter_name(self):
+        self.client.login(username='test', password='123')
+
+        # Context-insensitive filter by device name set in device.name (exact match)
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'device-name',
+            'filter_predicate': 'eq',
+            'filter_value': 'first'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device0])
+
+        # Context-insensitive filter by device name set in deviceinfo.fqdn (exact match)
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'device-name',
+            'filter_predicate': 'eq',
+            'filter_value': 'firstfqdn'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device0])
+
+        # Context-insensitive filter by device name set in device.name (not match)
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'device-name',
+            'filter_predicate': 'neq',
+            'filter_value': 'first'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device1])
+
+        # Context-insensitive filter by device name set in device.name (contains)
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'device-name',
+            'filter_predicate': 'c',
+            'filter_value': 'fir'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device0])
+
+        # Context-insensitive filter by device name set in device.name (not contains)
+        url = reverse('root') + '?' + urlencode({
+            'filter_by': 'device-name',
+            'filter_predicate': 'nc',
+            'filter_value': 'fir'
+        })
+        response = self.client.get(url)
+        self.assertListEqual(list(response.context['object_list']), [self.device1])
