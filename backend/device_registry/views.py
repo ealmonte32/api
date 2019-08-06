@@ -46,7 +46,7 @@ class RootView(LoginRequiredMixin, ListView):
             'datetime'
         ),
         'trust-score': (
-            'calculated_trust_score',
+            'trust_score',
             'Trust Score',
             'float'
         ),
