@@ -64,7 +64,7 @@ class Device(models.Model):
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
     tags = tagulous.models.TagField(to=Tag, blank=True)
-    calculated_trust_score = models.FloatField(null=True)
+    trust_score = models.FloatField(null=True)
 
     @property
     def certificate_expired(self):
@@ -128,12 +128,6 @@ class Device(models.Model):
     MAX_FAILED_LOGINS = 10
     MIN_FAILED_LOGINS = 1
 
-    @property
-    def trust_score(self):
-        self.calculated_trust_score = self.get_trust_score()
-        return self.calculated_trust_score
-        # return self.get_trust_score()
-
     def get_trust_score(self):
         if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan')\
                 or not self.deviceinfo or not self.firewallstate or not self.portscan:
@@ -190,7 +184,7 @@ class Device(models.Model):
 
     def save(self, *args, **kwargs):
         # with transaction.atomic():
-        self.calculated_trust_score = self.get_trust_score()
+        self.trust_score = self.get_trust_score()
         return super(Device, self).save(*args, **kwargs)
         # self.refresh_from_db()
 

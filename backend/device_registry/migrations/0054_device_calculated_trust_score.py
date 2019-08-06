@@ -6,7 +6,7 @@ from device_registry.models import Device
 
 def save_trust_score(apps, schema_editor):
     for d in Device.objects.all():
-        d.save()
+        d.save(update_fields=['trust_score'])
 
 
 class Migration(migrations.Migration):
@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='device',
-            name='calculated_trust_score',
+            name='trust_score',
             field=models.FloatField(null=True),
         ),
         migrations.RunPython(save_trust_score),

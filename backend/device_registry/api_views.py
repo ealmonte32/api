@@ -95,7 +95,7 @@ class MtlsPingView(APIView):
         firewall_state.rules = firewall_rules
         firewall_state.save()
 
-        device.save(update_fields=['last_ping', 'agent_version', 'calculated_trust_score'])
+        device.save(update_fields=['last_ping', 'agent_version', 'trust_score'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
