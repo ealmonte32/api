@@ -60,7 +60,6 @@ class MtlsPingView(APIView):
         device = Device.objects.get(device_id=request.device_id)
         device.last_ping = timezone.now()
         device.agent_version = data.get('agent_version')
-        device.save(update_fields=['last_ping', 'agent_version'])
 
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
@@ -95,6 +94,8 @@ class MtlsPingView(APIView):
             firewall_rules = json.loads(firewall_rules)
         firewall_state.rules = firewall_rules
         firewall_state.save()
+
+        device.save(update_fields=['last_ping', 'agent_version', 'calculated_trust_score'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')

@@ -804,6 +804,29 @@ class MtlsPingViewTest(APITestCase):
         self.assertListEqual(scan_info, portscan.scan_info)
         self.assertDictEqual(firewall_rules, firewall_state.rules)
 
+    def test_ping_writes_trust_score(self):
+        scan_info = [{
+            "host": "localhost",
+            "port": 22,
+            "proto": "tcp",
+            "state": "open",
+            "ip_version": 4
+        }]
+        firewall_rules = {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
+        ping_payload = {
+            'device_operating_system_version': 'linux',
+            'fqdn': 'test-device0',
+            'ipv4_address': '127.0.0.1',
+            'uptime': '0',
+            'scan_info': json.dumps(scan_info),
+            'firewall_rules': json.dumps(firewall_rules)
+        }
+
+        self.client.post(self.url, ping_payload, **self.headers)
+        self.device.refresh_from_db()
+        self.assertGreater(self.device.calculated_trust_score, 0.42)
+
+
 
 class DeviceEnrollView(APITestCase):
     def setUp(self):
