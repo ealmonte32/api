@@ -1002,8 +1002,8 @@ class GetBatchActionsViewTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test', password='123')
         self.client.login(username='test', password='123')
-        self.url = reverse('get_batch_list', kwargs={'object': 'device'})
-        self.bla_url = reverse('get_batch_list', kwargs={'object': 'blabla'})
+        self.url = reverse('get_batch_list', kwargs={'model_name': 'device'})
+        self.bla_url = reverse('get_batch_list', kwargs={'model_name': 'blabla'})
 
     def test_device(self):
         response = self.client.get(self.url)
@@ -1042,7 +1042,7 @@ class BatchUpdateTagsViewTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test', password='123')
         self.client.login(username='test', password='123')
-        self.url = reverse('tags_batch', kwargs={'object': 'device'})
+        self.url = reverse('tags_batch', kwargs={'model_name': 'device'})
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
         self.device1 = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
         self.device2 = Device.objects.create(device_id='device2.d.wott-dev.local', owner=self.user, tags='tag1,tag2')

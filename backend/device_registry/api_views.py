@@ -707,19 +707,19 @@ class GetBatchActionsView(APIView):
         self.batch_actions = {
             'device': [
               BatchAction('device', 'Tags', name='add', display_name='Add Tags',
-                          url=reverse('tags_batch', kwargs={'object': 'device'}), js_get=tags_js_get,
+                          url=reverse('tags_batch', kwargs={'model_name': 'device'}), js_get=tags_js_get,
                           ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__,
               BatchAction('device', 'Tags', name='set', display_name='Set Tags',
-                          url=reverse('tags_batch', kwargs={'object': 'device'}), js_get=tags_js_get,
+                          url=reverse('tags_batch', kwargs={'model_name': 'device'}), js_get=tags_js_get,
                           ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__
             ],
             'default': []
         }
 
     def get(self, request, *args, **kwargs):
-        if 'object' not in kwargs:
+        if 'model_name' not in kwargs:
             return Response({'error': 'Invalid Arguments'}, status=status.HTTP_400_BAD_REQUEST)
-        selector = kwargs['object']
+        selector = kwargs['model_name']
         if selector not in self.batch_actions:
             selector = 'default'
         return Response(self.batch_actions[selector])
@@ -729,18 +729,18 @@ class BatchUpdateTagsView(APIView):
 
     def post(self, request, *args, **kwargs):
         objs = {'device': Device, 'credentials': Credential}
-        request.data['object'] = kwargs['object']
+        request.data['model_name'] = kwargs['model_name']
         serializer = BatchArgsTagsSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         tags = [
             tag['name'] if Tag.objects.filter(name=tag['name'], protected=True).exists() else tag['name'].lower()
             for tag in serializer.initial_data['args']
         ]
-        model = objs[serializer.validated_data['object']]
+        model = objs[serializer.validated_data['model_name']]
         cnt = 0
         for obj in serializer.validated_data['objects']:
             tag_field = model.objects.get(pk=obj['pk']).tags
             getattr(tag_field, serializer.validated_data['action'])(*tags)
             cnt += 1
-        msg = f"{cnt} {serializer.validated_data['object']} records updated successfully."
+        msg = f"{cnt} {serializer.validated_data['model_name']} records updated successfully."
         return Response(msg, status=status.HTTP_200_OK)

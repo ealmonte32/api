@@ -189,7 +189,7 @@ class BatchArgsTagsSerializer(serializers.Serializer):
     action = serializers.CharField(max_length=64)
     objects = BatchArgsObjectSerializer(many=True)
     args = TagsSerializer(many=True, read_only=True)
-    object = serializers.CharField(max_length=64)
+    model_name = serializers.CharField(max_length=64)
 
     def validate_action(self, value):
         if value not in ['add', 'set']:
@@ -205,6 +205,6 @@ class BatchArgsTagsSerializer(serializers.Serializer):
         models = {'device': Device, 'credentials': Credential}
         pk_list = [obj['pk'] for obj in attrs['objects']]
         user = self.context['request'].user
-        if models[attrs['object']].objects.filter(pk__in=pk_list, owner=user).count() != len(pk_list):
+        if models[attrs['model_name']].objects.filter(pk__in=pk_list, owner=user).count() != len(pk_list):
             raise serializers.ValidationError('Invalid argument')
         return attrs
