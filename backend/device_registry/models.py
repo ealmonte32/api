@@ -183,10 +183,9 @@ class Device(models.Model):
             self.tags.add(raspberry_pi_tag)
 
     def save(self, *args, **kwargs):
-        # with transaction.atomic():
-        self.trust_score = self.get_trust_score()
-        return super(Device, self).save(*args, **kwargs)
-        # self.refresh_from_db()
+        with transaction.atomic():
+            self.trust_score = self.get_trust_score()
+            return super(Device, self).save(*args, **kwargs)
 
     class Meta:
         ordering = ('created',)
