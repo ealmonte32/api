@@ -201,7 +201,6 @@ class DeviceInfo(models.Model):
     device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)
     distr_id = models.CharField(blank=True, null=True, max_length=32)
     distr_release = models.CharField(blank=True, null=True, max_length=32)
-    trust_score = models.FloatField(blank=True, null=True)
     fqdn = models.CharField(blank=True, null=True, max_length=128)
     ipv4_address = models.GenericIPAddressField(
         protocol="IPv4",

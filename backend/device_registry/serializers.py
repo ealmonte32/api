@@ -40,7 +40,7 @@ class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Device
         fields = ['id', 'device_id', 'owner', 'created', 'last_ping', 'certificate_expires', 'comment', 'name',
-                  'agent_version', 'tags']
+                  'agent_version', 'trust_score', 'tags']
 
 
 class DeviceInfoSerializer(serializers.ModelSerializer):
@@ -49,7 +49,7 @@ class DeviceInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceInfo
         fields = ['device', 'device_manufacturer', 'device_model', 'device_architecture', 'device_operating_system',
-                  'device_operating_system_version', 'distr_id', 'distr_release', 'trust_score', 'fqdn', 'ipv4_address',
+                  'device_operating_system_version', 'distr_id', 'distr_release', 'fqdn', 'ipv4_address',
                   'selinux_state', 'app_armor_enabled', 'logins', 'default_password', 'detected_mirai',
                   'device_metadata']
 
