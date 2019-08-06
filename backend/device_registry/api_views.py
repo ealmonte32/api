@@ -662,15 +662,15 @@ class BatchAction:
     """
 
     def __init__(self, target, subject='', subject_model=None, name='', display_name=None,
-                 js_init=None, js_init_ext='', js_postprocess=None, js_get = None, url='#', **kwargs):
+                 js_init=None, js_init_ext='', js_postprocess=None, js_get = None, url='#', ctl_ext='', **kwargs):
         """
         Create BatchAction Object
         :param target: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
         :param subject: Field name in the target object for applied acton
         :param name: Action name. Used as method name
         :param display_name: Action name. What is displayed in control. If None then `name` is used
-        :param js_init: Html element creation JS script. If none <input text> will be created.
-        :param js_init_ext: If default <input 'text'> used, it could be customized here (see Tags initialization)
+        :param args_control: Html element template. If None <input text> will be created.
+        :param ctl_ext: If default <input 'text'> used, it could be customized here (see Tags initialization)
         :param js_postprocess: Html element postpocessing script (to be called when element is placed on page)
         :param ls_get: js getter for args value. If none then default input text value getter used.
         :param url: url to  view used to apply action
@@ -679,18 +679,11 @@ class BatchAction:
         self.subject = subject
         self.name = name
         self.display_name = name if display_name is None else display_name
-        self.js_init = js_init if js_init is not None else f'''\
-            function(){{
-                let input = document.createElement("input");
-                input.type = "text";
-                input.name = "batch_{self.name}";
-                input.id = "batch_{self.name}";
-                input.action_name = "{self.name}";
-                {js_init_ext}
-                return input;
-            }}'''.strip()
+        self.args_control = f'''
+            <input type="text" name="batch_{self.name}" id="batch_{self.name}" action_name="{self.name}" {ctl_ext} >
+        '''.strip()
         self.js_postprocess = js_postprocess if js_postprocess is not None else 'function(el){}'
-        self.js_get = js_get if js_get is not None else 'function(value){ return value;}'
+        self.js_get = js_get if js_get is not None else 'function(el){ return el.val();}'
         self.url = url
 
 
@@ -698,16 +691,13 @@ class GetBatchActionsView(APIView):
     def __init__(self, *args, **kwargs):
         super(GetBatchActionsView,self).__init__(**kwargs)
         #  tags elements js init/post_place. (also needed to be included TagsWidget().Media to context)
-        tags_js_init_ext = '''
-                input.setAttribute('data-tagulous', true);
-                input.setAttribute('data-tag-url', "/ajax/tags/autocomplete/");
-                input.autocomplete="off";
-                input.style.width = "100%";
-                '''.strip()
-        tags_js_postprocess = 'function(el){Tagulous.select2($(el));}'
-        tags_js_get = '''function(value){
+        tags_ctl_ext= '''
+            data-tagulous data-tag-url="/ajax/tags/autocomplete/" autocomplete="off" style="width:100%;"
+            '''.strip()
+        tags_js_postprocess = 'function(el){Tagulous.select2(el);}'
+        tags_js_get = '''function(el){
             let tags=[];
-            Tagulous.parseTags( value, true, false ).forEach( function (tag) {
+            Tagulous.parseTags( el.val(), true, false ).forEach( function (tag) {
                 tags.push({ "name" : tag  })
             });
             return tags;
@@ -718,10 +708,10 @@ class GetBatchActionsView(APIView):
             'device': [
               BatchAction('device', 'Tags', name='add', display_name='Add Tags',
                           url=reverse('tags_batch', kwargs={'object': 'device'}), js_get=tags_js_get,
-                          js_init_ext=tags_js_init_ext, js_postprocess=tags_js_postprocess).__dict__,
+                          ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__,
               BatchAction('device', 'Tags', name='set', display_name='Set Tags',
                           url=reverse('tags_batch', kwargs={'object': 'device'}), js_get=tags_js_get,
-                          js_init_ext=tags_js_init_ext, js_postprocess=tags_js_postprocess).__dict__
+                          ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__
             ],
             'default': []
         }

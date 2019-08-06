@@ -49,7 +49,7 @@
 
   <script>
       /**
-       *  Using sample:
+       *  Usage sample:
        *
        *  document.addEventListener("DOMContentLoaded", function () {
        *      // batch control initialization.
@@ -122,7 +122,7 @@
              subject_select.empty().append(`<option selected>${subject_select_default}</option>`);
 
              for(let i in actions){
-                 actions[i].init = eval(`(${actions[i].js_init})`);
+                 //actions[i].init = eval(`(${actions[i].js_init})`);
                  actions[i].post_process = eval(`(${actions[i].js_postprocess})`);
                  actions[i].get_args = eval(`(${actions[i].js_get})`);
                  if (!(subjects.includes(actions[i].subject)) )
@@ -175,9 +175,9 @@
                   {
                       if( actions.length > this.value )
                       {
-                          let elem = actions[this.value].init();
-                          batch_args_div.appendChild( elem );
-                          actions[this.value].post_process(elem);
+                          batch_args_div.innerHTML = actions[this.value].args_control;
+                          let elem = batch_args_div.childNodes[0];
+                          actions[this.value].post_process($(elem));
                       }
                   }
               });
@@ -201,7 +201,7 @@
                   } );
 
                   let action_name = actions[action_idx].name;
-                  let args = actions[action_idx].get_args( $(`#batch_${action_name}`).val() );
+                  let args = actions[action_idx].get_args( $(`#batch_${action_name}`) );
 
                   $.ajax({
                       url: `${actions[action_idx].url}`,
