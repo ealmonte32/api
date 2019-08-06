@@ -170,7 +170,10 @@ class DeviceListViewTest(APITestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
+        self.device = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user,
+            tags='tag1,tag2')
         self.device_info = DeviceInfo.objects.create(
             device=self.device,
             device_manufacturer='Raspberry Pi',
@@ -189,14 +192,14 @@ class DeviceListViewTest(APITestCase):
         self.assertListEqual(response.data, [OrderedDict([('device', OrderedDict(
             [('id', self.device.id), ('device_id', self.device.device_id), ('owner', self.user.id),
              ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
-             ('comment', None), ('name', ''), ('agent_version', None),
+             ('comment', None), ('name', ''), ('agent_version', None), ('trust_score', None),
              ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
                                                           ('device_manufacturer', self.device_info.device_manufacturer),
                                                           ('device_model', self.device_info.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
                                                           ('device_operating_system_version', None), ('distr_id', None),
-                                                          ('distr_release', None), ('trust_score', None),
+                                                          ('distr_release', None),
                                                           ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
                                                           ('app_armor_enabled', True),
@@ -213,14 +216,14 @@ class DeviceListViewTest(APITestCase):
         self.assertListEqual(response.data, [OrderedDict([('device', OrderedDict(
             [('id', self.device.id), ('device_id', self.device.device_id), ('owner', self.user.id),
              ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
-             ('comment', None), ('name', ''), ('agent_version', None),
+             ('comment', None), ('name', ''), ('agent_version', None), ('trust_score', None),
              ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
                                                           ('device_manufacturer', self.device_info.device_manufacturer),
                                                           ('device_model', self.device_info.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
                                                           ('device_operating_system_version', None), ('distr_id', None),
-                                                          ('distr_release', None), ('trust_score', None),
+                                                          ('distr_release', None),
                                                           ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
                                                           ('app_armor_enabled', True),
