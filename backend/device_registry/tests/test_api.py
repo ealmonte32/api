@@ -757,6 +757,7 @@ class MtlsPingViewTest(APITestCase):
 
     def test_ping_distr_info(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
+        self.device.refresh_from_db()
         self.assertEqual(self.device.deviceinfo.distr_id, 'Raspbian')
         self.assertEqual(self.device.deviceinfo.distr_release, '9.4')
 

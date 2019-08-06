@@ -64,6 +64,7 @@ class Device(models.Model):
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
     tags = tagulous.models.TagField(to=Tag, blank=True)
+    calculated_trust_score = models.FloatField(null=True)
 
     @property
     def certificate_expired(self):
@@ -129,7 +130,13 @@ class Device(models.Model):
 
     @property
     def trust_score(self):
-        if not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
+        self.calculated_trust_score = self.get_trust_score()
+        return self.calculated_trust_score
+        # return self.get_trust_score()
+
+    def get_trust_score(self):
+        if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan')\
+                or not self.deviceinfo or not self.firewallstate or not self.portscan:
             return None
 
         selinux = self.deviceinfo.selinux_state
@@ -180,6 +187,12 @@ class Device(models.Model):
             self.tags.add(all_devices_tag)
         if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
+
+    def save(self, *args, **kwargs):
+        # with transaction.atomic():
+        self.calculated_trust_score = self.get_trust_score()
+        return super(Device, self).save(*args, **kwargs)
+        # self.refresh_from_db()
 
     class Meta:
         ordering = ('created',)
