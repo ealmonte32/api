@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 from django.urls import reverse
+from django.db import transaction
 
 from google.cloud import datastore
 from rest_framework import status
@@ -732,15 +733,37 @@ class BatchUpdateTagsView(APIView):
         request.data['model_name'] = kwargs['model_name']
         serializer = BatchArgsTagsSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        tags = [
-            tag['name'] if Tag.objects.filter(name=tag['name'], protected=True).exists() else tag['name'].lower()
-            for tag in serializer.initial_data['args']
-        ]
+        tag_names = []
+        for tag in serializer.initial_data['args']:
+            if Tag.objects.filter(name=tag['name']).exists():
+                tag_names.append(tag['name'])
+            else:
+                name = tag['name'].lower()
+                tag_names.append(name)
+                Tag.objects.create(name=name)
+        tags = Tag.objects.filter(name__in=tag_names)
+
         model = objs[serializer.validated_data['model_name']]
-        cnt = 0
-        for obj in serializer.validated_data['objects']:
-            tag_field = model.objects.get(pk=obj['pk']).tags
-            getattr(tag_field, serializer.validated_data['action'])(*tags)
-            cnt += 1
-        msg = f"{cnt} {serializer.validated_data['model_name']} records updated successfully."
+        obj_ids = [obj['pk'] for obj in serializer.validated_data['objects']]
+        objects = model.objects.filter(pk__in=obj_ids)
+
+        action = serializer.validated_data['action']
+
+        Relation = model.tags.through
+        relations = []
+        obj_id_str = f"{serializer.validated_data['model_name']}_id"
+        for obj in objects:
+            kwargs = {obj_id_str: obj.id}
+            relations.extend(
+                [Relation(tag_id=tag.id, **kwargs) for tag in tags if tag not in obj.tags or action == 'set']
+            )
+
+        with transaction.atomic():
+            if serializer.validated_data['action'] == 'set':
+                obj_id__in_str = f"{serializer.validated_data['model_name']}_id__in"
+                kwargs = {obj_id__in_str: obj_ids}
+                Relation.objects.filter(**kwargs).delete()
+            Relation.objects.bulk_create(relations)
+
+        msg = f"{objects.count()} {serializer.validated_data['model_name']} records updated successfully."
         return Response(msg, status=status.HTTP_200_OK)
