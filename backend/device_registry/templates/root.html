@@ -162,63 +162,6 @@
               {% endfor %}
               </tbody>
             </table>
-            <script>
-              document.addEventListener("DOMContentLoaded", function () {
-
-                // batch control initialization.
-                batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
-
-                // Datatables basic
-                $('#datatables-basic').DataTable({
-                    responsive: true,
-                    dom: '<"toolbar">frtip',
-                    "footerCallback": batch_footer,
-                    columns:[
-                        {data:'', orderable: false, sortable:false, className: 'select-checkbox'},
-                        {data:0},
-                        {data:1},
-                        {data:2},
-                        {data:3},
-                        {data:4},
-                    ],
-                    select: {
-                        style:    'multi+shift',
-                        selector: 'td:first-child'
-                    },
-                });
-
-                // apply 'select all' features to table.
-                $("#select-all").html($("#select-all-template").html());
-                $("#datatables-basic_filter").html($('#select-all-toolbar-template').html());
-
-                /**
-                 * DataTable footerCallback. Place batch action control to footer
-                 */
-                function batch_footer( row, data, start, end, display ) {
-                    var api = this.api();
-                    $(api.table().footer()).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
-                    batchControl.refresh();
-                }
-
-                /**
-                 * callback function. called by batch action 'apply' button handler for each table row
-                 *
-                 * @param action. action object.
-                 * @param row - row data. the array of table columns of processed row
-                 * @returns {null|string | *} must return pk of object in a row to process batch function
-                 * or null if you do not want to apply batch function to this object
-                 */
-                function get_object_pk_for_batch( action, row )
-                {
-                    let re = /<a href="\/devices\/(\d+)\/">/i
-                    let res = row[0].match(re);
-                    if (res === null) return null;
-                    return Number(res[1]);
-                }
-
-              });
-
-            </script>
           </div>
         </div>
       </div>
@@ -226,113 +169,6 @@
   </div>
   {% include "select_all_control.html" %}
   {% include "batch_actions_control.html" %}
-
-
-{% endblock %}
-                  $('#action_select').on('change', function(e){
-                      let batch_args_div = document.getElementById("subj_element_div");
-                      while (batch_args_div.firstChild) {
-                          batch_args_div.removeChild(batch_args_div.firstChild);
-                      }
-
-                      if(this.value != action_select_default)
-                      {
-                          if( actions.length > this.value )
-                          {
-                              let elem = actions[this.value].init();
-                              batch_args_div.appendChild( elem );
-                              actions[this.value].post_process(elem);
-                          }
-                      }
-                  });
-
-                  $('#action_button').on('click', function(e){
-                      e.preventDefault();
-                      let subject = $('#subject_select').val();
-                      let action_idx = $('#action_select').val();
-                      if( subject === subject_select_default || action_idx === subject_select_default){
-                          return;
-                      }
-
-                      let items_to_batch = []
-                      let a_table = $('#datatables-basic').dataTable().api();
-                      a_table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
-                          let data = this.data();
-                          // alert(JSON.stringify(data));
-                          let pk = get_object_pk_for_batch( actions[action_idx], data);
-                          if (pk !== null) items_to_batch.push({pk: pk});
-                      } );
-
-                      let action_name = actions[action_idx].name;
-                      let args = actions[action_idx].get_args( $(`#batch_${action_name}`).val() );
-
-                      $.ajax({
-                          url: `${actions[action_idx].url}`,
-                          data: JSON.stringify({
-                              action: action_name,
-                              objects: items_to_batch,
-                              args: args,
-                          }),
-                          method: 'POST',
-                          contentType: 'application/json',
-                      }).done(function(e){
-                         alert("ok");
-                      });
-                  });
-
-                  $.ajax({
-                      url: 'ajax-batch/list/device',
-                      method: 'GET',
-                  }).done(function(a) {
-                     actions = a;
-                     let subject_select = $('#subject_select')
-                     subject_select.empty().append(`<option selected>${subject_select_default}</option>`);
-
-                     for(let i in actions){
-                         actions[i].init = eval(`(${actions[i].js_init})`);
-                         actions[i].post_process = eval(`(${actions[i].js_postprocess})`);
-                         actions[i].get_args = eval(`(${actions[i].js_get})`);
-                         if (!(subjects.includes(actions[i].subject)) )
-                         {
-                             subjects.push(actions[i].subject);
-                             subject_select.append(
-                                 `<option value="${actions[i].subject}">${actions[i].subject}</option>`
-                             );
-                         }
-                     }
-                  });
-
-              });
-              document.addEventListener("DOMContentLoaded", function () {
-                // Datatables basic
-                $('#datatables-basic').DataTable({
-                  responsive: true,
-                  "footerCallback": batch_footer,
-                });
-              });
-
-              /**
-               * callback function. called by batch action 'apply' button handler for each table row
-               *
-               * @param action. action object.
-               * @param row - row data. the array of table columns of processed row
-               * @returns {null|string | *} must return pk of object in a row to process batch function
-               * or null if you do not want to apply batch function to this object
-               */
-              function get_object_pk_for_batch( action, row )
-              {
-                  let re = /<a href="\/devices\/(\d+)\/">/i
-                  let res = row[0].match(re);
-                  if (res === null) return null;
-                  return Number(res[1]);
-              }
-
-            </script>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <template id="str_options">
     <select class="form-control" id="filter-predicate">
@@ -420,15 +256,15 @@
 
   <template id="device-list-toolbar-template">
     <div class="dropdown" id="device-list-columns">
-      <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <button class="btn btn-facebook dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         Columns
       </button>
       <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
         {% for column_name in column_names %}
         <div class="dropdown-item form-group">
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="dropdownCheck{{ forloop.counter0 }}" data-column="{{ forloop.counter0 }}" checked>
-            <label class="form-check-label" for="dropdownCheck{{ forloop.counter0 }}">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck{{ forloop.counter }}" data-column="{{ forloop.counter }}" checked>
+            <label class="form-check-label" for="dropdownCheck{{ forloop.counter }}">
               {{ column_name }}
             </label>
           </div>
@@ -437,12 +273,12 @@
       </div>
     </div>
 
-    <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
+    <button class="btn btn-facebook" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
       Filters
     </button>
 
     {% if filter %}
-    <span class="ml-3">
+    <span class="ml-3" id="clear-filters">
       <a href="/" class="align-middle btn-link" style="text-decoration: underline">Clear filters</a>
     </span>
     {% endif %}
@@ -544,16 +380,68 @@
     }
   </style>
   <script>
-      $(() => {
-          $('#inst-btn').on('click', show_install_msg );
-          var table = $('#datatables-basic').DataTable({
-            responsive: true,
-            dom: '<"toolbar">frtip'
-          });
-          $("div.toolbar").html($('#device-list-toolbar-template').html());
-          $('#filters-expand').click((e) => {
-              $(e.target).toggleClass('active');
-          });
+  const cols = {
+
+  }
+  $(() => {
+
+      // batch control initialization.
+      batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
+      $('#inst-btn').on('click', show_install_msg );
+      var table = $('#datatables-basic').DataTable({
+        responsive: true,
+        dom: '<"toolbar">frtip',
+        "footerCallback": batch_footer,
+        columns:[
+            {data:'', orderable: false, sortable:false, className: 'select-checkbox'},
+            {% for column_name in column_names %}
+                {data: {{ forloop.counter }} },
+            {% endfor %}
+        ],
+        select: {
+            style:    'multi+shift',
+            selector: 'td:first-child'
+        },
+      });
+      // apply column selection
+      $("div.toolbar").html($('#device-list-toolbar-template').html());
+      $('#filters-expand').click((e) => {
+          $(e.target).toggleClass('active');
+      });
+
+      // apply 'select all' features to table.
+      $("#select-all").html($("#select-all-template").html());
+      $("#datatables-basic_filter").html($('#select-all-toolbar-template').html());
+
+      /**
+       * DataTable footerCallback. Place batch action control to footer
+       */
+      function batch_footer( row, data, start, end, display ) {
+          var api = this.api();
+          $(api.table().footer()).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
+          batchControl.refresh();
+      }
+
+      /**
+       * callback function. called by batch action 'apply' button handler for each table row
+       *
+       * @param action. action object.
+       * @param row - row data. the array of table columns of processed row
+       * @returns {null|string | *} must return pk of object in a row to process batch function
+       * or null if you do not want to apply batch function to this object
+       */
+      function get_object_pk_for_batch( action, row )
+      {
+          let re = /<a href="\/devices\/(\d+)\/">/i
+          let res = row[1].match(re);
+          if (res === null) return null;
+          return Number(res[1]);
+      }
+
+
+      $('#filters-expand').click((e) => {
+          $(e.target).toggleClass('active');
+      });
 
           $('.form-check-input').click((e) => {
               var column = table.column( e.target.getAttribute('data-column') );
