@@ -129,8 +129,7 @@ class Device(models.Model):
     MIN_FAILED_LOGINS = 1
 
     def get_trust_score(self):
-        if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan')\
-                or not self.deviceinfo or not self.firewallstate or not self.portscan:
+        if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
             return None
 
         selinux = self.deviceinfo.selinux_state
@@ -185,7 +184,7 @@ class Device(models.Model):
     def save(self, *args, **kwargs):
         with transaction.atomic():
             self.trust_score = self.get_trust_score()
-            return super(Device, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
 
     class Meta:
         ordering = ('created',)

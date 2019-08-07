@@ -830,7 +830,6 @@ class MtlsPingViewTest(APITestCase):
         self.assertGreater(self.device.trust_score, 0.42)
 
 
-
 class DeviceEnrollView(APITestCase):
     def setUp(self):
         User = get_user_model()
