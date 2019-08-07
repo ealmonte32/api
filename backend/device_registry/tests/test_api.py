@@ -170,7 +170,10 @@ class DeviceListViewTest(APITestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
+        self.device = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user,
+            tags='tag1,tag2')
         self.device_info = DeviceInfo.objects.create(
             device=self.device,
             device_manufacturer='Raspberry Pi',
@@ -189,14 +192,14 @@ class DeviceListViewTest(APITestCase):
         self.assertListEqual(response.data, [OrderedDict([('device', OrderedDict(
             [('id', self.device.id), ('device_id', self.device.device_id), ('owner', self.user.id),
              ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
-             ('comment', None), ('name', ''), ('agent_version', None),
+             ('comment', None), ('name', ''), ('agent_version', None), ('trust_score', None),
              ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
                                                           ('device_manufacturer', self.device_info.device_manufacturer),
                                                           ('device_model', self.device_info.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
                                                           ('device_operating_system_version', None), ('distr_id', None),
-                                                          ('distr_release', None), ('trust_score', None),
+                                                          ('distr_release', None),
                                                           ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
                                                           ('app_armor_enabled', True),
@@ -213,14 +216,14 @@ class DeviceListViewTest(APITestCase):
         self.assertListEqual(response.data, [OrderedDict([('device', OrderedDict(
             [('id', self.device.id), ('device_id', self.device.device_id), ('owner', self.user.id),
              ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
-             ('comment', None), ('name', ''), ('agent_version', None),
+             ('comment', None), ('name', ''), ('agent_version', None), ('trust_score', None),
              ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
                                                           ('device_manufacturer', self.device_info.device_manufacturer),
                                                           ('device_model', self.device_info.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
                                                           ('device_operating_system_version', None), ('distr_id', None),
-                                                          ('distr_release', None), ('trust_score', None),
+                                                          ('distr_release', None),
                                                           ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
                                                           ('app_armor_enabled', True),
@@ -757,6 +760,7 @@ class MtlsPingViewTest(APITestCase):
 
     def test_ping_distr_info(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
+        self.device.refresh_from_db()
         self.assertEqual(self.device.deviceinfo.distr_id, 'Raspbian')
         self.assertEqual(self.device.deviceinfo.distr_release, '9.4')
 
@@ -802,6 +806,28 @@ class MtlsPingViewTest(APITestCase):
         portscan = PortScan.objects.get(device=self.device)
         self.assertListEqual(scan_info, portscan.scan_info)
         self.assertDictEqual(firewall_rules, firewall_state.rules)
+
+    def test_ping_writes_trust_score(self):
+        scan_info = [{
+            "host": "localhost",
+            "port": 22,
+            "proto": "tcp",
+            "state": "open",
+            "ip_version": 4
+        }]
+        firewall_rules = {'INPUT': [], 'OUTPUT': [], 'FORWARD': []}
+        ping_payload = {
+            'device_operating_system_version': 'linux',
+            'fqdn': 'test-device0',
+            'ipv4_address': '127.0.0.1',
+            'uptime': '0',
+            'scan_info': json.dumps(scan_info),
+            'firewall_rules': json.dumps(firewall_rules)
+        }
+
+        self.client.post(self.url, ping_payload, **self.headers)
+        self.device.refresh_from_db()
+        self.assertGreater(self.device.trust_score, 0.42)
 
 
 class DeviceEnrollView(APITestCase):

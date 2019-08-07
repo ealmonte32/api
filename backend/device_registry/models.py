@@ -64,6 +64,7 @@ class Device(models.Model):
     name = models.CharField(max_length=36, blank=True)
     agent_version = models.CharField(max_length=36, blank=True, null=True)
     tags = tagulous.models.TagField(to=Tag, blank=True)
+    trust_score = models.FloatField(null=True)
 
     @property
     def certificate_expired(self):
@@ -127,9 +128,8 @@ class Device(models.Model):
     MAX_FAILED_LOGINS = 10
     MIN_FAILED_LOGINS = 1
 
-    @property
-    def trust_score(self):
-        if not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
+    def get_trust_score(self):
+        if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
             return None
 
         selinux = self.deviceinfo.selinux_state
@@ -181,6 +181,11 @@ class Device(models.Model):
         if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
 
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            self.trust_score = self.get_trust_score()
+            super().save(*args, **kwargs)
+
     class Meta:
         ordering = ('created',)
 
@@ -194,7 +199,6 @@ class DeviceInfo(models.Model):
     device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)
     distr_id = models.CharField(blank=True, null=True, max_length=32)
     distr_release = models.CharField(blank=True, null=True, max_length=32)
-    trust_score = models.FloatField(blank=True, null=True)
     fqdn = models.CharField(blank=True, null=True, max_length=128)
     ipv4_address = models.GenericIPAddressField(
         protocol="IPv4",

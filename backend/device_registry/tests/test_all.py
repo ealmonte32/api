@@ -222,6 +222,7 @@ class DeviceModelTest(TestCase):
         self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
 
     def test_fixed_issues(self):
+        self.device4.save(update_fields=['trust_score'])
         # initial state: firewall disabled, telnet port found, default password found - trust score low
         self.assertLess(self.device4.trust_score_percent(), 66)
 
@@ -237,6 +238,7 @@ class DeviceModelTest(TestCase):
         self.firewall4.save()
         self.device_info4.default_password = False
         self.device_info4.save()
+        self.device4.save(update_fields=['trust_score'])
 
         # result: trust score high
         self.assertGreaterEqual(self.device4.trust_score_percent(), 66)
@@ -271,6 +273,8 @@ class DeviceModelTest(TestCase):
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
+        self.device0.save(update_fields=['trust_score'])
+        self.device1.save(update_fields=['trust_score'])
         all_good_except_port_score = sum(Device.COEFFICIENTS.values()) - Device.COEFFICIENTS['port_score']
         self.assertEqual(self.device0.trust_score,
                          (all_good_except_port_score + 0.6 * Device.COEFFICIENTS['port_score']) /
@@ -280,6 +284,8 @@ class DeviceModelTest(TestCase):
                          sum(Device.COEFFICIENTS.values()))
 
     def test_average_trust_score(self):
+        self.device0.save(update_fields=['trust_score'])
+        self.device1.save(update_fields=['trust_score'])
         score = average_trust_score(self.user1)
         self.assertEqual(score, ((self.device0.trust_score + self.device1.trust_score) / 2.0))
 

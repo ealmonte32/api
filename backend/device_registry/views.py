@@ -322,6 +322,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
                     firewallstate.save(update_fields=['policy'])
+                    self.object.save(update_fields=['trust_score'])
 
         elif 'is_connections_form' in request.POST:
             connections_form_data = self.object.portscan.connections_form_data()
@@ -333,6 +334,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
                     out_data.append(connections_form_data[2][connection_record_index])
                 portscan.block_networks = out_data
                 portscan.save(update_fields=['block_networks'])
+                self.object.save(update_fields=['trust_score'])
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
