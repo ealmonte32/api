@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
+{% load static %}
 
 {% block css %}
-  {% load static %}
   <link rel="stylesheet" href="{% static "css/dark.css" %}">
   {{ form_media.css }}
 {% endblock %}
@@ -9,11 +9,6 @@
 {% block js %}
   <script src="{% static "js/highlight.pack.js" %}"></script>
   {{ form_media.js }}
-{% endblock %}
-
-{% block js %}
-{% endblock %}
-{% block css %}
 {% endblock %}
 
 {% block title %}WoTT - Dashboard{% endblock title %}
@@ -162,18 +157,6 @@
               {% endfor %}
               </tbody>
             </table>
-
-            <script>
-              document.addEventListener("DOMContentLoaded", function () {
-                $('#inst-btn').on('click', show_install_msg );
-
-                // Datatables basic
-                $('#datatables-basic').DataTable({
-                  responsive: true
-                });
-              });
-
-            </script>
           </div>
         </div>
       </div>
@@ -391,6 +374,7 @@
   </style>
   <script>
       $(() => {
+          $('#inst-btn').on('click', show_install_msg );
           var table = $('#datatables-basic').DataTable({
             responsive: true,
             dom: '<"toolbar">frtip'
