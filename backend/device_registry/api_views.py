@@ -743,15 +743,15 @@ class BatchUpdateTagsView(APIView):
                 Tag.objects.create(name=name)
         tags = Tag.objects.filter(name__in=tag_names)
 
-        model = objs[serializer.validated_data['model_name']]
+        model_name = serializer.validated_data['model_name']
+        model = objs[model_name]
         obj_ids = [obj['pk'] for obj in serializer.validated_data['objects']]
         objects = model.objects.filter(pk__in=obj_ids)
-
         action = serializer.validated_data['action']
 
         Relation = model.tags.through
         relations = []
-        obj_id_str = f"{serializer.validated_data['model_name']}_id"
+        obj_id_str = f"{model_name}_id"
         for obj in objects:
             kwargs = {obj_id_str: obj.id}
             relations.extend(
@@ -759,11 +759,11 @@ class BatchUpdateTagsView(APIView):
             )
 
         with transaction.atomic():
-            if serializer.validated_data['action'] == 'set':
-                obj_id__in_str = f"{serializer.validated_data['model_name']}_id__in"
+            if action == 'set':
+                obj_id__in_str = f"{model_name}_id__in"
                 kwargs = {obj_id__in_str: obj_ids}
                 Relation.objects.filter(**kwargs).delete()
             Relation.objects.bulk_create(relations)
 
-        msg = f"{objects.count()} {serializer.validated_data['model_name']} records updated successfully."
+        msg = f"{objects.count()} {model_name} records updated successfully."
         return Response(msg, status=status.HTTP_200_OK)
