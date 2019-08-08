@@ -28,20 +28,24 @@
         Batch Actions
       </button>
       <div class="collapse row" id="batch-actions-collapse">
-        <div class="input-group mb-3 col-2">
-          <select class="custom-select" id="subject_select">
-            <option selected>Subject...</option>
-          </select>
-        </div>
-        <div class="input-group mb-3 col-2">
-          <select class="custom-select" id="action_select">
-            <option selected>Action...</option>
-          </select>
-        </div>
-        <div class="col-4" id="subj_element_div">
-        </div>
-        <div class="col-2">
-          <button type="button" class="btn btn-facebook" id="action_button">Apply</button>
+        <div class="card card-body">
+          <div class="form-row">
+            <div class="input-group col-2">
+              <select class="custom-select" id="subject_select">
+                <option selected>Subject...</option>
+              </select>
+            </div>
+            <div class="input-group col-2">
+              <select class="custom-select" id="action_select">
+                <option selected>Action...</option>
+              </select>
+            </div>
+            <div class="col-4" id="subj_element_div">
+            </div>
+            <div class="col-2">
+              <button type="button" class="btn btn-facebook" id="action_button">Apply</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -202,6 +206,9 @@
 
                   let action_name = actions[action_idx].name;
                   let args = actions[action_idx].get_args( $(`#batch_${action_name}`) );
+                  let button = $('#action_button');
+                  button.prop('disabled', true);
+                  button.html("<span class=\"spinner-border spinner-border-sm\"></span> Apply");
 
                   $.ajax({
                       url: `${actions[action_idx].url}`,
@@ -213,17 +220,21 @@
                       method: 'POST',
                       contentType: 'application/json',
                   }).done(function(e){
+                      button.html("Apply");
+                      button.prop('disabled', false);
                       show_dialog('Batch action', e)
                   }).fail(function(a){
                       console.log('error');
                       console.log(a.status, a.responseText);
-                      errMsgs = [];
+                      let errMsgs = [];
                       if(a.status == 400 || a.status == 404 || a.status == 405) {
                           for (key in a.responseJSON) {
                             errMsgs.push(`${key}:  ${a.responseJSON[key]}`);
                           }
                       }
                       else errMsgs.push(a.responseText);
+                      button.html("Apply");
+                      button.prop('disabled', false);
                       show_dialog('Batch action', 'Batch action was failed.', errMsgs);
                   });
               });
