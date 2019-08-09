@@ -1,10 +1,14 @@
 {% extends "admin_base.html" %}
+{% load static %}
+
+{% block css %}
+  <link rel="stylesheet" href="{% static "css/dark.css" %}">
+  {{ form_media.css }}
+{% endblock %}
 
 {% block js %}
+  <script src="{% static "js/highlight.pack.js" %}"></script>
   {{ form_media.js }}
-{% endblock %}
-{% block css %}
-  {{ form_media.css }}
 {% endblock %}
 
 {% block title %}WoTT - Dashboard{% endblock title %}
@@ -109,8 +113,17 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header">
-            <h5 class="card-title">Device List</h5>
-            <h6 class="card-subtitle text-muted">View registered devices.</h6>
+            <div class="row">
+              <div class="col-6">
+                <h5 class="card-title">Device List</h5>
+                <h6 class="card-subtitle text-muted">View registered devices.</h6>
+              </div>
+              <div class="col-6">
+                <button type="button" class="btn btn-success" style="float: right;" id="inst-btn">
+                  Add Device
+                </button>
+              </div>
+            </div>
           </div>
           <div class="card-body">
             <table id="datatables-basic" class="table table-striped table-responsive-xs" style="width:100%">
@@ -300,8 +313,50 @@
         </form>
       </div>
     </div>
-
   </template>
+
+  <div class="modal" tabindex="-1" role="dialog" id="wott-instruction-modal">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Add new device</h2>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-header">
+          <h4 class="modal-title" id="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <p id="modal-msg" rows="10" style="width:100%"></p>
+        </div>
+        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="modal-alert">
+          Server error
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="bash_block">
+    <div class="col-12">
+      <div class="row">
+        <div class="col-11">
+          <pre><code class="bash rounded"><!-- text --></code></pre>
+        </div>
+        <div class="col-1">
+          <button type="button" class="btn btn-primary" aria-label="Left Align" btn_id="bash">
+            <span class="fas fa-copy" aria-hidden="true" data-toggle="popover"
+                  data-placement="top" title="Copy to clipboard."></span>
+          </button>
+          <textarea hidden><!-- copy --></textarea>
+        </div>
+      </div>
+    </div>
+  </template>
+
 {% endblock admin_content %}
 
 {% block scripts %}
@@ -318,92 +373,156 @@
     }
   </style>
   <script>
-  $(() => {
-      var table = $('#datatables-basic').DataTable({
-        responsive: true,
-        dom: '<"toolbar">frtip'
-      });
-      $("div.toolbar").html($('#device-list-toolbar-template').html());
-      $('#filters-expand').click((e) => {
-          $(e.target).toggleClass('active');
+      $(() => {
+          $('#inst-btn').on('click', show_install_msg );
+          var table = $('#datatables-basic').DataTable({
+            responsive: true,
+            dom: '<"toolbar">frtip'
+          });
+          $("div.toolbar").html($('#device-list-toolbar-template').html());
+          $('#filters-expand').click((e) => {
+              $(e.target).toggleClass('active');
+          });
+
+          $('.form-check-input').click((e) => {
+              var column = table.column( e.target.getAttribute('data-column') );
+              console.log('CLICK', column);
+              column.visible( e.target.checked );
+          });
+
+          $('#filter-selector').change((e) => {
+              updateFilter(e.target.value);
+          });
+
+          $('#filter-apply').click((e) => {
+              e.preventDefault();
+              let query = '/';
+              if($('#filter-check').prop('checked')) {
+                let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
+                let predicate = $('#filter-predicate').val();
+                let value = $('#filter-value-div').children(0).val(),
+                    type = $('#filter-selector').val();
+                if(type == 'datetime') {
+                    value = $('#filter-value-div input').val() + ',' + $('#filter-value-div select').val();
+                } else if(type == 'tags') {
+                    value = $('form').serializeArray()[0].value;
+                    value = Tagulous.parseTags(value).join(',');
+                }
+                query += `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
+              }
+              document.location.replace(query);
+          });
+
+          $('#filter-check').click((e) => {
+            enableFilter(e.target.checked);
+          });
+
+          updateFilter($('#filter-selector')[0].options[0].value);
+
+          {% if filter %}
+          let type = "{{ filter.type }}",
+              value = "{{ filter.value | default_if_none:'' }}";
+          updateFilter(type);
+          setFilter("{{ filter.by }}", "{{ filter.predicate }}", value, type);
+          {% else %}
+          enableFilter(false);
+          {% endif %}
       });
 
-      $('.form-check-input').click((e) => {
-          var column = table.column( e.target.getAttribute('data-column') );
-          console.log('CLICK', column);
-          column.visible( e.target.checked );
-      });
-
-      $('#filter-selector').change((e) => {
-          updateFilter(e.target.value);
-      });
-
-      $('#filter-apply').click((e) => {
-          e.preventDefault();
-          let query = '/';
-          if($('#filter-check').prop('checked')) {
-            let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
-            let predicate = $('#filter-predicate').val();
-            let value = $('#filter-value-div').children(0).val(),
-                type = $('#filter-selector').val();
-            if(type == 'datetime') {
-                value = $('#filter-value-div input').val() + ',' + $('#filter-value-div select').val();
-            } else if(type == 'tags') {
-                value = $('form').serializeArray()[0].value;
-                value = Tagulous.parseTags(value).join(',');
-            }
-            query += `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
+      function setFilter(name, predicate, value, type) {
+          $(`option[name=${name}`)[0].selected = true;
+          $('#filter-predicate')[0].value = predicate;
+          if(type == 'datetime' && value) {
+              let [n, m] = value.split(',');
+              $('#filter-value-div input').val(n);
+              $('#filter-value-div select').val(m);
+          } else {
+              if(type == 'tags' && value) {
+                  let tags = value.split(',');
+                  value = Tagulous.renderTags(tags);
+              }
+              $('#filter-value-div').children(0).val(value);
           }
-          document.location.replace(query);
-      });
 
-      $('#filter-check').click((e) => {
-        enableFilter(e.target.checked);
-      });
-
-      updateFilter($('#filter-selector')[0].options[0].value);
-
-      {% if filter %}
-      let type = "{{ filter.type }}",
-          value = "{{ filter.value | default_if_none:'' }}";
-      updateFilter(type);
-      setFilter("{{ filter.by }}", "{{ filter.predicate }}", value, type);
-      {% else %}
-      enableFilter(false);
-      {% endif %}
-  });
-
-  function setFilter(name, predicate, value, type) {
-      $(`option[name=${name}`)[0].selected = true;
-      $('#filter-predicate')[0].value = predicate;
-      if(type == 'datetime' && value) {
-          let [n, m] = value.split(',');
-          $('#filter-value-div input').val(n);
-          $('#filter-value-div select').val(m);
-      } else {
-          if(type == 'tags' && value) {
-              let tags = value.split(',');
-              value = Tagulous.renderTags(tags);
-          }
-          $('#filter-value-div').children(0).val(value);
+          $('#filter-check').prop('checked', true);
+          enableFilter(true);
+          if(type == 'tags')
+            Tagulous.select2($('#filter-tags'));
       }
 
-      $('#filter-check').prop('checked', true);
-      enableFilter(true);
-      if(type == 'tags')
-        Tagulous.select2($('#filter-tags'));
-  }
 
-  function updateFilter(opt_type) {
-        $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
-        $('#filter-value-div').html($(`#${opt_type}_value`).html());
-        if(opt_type == 'tags')
-          Tagulous.select2($('#filter-tags'));
-    }
+      function copy_bash(e){
+        navigator.clipboard.writeText(e.currentTarget.parentElement.children[1].innerText).then(function() {
+          /* clipboard successfully set */
+        }, function() {
+            alert("Cannot copy to clipboard, please enable clipboard access in browser permissions.");
+        });
 
-  function enableFilter(b) {
-      $('.col-md-auto').children().attr('disabled', !b)
-  }
+      }
+
+      function bash_block(text){
+          let s = $('#bash_block').html();
+          let copy_text = text.replace(/^(\$ )/gm, '');
+          return s.replace('<!-- text -->', text).replace('&lt;!-- copy --&gt;', copy_text);
+      }
+
+      function show_install_msg(a){
+        $.ajax({
+            url: '/ajax-pairing-keys/add_dev/',
+            type: "POST",
+            data: JSON.stringify({}),
+            contentType: 'application/json',
+        }).done(function (e) {
+            console.log('success');
+            let title = "To add a device, simply SSH into your Raspberry Pi and run the following commands:";
+            let msg = bash_block(
+                     `$ sudo apt-get install -y curl\n`
+                   + `$ sudo mkdir -p /opt/wott\n`
+                   + `$ echo -e "[DEFAULT]\\\\nenroll_token = ${e.key}" | sudo tee -a /opt/wott/config.ini\n`
+                   + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash\n`
+                   + `$ sudo apt install wott-agent\n`);
+            show_dialog(title, msg);
+            document.querySelectorAll('pre code').forEach((block) => {
+              hljs.highlightBlock(block);
+            });
+            $("button[btn_id='bash']").on("click", copy_bash);
+        }).fail(function (e) {
+            console.log('error');
+            console.log(e.status, e.responseText);
+            show_dialog('Error', e.status, e.responseText);
+        })
+      }
+
+      /***
+       *  setup dialog parameters and toggle on.
+       *  @param title - dialog title
+       *  @param message - dialog message
+       *  @param errors - the errors string to display, if is not null.
+       */
+      function show_dialog(title, message, errors=null )
+      {
+          $('#modal-title')[0].innerText = title;
+          $('#modal-msg')[0].innerHTML = message;
+          if(errors == null)
+            $('#modal-alert')[0].style.display = 'none';
+          else
+          {
+            $('#modal-alert')[0].style.display = 'block';
+            $('#modal-alert')[0].innerText = errors;
+          }
+          $('#wott-instruction-modal').modal('toggle');
+      }
+
+      function updateFilter(opt_type) {
+            $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
+            $('#filter-value-div').html($(`#${opt_type}_value`).html());
+            if(opt_type == 'tags')
+              Tagulous.select2($('#filter-tags'));
+        }
+
+      function enableFilter(b) {
+          $('.col-md-auto').children().attr('disabled', !b)
+      }
 
   </script>
 {% endblock scripts %}

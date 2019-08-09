@@ -117,5 +117,6 @@ if settings.IS_DASH:
              api_views.UpdatePairingKeyView.as_view(),
              name='ajax_pairing_keys_update'
         ),
+        path('ajax-pairing-keys/add_dev/', api_views.InstallInstructionKeyView.as_view(), name='ajax_install_instruction'),
         path('devices/device-cert/<str:device_id>/', api_views.DeviceCertView.as_view(), name='download_device_cert')
     ]
