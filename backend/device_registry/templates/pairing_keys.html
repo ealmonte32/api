@@ -205,7 +205,7 @@
     }
 
 
-    function show_tooltip(el, title, content='')
+    function show_popover(el, title, content='')
     {
         let title_store = el.attr('title');
         let content_store = el.attr('data-content');
@@ -225,12 +225,12 @@
     function copy_key(btn, key){
         let key_text = "enroll_token = " + key;
         navigator.clipboard.writeText(key_text).then(function() {
-            show_tooltip($(btn), 'Copied', key_text);
+            show_popover($(btn), 'Copied', key_text);
         }, function() {
             let successful = copyToClipboard(key_text);
             let title = successful ? 'Copied' : 'Could not copy to clipboard. Check the browser permissions.';
             let msg = successful ? key_text : '';
-            show_tooltip($(btn), title, msg);
+            show_popover($(btn), title, msg);
         });
     }
 
