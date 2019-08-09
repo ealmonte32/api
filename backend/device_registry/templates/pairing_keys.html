@@ -269,8 +269,8 @@
             $('#confirm-btn').on("click", {row:row, others:null}, update_many_comments );
             $('#confirm-all-btn').on("click", {row:row, others:others}, update_many_comments );
             show_dialog("Confirm bulk/single update",
-                "You have more than one modified key comments. You can save only current key comment." +
-                " All keys comments or cancel.",
+                "You have more than one modified key comments. You can save only current key comment," +
+                " all modified key comments or cancel.",
                 "Current", true
             );
         }
