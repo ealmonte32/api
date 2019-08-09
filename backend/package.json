@@ -1,0 +1,35 @@
+{
+  "name": "example",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "Owais Lone",
+  "license": "MIT",
+  "devDependencies": {
+    "babel": "^5.8.38",
+    "babel-core": "^5.4.7",
+    "babel-loader": "^5.4.2",
+    "bootstrap4": "0.0.1-security",
+    "classnames": "^2.2.6",
+    "core-js": "^3.1.4",
+    "css-loader": "^0.14.1",
+    "daterangepicker": "^3.0.5",
+    "extract-text-webpack-plugin": "^0.8.0",
+    "fullcalendar": "^3.10.0",
+    "jquery": "^3.4.1",
+    "jquery-validation": "^1.19.1",
+    "node-libs-browser": "^0.5.0",
+    "popper.js": "^1.15.0",
+    "react": "^0.13.3",
+    "simplebar": "^4.1.0",
+    "sizzle": "^2.3.4",
+    "style-loader": "^0.12.3",
+    "webpack": "^1.15.0",
+    "webpack-bundle-tracker": "0.0.8",
+    "webpack-dev-server": "^1.9.0",
+    "webpack-split-by-path": "0.0.1"
+  },
+  "scripts": {
+    "build": "webpack --config webpack.config.js --progress --colors"
+  }
+}
