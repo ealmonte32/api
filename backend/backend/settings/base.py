@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
+import json
 import os
 import socket
 import re
@@ -97,6 +98,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'device_registry.context_processors.webpack_bundle'
             ],
         },
     },
@@ -214,3 +216,11 @@ SERIALIZATION_MODULES = {
 
 # `django-registration-redux` 3rd party app settings.
 INCLUDE_REGISTER_URL = False
+
+WEBPACK_STATS_NAME = 'webpack-stats.json'
+WEBPACK_STATS_PATH = os.path.join(REPO_DIR, 'misc', WEBPACK_STATS_NAME)
+if not os.path.isfile(WEBPACK_STATS_PATH):
+    WEBPACK_STATS_PATH = os.path.join('/usr/src/misc', WEBPACK_STATS_NAME)
+with open(WEBPACK_STATS_PATH) as webpack_stats_file:
+    WEBPACK_BUNDLE_NAME = json.load(webpack_stats_file)['chunks']['main'][0]['name']
+    WEBPACK_BUNDLE = '/bundles/'+WEBPACK_BUNDLE_NAME
