@@ -1,30 +1,25 @@
 // Global
 import "bootstrap";
 import "dragula";
-import "feather";
-import "font-awesome";
+import "feather-icons";
+import "@fortawesome/fontawesome-free";
 import "moment";
-import "sidebar";
+import "simplebar";
 import "toastr";
-import "user-agent";
 
 // Charts
-import "chartjs";
+import "chart.js";
 import "apexcharts";
 
 // Forms
-import "daterangepicker";
-import "datetimepicker";
+import "bootstrap-daterangepicker";
 import "fullcalendar";
 import "markdown";
-import "mask";
+import "jquery-mask-plugin";
 import "quill";
 import "select2";
-import "validation";
-import "wizard";
-
-// Maps
-import "vector-maps";
+import "jquery-validation";
+import "jquery-validation/dist/additional-methods.js";
 
 // Tables
-import "datatables";
+import "datatables.net";
