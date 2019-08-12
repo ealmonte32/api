@@ -10,14 +10,20 @@ const BundleTracker = require('webpack-bundle-tracker');
 
 module.exports = {
   entry: {
-    app: './backend/static/js/app'
+    app: './static/js/app'
   },
   mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   devtool: process.env.NODE_ENV === 'production' ? 'source-map' : 'inline-source-map',
-  output: {path: Path.resolve('./backend/static/bundles/'),filename:"[name]-[hash].js"},
+  output: {path: Path.resolve('./static/bundles/'),filename:"[name]-[hash].js"},
   performance: { hints: false },
   optimization: {
+	minimize:true,
     minimizer: [
+      new UglifyJsPlugin({
+        cache: true,
+        parallel: true,
+        sourceMap: false
+      }),
       new OptimizeCSSAssetsPlugin({})
     ]
   },
