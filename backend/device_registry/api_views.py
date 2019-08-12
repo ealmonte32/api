@@ -27,6 +27,7 @@ from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer, BatchArgsTagsSerializer
+from device_registry.serializers import DeviceSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
@@ -758,3 +759,123 @@ class BatchUpdateTagsView(APIView):
 
         msg = f"{objects.count()} {model_name} records updated successfully."
         return Response(msg, status=status.HTTP_200_OK)
+
+
+class DeviceListAjaxView(ListAPIView):
+    """
+    List all of the users devices.
+    """
+    serializer_class = DeviceSerializer
+
+    FILTER_FIELDS = {
+        'device-name': (
+            ['deviceinfo__fqdn', 'name'],
+            'Device Name',
+            'str'
+        ),
+        'hostname': (
+            'deviceinfo__fqdn',
+            'Hostname',
+            'str'
+        ),
+        'comment': (
+            'comment',
+            'Comment',
+            'str'
+        ),
+        'last-ping': (
+            'last_ping',
+            'Last Ping',
+            'datetime'
+        ),
+        'trust-score': (
+            'trust_score',
+            'Trust Score',
+            'float'
+        ),
+        'default-credentials': (
+            'deviceinfo__default_password',
+            'Default Credentials Found',
+            'bool'
+        ),
+        'tags': (
+            'tags__name',
+            'Tags',
+            'tags'
+        )
+    }
+    PREDICATES = {
+        'str': {
+            'eq': 'iexact',
+            'c': 'icontains'
+        },
+        'tags': {
+            'c': 'in'
+        },
+        'float': {
+            'eq': 'exact',
+            'lt': 'lt',
+            'gt': 'gt'
+        },
+        'datetime': {
+            'eq': 'exact',
+            'lt': 'lt',
+            'gt': 'gt'
+        },
+        'bool': {
+            'eq': 'exact'
+        }
+    }
+
+    def get_queryset(self):
+        common_query = Q(owner=self.request.user)
+        query = Q()
+
+        filter_by = self.request.GET.get('filter_by')
+        filter_predicate = self.request.GET.get('filter_predicate')
+        filter_value = self.request.GET.get('filter_value')
+
+        if filter_by and filter_predicate:
+            query_by, _, query_type = self.FILTER_FIELDS[filter_by]
+            invert = filter_predicate[0] == 'n'
+            if invert:
+                filter_predicate = filter_predicate[1:]
+            predicate = self.PREDICATES[query_type][filter_predicate]
+            if query_type != 'str' and not filter_value:
+                filter_value = None
+            self.request.filter_dict = {
+                'by': filter_by,
+                'predicate': filter_predicate,
+                'value': filter_value,
+                'type': query_type
+            }
+
+            if query_type == 'datetime':
+                number, measure = filter_value.split(',')
+                if not number:
+                    number = 0
+                number = int(number)
+                if filter_predicate == 'eq':
+                    interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
+                    interval_end = timezone.now() - datetime.timedelta(**{measure: number})
+                    filter_value = (interval_start, interval_end)
+                    predicate = 'range'
+                else:
+                    filter_value = timezone.now() - datetime.timedelta(**{measure: number})
+            elif query_type == 'tags':
+                # this query may produce duplicate rows, that's why distinct() is added at the end
+                filter_value = filter_value.split(',') if filter_value else []
+
+            if isinstance(query_by, list):
+                query = Q()
+                for field in query_by:
+                    query.add(Q(**{f'{field}__{predicate}': filter_value}), Q.OR)
+            else:
+                query = Q(**{f'{query_by}__{predicate}': filter_value})
+
+            if invert:
+                query = ~query
+        else:
+            self.request.filter_dict = None
+
+        return Device.objects.filter(common_query & query).distinct()
