@@ -1,30 +1,30 @@
 // Global
-import "./modules/bootstrap";
-import "./modules/dragula";
-import "./modules/feather";
-import "./modules/font-awesome";
-import "./modules/moment";
-import "./modules/sidebar";
-import "./modules/toastr";
-import "./modules/user-agent";
+import "bootstrap";
+import "dragula";
+import "feather";
+import "font-awesome";
+import "moment";
+import "sidebar";
+import "toastr";
+import "user-agent";
 
 // Charts
-import "./modules/chartjs";
-import "./modules/apexcharts";
+import "chartjs";
+import "apexcharts";
 
 // Forms
-import "./modules/daterangepicker";
-import "./modules/datetimepicker";
-import "./modules/fullcalendar";
-import "./modules/markdown";
-import "./modules/mask";
-import "./modules/quill";
-import "./modules/select2";
-import "./modules/validation";
-import "./modules/wizard";
+import "daterangepicker";
+import "datetimepicker";
+import "fullcalendar";
+import "markdown";
+import "mask";
+import "quill";
+import "select2";
+import "validation";
+import "wizard";
 
 // Maps
-import "./modules/vector-maps";
+import "vector-maps";
 
 // Tables
-import "./modules/datatables";
+import "datatables";
