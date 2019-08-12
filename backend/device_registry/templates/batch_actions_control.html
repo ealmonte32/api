@@ -43,7 +43,9 @@
             <div class="col-4" id="subj_element_div">
             </div>
             <div class="col-2">
-              <button type="button" class="btn btn-facebook" id="action_button">Apply</button>
+              <button type="button" class="btn btn-facebook" id="action_button">
+                <span class="spinner-border spinner-border-sm" style="display: none;" id="batch_apply_spinner"></span> Apply
+              </button>
             </div>
           </div>
         </div>
@@ -126,7 +128,6 @@
              subject_select.empty().append(`<option selected>${subject_select_default}</option>`);
 
              for(let i in actions){
-                 //actions[i].init = eval(`(${actions[i].js_init})`);
                  actions[i].post_process = eval(`(${actions[i].js_postprocess})`);
                  actions[i].get_args = eval(`(${actions[i].js_get})`);
                  if (!(subjects.includes(actions[i].subject)) )
@@ -208,7 +209,7 @@
                   let args = actions[action_idx].get_args( $(`#batch_${action_name}`) );
                   let button = $('#action_button');
                   button.prop('disabled', true);
-                  button.html("<span class=\"spinner-border spinner-border-sm\"></span> Apply");
+                  $('#batch_apply_spinner')[0].style.display = 'inline-block';
 
                   $.ajax({
                       url: `${actions[action_idx].url}`,
@@ -220,9 +221,8 @@
                       method: 'POST',
                       contentType: 'application/json',
                   }).done(function(e){
-                      button.html("Apply");
+                      $('#batch_apply_spinner')[0].style.display = 'none';
                       button.prop('disabled', false);
-                      show_dialog('Batch action', e)
                   }).fail(function(a){
                       console.log('error');
                       console.log(a.status, a.responseText);
@@ -233,7 +233,7 @@
                           }
                       }
                       else errMsgs.push(a.responseText);
-                      button.html("Apply");
+                      $('#batch_apply_spinner')[0].style.display = 'none';
                       button.prop('disabled', false);
                       show_dialog('Batch action', 'Batch action was failed.', errMsgs);
                   });
