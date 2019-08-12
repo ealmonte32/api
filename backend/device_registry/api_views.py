@@ -653,15 +653,6 @@ class BatchAction:
     Batch Actions Base Class
     """
 
-    """
-    Create BatchAction Object
-    :param target: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
-    :param subject: Model/object name which applied to target
-    :param name: Action name. Used as method name
-    :param display_name: Action name. What is displayed in control. If None then `name` is used
-    :param js_init: Html element creation JS script
-    """
-
     def __init__(self, target, subject='', subject_model=None, name='', display_name=None,
                  js_init=None, js_init_ext='', js_postprocess=None, js_get = None, url='#', ctl_ext='', **kwargs):
         """
