@@ -10,7 +10,7 @@ const BundleTracker = require('webpack-bundle-tracker');
 
 module.exports = {
   entry: {
-    app: './backend/static/js/app'
+    app: ['./backend/static/js/app','./backend/static/scss/app'],
   },
   mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   devtool: process.env.NODE_ENV === 'production' ? 'source-map' : 'inline-source-map',
@@ -28,7 +28,7 @@ module.exports = {
     ]
   },
   plugins: [
-    new MiniCssExtractPlugin({filename: 'css/[name].css',chunkFilename: 'css/[id].css'}),
+    new MiniCssExtractPlugin({filename: '[name]-[hash].css',chunkFilename: '[id].css'}),
     new Webpack.ProvidePlugin({$: 'jquery',jQuery: 'jquery','window.$': 'jquery','window.jQuery': 'jquery',Popper: ['popper.js', 'default']}),
     new HardSourceWebpackPlugin(),
 	new BundleTracker({filename: './webpack-stats.json'})
