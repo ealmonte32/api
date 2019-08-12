@@ -221,6 +221,9 @@ WEBPACK_STATS_NAME = 'webpack-stats.json'
 WEBPACK_STATS_PATH = os.path.join(REPO_DIR, 'misc', WEBPACK_STATS_NAME)
 if not os.path.isfile(WEBPACK_STATS_PATH):
     WEBPACK_STATS_PATH = os.path.join('/usr/src/misc', WEBPACK_STATS_NAME)
-with open(WEBPACK_STATS_PATH) as webpack_stats_file:
-    WEBPACK_BUNDLE_NAME = json.load(webpack_stats_file)['chunks']['main'][0]['name']
-    WEBPACK_BUNDLE = '/bundles/'+WEBPACK_BUNDLE_NAME
+try:
+    with open(WEBPACK_STATS_PATH) as webpack_stats_file:
+        WEBPACK_BUNDLE_NAME = json.load(webpack_stats_file)['chunks']['main'][0]['name']
+        WEBPACK_BUNDLE = '/bundles/'+WEBPACK_BUNDLE_NAME
+except:
+    pass
