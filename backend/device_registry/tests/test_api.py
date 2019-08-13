@@ -995,3 +995,100 @@ class UpdatePairingKeyViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertDictEqual(response.data, {'detail': ErrorDetail(string='Not found.', code='not_found')})
         self.assertEqual(PairingKey.objects.count(), 2)
+
+
+class GetBatchActionsViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.client.login(username='test', password='123')
+        self.url = reverse('get_batch_list', kwargs={'model_name': 'device'})
+        self.bla_url = reverse('get_batch_list', kwargs={'model_name': 'blabla'})
+
+    def test_device(self):
+        response = self.client.get(self.url)
+        args_control = '<input type="text" name="batch_{name}" id="batch_{name}" action_name="{name}" ' \
+                       'data-tagulous data-tag-url="/ajax/tags/autocomplete/" autocomplete="off" style="width:100%;" >'
+        js_get = 'function(el){\n'\
+                 '            let tags=[];\n'\
+                 '            Tagulous.parseTags( el.val(), true, false ).forEach( function (tag) {\n'\
+                 '                tags.push({ "name" : tag  })\n'\
+                 '            });\n'\
+                 '            return tags;\n'\
+                 '          }'
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        actions = [{'object': 'device', 'subject': 'Tags', 'name': 'add', 'display_name': 'Add Tags',
+                    'args_control': args_control.format(name='add'),
+                    'js_postprocess': 'function(el){Tagulous.select2(el);}',
+                    'js_get': js_get,
+                    'url': '/ajax-batch/apply/device/tags/'},
+                   {'object': 'device', 'subject': 'Tags', 'name': 'set', 'display_name': 'Set Tags',
+                    'args_control': args_control.format(name='set'),
+                    'js_postprocess': 'function(el){Tagulous.select2(el);}',
+                    'js_get': js_get,
+                    'url': '/ajax-batch/apply/device/tags/'}]
+
+        self.assertListEqual(actions, response.json())
+
+    def test_blabla(self):
+        response = self.client.get(self.bla_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertListEqual([], response.json())
+
+
+class BatchUpdateTagsViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.client.login(username='test', password='123')
+        self.url = reverse('tags_batch', kwargs={'model_name': 'device'})
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
+        self.device1 = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
+        self.device2 = Device.objects.create(device_id='device2.d.wott-dev.local', owner=self.user, tags='tag1,tag2')
+
+    def test_set_ok(self):
+        data = {'action': 'set', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk}],
+                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+        response = self.client.post(self.url, data=data )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        msg = f"2 device records updated successfully."
+        self.assertEqual(response.data, msg)
+        self.assertEqual(Device.objects.get(pk=self.device.pk).tags.__str__(), "tag2, tag3, tag4")
+        self.assertEqual(Device.objects.get(pk=self.device1.pk).tags.__str__(), "tag1, tag2")
+        self.assertEqual(Device.objects.get(pk=self.device2.pk).tags.__str__(), "tag2, tag3, tag4")
+
+    def test_add_ok(self):
+        data = {'action': 'add', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk}],
+                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+        response = self.client.post(self.url, data=data )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        msg = f"2 device records updated successfully."
+        self.assertEqual(response.data, msg)
+        self.assertEqual(Device.objects.get(pk=self.device.pk).tags.__str__(), "tag1, tag2, tag3, tag4")
+        self.assertEqual(Device.objects.get(pk=self.device1.pk).tags.__str__(), "tag1, tag2")
+        self.assertEqual(Device.objects.get(pk=self.device2.pk).tags.__str__(), "tag1, tag2, tag3, tag4")
+
+    def test_invalid_action(self):
+        data = {'action': 'unknown', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk}],
+                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+        response = self.client.post(self.url, data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'action': ['Invalid argument']})
+
+    def test_invalid_device(self):
+        data = {'action': 'set', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk+100}],
+                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+        response = self.client.post(self.url, data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'non_field_errors': ['Invalid argument']})
+
+    def test_foreign_device(self):
+        User = get_user_model()
+        user2 = User.objects.create_user('test2', password='123')
+        device3 = Device.objects.create(device_id='device3.d.wott-dev.local', owner=user2, tags='tag1,tag2')
+        data = {'action': 'set', 'objects': [{'pk': self.device.pk}, {'pk': device3.pk}],
+                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+        response = self.client.post(self.url, data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'non_field_errors': ['Invalid argument']})

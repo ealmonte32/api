@@ -9,6 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
+from django.urls import reverse
+from django.db import transaction
 
 from google.cloud import datastore
 from rest_framework import status
@@ -24,7 +26,7 @@ from device_registry import ca_helper
 from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
-from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer
+from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer, BatchArgsTagsSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
@@ -645,3 +647,114 @@ class InstallInstructionKeyView(APIView):
         serializer = PairingKeyListSerializer(instance=pairing_key)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
+class BatchAction:
+    """
+    Batch Actions Base Class
+    """
+
+    def __init__(self, target, subject='', subject_model=None, name='', display_name=None,
+                 js_init=None, js_init_ext='', js_postprocess=None, js_get = None, url='#', ctl_ext='', **kwargs):
+        """
+        Create BatchAction Object
+        :param target: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
+        :param subject: Field name in the target object for applied acton
+        :param name: Action name. Used as method name
+        :param display_name: Action name. What is displayed in control. If None then `name` is used
+        :param args_control: Html element template. If None <input text> will be created.
+        :param ctl_ext: If default <input 'text'> used, it could be customized here (see Tags initialization)
+        :param js_postprocess: Html element postpocessing script (to be called when element is placed on page)
+        :param ls_get: js getter for args value. If none then default input text value getter used.
+        :param url: url to  view used to apply action
+        """
+        self.object = target
+        self.subject = subject
+        self.name = name
+        self.display_name = name if display_name is None else display_name
+        self.args_control = f'''
+            <input type="text" name="batch_{self.name}" id="batch_{self.name}" action_name="{self.name}" {ctl_ext} >
+        '''.strip()
+        self.js_postprocess = js_postprocess if js_postprocess is not None else 'function(el){}'
+        self.js_get = js_get if js_get is not None else 'function(el){ return el.val();}'
+        self.url = url
+
+
+class GetBatchActionsView(APIView):
+    def __init__(self, *args, **kwargs):
+        super(GetBatchActionsView,self).__init__(**kwargs)
+        #  tags elements js init/post_place. (also needed to be included TagsWidget().Media to context)
+        tags_ctl_ext= '''
+            data-tagulous data-tag-url="/ajax/tags/autocomplete/" autocomplete="off" style="width:100%;"
+            '''.strip()
+        tags_js_postprocess = 'function(el){Tagulous.select2(el);}'
+        tags_js_get = '''function(el){
+            let tags=[];
+            Tagulous.parseTags( el.val(), true, false ).forEach( function (tag) {
+                tags.push({ "name" : tag  })
+            });
+            return tags;
+          }'''
+
+        #  batch actions lists initialization.
+        self.batch_actions = {
+            'device': [
+              BatchAction('device', 'Tags', name='add', display_name='Add Tags',
+                          url=reverse('tags_batch', kwargs={'model_name': 'device'}), js_get=tags_js_get,
+                          ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__,
+              BatchAction('device', 'Tags', name='set', display_name='Set Tags',
+                          url=reverse('tags_batch', kwargs={'model_name': 'device'}), js_get=tags_js_get,
+                          ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__
+            ],
+            'default': []
+        }
+
+    def get(self, request, *args, **kwargs):
+        if 'model_name' not in kwargs:
+            return Response({'error': 'Invalid Arguments'}, status=status.HTTP_400_BAD_REQUEST)
+        selector = kwargs['model_name']
+        if selector not in self.batch_actions:
+            selector = 'default'
+        return Response(self.batch_actions[selector])
+
+
+class BatchUpdateTagsView(APIView):
+
+    def post(self, request, *args, **kwargs):
+        objs = {'device': Device, 'credentials': Credential}
+        request.data['model_name'] = kwargs['model_name']
+        serializer = BatchArgsTagsSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        tag_names = []
+        for tag in serializer.initial_data['args']:
+            if Tag.objects.filter(name=tag['name']).exists():
+                tag_names.append(tag['name'])
+            else:
+                name = tag['name'].lower()
+                tag_names.append(name)
+                Tag.objects.create(name=name)
+        tags = Tag.objects.filter(name__in=tag_names)
+
+        model_name = serializer.validated_data['model_name']
+        model = objs[model_name]
+        obj_ids = [obj['pk'] for obj in serializer.validated_data['objects']]
+        objects = model.objects.filter(pk__in=obj_ids)
+        action = serializer.validated_data['action']
+
+        Relation = model.tags.through
+        relations = []
+        obj_id_str = f"{model_name}_id"
+        for obj in objects:
+            kwargs = {obj_id_str: obj.id}
+            relations.extend(
+                [Relation(tag_id=tag.id, **kwargs) for tag in tags if tag not in obj.tags or action == 'set']
+            )
+
+        with transaction.atomic():
+            if action == 'set':
+                obj_id__in_str = f"{model_name}_id__in"
+                kwargs = {obj_id__in_str: obj_ids}
+                Relation.objects.filter(**kwargs).delete()
+            Relation.objects.bulk_create(relations)
+
+        msg = f"{objects.count()} {model_name} records updated successfully."
+        return Response(msg, status=status.HTTP_200_OK)

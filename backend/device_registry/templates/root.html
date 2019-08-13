@@ -129,14 +129,19 @@
             <table id="datatables-basic" class="table table-striped table-responsive-xs" style="width:100%">
               <thead>
               <tr>
+                <th width="5%" id="select-all"></th>
                 {% for column_name in column_names %}
                 <th>{{ column_name }}</th>
                 {% endfor %}
               </tr>
               </thead>
+              <tfoot>
+                <th colspan="6"></th>
+              </tfoot>
               <tbody>
               {% for device in object_list %}
                 <tr>
+                  <td></td>
                   <td><a href="{% url 'device-detail' device.id %}">{{ device.get_name }}</a></td>
                   <td>{{ device.deviceinfo.fqdn }}</td>
                   <td>{{ device.last_ping | timesince }} ago</td>
@@ -162,6 +167,8 @@
       </div>
     </div>
   </div>
+  {% include "select_all_control.html" %}
+  {% include "batch_actions_control.html" %}
 
   <template id="str_options">
     <select class="form-control" id="filter-predicate">
@@ -249,15 +256,15 @@
 
   <template id="device-list-toolbar-template">
     <div class="dropdown" id="device-list-columns">
-      <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <button class="btn btn-facebook dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         Columns
       </button>
       <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
         {% for column_name in column_names %}
         <div class="dropdown-item form-group">
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="dropdownCheck{{ forloop.counter0 }}" data-column="{{ forloop.counter0 }}" checked>
-            <label class="form-check-label" for="dropdownCheck{{ forloop.counter0 }}">
+            <input type="checkbox" class="form-check-input" id="dropdownCheck{{ forloop.counter }}" data-column="{{ forloop.counter }}" checked>
+            <label class="form-check-label" for="dropdownCheck{{ forloop.counter }}">
               {{ column_name }}
             </label>
           </div>
@@ -266,12 +273,12 @@
       </div>
     </div>
 
-    <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
+    <button class="btn btn-facebook" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
       Filters
     </button>
 
     {% if filter %}
-    <span class="ml-3">
+    <span class="ml-3" id="clear-filters">
       <a href="/" class="align-middle btn-link" style="text-decoration: underline">Clear filters</a>
     </span>
     {% endif %}
@@ -373,16 +380,68 @@
     }
   </style>
   <script>
-      $(() => {
-          $('#inst-btn').on('click', show_install_msg );
-          var table = $('#datatables-basic').DataTable({
-            responsive: true,
-            dom: '<"toolbar">frtip'
-          });
-          $("div.toolbar").html($('#device-list-toolbar-template').html());
-          $('#filters-expand').click((e) => {
-              $(e.target).toggleClass('active');
-          });
+  const cols = {
+
+  }
+  $(() => {
+
+      // batch control initialization.
+      batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
+      $('#inst-btn').on('click', show_install_msg );
+      var table = $('#datatables-basic').DataTable({
+        responsive: true,
+        dom: '<"toolbar">frtip',
+        "footerCallback": batch_footer,
+        columns:[
+            {data:'', orderable: false, sortable:false, className: 'select-checkbox'},
+            {% for column_name in column_names %}
+                {data: {{ forloop.counter }} },
+            {% endfor %}
+        ],
+        select: {
+            style:    'multi+shift',
+            selector: 'td:first-child'
+        },
+      });
+      // apply column selection
+      $("div.toolbar").html($('#device-list-toolbar-template').html());
+      $('#filters-expand').click((e) => {
+          $(e.target).toggleClass('active');
+      });
+
+      // apply 'select all' features to table.
+      $("#select-all").html($("#select-all-template").html());
+      $("#datatables-basic_filter").html($('#select-all-toolbar-template').html());
+
+      /**
+       * DataTable footerCallback. Place batch action control to footer
+       */
+      function batch_footer( row, data, start, end, display ) {
+          var api = this.api();
+          $(api.table().footer()).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
+          batchControl.refresh();
+      }
+
+      /**
+       * callback function. called by batch action 'apply' button handler for each table row
+       *
+       * @param action. action object.
+       * @param row - row data. the array of table columns of processed row
+       * @returns {null|string | *} must return pk of object in a row to process batch function
+       * or null if you do not want to apply batch function to this object
+       */
+      function get_object_pk_for_batch( action, row )
+      {
+          let re = /<a href="\/devices\/(\d+)\/">/i
+          let res = row[1].match(re);
+          if (res === null) return null;
+          return Number(res[1]);
+      }
+
+
+      $('#filters-expand').click((e) => {
+          $(e.target).toggleClass('active');
+      });
 
           $('.form-check-input').click((e) => {
               var column = table.column( e.target.getAttribute('data-column') );

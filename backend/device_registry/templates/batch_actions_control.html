@@ -1,0 +1,269 @@
+  <template id="batch-msg-modal-template">
+    <div class="modal" tabindex="-1" role="dialog" id="batch-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="batch-title">Title</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p id="batch-msg">Message Text</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-facebook" data-dismiss="modal">Close</button>
+          </div>
+              <div class="alert alert-warning wott-form-alert p-1" role="alert" id="batch-alert">
+                Server error
+              </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="batch-footer-tmplate">
+    <div class="dropdown" id="device-list-columns">
+      <button class="btn btn-facebook" type="button" data-toggle="collapse" data-target="#batch-actions-collapse" id="batch-expand">
+        Batch Actions
+      </button>
+      <div class="collapse row" id="batch-actions-collapse">
+        <div class="card card-body">
+          <div class="form-row">
+            <div class="input-group col-2">
+              <select class="custom-select" id="subject_select">
+                <option selected>Subject...</option>
+              </select>
+            </div>
+            <div class="input-group col-2">
+              <select class="custom-select" id="action_select">
+                <option selected>Action...</option>
+              </select>
+            </div>
+            <div class="col-4" id="subj_element_div">
+            </div>
+            <div class="col-2">
+              <button type="button" class="btn btn-facebook" id="action_button">
+                <span class="spinner-border spinner-border-sm" style="display: none;" id="batch_apply_spinner"></span> Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+      /**
+       *  Usage sample:
+       *
+       *  document.addEventListener("DOMContentLoaded", function () {
+       *      // batch control initialization.
+       *      batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
+       *
+       *      $('#datatables-basic').DataTable({
+       *            responsive: true,
+       *            "footerCallback": function ( row, data, start, end, display ) {
+       *                let footer = this.api().table().footer();
+       *                $(footer).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
+       *                batchControl.refresh();  // to refresh batch controls on redraw footer
+       *            },
+       *      });
+       *
+       *      function get_object_pk_for_batch( action, row ){
+       *          let res = row[0].match( /<a href="\/devices\/(\d+)\/">/i );
+       *          if (res === null) return null;
+       *          return Number(res[1]);   // retrieve pk from url in column 0
+       *      }
+       */
+
+
+      /**
+       *  creates batch actions controls
+       *  @param: options:
+       *             options.table_id - HTML id of table. default: "datatables-basic"
+       *             options.get_row_pk( action, row ) - Call back funtion. Which returns pk of object
+       *                     in specified table row. Callbck function Arguments:
+       *                       row - is a table.row().data().
+       *                       action - action object.
+       *  @returns batchControl object.
+       *            batchControl.refresh() - refresh batch controls data and events
+       **/
+       function initBatchControls(options=null){
+
+          let defaultOptions = {
+              get_row_pk: function( action, row ) {
+                  return row['pk'];
+              },
+              table_id: 'datatables-basic',
+          };
+
+          if( options == null )
+              options = defaultOptions;
+          else
+              for ( let key in defaultOptions ){
+                  if (!(key in options)){
+                    options[key] = defaultOptions[key];
+                  }
+              }
+
+          let subjects=[];
+          let actions=[];
+
+          const action_select_default = 'Action...';
+          const subject_select_default = 'Subject...';
+
+          $('body').append($('#batch-msg-modal-template').html());
+
+          refresh_subject_select_events();
+          refresh_action_select_events();
+          refresh_action_button_events();
+
+          $.ajax({
+              url: 'ajax-batch/list/device',
+              method: 'GET',
+          }).done(function(a) {
+             actions = a;
+             let subject_select = $('#subject_select')
+             subject_select.empty().append(`<option selected>${subject_select_default}</option>`);
+
+             for(let i in actions){
+                 actions[i].post_process = eval(`(${actions[i].js_postprocess})`);
+                 actions[i].get_args = eval(`(${actions[i].js_get})`);
+                 if (!(subjects.includes(actions[i].subject)) )
+                 {
+                     subjects.push(actions[i].subject);
+                     subject_select.append(
+                         `<option value="${actions[i].subject}">${actions[i].subject}</option>`
+                     );
+                 }
+             }
+          });
+
+          function refresh_subject_select()
+          {
+              let subject_select = $('#subject_select');
+              subject_select.empty().append(`<option selected>${subject_select_default}</option>`);
+              for( let i in subjects){
+                  subject_select.append(
+                      `<option value="${subjects[i]}">${subjects[i]}</option>`
+                  );
+              }
+          }
+
+          function refresh_subject_select_events(){
+              $('#subject_select').on('change', function(e){
+                  let action_select = $('#action_select');
+                  action_select.empty().append(`<option selected>${action_select_default}</option>`);
+                  if( this.value != subject_select_default)
+                  {
+                      for(let i in actions){
+                          if( actions[i].subject == this.value )
+                          {
+                             action_select.append(
+                                 `<option value="${i}">${actions[i].display_name}</option>`
+                             );
+                          }
+                      }
+                  }
+              });
+          }
+
+          function refresh_action_select_events() {
+              $('#action_select').on('change', function(e){
+                  let batch_args_div = document.getElementById("subj_element_div");
+                  while (batch_args_div.firstChild) {
+                      batch_args_div.removeChild(batch_args_div.firstChild);
+                  }
+
+                  if(this.value != action_select_default)
+                  {
+                      if( actions.length > this.value )
+                      {
+                          batch_args_div.innerHTML = actions[this.value].args_control;
+                          let elem = batch_args_div.childNodes[0];
+                          actions[this.value].post_process($(elem));
+                      }
+                  }
+              });
+          }
+
+          function refresh_action_button_events(){
+              $('#action_button').on('click', function(e){
+                  e.preventDefault();
+                  let subject = $('#subject_select').val();
+                  let action_idx = $('#action_select').val();
+                  if( subject === subject_select_default || action_idx === subject_select_default){
+                      return;
+                  }
+
+                  let items_to_batch = [];
+                  let a_table = $(`#${options.table_id}`).dataTable().api();
+                  a_table.rows({ selected: true }).every( function ( rowIdx, tableLoop, rowLoop ) {
+                      let data = this.data();
+                      let pk = options.get_row_pk( actions[action_idx], data);
+                      if (pk !== null) items_to_batch.push({pk: pk});
+                  } );
+
+                  let action_name = actions[action_idx].name;
+                  let args = actions[action_idx].get_args( $(`#batch_${action_name}`) );
+                  let button = $('#action_button');
+                  button.prop('disabled', true);
+                  $('#batch_apply_spinner')[0].style.display = 'inline-block';
+
+                  $.ajax({
+                      url: `${actions[action_idx].url}`,
+                      data: JSON.stringify({
+                          action: action_name,
+                          objects: items_to_batch,
+                          args: args,
+                      }),
+                      method: 'POST',
+                      contentType: 'application/json',
+                  }).done(function(e){
+                      $('#batch_apply_spinner')[0].style.display = 'none';
+                      button.prop('disabled', false);
+                  }).fail(function(a){
+                      console.log('error');
+                      console.log(a.status, a.responseText);
+                      let errMsgs = [];
+                      if(a.status == 400 || a.status == 404 || a.status == 405) {
+                          for (key in a.responseJSON) {
+                            errMsgs.push(`${key}:  ${a.responseJSON[key]}`);
+                          }
+                      }
+                      else errMsgs.push(a.responseText);
+                      $('#batch_apply_spinner')[0].style.display = 'none';
+                      button.prop('disabled', false);
+                      show_dialog('Batch action', 'Batch action was failed.', errMsgs);
+                  });
+              });
+          }
+
+          function show_dialog(title, message, errors=null )
+          {
+              $('#batch-title')[0].innerText = title;
+              $('#batch-msg')[0].innerText = message;
+              if( errors == null)
+                $('#batch-alert')[0].style.display = 'none';
+              else
+              {
+                  let alertbox = $('#batch-alert')[0];
+                  alertbox.style.display = 'block';
+                  alertbox.innerText = messages.join("\n");
+              }
+              $('#batch-modal').modal('toggle');
+          }
+
+          let batchControl = {};
+
+          batchControl.refresh =  function() {
+                  refresh_subject_select();
+                  refresh_subject_select_events();
+                  refresh_action_select_events();
+                  refresh_action_button_events();
+          };
+          return batchControl;
+      }
+
+  </script>

@@ -179,3 +179,32 @@ class UpdatePairingKeySerializer(serializers.ModelSerializer):
     class Meta:
         model = PairingKey
         fields = ['comment']
+
+
+class BatchArgsObjectSerializer(serializers.Serializer):
+    pk = serializers.CharField(max_length=64)
+
+
+class BatchArgsTagsSerializer(serializers.Serializer):
+    action = serializers.CharField(max_length=64)
+    objects = BatchArgsObjectSerializer(many=True)
+    args = TagsSerializer(many=True, read_only=True)
+    model_name = serializers.CharField(max_length=64)
+
+    def validate_action(self, value):
+        if value not in ['add', 'set']:
+            raise serializers.ValidationError('Invalid argument')
+        return value
+
+    def validate_object(self, value):
+        if value not in ['device', 'credentials']:
+            raise serializers.ValidationError('Invalid argument')
+        return value
+
+    def validate(self, attrs):
+        models = {'device': Device, 'credentials': Credential}
+        pk_list = [obj['pk'] for obj in attrs['objects']]
+        user = self.context['request'].user
+        if models[attrs['model_name']].objects.filter(pk__in=pk_list, owner=user).count() != len(pk_list):
+            raise serializers.ValidationError('Invalid argument')
+        return attrs
