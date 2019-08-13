@@ -1,6 +1,7 @@
 import json
 import logging
 import uuid
+import datetime
 
 from django.http import HttpResponse
 from django.utils import timezone
@@ -11,6 +12,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 from django.urls import reverse
 from django.db import transaction
+from django.db.models import Q
 
 from google.cloud import datastore
 from rest_framework import status
@@ -20,6 +22,7 @@ from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, 
 from rest_framework.generics import get_object_or_404
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import AllowAny
+from rest_framework.parsers import JSONParser, FormParser
 from netaddr import IPAddress
 
 from device_registry import ca_helper
@@ -766,6 +769,8 @@ class DeviceListAjaxView(ListAPIView):
     List all of the users devices.
     """
     serializer_class = DeviceSerializer
+    parser_classes = [JSONParser, FormParser]
+    ajax_info = dict()
 
     FILTER_FIELDS = {
         'device-name': (
@@ -827,8 +832,9 @@ class DeviceListAjaxView(ListAPIView):
         }
     }
 
-    def get_queryset(self):
-        common_query = Q(owner=self.request.user)
+    def get_queryset(self, *args, **kwargs):
+        queryset = Device.objects.filter(owner=self.request.user)
+        self.ajax_info['recordsTotal'] = queryset.count()
         query = Q()
 
         filter_by = self.request.GET.get('filter_by')
@@ -878,4 +884,18 @@ class DeviceListAjaxView(ListAPIView):
         else:
             self.request.filter_dict = None
 
-        return Device.objects.filter(common_query & query).distinct()
+        return queryset.filter(query).distinct()
+
+    def list(self, request, *args, **kwargs):
+
+        queryset = self.filter_queryset(self.get_queryset(*args, **kwargs))
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        self.ajax_info['recordsFiltered'] = queryset.count()
+
+        serializer = self.get_serializer(queryset, many=True)
+        payload = {'data': serializer.data, 'draw': request.query_params.get('draw', '-')}
+        payload.update(self.ajax_info)
+        return Response(payload)

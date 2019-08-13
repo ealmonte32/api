@@ -379,6 +379,14 @@
       batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
       $('#inst-btn').on('click', show_install_msg );
       var table = $('#datatables-basic').DataTable({
+        'processing': true,
+        'serverSide': true,
+        'serverMethod': 'post',
+        ajax: {
+            url: '/ajax-devices/list/',
+            processing: true,
+            method:'GET'
+        },
         responsive: true,
         dom: '<"toolbar">frtip',
         "footerCallback": batch_footer,
