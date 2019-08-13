@@ -16,9 +16,6 @@
     #datatables-basic tr:hover td.wott-cred-btns .btn {
       visibility: visible;
     }
-    input[modified]{
-      border-color: gold;
-    }
     </style>
 {% endblock %}
 {% block js %}
@@ -153,19 +150,50 @@
         $('input').on('input', function (e) {
            let el = e.currentTarget;
            if ( el.value == el.defaultValue ){
-               el.removeAttribute('modified');
+               el.classList.remove('modified');
            } else {
-               el.setAttribute('modified', true);
+               el.classList.remove('modified');
+               el.classList.add('modified');
            }
         });
+
+        $('input').on('focus', function (e) {
+           let el = e.currentTarget;
+           el.removeAttribute('readonly');
+        });
+        $('input').on('focusout', function (e) {
+           let el = e.currentTarget;
+           el.setAttribute('readonly', true);
+           if( el.classList.contains('modified') )
+           {
+             let comment = el.value;
+             let id = el.parentElement.parentElement.id;
+             ajax_update_comment(id, comment);
+           }
+        });
+
       });
+
+      window.onbeforeunload = function(event)
+      {
+          let unsaved = $('input.modified');
+          if( unsaved != undefined && unsaved.length > 0 )
+          {
+              for( let i =0; i < unsaved.length; i++ )
+              {
+                  let current_row = unsaved[i].parentElement.parentElement;
+                  ajax_update_comment(current_row.id, unsaved[i].value, false);
+              }
+          }
+      };
+
     });
 
     function render_comment( data, type, row, meta )
     {
         if( type == 'sort' ) return data;
         let h_data = htmlEntities(data);
-        return `<input type="text" value="${h_data}" style="width:100%" ></input>`;
+        return `<input type="text" value="${h_data}" style="width:100%" readonly></input>`;
     }
 
     function fa_button( type, btn, fa, onclick, popover=undefined)
@@ -181,14 +209,10 @@
     {
         let save_url = `location.href='/pairing-keys/download?pk=${row.key}';`;
 
-        return  fa_button( "button", "btn-info", "fas fa-check fa-lg", "update_comment(this)",
-                { title:"Update key comment", content: "Save enrollment key comment."} )
-            + fa_button( "button", "btn-primary", "fas fa-copy fa-lg", "copy_key(this, '" + row.key + "')",
-                {
-                    title: "Copy key to clipboard",
-                    content: "Copy the enrollment string to the clipboard. The string is in the form 'key = value' " +
-                             "to simply paste to config.ini file."
-                })
+        return fa_button( "button", "btn-primary", "fas fa-copy fa-lg", `copy_key(this, '${row.key}')`,
+                { title: "Copy key to clipboard",
+                  content: "Copy the enrollment string to the clipboard. The string is in the form 'key = value' " +
+                           "to simply paste to config.ini file."})
             + fa_button( "button", "btn-success", "fas fa-save fa-lg", save_url,
                 { title:"Store key to disk", content: "Store generated enrollment key as ready to go config.ini file." } )
             + fa_button( "button", "btn-danger", "fas fa-trash fa-lg", "revoke_key(this)",
@@ -203,7 +227,6 @@
           "Revoke"
       );
     }
-
 
     function show_popover(el, title, content='')
     {
@@ -254,50 +277,12 @@
         });
     }
 
-    var ajax_update_count = 0;
-    function update_comment(e)
-    {
-        ajax_update_count = 0;
-        wott_alert_hide("main-alert");
-        let row = e.parentElement.parentElement.parentElement;
-        let input_el = row.children[cols.comment].children[0];
-        let comment = input_el.value;
-        let others = $('input[modified="true"]').not(input_el);
-        let has_other = ( others != undefined && others.length > 0);
-        if(has_other)
-        {
-            $('#confirm-btn').on("click", {row:row, others:null}, update_many_comments );
-            $('#confirm-all-btn').on("click", {row:row, others:others}, update_many_comments );
-            show_dialog("Confirm bulk/single update",
-                "You have more than one modified key comments. You can save only current key comment," +
-                " all modified key comments or cancel.",
-                "Current", true
-            );
-        }
-        else
-        {
-          ajax_update_comment(row.id, comment);
-        }
-    }
-
-    function update_many_comments(e)
-    {
-        hide_dialog();
-        let row = e.data.row;
-        let others = e.data.others;
-        let reload_count = (others == null) ? 0 : others.length;
-        ajax_update_comment(row.id, row.children[cols.comment].children[0].value, reload_count);
-        if(others != null)
-        {
-          for( let i =0; i < others.length; i++ )
-          {
-              let current_row = others[i].parentElement.parentElement;
-              ajax_update_comment(current_row.id, current_row.children[cols.comment].children[0].value, reload_count);
-          }
-        }
-    }
-
-    function ajax_update_comment(id, comment, reload_on=0)
+    /**
+     * id - key/row_id (they are the same)
+     * comment - a string to write as key comment
+     * reload - if false, the table will not redraw/reload. default true.
+     **/
+    function ajax_update_comment(id, comment, reload=true)
     {
         $.ajax({
             url: `/ajax-pairing-keys/${id}/update/`,
@@ -306,8 +291,7 @@
             contentType: 'application/json',
         }).done(function () {
             console.log('success');
-            ajax_update_count++;
-            if(ajax_update_count > reload_on)
+            if(reload)
                 table.ajax.reload();
         }).fail(function (a) {
             console.log('error');
