@@ -22,6 +22,11 @@ module.exports = {
       new TerserPlugin({
         cache: true,
         sourceMap: false,
+         terserOptions: {
+           output: {
+             comments: false
+           }
+         }
       }),
       new OptimizeCSSAssetsPlugin({})
     ]
