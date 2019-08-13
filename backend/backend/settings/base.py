@@ -10,8 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
-import json
-import logging
 import os
 import socket
 import re
@@ -217,17 +215,3 @@ SERIALIZATION_MODULES = {
 
 # `django-registration-redux` 3rd party app settings.
 INCLUDE_REGISTER_URL = False
-
-WEBPACK_STATS_NAME = 'webpack-stats.json'
-WEBPACK_STATS_PATH = os.path.join(REPO_DIR, 'misc', WEBPACK_STATS_NAME)
-if not os.path.isfile(WEBPACK_STATS_PATH):
-    WEBPACK_STATS_PATH = os.path.join('/usr/src/misc', WEBPACK_STATS_NAME)
-try:
-    with open(WEBPACK_STATS_PATH) as webpack_stats_file:
-        logging.warning('loading webpack-stats')
-        global WEBPACK_BUNDLE
-        WEBPACK_BUNDLE_JSON = json.load(webpack_stats_file)
-        logging.warning('loaded: {}'.format(WEBPACK_BUNDLE_JSON))
-        WEBPACK_BUNDLE_CSS, WEBPACK_BUNDLE_JS = ['/bundles/'+chunk['name'] for chunk in WEBPACK_BUNDLE_JSON['chunks']['app']]
-except IOError:
-    pass
