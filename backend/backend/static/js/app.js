@@ -3,7 +3,7 @@ import "../scss/app.scss";
 
 // Global
 import "./modules/bootstrap";
-import "./modules/dragula";
+// import "./modules/dragula";
 import "./modules/feather";
 import "./modules/font-awesome";
 import "./modules/moment";
@@ -21,7 +21,7 @@ import "./modules/chartjs";
 // import "./modules/fullcalendar";
 // import "./modules/markdown";
 import "./modules/mask";
-import "./modules/quill";
+// import "./modules/quill";
 import "./modules/select2";
 import "./modules/validation";
 // import "./modules/wizard";

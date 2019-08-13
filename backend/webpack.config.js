@@ -19,7 +19,10 @@ module.exports = {
   optimization: {
 	minimize:true,
     minimizer: [
-      new TerserPlugin(),
+      new TerserPlugin({
+        cache: true,
+        sourceMap: false,
+      }),
       new OptimizeCSSAssetsPlugin({})
     ]
   },
