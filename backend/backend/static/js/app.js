@@ -13,21 +13,21 @@ import "./modules/user-agent";
 
 // Charts
 import "./modules/chartjs";
-import "./modules/apexcharts";
+// import "./modules/apexcharts";
 
 // Forms
-import "./modules/daterangepicker";
-import "./modules/datetimepicker";
-import "./modules/fullcalendar";
-import "./modules/markdown";
+// import "./modules/daterangepicker";
+// import "./modules/datetimepicker";
+// import "./modules/fullcalendar";
+// import "./modules/markdown";
 import "./modules/mask";
 import "./modules/quill";
 import "./modules/select2";
 import "./modules/validation";
-import "./modules/wizard";
+// import "./modules/wizard";
 
 // Maps
-import "./modules/vector-maps";
+// import "./modules/vector-maps";
 
 // Tables
 import "./modules/datatables";
