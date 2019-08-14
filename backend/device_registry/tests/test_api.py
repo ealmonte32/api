@@ -20,6 +20,7 @@ from rest_framework.authtoken.models import Token
 from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
 from device_registry.serializers import DeviceListSerializer
 
+from device_registry.models import GlobalPolicy
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
@@ -560,7 +561,7 @@ class MtlsCredsViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.json(),
-                             [{'name': 'name1', 'data':{'key1': 'as9dfyaoiufhoasdfjh'}, 'linux_user': 'nobody',
+                             [{'name': 'name1', 'data': {'key1': 'as9dfyaoiufhoasdfjh'}, 'linux_user': 'nobody',
                                'pk': self.credential.pk,
                                'tags_data': [{'name': 'tag1', 'pk': self.credential.tags.tags[0].pk}]}])
 
@@ -696,7 +697,13 @@ class MtlsRenewCertViewTest(APITestCase):
 
 class MtlsPingViewTest(APITestCase):
     def setUp(self):
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        device_id = 'device0.d.wott-dev.local'
+        self.device = Device.objects.create(device_id=device_id, owner=self.user)
+        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW,
+                                              ports=[['::', 'udp', 5353, True], ['0.0.0.0', 'udp', 5353, False]],
+                                              networks=[['192.168.0.100', False]])
         self.ping_payload = {
             'device_operating_system_version': 'linux',
             'fqdn': 'test-device0',
@@ -710,11 +717,12 @@ class MtlsPingViewTest(APITestCase):
         }
         self.url = reverse('mtls-ping')
         self.headers = {
-            'HTTP_SSL_CLIENT_SUBJECT_DN': 'CN=device0.d.wott-dev.local',
+            'HTTP_SSL_CLIENT_SUBJECT_DN': f'CN={device_id}',
             'HTTP_SSL_CLIENT_VERIFY': 'SUCCESS'
         }
 
-    def test_ping_get_success(self):
+    def test_ping_get(self):
+        # Take data from device security settings.
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
@@ -722,6 +730,14 @@ class MtlsPingViewTest(APITestCase):
             'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
             'deb_packages_hash': ''
         })
+        # Take data from a global policy.
+        self.device.firewallstate.global_policy = self.gp
+        self.device.firewallstate.save(update_fields=['global_policy'])
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, {'policy': self.gp.policy_string,
+                                             'block_ports': self.gp.ports,
+                                             'block_networks': self.gp.networks + settings.SPAM_NETWORKS})
 
     def test_pong_data(self):
         # 1st request
@@ -739,7 +755,7 @@ class MtlsPingViewTest(APITestCase):
         self.device.portscan.save(update_fields=['block_ports', 'block_networks'])
         response = self.client.post(self.url, self.ping_payload, **self.headers)
         self.assertEqual(response.status_code, 200)
-
+        # 3rd request
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
@@ -958,10 +974,10 @@ class PairingKeyListViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = [
             OrderedDict(
-                [('key', self.key1.key.__str__()), ('created',  self.key1.created.strftime('%Y-%m-%d %H:%M:%S')),
+                [('key', self.key1.key.__str__()), ('created', self.key1.created.strftime('%Y-%m-%d %H:%M:%S')),
                  ('comment', self.key1.comment)]
             ), OrderedDict(
-                [('key', self.key2.key.__str__()), ('created',  self.key2.created.strftime('%Y-%m-%d %H:%M:%S')),
+                [('key', self.key2.key.__str__()), ('created', self.key2.created.strftime('%Y-%m-%d %H:%M:%S')),
                  ('comment', self.key2.comment)]
             )
         ]
@@ -1249,3 +1265,30 @@ class DeviceListAjaxViewTest(APITestCase):
         url = reverse('ajax_device_list') + '?' + urlencode({'start': 1, 'length': 1})
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([ self.device1], length=3))
+
+
+class PolicyDeviceNumberViewTests(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
+        self.url = reverse('ajax_policy_device_nr', kwargs={'pk': self.gp.pk})
+
+    def test_get(self):
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertDictEqual(response.data, {'devices_nr': 0})
+        device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        FirewallState.objects.create(device=device, global_policy=self.gp)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertDictEqual(response.data, {'devices_nr': 1})
+
+    def test_get_404(self):
+        User = get_user_model()
+        user2 = User.objects.create_user('test2', password='123')
+        gp2 = GlobalPolicy.objects.create(name='gp2', owner=user2, policy=GlobalPolicy.POLICY_ALLOW)
+        self.client.login(username='test', password='123')
+        response = self.client.get(reverse('ajax_policy_device_nr', kwargs={'pk': gp2.pk}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

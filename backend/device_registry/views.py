@@ -62,10 +62,6 @@ class GlobalPoliciesListView(LoginRequiredMixin, ListView):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
 
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     return context
-
 
 class GlobalPolicyEditView(LoginRequiredMixin, UpdateView):
     model = GlobalPolicy
@@ -85,11 +81,19 @@ class GlobalPolicyCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('global_policies')
 
     def form_valid(self, form):
+        """
+        Standard method overwritten in order to assigne proper owner a global policy before its saving.
+        """
         form.instance.owner = self.request.user
         return super().form_valid(form)
 
 
 class GlobalPolicyDeleteView(LoginRequiredMixin, DeleteView):
+    """
+    Global policy delete view.
+
+    The only customization: delete by GET request support added.
+    """
     model = GlobalPolicy
     success_url = reverse_lazy('global_policies')
 
@@ -136,7 +140,7 @@ def claim_device_view(request):
                     get_device.save(update_fields=['owner', 'claim_token'])
                     text, style = f'You\'ve successfully claimed {get_device.get_name()}. ' \
                                   f'Learn more about the security state of the device by clicking&nbsp;' \
-                                  f'<a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": get_device.pk})}">' \
+                                  f'<a class="claim-link" href="{reverse("device_detail_security", kwargs={"pk": get_device.pk})}">' \
                                   f'here</a>.', \
                                   'success'
             except Device.DoesNotExist:
@@ -300,7 +304,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
                     out_data.append(connections_form_data[2][connection_record_index])
                 portscan.block_networks = out_data
                 portscan.save(update_fields=['block_networks'])
-        return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
+        return HttpResponseRedirect(reverse('device_detail_security', kwargs={'pk': kwargs['pk']}))
 
 
 class DeviceDetailNetworkView(LoginRequiredMixin, DetailView):

@@ -50,7 +50,7 @@ class PolicyDeviceNumberView(APIView):
     """
 
     def get(self, request, *args, **kwargs):
-        global_policy = get_object_or_404(GlobalPolicy, pk=kwargs['pk'])
+        global_policy = get_object_or_404(GlobalPolicy, owner=request.user, pk=kwargs['pk'])
         return Response({'devices_nr': global_policy.get_devices_nr()})
 
 
