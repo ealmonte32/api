@@ -364,9 +364,6 @@
     }
   </style>
   <script>
-  const cols = {
-
-  }
   $(() => {
 
       // batch control initialization.
@@ -409,11 +406,6 @@
       // apply 'select all' features to table.
       $("#select-all").html($("#select-all-template").html());
       set_select_all_link_toolbar();
-      // adjust toolbar divs layout
-      var dt_wrapper = $(`#datatables-basic_wrapper`)[0];
-      dt_wrapper.children[0].classList.add('col-sm-4'); // filter card
-      dt_wrapper.children[1].classList.add('col-sm-4'); // select-all link button
-
 
       /**
        * DataTable footerCallback. Place batch action control to footer

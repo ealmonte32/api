@@ -10,10 +10,16 @@
   table.dataTable tbody tr.selected a{
         color: #355fff !important;
   }
+
+  .selectall-toolbar {
+      float: left;
+  }
+
   </style>
  {% endblock %}
 
   <template id="select-all-link-btn-template">
+    <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
     <span id="select-all-info-title"></span>
     <button id="select-all-info-link" onclick="select_all('all', true)"
       style="background:none; color:blue; border:none; padding:0!important; font: inherit; border-bottom:1px solid #444; cursor: pointer;" >
@@ -39,7 +45,7 @@
         var dt_filter = $(`#${dt_id}_filter`)[0];
         var select_toolbar = document.createElement('div');
         select_toolbar.innerHTML = $('#select-all-link-btn-template').html();
-        select_toolbar.classList.add('toolbar');
+        select_toolbar.classList.add('selectall-toolbar');
         var dt_wrapper = $(`#${dt_id}_wrapper`)[0];
         dt_wrapper.insertBefore(select_toolbar, dt_filter);
       }
