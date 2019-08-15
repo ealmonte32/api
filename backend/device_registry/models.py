@@ -100,6 +100,10 @@ class Device(models.Model):
         self.device_id.endswith(settings.COMMON_NAME_PREFIX)
 
     @property
+    def hostname(self):
+        return self.deviceinfo.fqdn if self.deviceinfo else ''
+
+    @property
     def actions_count(self):
         if self.firewallstate.policy == FirewallState.POLICY_ENABLED_ALLOW:
             telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
@@ -162,7 +166,10 @@ class Device(models.Model):
                sum(cls.COEFFICIENTS.values())
 
     def trust_score_percent(self):
-        return int(self.trust_score * 100)
+        if self.trust_score:
+            return int(self.trust_score * 100)
+        else:
+            return 0
 
     def trust_score_color(self):
         return get_bootstrap_color(self.trust_score_percent())

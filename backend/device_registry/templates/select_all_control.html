@@ -13,18 +13,11 @@
   </style>
  {% endblock %}
 
-  <template id="select-all-toolbar-template">
-    <div class="row">
-      <div class="col-6">
-        <span id="select-all-info-title"></span>
-        <button id="select-all-info-link" onclick="select_all('all', true)"
-          style="background:none; color:blue; border:none; padding:0!important; font: inherit; border-bottom:1px solid #444; cursor: pointer;" >
-        </button>
-      </div>
-      <div class="col-6">
-        <label>Search:<input type="search" class="form-control form-control-sm" placeholder="" aria-controls="datatables-basic"></label>
-      </div>
-    </div>
+  <template id="select-all-link-btn-template">
+    <span id="select-all-info-title"></span>
+    <button id="select-all-info-link" onclick="select_all('all', true)"
+      style="background:none; color:blue; border:none; padding:0!important; font: inherit; border-bottom:1px solid #444; cursor: pointer;" >
+    </button>
   </template>
 
   <template id="select-all-template">
@@ -37,6 +30,18 @@
   </template>
 
   <script>
+      function set_select_all_link_toolbar(dt_id='datatables-basic')
+      {
+        var dt_filter = $(`#${dt_id}_filter`)[0];
+        var select_toolbar = document.createElement('div');
+        select_toolbar.innerHTML = $('#select-all-link-btn-template').html();
+        select_toolbar.classList.add('toolbar');
+        var dt_wrapper = $(`#${dt_id}_wrapper`)[0];
+        dt_wrapper.insertBefore(select_toolbar, dt_filter);
+        dt_wrapper.children[0].classList.add('col-sm-4');
+        dt_wrapper.children[1].classList.add('col-sm-4');
+      }
+
       /* select all control for table */
       function clear_select_all_info(){
           $("#select-all-info-title").html('');
@@ -61,10 +66,17 @@
       function select_all(page, extend_on_toolbar=false)
       {
           let table = $("#datatables-basic").dataTable().api();
-
+          let page_info = table.page.info();
           let on_page = table.rows({page:'current'}).count();
-          let total = table.rows({page:'all'}).count();
-          table.rows({page:page}).select();
+          let total = page_info['recordsTotal'];
+          if (page == 'all' && page_info.serverSide)
+          {
+              table.one('draw', function(e, settings){
+                  table.rows({page:page}).select();
+              });
+              table.page.len(-1).draw(true);
+          }
+          else table.rows({page:page}).select();
           if(extend_on_toolbar){
               if ( total > on_page && page == 'current'){
                   $("#select-all-info-title").html(`${on_page} rows selected on page.`);
@@ -116,6 +128,6 @@
        *
        *
        *        $("#select-all").html($("#select-all-template").html());
-       *        $("#div.toolbar").html($('#select-all-toolbar-template').html());
+       *        set_select_all_link_toolbar();
        */
   </script>

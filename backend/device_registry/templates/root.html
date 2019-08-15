@@ -1,5 +1,14 @@
 {% extends "admin_base.html" %}
 {% load static %}
+{% block css %}
+  <link rel="stylesheet" href="{% static "css/dark.css" %}">
+  {{ form_media.css }}
+{% endblock %}
+
+{% block js %}
+  <script src="{% static "js/highlight.pack.js" %}"></script>
+  {{ form_media.js }}
+{% endblock %}
 
 {% block title %}WoTT - Dashboard{% endblock title %}
 
@@ -129,6 +138,7 @@
                 <th colspan="6"></th>
               </tfoot>
               <tbody>
+              <!--
               {% for device in object_list %}
                 <tr>
                   <td></td>
@@ -150,6 +160,7 @@
                   <td>{{ device.comment | default_if_none:'' }}</td>
                 </tr>
               {% endfor %}
+              -->
               </tbody>
             </table>
           </div>
@@ -354,6 +365,14 @@
     </div>
   </template>
 
+  <template id="trust-score-template">
+    <div class="progress position-relative">
+      <div class="progress-bar bg-white" role="progressbar"
+           style="width: 0000%"></div>
+      <span
+          class="justify-content-center d-flex position-absolute w-100"><!--trust_score_percent-->%</span>
+    </div>
+  </template>
 {% endblock admin_content %}
 
 {% block scripts %}
@@ -385,16 +404,21 @@
         ajax: {
             url: '/ajax-devices/list/',
             processing: true,
-            method:'GET'
+            method: 'GET',
+            data: function(data){
+              serializeUrlParams(data); // add url params (fiter) to payload
+            }
         },
         responsive: true,
         dom: '<"toolbar">frtip',
         "footerCallback": batch_footer,
         columns:[
-            {data:'', orderable: false, sortable:false, className: 'select-checkbox'},
-            {% for column_name in column_names %}
-                {data: {{ forloop.counter }} },
-            {% endfor %}
+            {data: null, defaultContent:'', orderable: false, sortable:false, className: 'select-checkbox'},
+            {data: 'get_name' , render: render_device_name },
+            {data: 'hostname' },
+            {data: 'last_ping' },
+            {data: 'trust_score', render: render_trustscore },
+            {data: 'comment' },
         ],
         select: {
             style:    'multi+shift',
@@ -409,7 +433,8 @@
 
       // apply 'select all' features to table.
       $("#select-all").html($("#select-all-template").html());
-      $("#datatables-basic_filter").html($('#select-all-toolbar-template').html());
+      set_select_all_link_toolbar();
+
 
       /**
        * DataTable footerCallback. Place batch action control to footer
@@ -582,6 +607,32 @@
 
       function enableFilter(b) {
           $('.col-md-auto').children().attr('disabled', !b)
+      }
+
+      function serializeUrlParams(payload)
+      {
+          let hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+          for(let i = 0; i < hashes.length; i++)
+          {
+              let hash = hashes[i].split('=');
+              payload[hash[0]] = hash[1];
+          }
+      }
+
+      function render_device_name(data, type, row, meta){
+          if (type == 'sort') return data;
+          return `<a href="/devices/${row['id']}/">${data}</a>`;
+      }
+
+      function render_trustscore(data, type, row, meta){
+          if (type == 'sort') return data;
+          if (data == null || data == '') return 'N/A';
+          let template = $("#trust-score-template").html()
+              .replace('white', row['trust_score_color'])
+              .replace('0000', row['trust_score_percent'])
+              .replace('<!--trust_score_percent-->', row['trust_score_percent']);
+
+          return template;
       }
 
   </script>

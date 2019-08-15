@@ -1,4 +1,5 @@
 from django.utils.translation import ugettext_lazy as _
+from django.utils.timesince import timesince
 
 from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
@@ -213,3 +214,15 @@ class BatchArgsTagsSerializer(serializers.Serializer):
         if models[attrs['model_name']].objects.filter(pk__in=pk_list, owner=user).count() != len(pk_list):
             raise serializers.ValidationError('Invalid argument')
         return attrs
+
+
+class DeviceListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Device
+        fields = ['id', 'get_name', 'hostname', 'last_ping', 'trust_score', 'comment', 'device_id', 'owner',
+                  'trust_score_color', 'trust_score_percent']
+
+    def to_representation(self, instance):
+        representation = super(DeviceListSerializer, self).to_representation(instance)
+        representation['last_ping'] = timesince(instance.last_ping) + ' ago'
+        return representation

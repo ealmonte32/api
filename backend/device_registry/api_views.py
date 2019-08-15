@@ -13,6 +13,7 @@ from django.db.models.query import QuerySet
 from django.urls import reverse
 from django.db import transaction
 from django.db.models import Q
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from google.cloud import datastore
 from rest_framework import status
@@ -30,7 +31,7 @@ from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer, BatchArgsTagsSerializer
-from device_registry.serializers import DeviceSerializer
+from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
@@ -768,8 +769,8 @@ class DeviceListAjaxView(ListAPIView):
     """
     List all of the users devices.
     """
-    serializer_class = DeviceSerializer
-    parser_classes = [JSONParser, FormParser]
+    serializer_class = DeviceListSerializer
+    parser_classes = [FormParser]
     ajax_info = dict()
 
     FILTER_FIELDS = {
@@ -832,11 +833,8 @@ class DeviceListAjaxView(ListAPIView):
         }
     }
 
-    def get_queryset(self, *args, **kwargs):
-        queryset = Device.objects.filter(owner=self.request.user)
-        self.ajax_info['recordsTotal'] = queryset.count()
+    def _get_filter_q(self, *args, **kwargs):
         query = Q()
-
         filter_by = self.request.GET.get('filter_by')
         filter_predicate = self.request.GET.get('filter_predicate')
         filter_value = self.request.GET.get('filter_value')
@@ -883,18 +881,56 @@ class DeviceListAjaxView(ListAPIView):
                 query = ~query
         else:
             self.request.filter_dict = None
+        return query
 
-        return queryset.filter(query).distinct()
+    def _datatables(self, *args, **kwargs):
+        datatables = self.request.GET
+        draw = int(datatables.get('draw'))
+        start = int(datatables.get('start'))
+        length = int(datatables.get('length'))
+        search = datatables.get('search[value]')
+        queryset = self.get_queryset(*args, **kwargs)
+        self.ajax_info['recordsTotal'] = queryset.count()
+        query = self._get_filter_q(*args, **kwargs)
+
+        search_query = Q()
+        if search:
+            columns = ['id', 'name', 'deviceinfo__fqdn', 'last_ping', 'trust_score', 'comment']
+            for i in range(1,6):
+                search__arg_str = f"{columns[i]}__icontains"
+                column_search_value = datatables.get(f'columns[{i}][search][value]')
+                if column_search_value:
+                    search_query.add(Q(**{search__arg_str: column_search_value}), Q.OR)
+                elif datatables[f'columns[{i}][searchable]']:
+                    search_query.add(Q(**{search__arg_str: search}), Q.OR)
+
+        devices = queryset.filter(query & search_query).distinct()
+        self.ajax_info['recordsFiltered'] = devices.count()
+        self.ajax_info['draw'] = draw
+        if length == -1:
+            return devices
+
+        # Atur paginator
+        paginator = Paginator(devices, length)
+        page = start / length + 1
+
+        try:
+            object_list = paginator.page(page).object_list
+        except PageNotAnInteger:
+            object_list = paginator.page(1).object_list
+        except EmptyPage:
+            object_list = paginator.page(paginator.num_pages).object_list
+
+
+        return object_list
+
+
+    def get_queryset(self, *args, **kwargs):
+        queryset = Device.objects.filter(owner=self.request.user)
+        return queryset
 
     def list(self, request, *args, **kwargs):
-
-        queryset = self.filter_queryset(self.get_queryset(*args, **kwargs))
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        self.ajax_info['recordsFiltered'] = queryset.count()
-
+        queryset = self._datatables(*args, **kwargs)
         serializer = self.get_serializer(queryset, many=True)
         payload = {'data': serializer.data, 'draw': request.query_params.get('draw', '-')}
         payload.update(self.ajax_info)

@@ -156,9 +156,6 @@ class RootView(LoginRequiredMixin, ListView):
                 'Trust Score',
                 'Comment'
             ],
-            'dt_columns': [
-                'id', 'name', '', 'last_ping', 'trust_score', 'comment',
-            ],
             'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in self.FILTER_FIELDS.items()],
 
             # TODO: convert this into a list of dicts for multiple filters
