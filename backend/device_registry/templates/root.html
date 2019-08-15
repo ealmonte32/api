@@ -18,14 +18,12 @@
 
 {% block admin_content %}
   <div class="container-fluid p-0">
-{% for device in object_list %}
-{% if device.deviceinfo.detected_mirai %}
+{% for device in mirai_devices %}
 <div class="alert alert-danger" role="alert">
     <p><br />
     <strong>Warning!</strong>
     Detected Mirai (botnet) on {{ device.device_id }}. We've proactively blocked the connection to Mirai's Command and Control nodes.</p>
 </div>
-{% endif %}
 {% endfor %}
     <div class="row">
       <div class="col-12 col-sm-12 col-md-6 col-lg-6  d-none d-xl-flex col-xl d-flex">

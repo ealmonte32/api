@@ -765,14 +765,10 @@ class BatchUpdateTagsView(APIView):
         return Response(msg, status=status.HTTP_200_OK)
 
 
-class DeviceListAjaxView(ListAPIView):
+class DeviceListFilterMixin:
     """
-    List all of the users devices.
+    Mixin with device list filtering functionality
     """
-    serializer_class = DeviceListSerializer
-    parser_classes = [FormParser]
-    ajax_info = dict()
-
     FILTER_FIELDS = {
         'device-name': (
             ['deviceinfo__fqdn', 'name'],
@@ -833,7 +829,7 @@ class DeviceListAjaxView(ListAPIView):
         }
     }
 
-    def _get_filter_q(self, *args, **kwargs):
+    def get_filter_q(self, *args, **kwargs):
         query = Q()
         filter_by = self.request.GET.get('filter_by')
         filter_predicate = self.request.GET.get('filter_predicate')
@@ -883,6 +879,15 @@ class DeviceListAjaxView(ListAPIView):
             self.request.filter_dict = None
         return query
 
+
+class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
+    """
+    List all of the users devices.
+    """
+    serializer_class = DeviceListSerializer
+    parser_classes = [FormParser]
+    ajax_info = dict()
+
     def _datatables(self, *args, **kwargs):
         datatables = self.request.GET
         draw = int(datatables.get('draw'))
@@ -891,7 +896,7 @@ class DeviceListAjaxView(ListAPIView):
         search = datatables.get('search[value]')
         queryset = self.get_queryset(*args, **kwargs)
         self.ajax_info['recordsTotal'] = queryset.count()
-        query = self._get_filter_q(*args, **kwargs)
+        query = self.get_filter_q(*args, **kwargs)
 
         search_query = Q()
         if search:
