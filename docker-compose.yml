@@ -72,7 +72,6 @@ services:
       dockerfile: Dockerfile-nginx
       args:
         DJANGO_SETTINGS_MODULE: backend.settings.dev
-    image: wott-nginx:latest
     ports:
       - '8003:80'
 
