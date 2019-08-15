@@ -1149,7 +1149,7 @@ class DeviceListAjaxViewTest(APITestCase):
         data = [self._dev_list_item(dev) for dev in lst]
         return {'data': data, 'draw': 0, 'recordsTotal': total, 'recordsFiltered': len(lst)}
 
-    def _url(self, by, predicate, value):
+    def _filter_url(self, by, predicate, value):
         return reverse('ajax_device_list') + '?' + urlencode({
             'filter_by': by,
             'filter_predicate': predicate,
@@ -1166,19 +1166,19 @@ class DeviceListAjaxViewTest(APITestCase):
     def test_filter_date(self):
         self.client.login(username='test', password='123')
 
-        url = self._url('last-ping', 'eq', '1,days')
+        url = self._filter_url('last-ping', 'eq', '1,days')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
-        url = self._url('last-ping', 'eq', '2,days')
+        url = self._filter_url('last-ping', 'eq', '2,days')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
 
-        url = self._url('last-ping', 'lt', '1,days')
+        url = self._filter_url('last-ping', 'lt', '1,days')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2]))
 
-        url = self._url('last-ping', 'gt', '1,days')
+        url = self._filter_url('last-ping', 'gt', '1,days')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([]))
 
@@ -1186,26 +1186,56 @@ class DeviceListAjaxViewTest(APITestCase):
         self.client.login(username='test', password='123')
 
         # Context-insensitive filter by device name set in device.name (exact match)
-        url = self._url('device-name', 'eq', 'first')
+        url = self._filter_url('device-name', 'eq', 'first')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
         # Context-insensitive filter by device name set in deviceinfo.fqdn (exact match)
-        url = self._url('device-name', 'eq', 'firstfqdn')
+        url = self._filter_url('device-name', 'eq', 'firstfqdn')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
         # Context-insensitive filter by device name set in device.name (not match)
-        url = self._url('device-name', 'neq', 'firstfqdn')
+        url = self._filter_url('device-name', 'neq', 'firstfqdn')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
 
         # Context-insensitive filter by device name set in device.name (contains)
-        url = self._url('device-name', 'c', 'fir')
+        url = self._filter_url('device-name', 'c', 'fir')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
         # Context-insensitive filter by device name set in device.name (not contains)
-        url = self._url('device-name', 'nc', 'fir')
+        url = self._filter_url('device-name', 'nc', 'fir')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+
+    def _search_url(self, value, order_column=0, order_dir='asc'):
+        params = {
+            'draw': 0,
+            'search[value]': value,
+            'search[regex]': False,
+            'start': 0,
+            'length': 10,
+            'order[0][column]': order_column,
+            'order[0][dir]': order_dir
+        }
+        for i in range(1, 6):
+            params.update({f'columns[{i}][searchable]': True})
+        return reverse('ajax_device_list') + '?' + urlencode(params)
+
+    def test_datatables_search(self):
+        self.client.login(username='test', password='123')
+        url = self._search_url('fir')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+
+    def test_datatables_order(self):
+        self.client.login(username='test', password='123')
+        url = self._search_url('')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2]))
+
+        url = self._search_url('', 0, 'desc')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device2, self.device1, self.device0]))
