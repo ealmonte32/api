@@ -70,10 +70,10 @@ jobs:
 
                 echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
 
-                docker tag api_api-dev gcr.io/wott-prod/wott-api:${GITHASH}
-                docker tag api_api-dev gcr.io/wott-prod/wott-api:latest
-                docker tag api_nginx-static gcr.io/wott-prod/wott-static:${GITHASH}
-                docker tag api_nginx-static gcr.io/wott-prod/wott-static:latest
+                docker tag api gcr.io/wott-prod/wott-api:${GITHASH}
+                docker tag api gcr.io/wott-prod/wott-api:latest
+                docker tag nginx-static gcr.io/wott-prod/wott-static:${GITHASH}
+                docker tag nginx-static gcr.io/wott-prod/wott-static:latest
 
                 docker push gcr.io/wott-prod/wott-api:${GITHASH}
                 docker push gcr.io/wott-prod/wott-api:latest

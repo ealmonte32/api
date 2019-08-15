@@ -39,6 +39,7 @@ services:
     - DB_PASSWORD=SuperSecurePassword
     - DB_USER=postgres
     - DATASTORE_KEY_JSON
+    image: api:latest
     build:
       context: .
     volumes:
