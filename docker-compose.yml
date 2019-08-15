@@ -12,6 +12,7 @@ services:
       - ./backend:/usr/src/app
     depends_on:
     - psql
+    - nginx-static
 
   dash-dev:
     hostname: dash-dev0
@@ -72,6 +73,7 @@ services:
       dockerfile: Dockerfile-nginx
       args:
         DJANGO_SETTINGS_MODULE: backend.settings.dev
+    image: nginx-static:latest
     ports:
       - '8003:80'
 
