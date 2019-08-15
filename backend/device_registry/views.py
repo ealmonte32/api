@@ -1,4 +1,3 @@
-import datetime
 import json
 import uuid
 
@@ -11,7 +10,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
-from django.utils import timezone
 
 from tagulous.forms import TagWidget
 

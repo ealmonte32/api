@@ -890,9 +890,9 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
 
     def _datatables(self, *args, **kwargs):
         datatables = self.request.GET
-        draw = int(datatables.get('draw'))
-        start = int(datatables.get('start'))
-        length = int(datatables.get('length'))
+        draw = int(datatables.get('draw', 0))
+        start = int(datatables.get('start', 0))
+        length = int(datatables.get('length', -1))
         search = datatables.get('search[value]')
         queryset = self.get_queryset(*args, **kwargs)
         self.ajax_info['recordsTotal'] = queryset.count()
