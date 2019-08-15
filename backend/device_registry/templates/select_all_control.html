@@ -76,7 +76,7 @@
           let table = $("#datatables-basic").dataTable().api();
           let page_info = table.page.info();
           let on_page = table.rows({page:'current'}).count();
-          let total = page_info['recordsTotal'];
+          let total = page_info.recordsTotal;
           if (page == 'all' && page_info.serverSide)
           {
               table.one('draw', function(e, settings){
