@@ -932,9 +932,7 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         except EmptyPage:
             object_list = paginator.page(paginator.num_pages).object_list
 
-
         return object_list
-
 
     def get_queryset(self, *args, **kwargs):
         queryset = Device.objects.filter(owner=self.request.user)
