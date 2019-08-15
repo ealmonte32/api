@@ -138,29 +138,6 @@
                 <th colspan="6"></th>
               </tfoot>
               <tbody>
-              <!--
-              {% for device in object_list %}
-                <tr>
-                  <td></td>
-                  <td><a href="{% url 'device-detail' device.id %}">{{ device.get_name }}</a></td>
-                  <td>{{ device.deviceinfo.fqdn }}</td>
-                  <td>{{ device.last_ping | timesince }} ago</td>
-                  <td>
-                    {% if device.trust_score is not None %}
-                    <div class="progress position-relative">
-                      <div class="progress-bar bg-{{ device.trust_score_color }}" role="progressbar"
-                           style="width: {{ device.trust_score_percent }}%"></div>
-                      <span
-                          class="justify-content-center d-flex position-absolute w-100">{{ device.trust_score_percent }}%</span>
-                    </div>
-                    {% else %}
-                      N/A
-                    {% endif %}
-                  </td>
-                  <td>{{ device.comment | default_if_none:'' }}</td>
-                </tr>
-              {% endfor %}
-              -->
               </tbody>
             </table>
           </div>
@@ -434,6 +411,10 @@
       // apply 'select all' features to table.
       $("#select-all").html($("#select-all-template").html());
       set_select_all_link_toolbar();
+      // adjust toolbar divs layout
+      var dt_wrapper = $(`#datatables-basic_wrapper`)[0];
+      dt_wrapper.children[0].classList.add('col-sm-4'); // filter card
+      dt_wrapper.children[1].classList.add('col-sm-4'); // select-all link button
 
 
       /**
