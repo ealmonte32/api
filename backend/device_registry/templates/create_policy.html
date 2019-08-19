@@ -16,9 +16,9 @@
           <h5 class="card-title">{{ object }}</h5>
         </div>
         <div class="card-body">
-          <form method="POST" action="">
+          <form method="POST" action="" id="policy-form">
             {% csrf_token %}
-            {% bootstrap_form form %}
+            {% bootstrap_form form  %}
             {% buttons %}
               <button type="submit" class="btn btn-primary">Save</button>
               <a href="{% url 'global_policies' %}" class="btn btn-secondary" role="button" style="float: right;">Cancel</a>
@@ -29,3 +29,19 @@
     </div>
   </div>
 {% endblock admin_content %}
+
+{% block scripts %}
+{% include "policy_editor.html" %}
+
+  <script>
+      document.addEventListener("DOMContentLoaded", function () {
+          var ports_table = init_policy_ports_editor([]);
+
+          $('#policy-form').submit(function (e) {
+              $('#id_ports').html( parse_policy_ports_editor(ports_table));
+              return true;
+          });
+
+      });
+  </script>
+{% endblock scripts %}

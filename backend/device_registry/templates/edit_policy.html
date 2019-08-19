@@ -39,8 +39,21 @@
 {% endblock admin_content %}
 
 {% block scripts %}
+{% include "policy_editor.html" %}
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.4/jquery-confirm.min.js"></script>
   <script type="text/javascript">
+      document.addEventListener("DOMContentLoaded", function () {
+          var ports_table = init_policy_ports_editor( JSON.parse($('#id_ports').html()) );
+
+          $('#edit-policy-form').submit(function (e) {
+              $('#id_ports').html( parse_policy_ports_editor(ports_table));
+              return true;
+          });
+
+      });
+
+
       $('#delete-button').on('click', function () {
           $.ajax({
               dataType: "json",

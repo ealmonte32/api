@@ -1,0 +1,363 @@
+{% block css %}
+  <style>
+    td.wott-kv-btns .btn {
+      visibility: hidden;
+    }
+    table tr:hover td.wott-kv-btns .btn {
+      visibility: visible;
+    }
+    .failed{
+      border-color: red;
+    }
+
+  </style>
+{% endblock css %}
+
+<template id="policy-editor-template">
+  <div class="modal show fade" tabindex="-1" role="dialog" id="wott-policy-modal">
+    <div class="modal-dialog modal-xl" role="document">
+      <form class="modal-content" id="wott-policy-form" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-title-h2">Add New Port Rule</h2>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="address">Address</label>
+                <input type="text" class="form-control" id="address" placeholder="Address" name="address">
+              </div>
+              <div class="form-group col-md-2">
+                <label for="protocol">Protocol</label>
+                <select class="form-control" id="protocol" name="protocol">
+                  <option value="tcp">TCP</option>
+                  <option value="udp">UDP</option>
+                </select>
+              </div>
+              <div class="form-group col-md-2">
+                <label for="port">Port</label>
+                <input type="text" class="form-control" id="port" placeholder="Port" name="port">
+              </div>
+              <div class="form-group col-md-2">
+                <label for="ip_version">IP ver.</label>
+                <select class="form-control" id="ip_version" name="ip_version">
+                  <option value="true">IP v.6</option>
+                  <option value="false">IP v.4</option>
+                </select>
+              </div>
+              <input type="hidden" name="method" id="method">
+              <input type="hidden" name="row" id="row">
+            </div>
+            <div class="alert alert-warning wott-form-alert p-1" role="alert" id="edit-alert">
+              Server error
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="edit-ok-btn">OK</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
+
+<template id="policy-table-template">
+  <table id="ports-table" class="table table-striped table-responsive-xs" style="width: 100%;">
+    <thead>
+      <th width="30%">Address</th>
+      <th width="10%">Protocol</th>
+      <th width="20%">Port</th>
+      <th width="20%">IP version</th>
+      <th width="20%"></th>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+  <button type="button" class="btn btn-success" id="add-port-btn">＋ Add Port</button>
+</template>
+
+<template id="policy-confirm-modal-template">
+  <div class="modal" tabindex="-1" role="dialog" id="wott-confirm-modal">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirm-title">Confirm delete</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="confirm-msg">Are you sure want to delete this rule?</p>
+        </div>
+        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="confirm-alert">
+          Server error
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" id="confirm-btn">Yes</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+{% block scripts %}
+<script>
+    function init_policy_ports_editor(ports)
+    {
+        let ports_table;
+        let ports_el = $("#id_ports");
+        let ports_group = ports_el.parent();
+        ports_el[0].style.display = 'none';
+        ports_group.append($('#policy-table-template').html());
+
+        $('body').append($('#policy-editor-template').html());
+        $('body').append($('#policy-confirm-modal-template').html());
+
+        let fields = ['address', 'protocol', 'port', 'ip_version'];
+
+        ports_table = $(`#ports-table`).DataTable({
+            searching: false,
+            sorting: true,
+            paging: false,
+            info: false,
+            data: ports,
+            language: {
+                emptyTable: "No port rules defined."
+            },
+            columns: [
+                {data:'address'},
+                {data:'protocol'},
+                {data:'port'},
+                {data:'ip_version', render:function(data, type, row, meta){
+                    return data == "true" ? 'IP v.6' : 'IP v.4'; }},
+                {data: null, className: 'wott-kv-btns', defaultContent: render_ports_buttons() }
+            ],
+        });
+
+        $('#add-port-btn').on('click', function () {
+            wott_alert_hide('edit-alert');
+            showDialog('add', 'Add New Port Rule',  null, add_policy_port);
+        });
+
+        function add_policy_port(e){
+            e.preventDefault();
+            let [values, errors] = validateEditorValues();
+            if( errors !== null ){
+              alertbox_errors(errors, 'edit-alert');
+              return false;
+            }
+            let data = validated_to_table(values);
+            ports_table.row.add( data ).draw(false);
+
+            $('#wott-policy-modal').modal('hide');
+            refresh_port_table_button_events();
+
+        }
+
+        function edit_policy_port(e){
+            e.preventDefault();
+            let [values, errors] = validateEditorValues();
+            if( errors !== null ){
+              alertbox_errors(errors, 'edit-alert');
+              return false;
+            }
+            let data = validated_to_table(values);
+            ports_table.row(values['row']).data( data ).draw(false);
+            $('#wott-policy-modal').modal('hide');
+            refresh_port_table_button_events();
+        }
+
+        function validateEditorValues(){
+            let res = {}
+            for(let k of fields)
+            {
+                res[k] = document.getElementById(k).value;
+            }
+            res['row'] = document.getElementById('row').value;
+            let errors = [];
+            ports_table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
+                var data = ports_table.row( rowIdx ).data();
+                if( res['row'] == -1 || res['row'] == rowIdx )
+                {
+                    // skip
+                } else {
+                    if( data['address'] == res['address'] && data['protocol'] == res['protocol']
+                       && data['port'] == res['port'] && data['ip_version'] == res['ip_version'] )
+                    {
+                        errors.push({'duplicate error': 'there is already rule with that values in ports table.'});
+                    }
+                }
+            });
+            //if ( res['address'] ){       // address validation
+            // errors.push({'address': 'is incorrect'});
+            // }
+            if( !isNormalInteger(res['port'])){
+                errors.push({'port': 'is incorrect, must be a positive integer.'});
+            }
+
+            errors = (errors.length > 0) ? res['errors'] = errors : null;
+            return [res, errors];
+        }
+
+        function validated_to_table(values) {
+            let data = {};
+            for(let k of fields) {
+                data[k] =  values[k];
+            }
+            return data;
+        }
+
+        function showDialog(method, header, data, on_submit) {
+          $('#modal-title-h2')[0].innerText = header;
+          $('#method').val(method);
+
+          if(data) {
+              for(let k in data) {
+                  document.getElementById(k).value = data[k];
+              }
+          } else {
+              document.getElementById('address').value = '0.0.0.0';
+              document.getElementById('protocol').value = 'udp';
+              document.getElementById('port').value = '0';
+              document.getElementById('ip_version').value = false;
+              document.getElementById('row').value = -1;
+          }
+
+          $('#edit-ok-btn').off('click');
+          $('#edit-ok-btn').on('click', on_submit );
+          $('#edit-alert')[0].style.display = 'none';
+          $('#wott-policy-modal').modal('show');
+        }
+
+
+        function show_confirm_dialog(title, message, btn_text, on_confirm=null )
+        {
+            if( on_confirm !== null ){
+                $('#confirm-btn').off("click");
+                $('#confirm-btn').on("click", on_confirm );
+            }
+            $('#confirm-title')[0].innerText = title;
+            $('#confirm-msg')[0].innerText = message;
+            $('#confirm-btn')[0].innerText = btn_text;
+            $('#confirm-alert')[0].style.display = 'none';
+            $('#wott-confirm-modal').modal('show');
+        }
+
+        function hide_confirm_dialog()
+        {
+            $('#wott-confirm-modal').modal('hide');
+        }
+
+        function wott_alert_hide(alert_box_id)
+        {
+            $(".failed").removeClass('failed');
+            let alertbox = $(`#${alert_box_id}`)[0];
+            alertbox.style.display = 'none';
+        }
+        /**
+         * show alert msg
+         * @param messages  - array of error messages
+         * @param alert_box_id - html element id of message placeholder
+         */
+        function wott_alert_strings(messages, alert_box_id){
+            let alertbox = $("#"+alert_box_id)[0];
+            alertbox.style.display = 'block';
+            alertbox.innerText = messages.join("\n");
+            return;
+        }
+
+        function alertbox_errors(errors, alert_box_id){
+            let errMsgs = [];
+            for (let i in errors) {
+                for( let key in errors[i]){
+                  errMsgs.push( key + " : " + errors[i][key] );
+                  if(fields.includes(key)){
+                      document.getElementById(key).classList.add('failed');
+                  }
+                }
+            }
+            wott_alert_strings(errMsgs, alert_box_id);
+        }
+
+        function refresh_port_table_button_events()
+        {
+            $('.wott-port-edit-btn').on('click', function(e){
+                e.preventDefault();
+                wott_alert_hide('edit-alert');
+                let row = ports_table.row(e.currentTarget.parentElement.parentElement);
+                data = row.data();
+                values = { 'row': row.index()}
+                for( let key in fields ){
+                    values[fields[key]] = data[fields[key]];
+                }
+                showDialog('edit', 'Edit Port Rule', values, edit_policy_port );
+            });
+            $('.wott-port-del-btn').on('click', function(e){
+                let row = ports_table.row(e.currentTarget.parentElement.parentElement);
+                show_confirm_dialog('Confirm delete', 'Are you sure want to delete this rule?', 'Delete',
+                function(e){
+                    e.preventDefault();
+                    hide_confirm_dialog();
+                    ports_table.rows(row).remove().draw(false);
+                });
+            });
+        }
+
+        return ports_table;
+    }
+    /**
+     * Create Font Awesome Button Conrol
+     * @param type - is a button type ("submit", "button"...)
+     * @param btn  - button btn class. ("btn-danger", "btn-info"...)
+     * @param fa   - fa icon class ("fas fa-trash fa-lg" ...)
+     * @param onclick - onclick event handler, if needed. in string form
+     * @param popover - title and content params for bootstrap popover, if needed.
+     *                  { title:"title", content:"content" }. The content is optional
+     */
+    function fa_button( type, btn, fa, onclick=undefined, popover=undefined)
+    {
+        let pop = ( popover === undefined ) ? "" : ' data-toggle="popover" data-placement="top" title="' +
+            popover.title + (popover.content === undefined ? '"' : ('" data-content="' +  popover.content + '"'));
+
+        let click = ( onclick === undefined ) ? "" : ' onclick="' + onclick + '" ';
+        return `<button type="${type}" class="btn ${btn}" aria-label="Left Align"><span class="${fa}"`
+             + ` aria-hidden="true" ${click}${pop}></span></button>`;
+    }
+
+    /***
+     * DataTable del buttons cell render function
+     */
+    function render_ports_buttons(){
+      return fa_button( "button", "btn-success  wott-port-edit-btn", "fas fa-edit fa-lg", undefined
+                       , { title:"Edit policy port rule."} )
+           + fa_button( "button", "btn-danger wott-port-del-btn", "fas fa-trash fa-lg", undefined
+                       , { title:"Remove policy port rule."} );
+    }
+
+    function isNormalInteger(str) {
+        if ( Number.isInteger(str) && str >= 0) return true;
+        let n = Math.floor(Number(str));
+        return n !== Infinity && String(n) === str && n >= 0;
+    }
+
+    function parse_policy_ports_editor(ports_table)
+    {
+        let result = [];
+        ports_table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
+            var data = ports_table.row( rowIdx ).data();
+            result.push( {
+                'address': data['address'],
+                'protocol': data['protocol'],
+                'port': Number(data['port']),
+                'ip_version': (data['ip_version'] == 'true')
+            });
+        });
+        return JSON.stringify(result);
+    }
+</script>
+
+{% endblock scripts %}
