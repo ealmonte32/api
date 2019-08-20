@@ -541,7 +541,7 @@
                    + `$ sudo mkdir -p /opt/wott\n`
                    + `$ echo -e "[DEFAULT]\\\\nenroll_token = ${e.key}" | sudo tee -a /opt/wott/config.ini\n`
                    + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash\n`
-                   + `$ sudo apt install wott-agent\n`);
+                   + `$ sudo apt install -y wott-agent\n`);
             show_dialog(title, msg);
             document.querySelectorAll('pre code').forEach((block) => {
               hljs.highlightBlock(block);
