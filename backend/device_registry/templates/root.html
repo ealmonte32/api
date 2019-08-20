@@ -511,7 +511,9 @@
 
 
       function copy_bash(e){
-        navigator.clipboard.writeText(e.currentTarget.parentElement.children[1].innerText).then(function() {
+        let text = e.currentTarget.parentElement.children[1].innerText.trim();
+        text = text.replace(/(\r\n|\n)/gm, ' && ');
+        navigator.clipboard.writeText(text).then(function() {
           /* clipboard successfully set */
         }, function() {
             alert("Cannot copy to clipboard, please enable clipboard access in browser permissions.");
