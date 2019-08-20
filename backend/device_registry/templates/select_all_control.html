@@ -11,6 +11,13 @@
         color: #355fff !important;
   }
 
+  table.dataTable tr.selected td.select-checkbox:after, table.dataTable tr.selected th.select-checkbox:after {
+    /* font-family: "Times", "Times New Roman", "serif", "sans-serif", "EmojiSymbols" !important;*/
+    font-family: EmojiSymbols !important;
+    color: #454bc5;
+  }
+
+
   .selectall-toolbar {
       float: left;
   }
@@ -71,6 +78,18 @@
           }
       }
 
+      function _pagination(table, paginate=null, lengthChange=null)
+      {
+          let settings = table.settings();
+          if ( paginate===null || lengthChange===null ){
+              return [ settings[0].oFeatures.bPaginate, settings[0].oFeatures.bLengthChange ];
+          } else {
+              settings[0].oFeatures.bPaginate = paginate;
+              settings[0].oFeatures.bLengthChange = lengthChange;
+              return table.settings(settings);
+          }
+      }
+
       function select_all(page, extend_on_toolbar=false)
       {
           let table = $("#datatables-basic").dataTable().api();
@@ -79,10 +98,25 @@
           let total = page_info.recordsTotal;
           if (page == 'all' && page_info.serverSide)
           {
+              let [paginate, lengthChange] = _pagination(table);
+//              let sets = table.settings();
+//              let paginate = sets[0].oFeatures.bPaginate;
+//              let lengthChange = sets[0].oFeatures.bLengthChange;
               table.one('draw', function(e, settings){
-                  table.rows({page:page}).select();
+                  //let settings = table.settings();
+                  settings["deferRender"] = true;
+                  table.settings(settings).rows({page:page}).select();
               });
-              table.page.len(-1).draw(true);
+              //let len = table.page.len();
+              _pagination(table, false, false).ajax.reload(null,false);
+              _pagination(table, paginate, lengthChange);
+              /*
+              sets[0].oFeatures.bPaginate = false;
+              sets[0].oFeatures.bLengthChange = false;
+              table.settings(sets).ajax.reload(null,false);
+              sets[0].oFeatures.bPaginate = paginate;
+              sets[0].oFeatures.bLengthChange = lengthChange;
+              table.settings(sets);*/
           }
           else table.rows({page:page}).select();
           if(extend_on_toolbar){
