@@ -19,9 +19,8 @@ RUN python manage.py collectstatic --noinput
 
 FROM node:12 as webpack
 WORKDIR /usr/src/app
-COPY backend ./
 COPY ./misc /usr/src/misc
-
+COPY --from=build /usr/src/app ./
 RUN apt-get update && \
     apt-get install -y build-essential g++ libsass-dev python
 RUN npm install
