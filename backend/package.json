@@ -40,7 +40,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "5.7.1",
     "apexcharts": "2.5.1",
-    "bootstrap": "4.3.0",
+    "bootstrap": "^4.3.1",
     "bootstrap-daterangepicker": "3.0.3",
     "bootstrap-markdown": "2.10.0",
     "chart.js": "2.7.3",
@@ -54,7 +54,7 @@
     "dragula": "3.7.2",
     "feather-icons": "4.17.0",
     "fullcalendar": "^3.10.0",
-    "jquery": "3.3.1",
+    "jquery": "^3.4.1",
     "jquery-mask-plugin": "1.14.15",
     "jquery-validation": "1.19.0",
     "jvectormap-next": "3.0.0",
@@ -66,8 +66,7 @@
     "simplebar": "2.6.1",
     "smartwizard": "4.3.1",
     "tempusdominus-bootstrap-4": "5.1.2",
-    "toastr": "2.1.4",
-    "webpack-bundle-tracker": "0.0.8"
+    "toastr": "2.1.4"
   },
   "scripts": {
     "build": "webpack --config webpack.config.js --progress --colors"
