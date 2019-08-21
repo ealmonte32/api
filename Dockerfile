@@ -23,6 +23,7 @@ USER nobody
 CMD gunicorn \
     --workers 2 \
     --threads 1 \
+    --timeout 100 \
     --access-logfile '-' \
     --bind 0.0.0.0:8000 \
     backend.wsgi
