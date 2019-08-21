@@ -25,7 +25,7 @@
 @import "~jvectormap-next/jquery-jvectormap";
 @import "~quill/dist/quill.bubble";
 @import "~quill/dist/quill.snow";
-@import "~select2/src/scss/core";
+// @import "~select2/src/scss/core";
 @import "~simplebar/dist/simplebar";
 @import "~smartwizard/dist/css/smart_wizard";
 @import "~smartwizard/dist/css/smart_wizard_theme_arrows";
@@ -40,7 +40,7 @@
 @import "vendor/highlight";
 @import "vendor/markdown";
 @import "vendor/quill";
-@import "vendor/select2";
+// @import "vendor/select2";
 @import "vendor/simplebar";
 @import "vendor/toastr";
 @import "vendor/wizard";
@@ -76,3 +76,6 @@
 @import "content";
 @import "main";
 @import "ie";
+
+@import '~highlight.js/styles/dark';
+@import './select2-3'

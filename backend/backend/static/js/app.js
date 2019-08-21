@@ -31,3 +31,9 @@ import "./modules/validation";
 
 // Tables
 import "./modules/datatables";
+
+import hljs from 'highlight.js';
+window.hljs = hljs;
+
+window.Tagulous = require('exports-loader?Tagulous!../../staticfiles/tagulous/tagulous.js')
+require('exports-loader?window.select23!../../staticfiles/tagulous/adaptor/select2-3.js')

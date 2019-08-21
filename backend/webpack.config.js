@@ -17,16 +17,16 @@ module.exports = {
   output: {path: Path.resolve('./backend/static/bundles/'),filename:"[name]-[hash].js"},
   performance: { hints: false },
   optimization: {
-	minimize:true,
+    minimize: true,
     minimizer: [
       new TerserPlugin({
         cache: true,
         sourceMap: false,
-         terserOptions: {
-           output: {
-             comments: false
-           }
-         }
+          terserOptions: {
+            output: {
+              comments: false
+            }
+          }
       }),
       new OptimizeCSSAssetsPlugin({})
     ]
@@ -35,7 +35,7 @@ module.exports = {
     new MiniCssExtractPlugin({filename: '[name]-[hash].css',chunkFilename: '[id].css'}),
     new Webpack.ProvidePlugin({$: 'jquery',jQuery: 'jquery','window.$': 'jquery','window.jQuery': 'jquery',Popper: ['popper.js', 'default']}),
     new HardSourceWebpackPlugin(),
-	new BundleTracker({filename: './webpack-stats.json'})
+    new BundleTracker({filename: './webpack-stats.json'})
   ],
   module: {
     rules: [
