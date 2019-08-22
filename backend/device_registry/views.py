@@ -157,7 +157,6 @@ class RootView(LoginRequiredMixin, ListView):
                 'Comment'
             ],
             'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in self.FILTER_FIELDS.items()],
-            'form_media': TagWidget().media,
 
             # TODO: convert this into a list of dicts for multiple filters
             'filter': self.request.filter_dict
@@ -236,7 +235,6 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
             context['firewall'] = None
         if 'form' not in context:
             context['form'] = DeviceAttrsForm(instance=self.object)
-            context['form_media'] = context['form'].media
         return context
 
     def post(self, request, *args, **kwargs):
@@ -408,7 +406,6 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
                     context['dev_md'].append([key, json.dumps(value)])
         if 'form' not in context:
             context['form'] = DeviceMetadataForm(instance=self.object.deviceinfo)
-            context['form_media'] = context['form'].media
         return context
 
     def post(self, request, *args, **kwargs):
@@ -427,7 +424,6 @@ class CredentialsView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super(CredentialsView, self).get_context_data(**kwargs)
         context['pi_credentials_path'] = '/opt/wott/credentials'
-        context['form_media'] = TagWidget().media
         return context
 
 
