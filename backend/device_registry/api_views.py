@@ -23,7 +23,7 @@ from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, 
 from rest_framework.generics import get_object_or_404
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import AllowAny
-from rest_framework.parsers import JSONParser, FormParser
+from rest_framework.parsers import FormParser
 from netaddr import IPAddress
 
 from device_registry import ca_helper

@@ -364,6 +364,7 @@
     }
   </style>
   <script>
+  var table;
   $(() => {
 
       // last-ping sorting
@@ -399,7 +400,7 @@
       // batch control initialization.
       batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
       $('#inst-btn').on('click', show_install_msg );
-      var table = $('#datatables-basic').DataTable({
+      table = $('#datatables-basic').DataTable({
         'processing': true,
         ajax: function (data, callback, settings) {
             serializeUrlParams(data); // add url params (fiter) to payload
@@ -431,7 +432,7 @@
         dom: '<"toolbar">frtip',
         "footerCallback": batch_footer,
         columns:[
-            {data: null, defaultContent:'', orderable: false, sortable:false, className: 'select-checkbox'},
+            {data: null, render: render_checkbox, orderable: false, sortable:false, /*className: 'select-checkbox'*/},
             {data: 'get_name' , render: render_device_name },
             {data: 'hostname' },
             {data: 'last_ping', type: 'last-ping' , orderable: true, sortable:true,},
@@ -453,6 +454,20 @@
       $("#select-all").html($("#select-all-template").html());
       set_select_all_link_toolbar();
 
+      table.on( 'select', function ( e, dt, type, indexes ) {
+          for(let i in indexes){
+             let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
+             item.checked = true;
+          }
+      } );
+
+      table.on( 'deselect', function ( e, dt, type, indexes ) {
+          for(let i in indexes){
+             let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
+             item.checked = false;
+          }
+      } );
+
       /**
        * DataTable footerCallback. Place batch action control to footer
        */
@@ -472,12 +487,6 @@
        */
       function get_object_pk_for_batch( action, row )
       {
-          /*
-          let re = /<a href="\/devices\/(\d+)\/">/i
-          let res = row[1].match(re);
-          if (res === null) return null;
-          return Number(res[1]);
-           */
           return Number(row.id);
       }
 
@@ -637,6 +646,13 @@
               let hash = hashes[i].split('=');
               payload[hash[0]] = hash[1];
           }
+      }
+
+      function render_checkbox(data, type, row, meta){
+          if(type === 'display'){
+              data = `<input type="checkbox" class="dt-checkbox"></checkbox>`;
+          }
+          return data;
       }
 
       function render_device_name(data, type, row, meta){
