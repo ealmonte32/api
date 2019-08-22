@@ -366,20 +366,66 @@
   <script>
   $(() => {
 
+      // last-ping sorting
+      const minute = 60;
+      const hour = 60 * minute;
+      const day = hour * 24;
+      const week = day * 7;
+      const month = day * 30;
+      const year = day * 365;
+      const time_chunks = {
+          'year': year, 'years': year,
+          'month': month, 'months': month,
+          'week': week, 'weeks':week,
+          'day': day, 'days': day,
+          'hour': hour, 'hours': hour,
+          'minute': minute, 'minutes': minute
+          };
+
+      $.extend( $.fn.dataTable.ext.type.order, {
+          "last-ping-pre": function (data){
+              if( !data.endsWith('ago')) return 0;
+              data = data.slice(0, -4);
+              let parts = data.split(',');
+              value = 0;
+              for(let i in parts){
+                let vals = parts[i].trim().replace("\xA0", "\x20").split(" ");
+                value += ( Number(vals[0].trim()) * time_chunks[vals[1].trim()] );
+              }
+              return value;
+          }
+      } );
+
       // batch control initialization.
       batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
       $('#inst-btn').on('click', show_install_msg );
       var table = $('#datatables-basic').DataTable({
         'processing': true,
-        'serverSide': true,
-        'serverMethod': 'post',
-        ajax: {
-            url: '/ajax-devices/list/',
-            processing: true,
-            method: 'GET',
-            data: function(data){
-              serializeUrlParams(data); // add url params (fiter) to payload
-            }
+        ajax: function (data, callback, settings) {
+            serializeUrlParams(data); // add url params (fiter) to payload
+            let orig_data = data;
+            $.ajax({
+                url: '/ajax-devices/list?length=100',
+                type: 'GET',
+                data: data,
+                success: function (data) {
+                    if(data.recordsFiltered > 100)
+                    {
+                        callback(data);
+                        $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).show();
+                        $.ajax({
+                            url: '/ajax-devices/list?start=100',
+                            type: 'GET',
+                            data: orig_data,
+                            success: function (data) {
+                                data.data = data.data.slice(100);
+                                callback(data);
+                            }
+                        });
+                    }
+                    else callback(data);
+                }
+            });
         },
         responsive: true,
         dom: '<"toolbar">frtip',
@@ -388,7 +434,7 @@
             {data: null, defaultContent:'', orderable: false, sortable:false, className: 'select-checkbox'},
             {data: 'get_name' , render: render_device_name },
             {data: 'hostname' },
-            {data: 'last_ping' },
+            {data: 'last_ping', type: 'last-ping' , orderable: true, sortable:true,},
             {data: 'trust_score', render: render_trustscore },
             {data: 'comment' },
         ],
@@ -426,10 +472,13 @@
        */
       function get_object_pk_for_batch( action, row )
       {
+          /*
           let re = /<a href="\/devices\/(\d+)\/">/i
           let res = row[1].match(re);
           if (res === null) return null;
           return Number(res[1]);
+           */
+          return Number(row.id);
       }
 
 
@@ -605,6 +654,5 @@
 
           return template;
       }
-
   </script>
 {% endblock scripts %}
