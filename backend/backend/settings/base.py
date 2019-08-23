@@ -215,3 +215,6 @@ SERIALIZATION_MODULES = {
 
 # `django-registration-redux` 3rd party app settings.
 INCLUDE_REGISTER_URL = False
+
+# Retry to connect to DB (after receiving a connection error) within 60 seconds.
+DB_RETRY_TO_CONNECT_SEC = 60
