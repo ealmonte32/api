@@ -593,18 +593,6 @@ class RootViewTests(TestCase):
             default_password=True,
             detected_mirai=True,
         )
-        # self.device2 = Device.objects.create(
-        #     device_id='device2.d.wott-dev.local',
-        #     owner=self.user,
-        #     certificate=TEST_CERT,
-        #     last_ping=timezone.now() - datetime.timedelta(days=2, hours=23)
-        # )
-        # self.deviceinfo2 = DeviceInfo.objects.create(
-        #     device=self.device2,
-        #     fqdn='ThirdFqdn',
-        #     default_password=True,
-        #     detected_mirai=False
-        # )
 
     def test_no_filter(self):
         self.client.login(username='test', password='123')

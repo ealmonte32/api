@@ -1156,7 +1156,6 @@ class DeviceListAjaxViewTest(APITestCase):
             'filter_value': value
         })
 
-
     def test_no_filter(self):
         self.client.login(username='test', password='123')
         url = reverse('ajax_device_list')
@@ -1185,27 +1184,22 @@ class DeviceListAjaxViewTest(APITestCase):
     def test_filter_name(self):
         self.client.login(username='test', password='123')
 
-        # Context-insensitive filter by device name set in device.name (exact match)
         url = self._filter_url('device-name', 'eq', 'first')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
-        # Context-insensitive filter by device name set in deviceinfo.fqdn (exact match)
         url = self._filter_url('device-name', 'eq', 'firstfqdn')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
-        # Context-insensitive filter by device name set in device.name (not match)
         url = self._filter_url('device-name', 'neq', 'firstfqdn')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
 
-        # Context-insensitive filter by device name set in device.name (contains)
         url = self._filter_url('device-name', 'c', 'fir')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
-        # Context-insensitive filter by device name set in device.name (not contains)
         url = self._filter_url('device-name', 'nc', 'fir')
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
