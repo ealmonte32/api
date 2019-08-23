@@ -5,6 +5,12 @@ from django.conf import settings
 from psycopg2 import OperationalError
 
 
+def custom_properties_cleanup(obj):
+    delattr(obj, '_is_connecting')
+    if hasattr(obj, "_connection_retry"):
+        delattr(obj, '_connection_retry')
+
+
 def ensure_connection_with_retries(self):
     """
     A function supposed to be used for patching the standard django database connection class' method
@@ -28,8 +34,7 @@ def ensure_connection_with_retries(self):
                         self._connection_retry = 0
                         self._stop_trying_at = time() + settings.DB_RETRY_TO_CONNECT_SEC
                     if time() > self._stop_trying_at:  # Stop trying to reconnect.
-                        delattr(self, '_is_connecting')
-                        delattr(self, '_connection_retry')
+                        custom_properties_cleanup(self)
                         raise
                     else:
                         seconds = 0
@@ -45,17 +50,11 @@ def ensure_connection_with_retries(self):
                         self.ensure_connection()
                 else:
                     # Other types of OperationalError.
-                    delattr(self, '_is_connecting')
-                    if hasattr(self, "_connection_retry"):
-                        delattr(self, '_connection_retry')
+                    custom_properties_cleanup(self)
                     raise
             except Exception:
                 # Other errors.
-                delattr(self, '_is_connecting')
-                if hasattr(self, "_connection_retry"):
-                    delattr(self, '_connection_retry')
+                custom_properties_cleanup(self)
                 raise
             else:
-                delattr(self, '_is_connecting')
-                if hasattr(self, "_connection_retry"):
-                    delattr(self, '_connection_retry')
+                custom_properties_cleanup(self)
