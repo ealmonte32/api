@@ -219,9 +219,16 @@
                 { title:"Revoke the enrollment key"} )
     }
 
+    function copy_key(a){
+        copyToClipboard(
+            "enroll_token = " + a
+        );
+    }
+
+    var deleted_pk;
     function revoke_key(a){
       wott_alert_hide("main-alert");
-      $('#confirm-btn').on("click", {key: a.parentElement.parentElement.parentElement.id}, delete_key );
+      deleted_pk = a.parentElement.parentElement.parentElement.id;
       show_dialog("Confirm Revoke Key",
           "Are you sure you want to revoke?",
           "Revoke"
@@ -247,13 +254,10 @@
 
     function copy_key(btn, key){
         let key_text = "enroll_token = " + key;
-        navigator.clipboard.writeText(key_text).then(function() {
-            show_popover($(btn), 'Copied', key_text);
-        }, function() {
-            let successful = copyToClipboard(key_text);
-            let title = successful ? 'Copied' : 'Could not copy to clipboard. Check the browser permissions.';
-            let msg = successful ? key_text : '';
-            show_popover($(btn), title, msg);
+        copyToClipboard(key_text).then(() => {
+          show_popover($(btn), 'Copied', key_text);
+        }, () => {
+          show_popover($(btn), 'Could not copy to clipboard. Check the browser permissions.', '');
         });
     }
 
@@ -261,21 +265,19 @@
      *  on confirm delete
      *  @param e - e.data.key <- key to delete
      */
-    function delete_key(e)
-    {
+    $('#confirm-btn').click(e => {
         hide_dialog();
         $.ajax({
-            url: `/ajax-pairing-keys/${e.data.key}/delete/`,
+            url: `/ajax-pairing-keys/${deleted_pk}/delete/`,
             type: "DELETE",
         }).done(function () {
-            console.log('success');
             table.ajax.reload();
         }).fail(function (a) {
             console.log('error');
             console.log(a.status, a.responseText);
             alertbox_on_ajax_fail(a, "confirm-alert");
         });
-    }
+    });
 
     /**
      * id - key/row_id (they are the same)
@@ -368,27 +370,6 @@
         else errMsgs.push(a.responseText);
         wott_alert_strings(errMsgs, alert_box_id);
     }
-
-    const copyToClipboard = str => {
-        const el = document.createElement('textarea');  // Create a <textarea> element
-        el.value = str;                                 // Set its value to the string that you want copied
-        el.setAttribute('readonly', '');                // Make it readonly to be tamper-proof
-        el.style.position = 'absolute';
-        el.style.left = '-9999px';                      // Move outside the screen to make it invisible
-        document.body.appendChild(el);                  // Append the <textarea> element to the HTML document
-        const selected =
-          document.getSelection().rangeCount > 0        // Check if there is any content selected previously
-            ? document.getSelection().getRangeAt(0)     // Store selection if found
-            : false;                                    // Mark as false to know no selection existed before
-        el.select();                                    // Select the <textarea> content
-        let res = document.execCommand('copy');                   // Copy - only works as a result of a user action (e.g. click events)
-        document.body.removeChild(el);                  // Remove the <textarea> element
-        if (selected) {                                 // If a selection existed before copying
-            document.getSelection().removeAllRanges();  // Unselect everything on the HTML document
-            document.getSelection().addRange(selected); // Restore the original selection
-        }
-        return res;
-    };
 
     function htmlEntities(str) {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

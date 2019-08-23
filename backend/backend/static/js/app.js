@@ -31,5 +31,5 @@ require('exports-loader?window.select23!../../staticfiles/tagulous/adaptor/selec
 // Copy to clipboard
 import * as clipboard from "clipboard-polyfill"
 window.copyToClipboard = function(text) {
-    return clipboard.writeText(text).then(console.log, console.error);
+    return clipboard.writeText(text);
 }
