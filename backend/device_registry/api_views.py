@@ -24,6 +24,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import AllowAny
 from rest_framework.parsers import FormParser
+from rest_framework.exceptions import ValidationError
 from netaddr import IPAddress
 
 from device_registry import ca_helper
@@ -830,6 +831,20 @@ class DeviceListFilterMixin:
     }
 
     def get_filter_q(self, *args, **kwargs):
+        """
+        Create Device List Filter Query Object
+        GET params:
+        filter_by : filter field argument. (see self.FILTER_FIELDS)
+        filter_value: value used for filtering
+        filter_predicate:
+                "eq" - matches
+                "neq" - not matches
+                "c" - contains
+                "nc" - not contains
+                "lt" - greater than
+                "gt" - less than
+        :return: Q object
+        """
         query = Q()
         filter_by = self.request.GET.get('filter_by')
         filter_predicate = self.request.GET.get('filter_predicate')
@@ -840,6 +855,9 @@ class DeviceListFilterMixin:
             invert = filter_predicate[0] == 'n'
             if invert:
                 filter_predicate = filter_predicate[1:]
+            if filter_predicate not in ['', 'eq', 'c', 'lt', 'gt']:
+                raise ValidationError(detail='filter predicate is invalid.')
+
             predicate = self.PREDICATES[query_type][filter_predicate]
             if query_type != 'str' and not filter_value:
                 filter_value = None
@@ -851,9 +869,14 @@ class DeviceListFilterMixin:
             }
 
             if query_type == 'datetime':
+                if ',' not in filter_value:
+                    raise ValidationError(detail='datetime interval argument is invalid.')
                 number, measure = filter_value.split(',')
                 if not number:
-                    number = 0
+                    number = '0'
+                if not number.isdigit() or measure not in ['hours', 'days']:
+                    raise ValidationError(detail='datetime interval argument is invalid.')
+
                 number = int(number)
                 if filter_predicate == 'eq':
                     interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
@@ -863,8 +886,11 @@ class DeviceListFilterMixin:
                 else:
                     filter_value = timezone.now() - datetime.timedelta(**{measure: number})
             elif query_type == 'tags':
-                # this query may produce duplicate rows, that's why distinct() is added at the end
                 filter_value = filter_value.split(',') if filter_value else []
+                tags_count = len(filter_value)
+                if tags_count > 0:
+                    if tags_count != Tag.objects.filter(owner=self.request.user, name__in=filter_value).count():
+                        raise ValidationError(detail='tags argument list is invalid.')
 
             if isinstance(query_by, list):
                 query = Q()
@@ -889,6 +915,11 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
     ajax_info = dict()
 
     def _datatables(self, *args, **kwargs):
+        """
+        Process JQuery DataTables AJAX arguments (GET mode used, because of device list filter use GET params)
+        parameters description https://datatables.net/manual/server-side
+        :return: device list queryset, and additional DataTables params in self.ajax_info
+        """
         columns = ['id', 'name', 'deviceinfo__fqdn', 'last_ping', 'trust_score', 'comment']
         datatables = self.request.GET
         draw = int(datatables.get('draw', 0))
@@ -896,7 +927,7 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         length = int(datatables.get('length', -1))
         search = datatables.get('search[value]')
         order_column = datatables.get('order[0][column]', 0)
-        if order_column not in range(0, 6):
+        if order_column not in range(0, len(columns)):
             order_column = 0
         order_dir = datatables.get('order[0][dir]', 'asc').lower()
         if order_dir not in ['asc', 'desc']:
@@ -941,6 +972,6 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
     def list(self, request, *args, **kwargs):
         queryset = self._datatables(*args, **kwargs)
         serializer = self.get_serializer(queryset, many=True)
-        payload = {'data': serializer.data, 'draw': request.query_params.get('draw', '-')}
+        payload = {'data': serializer.data}
         payload.update(self.ajax_info)
         return Response(payload)

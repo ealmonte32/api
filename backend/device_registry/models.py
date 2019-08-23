@@ -73,7 +73,7 @@ class Device(models.Model):
     def get_name(self):
         if self.name:
             return self.name
-        fqdn = self.deviceinfo.fqdn
+        fqdn = self.hostname
         if fqdn:
             return fqdn[:36]
         else:
@@ -101,6 +101,8 @@ class Device(models.Model):
 
     @property
     def hostname(self):
+        if not hasattr(self, 'deviceinfo'):
+            return ''
         return self.deviceinfo.fqdn if self.deviceinfo else ''
 
     @property
