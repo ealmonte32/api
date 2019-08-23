@@ -1,16 +1,6 @@
 {% extends "admin_base.html" %}
 {% load static %}
 
-{% block css %}
-  <link rel="stylesheet" href="{% static "css/dark.css" %}">
-  {{ form_media.css }}
-{% endblock %}
-
-{% block js %}
-  <script src="{% static "js/highlight.pack.js" %}"></script>
-  {{ form_media.js }}
-{% endblock %}
-
 {% block title %}WoTT - Dashboard{% endblock title %}
 
 {% block dashboard_title %}
@@ -513,8 +503,9 @@
       function copy_bash(e){
         let text = e.currentTarget.parentElement.children[1].innerText.trim();
         text = text.replace(/(\r\n|\n)/gm, ' && ');
-        navigator.clipboard.writeText(text).then(function() {
+        copyToClipboard(text).then(function() {
           /* clipboard successfully set */
+          console.log("COPIED");
         }, function() {
             alert("Cannot copy to clipboard, please enable clipboard access in browser permissions.");
         });

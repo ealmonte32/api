@@ -4,12 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     {% load static %}
-    <link rel="stylesheet" href="{% static WEBPACK_BUNDLE.css %}">
     <title>{% block title %}WoTT{% endblock title %}</title>
 
+    <link rel="stylesheet" href="{% static WEBPACK_BUNDLE.css %}">
     {% block css %}
     {% endblock %}
 
+    <script src="{% static WEBPACK_BUNDLE.js %}"></script>
     {% block js %}
     {% endblock %}
 
@@ -18,7 +19,6 @@
 
   {% block content %}
   {% endblock content %}
-    <script src="{% static WEBPACK_BUNDLE.js %}"></script>
   {% block scripts %}
   {% endblock scripts %}
   </body>
