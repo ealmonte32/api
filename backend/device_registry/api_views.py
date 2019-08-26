@@ -830,7 +830,7 @@ class DeviceListFilterMixin:
         }
     }
 
-    def get_filter_q(self, *args, **kwargs):
+    def get_filter_q(self, set_filter_dict=False, *args, **kwargs):
         """
         Create Device List Filter Query Object
         GET params:
@@ -851,6 +851,9 @@ class DeviceListFilterMixin:
         filter_value = self.request.GET.get('filter_value')
 
         if filter_by and filter_predicate:
+            if not filter_by in self.FILTER_FIELDS:
+                raise ValidationError(detail='filter subject is invalid.')
+
             query_by, _, query_type = self.FILTER_FIELDS[filter_by]
             invert = filter_predicate[0] == 'n'
             if invert:
@@ -861,12 +864,13 @@ class DeviceListFilterMixin:
             predicate = self.PREDICATES[query_type][filter_predicate]
             if query_type != 'str' and not filter_value:
                 filter_value = None
-            self.request.filter_dict = {
-                'by': filter_by,
-                'predicate': filter_predicate,
-                'value': filter_value,
-                'type': query_type
-            }
+            if set_filter_dict:
+                self.filter_dict = {
+                    'by': filter_by,
+                    'predicate': filter_predicate,
+                    'value': filter_value,
+                    'type': query_type
+                }
 
             if query_type == 'datetime':
                 if ',' not in filter_value:
@@ -902,7 +906,8 @@ class DeviceListFilterMixin:
             if invert:
                 query = ~query
         else:
-            self.request.filter_dict = None
+            if set_filter_dict:
+                self.filter_dict = None
         return query
 
 
@@ -923,8 +928,16 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         columns = ['id', 'name', 'deviceinfo__fqdn', 'last_ping', 'trust_score', 'comment']
         datatables = self.request.GET
         draw = int(datatables.get('draw', 0))
-        start = int(datatables.get('start', 0))
-        length = int(datatables.get('length', -1))
+        start = datatables.get('start', 0)
+        if not start.isdigit():
+            raise ValidationError(detail='requested table start row is invalid')
+        else:
+            start = int(start)
+        length = datatables.get('length', -1)
+        if length != -1 and length != '-1' and not start.isdigit():
+            raise ValidationError(detail='requested table start row is invalid')
+        else:
+            length = int(length)
         search = datatables.get('search[value]')
         order_column = datatables.get('order[0][column]', 0)
         if order_column not in range(0, len(columns)):

@@ -23,11 +23,12 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
     model = Device
     template_name = 'root.html'
     context_object_name = 'mirai_devices'  # device list moved to ajax, so only mirai detected devices still here
+    filter_dict = None
 
     def get_queryset(self):
         queryset = super().get_queryset()
         common_query = Q(owner=self.request.user, deviceinfo__detected_mirai=True)
-        query = self.get_filter_q()
+        query = self.get_filter_q(set_filter_dict=True)
         return queryset.filter(common_query & query ).distinct()
 
     def get_context_data(self, **kwargs):
@@ -49,7 +50,7 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
             'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in self.FILTER_FIELDS.items()],
 
             # TODO: convert this into a list of dicts for multiple filters
-            'filter': self.request.filter_dict
+            'filter': self.filter_dict
         })
         return context
 
