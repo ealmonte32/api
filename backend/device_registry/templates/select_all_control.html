@@ -99,24 +99,12 @@
           if (page == 'all' && page_info.serverSide)
           {
               let [paginate, lengthChange] = _pagination(table);
-//              let sets = table.settings();
-//              let paginate = sets[0].oFeatures.bPaginate;
-//              let lengthChange = sets[0].oFeatures.bLengthChange;
               table.one('draw', function(e, settings){
-                  //let settings = table.settings();
                   settings["deferRender"] = true;
                   table.settings(settings).rows({page:page}).select();
               });
-              //let len = table.page.len();
               _pagination(table, false, false).ajax.reload(null,false);
               _pagination(table, paginate, lengthChange);
-              /*
-              sets[0].oFeatures.bPaginate = false;
-              sets[0].oFeatures.bLengthChange = false;
-              table.settings(sets).ajax.reload(null,false);
-              sets[0].oFeatures.bPaginate = paginate;
-              sets[0].oFeatures.bLengthChange = lengthChange;
-              table.settings(sets);*/
           }
           else table.rows({page:page}).select();
           if(extend_on_toolbar){

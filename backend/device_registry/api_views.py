@@ -23,7 +23,6 @@ from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, 
 from rest_framework.generics import get_object_or_404
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import AllowAny
-from rest_framework.parsers import FormParser
 from rest_framework.exceptions import ValidationError
 from netaddr import IPAddress
 
@@ -916,7 +915,6 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
     List all of the users devices.
     """
     serializer_class = DeviceListSerializer
-    parser_classes = [FormParser]
     ajax_info = dict()
 
     def _datatables(self, *args, **kwargs):
@@ -927,48 +925,41 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         """
         columns = ['id', 'name', 'deviceinfo__fqdn', 'last_ping', 'trust_score', 'comment']
         datatables = self.request.GET
-        draw = int(datatables.get('draw', 0))
-        start = datatables.get('start', 0)
-        if not start.isdigit():
-            raise ValidationError(detail='requested table start row is invalid')
-        else:
-            start = int(start)
-        length = datatables.get('length', -1)
-        if length != -1 and length != '-1' and not start.isdigit():
-            raise ValidationError(detail='requested table start row is invalid')
-        else:
-            length = int(length)
-        search = datatables.get('search[value]')
-        order_column = datatables.get('order[0][column]', 0)
-        if order_column not in range(0, len(columns)):
-            order_column = 0
-        order_dir = datatables.get('order[0][dir]', 'asc').lower()
+        draw = datatables.get('draw', '-')              # this value should be repeated in response
+        self.ajax_info['draw'] = draw
+        start = int(datatables.get('start', 0))         # start row of page
+        length = int(datatables.get('length', -1))      # page length or -1 for all
+        search = datatables.get('search[value]')        # global search value, from search input of the table
+        order_column = datatables.get('order[0][column]', 0)  # ordered column index. here we support only 1 column
+        if order_column not in range(0, len(columns)):        # ordering, but DataTable could try to use more than 1
+            order_column = 0                                  # that is why order is array
+        order_dir = datatables.get('order[0][dir]', 'asc').lower()  # ordering direction
         if order_dir not in ['asc', 'desc']:
             order_dir = 'asc'
         ordering = columns[order_column] if order_dir == 'asc' else f'-{columns[order_column]}'
 
         queryset = self.get_queryset(*args, **kwargs)
-        self.ajax_info['recordsTotal'] = queryset.count()
-        query = self.get_filter_q(*args, **kwargs)
+        self.ajax_info['recordsTotal'] = queryset.count()   # total unfiltered records count
+        query = self.get_filter_q(*args, **kwargs)          # our filters
         search_query = Q()
-        if search:
-            for i in range(1, 6):
-                search__arg_str = f"{columns[i]}__icontains"
-                column_search_value = datatables.get(f'columns[{i}][search][value]')
-                if column_search_value:
-                    search_query.add(Q(**{search__arg_str: column_search_value}), Q.OR)
-                elif datatables[f'columns[{i}][searchable]']:
-                    search_query.add(Q(**{search__arg_str: search}), Q.OR)
+        if search:                                          # global search. if column is searchable then add
+            for i in range(1, len(columns)):                # search filter to relative field
+                if datatables[f'columns[{i}][searchable]']:
+                    search_query.add(Q(**{f"{columns[i]}__icontains": search}), Q.OR)
+
+        # column by search. additional search filter applied through DataTable api:  table.column().search()
+        for i in range(1, len(columns)):
+            column_search_value = datatables.get(f'columns[{i}][search][value]')
+            if column_search_value and datatables[f'columns[{i}][searchable]']:
+                search_query.add(Q(**{f"{columns[i]}__icontains": column_search_value}), Q.AND)
 
         devices = queryset.filter(query & search_query).order_by(ordering).distinct()
-        self.ajax_info['recordsFiltered'] = devices.count()
-        self.ajax_info['draw'] = draw
-        if length == -1:
+        self.ajax_info['recordsFiltered'] = devices.count()  # total filtered records count
+        if length == -1:                                     # lenght = -1, mean all filtered devices, w/o pagination
             return devices
 
         paginator = Paginator(devices, length)
         page = start / length + 1
-
         try:
             object_list = paginator.page(page).object_list
         except PageNotAnInteger:

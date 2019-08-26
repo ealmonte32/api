@@ -399,9 +399,23 @@
 
       // batch control initialization.
       batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
+
+      /**
+       *  DataTable Initialization (Devce List)
+       *  for switch to ServerSide processing replace `ajax: dt_ajax,` below to this code:
+        serverSide: true,
+        ajax: {
+            url: '/ajax-devices/list/',
+            processing: true,
+            method: 'GET',
+            data: function(data){
+              serializeUrlParams(data);
+            }
+        },
+       */
       $('#inst-btn').on('click', show_install_msg );
       table = $('#datatables-basic').DataTable({
-        'processing': true,
+        processing: true,
         ajax: dt_ajax,
         responsive: true,
         dom: '<"toolbar">frtip',
