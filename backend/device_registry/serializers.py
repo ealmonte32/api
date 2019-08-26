@@ -173,6 +173,11 @@ class PairingKeyListSerializer(serializers.ModelSerializer):
         model = PairingKey
         fields = ['key', 'created', 'comment']
 
+    def to_representation(self, instance):
+        representation = super(PairingKeyListSerializer, self).to_representation(instance)
+        representation['created'] = instance.created.strftime('%Y-%m-%d %H:%M:%S')
+        return representation
+
 
 class UpdatePairingKeySerializer(serializers.ModelSerializer):
 

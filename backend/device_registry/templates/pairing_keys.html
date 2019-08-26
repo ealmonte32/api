@@ -1,5 +1,27 @@
 {% extends "admin_base.html" %}
 
+{% block css %}
+    {{ form_media.css }}
+    <style>
+    .btn {
+      color: white;
+    }
+    .wott-form-alert {
+      color: black;
+      display: none;
+    }
+    td.wott-cred-btns .btn {
+      visibility: hidden;
+    }
+    #datatables-basic tr:hover td.wott-cred-btns .btn {
+      visibility: visible;
+    }
+    </style>
+{% endblock %}
+{% block js %}
+    {{ form_media.js }}
+{% endblock %}
+
 {% block title %}WoTT - Credentials{% endblock title %}
 
 {% block dashboard_title %}
@@ -25,6 +47,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-danger" id="confirm-btn">Yes</button>
+          <button type="button" class="btn btn-warning" id="confirm-all-btn" style="display: none">All</button>
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
         </div>
       </div>
@@ -68,21 +91,6 @@
 {% endblock admin_content %}
 
 {% block scripts %}
-  <style>
-  .btn {
-    color: white;
-  }
-  .wott-form-alert {
-    color: black;
-    display: none;
-  }
-  td.wott-cred-btns .btn {
-    visibility: hidden;
-  }
-  #datatables-basic tr:hover td.wott-cred-btns .btn {
-    visibility: visible;
-  }
-  </style>
   <script>
 
     var csrftoken = jQuery("[name=csrfmiddlewaretoken]").val();
@@ -137,36 +145,74 @@
         },
         rowId: 'key',
       });
+
+      table.on( 'draw.dt', function () {
+        $('input').on('input', function (e) {
+           let el = e.currentTarget;
+           if ( el.value == el.defaultValue ){
+               el.classList.remove('modified');
+           } else {
+               el.classList.remove('modified');
+               el.classList.add('modified');
+           }
+        });
+
+        $('input').on('focus', function (e) {
+           let el = e.currentTarget;
+           el.removeAttribute('readonly');
+        });
+        $('input').on('focusout', function (e) {
+           let el = e.currentTarget;
+           el.setAttribute('readonly', true);
+           if( el.classList.contains('modified') )
+           {
+             let comment = el.value;
+             let id = el.parentElement.parentElement.id;
+             ajax_update_comment(id, comment);
+           }
+        });
+
+      });
+
+      window.onbeforeunload = function(event)
+      {
+          let unsaved = $('input.modified');
+          if( unsaved != undefined && unsaved.length > 0 )
+          {
+              for( let i =0; i < unsaved.length; i++ )
+              {
+                  let current_row = unsaved[i].parentElement.parentElement;
+                  ajax_update_comment(current_row.id, unsaved[i].value, false);
+              }
+          }
+      };
+
     });
 
     function render_comment( data, type, row, meta )
     {
         if( type == 'sort' ) return data;
         let h_data = htmlEntities(data);
-        return '<input type="text" value="' + h_data + '" style="width:100%" ></input>'
+        return `<input type="text" value="${h_data}" style="width:100%" readonly></input>`;
     }
 
     function fa_button( type, btn, fa, onclick, popover=undefined)
     {
         let pop = ( popover === undefined ) ? "" : ' data-toggle="popover" data-placement="top" title="' +
-            popover.title + (popover.content === undefined ? '"' : ('" data-content="' +  popover.content + '"'));
+            popover.title + (popover.content === undefined ? '"' : `" data-content="${popover.content}"`);
 
-        return '<button type="' + type + '" class="btn ' + btn + '" aria-label="Left Align"><span class="'
-              + fa + '" aria-hidden="true" onclick="' + onclick + '"' + pop + '></span></button>';
+        return `<button type="${type}" class="btn ${btn}" aria-label="Left Align"><span class="${fa}" `
+             + `aria-hidden="true" onclick="${onclick}" ${pop} ></span></button>`;
     }
 
     function render_buttons(data, type, row, meta)
     {
         let save_url = `location.href='/pairing-keys/download?pk=${row.key}';`;
 
-        return  fa_button( "button", "btn-info", "fas fa-check fa-lg", "update_comment(this)",
-                { title:"Update key comment", content: "Save enrollment key comment."} )
-            + fa_button( "button", "btn-primary", "fas fa-copy fa-lg", "copy_key('" + row.key + "')",
-                {
-                    title: "Copy key to clipboard",
-                    content: "Copy the enrollment string to the clipboard. The string is in the form 'key = value' " +
-                             "to simply paste to config.ini file."
-                })
+        return fa_button( "button", "btn-primary", "fas fa-copy fa-lg", `copy_key(this, '${row.key}')`,
+                { title: "Copy key to clipboard",
+                  content: "Copy the enrollment string to the clipboard. The string is in the form 'key = value' " +
+                           "to simply paste to config.ini file."})
             + fa_button( "button", "btn-success", "fas fa-save fa-lg", save_url,
                 { title:"Store key to disk", content: "Store generated enrollment key as ready to go config.ini file." } )
             + fa_button( "button", "btn-danger", "fas fa-trash fa-lg", "revoke_key(this)",
@@ -182,10 +228,33 @@
       );
     }
 
-    function copy_key(a){
-        copyToClipboard(
-            "enroll_token = " + a
-        );
+    function show_popover(el, title, content='')
+    {
+        let title_store = el.attr('title');
+        let content_store = el.attr('data-content');
+        el.attr('title', title);
+        el.attr('data-content', content);
+        el.attr('title', title);
+        el.popover('show');
+        el.attr('title', title_store);
+        el.attr('data-content', content_store);
+        el.on( "mouseout", function (ev) {
+            let el = $(ev.currentTarget);
+            el.off("mouseout");
+            el.popover('hide');
+        });
+    }
+
+    function copy_key(btn, key){
+        let key_text = "enroll_token = " + key;
+        navigator.clipboard.writeText(key_text).then(function() {
+            show_popover($(btn), 'Copied', key_text);
+        }, function() {
+            let successful = copyToClipboard(key_text);
+            let title = successful ? 'Copied' : 'Could not copy to clipboard. Check the browser permissions.';
+            let msg = successful ? key_text : '';
+            show_popover($(btn), title, msg);
+        });
     }
 
     /***
@@ -208,19 +277,22 @@
         });
     }
 
-    function update_comment(e)
+    /**
+     * id - key/row_id (they are the same)
+     * comment - a string to write as key comment
+     * reload - if false, the table will not redraw/reload. default true.
+     **/
+    function ajax_update_comment(id, comment, reload=true)
     {
-        wott_alert_hide("main-alert");
-        let row = e.parentElement.parentElement.parentElement;
-        let comment = row.children[cols.comment].children[0].value
         $.ajax({
-            url: `/ajax-pairing-keys/${row.id}/update/`,
+            url: `/ajax-pairing-keys/${id}/update/`,
             type: "PATCH",
             data: JSON.stringify({ comment: comment }),
             contentType: 'application/json',
         }).done(function () {
             console.log('success');
-            table.ajax.reload();
+            if(reload)
+                table.ajax.reload();
         }).fail(function (a) {
             console.log('error');
             console.log(a.status, a.responseText);
@@ -251,12 +323,13 @@
      *  @param message - dialog message
      *  @param btn_text - dialog confirm button text
      */
-    function show_dialog(title, message, btn_text )
+    function show_dialog(title, message, btn_text, third_key=false )
     {
         $('#confirm-title')[0].innerText = title;
         $('#confirm-msg')[0].innerText = message;
         $('#confirm-btn')[0].innerText = btn_text;
         $('#confirm-alert')[0].style.display = 'none';
+        $('#confirm-all-btn')[0].style.display = (third_key) ? 'block' : 'none';
         $('#wott-confirm-modal').modal('toggle');
     }
 
@@ -295,6 +368,27 @@
         else errMsgs.push(a.responseText);
         wott_alert_strings(errMsgs, alert_box_id);
     }
+
+    const copyToClipboard = str => {
+        const el = document.createElement('textarea');  // Create a <textarea> element
+        el.value = str;                                 // Set its value to the string that you want copied
+        el.setAttribute('readonly', '');                // Make it readonly to be tamper-proof
+        el.style.position = 'absolute';
+        el.style.left = '-9999px';                      // Move outside the screen to make it invisible
+        document.body.appendChild(el);                  // Append the <textarea> element to the HTML document
+        const selected =
+          document.getSelection().rangeCount > 0        // Check if there is any content selected previously
+            ? document.getSelection().getRangeAt(0)     // Store selection if found
+            : false;                                    // Mark as false to know no selection existed before
+        el.select();                                    // Select the <textarea> content
+        let res = document.execCommand('copy');                   // Copy - only works as a result of a user action (e.g. click events)
+        document.body.removeChild(el);                  // Remove the <textarea> element
+        if (selected) {                                 // If a selection existed before copying
+            document.getSelection().removeAllRanges();  // Unselect everything on the HTML document
+            document.getSelection().addRange(selected); // Restore the original selection
+        }
+        return res;
+    };
 
     function htmlEntities(str) {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

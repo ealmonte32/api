@@ -924,10 +924,10 @@ class PairingKeyListViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = [
             OrderedDict(
-                [('key', self.key1.key.__str__()), ('created',  datetime_to_str(self.key1.created)),
+                [('key', self.key1.key.__str__()), ('created',  self.key1.created.strftime('%Y-%m-%d %H:%M:%S')),
                  ('comment', self.key1.comment)]
             ), OrderedDict(
-                [('key', self.key2.key.__str__()), ('created',  datetime_to_str(self.key2.created)),
+                [('key', self.key2.key.__str__()), ('created',  self.key2.created.strftime('%Y-%m-%d %H:%M:%S')),
                  ('comment', self.key2.comment)]
             )
         ]
@@ -965,7 +965,7 @@ class CreatePairingKeyViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(PairingKey.objects.count(), 1)
         self.key1 = PairingKey.objects.get(owner=self.user)
-        data = {'key': self.key1.key.__str__(), 'created': datetime_to_str(self.key1.created),
+        data = {'key': self.key1.key.__str__(), 'created': self.key1.created.strftime('%Y-%m-%d %H:%M:%S'),
                 'comment': self.key1.comment}
         self.assertDictEqual(data, response.data)
 
