@@ -36,6 +36,18 @@ $ helm install stable/nginx-ingress \
     --set controller.stats.enabled=true
 ```
 
+
+## RabbitMQ
+
+```
+$ kubeclt create ns rabbit
+$ helm install --name rabbit0 \
+    --set replicas=2 \
+    --set metrics.enabled=true \
+    --namespace=rabbit \
+    stable/rabbitmq
+```
+
 ## Cert-manager
 
 CertManager is used to facilitate Let's Encrypt certificate management. The installation instructions can be found [here](https://docs.cert-manager.io/en/latest/getting-started/install.html), but in short, here's what we need to do to install it:
