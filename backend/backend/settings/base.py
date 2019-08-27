@@ -15,6 +15,7 @@ import socket
 import re
 
 from netaddr import IPNetwork, AddrFormatError
+from celery.schedules import crontab
 
 
 def check_ip_range(ipr):
@@ -218,3 +219,16 @@ INCLUDE_REGISTER_URL = False
 
 # Retry to connect to DB (after receiving a connection error) within 60 seconds.
 DB_RETRY_TO_CONNECT_SEC = 60
+
+# Celery settings.
+CELERY_BROKER_URL = 'amqp://%s:%s@%s:5672/%s' % (os.getenv('RABBIT_USER', 'user'),
+                                                 os.getenv('RABBIT_PASSWORD', 'SuperSecurePassword'),
+                                                 os.getenv('RABBIT_HOST', 'localhost'),
+                                                 os.getenv('RABBIT_VHOST', 'wott-dash'))
+
+# CELERY_BEAT_SCHEDULE = {
+#     'task1': {
+#         'task': 'backend.celery.debug_task',
+#         'schedule': crontab()  # Execute once a minute.
+#     }
+# }
