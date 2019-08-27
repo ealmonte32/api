@@ -42,8 +42,15 @@ if settings.IS_MTLS_API:
         path('api/{}/action/<int:action_id>/<str:action_name>'.format(api_version), api_views.ActionView.as_view(),
              name='action'),
         path('api/{}/claimed'.format(api_version), api_views.IsDeviceClaimedView.as_view(), name='mtls-is_claimed'),
-        path('api/{}/creds'.format(api_version), api_views.MtlsCredsView.as_view(), name='mtls-creds'),
-        path('api/{}/dev-md'.format(api_version), api_views.MtlsDeviceMetadataView.as_view(), name='mtls-dev-md')
+
+        path('api/{}/credentials'.format(api_version), api_views.MtlsCredsView.as_view(), name='mtls-credentials'),
+        path('api/{}/device-metadata'.format(api_version), api_views.MtlsDeviceMetadataView.as_view(),
+             name='mtls-device-metadata'),
+
+        # TODO: deprecated names should be removed later (/creds, /dev-md)  2019-08-26:
+        path('api/{}/creds'.format(api_version), api_views.MtlsCredsView.as_view(), name='mtls-credentials'),
+        path('api/{}/dev-md'.format(api_version), api_views.MtlsDeviceMetadataView.as_view(),
+             name='mtls-device-metadata')
     ]
 
 # Front-end
@@ -88,10 +95,10 @@ if settings.IS_DASH:
         path('credentials/',
              views.CredentialsView.as_view(),
              name='credentials'),
-        path('ajax-creds/', api_views.CredentialsView.as_view(), name='ajax_creds'),
-        path('ajax-creds/<int:pk>/delete/', api_views.DeleteCredentialView.as_view(), name='ajax_creds_delete'),
-        path('ajax-creds/<int:pk>/update/', api_views.UpdateCredentialView.as_view(), name='ajax_creds_update'),
-        path('ajax-creds/create/', api_views.CreateCredentialView.as_view(), name='ajax_creds_create'),
+        path('ajax-credentials/', api_views.CredentialsView.as_view(), name='ajax-credentials'),
+        path('ajax-credentials/<int:pk>/delete/', api_views.DeleteCredentialView.as_view(), name='ajax-credentials-delete'),
+        path('ajax-credentials/<int:pk>/update/', api_views.UpdateCredentialView.as_view(), name='ajax-credentials-update'),
+        path('ajax-credentials/create/', api_views.CreateCredentialView.as_view(), name='ajax-credentials-create'),
         path('actions/', views.actions_view, name='actions'),
         path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),
         path(

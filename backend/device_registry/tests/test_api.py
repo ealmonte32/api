@@ -241,7 +241,7 @@ class DeviceListViewTest(APITestCase):
 
 class CredentialsViewTest(APITestCase):
     def setUp(self):
-        self.url = reverse('ajax_creds')
+        self.url = reverse('ajax-credentials')
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
@@ -270,7 +270,7 @@ class DeleteCredentialViewTest(APITestCase):
         self.user.save()
         self.credential = Credential.objects.create(owner=self.user, name='name1', data={'key1': 'value1'},
                                                     tags="tag1,tag2")
-        self.url = reverse('ajax_creds_delete', kwargs={'pk': self.credential.pk})
+        self.url = reverse('ajax-credentials-delete', kwargs={'pk': self.credential.pk})
         self.client.login(username='test', password='123')
 
     def test_delete(self):
@@ -288,7 +288,7 @@ class UpdateCredentialViewTest(APITestCase, AssertTaggedMixin):
         self.user.set_password('123')
         self.user.save()
         self.credential1 = Credential.objects.create(owner=self.user, name='name1', data={'key1': 'value1'})
-        self.url = reverse('ajax_creds_update', kwargs={'pk': self.credential1.pk})
+        self.url = reverse('ajax-credentials-update', kwargs={'pk': self.credential1.pk})
         self.client.login(username='test', password='123')
         self.data = {'name': 'name2', 'data': {'key2': 'value2'}, 'linux_user': 'nobody',
                      'tags': [{'name': 'tag1'}, {'name': 'tag2'}]}
@@ -311,7 +311,7 @@ class UpdateCredentialViewTest(APITestCase, AssertTaggedMixin):
         self.assertDictEqual(response.data, {'error': "'Name'/'File owner' combination should be unique"})
         self.assertEqual(Credential.objects.count(), 2)
         # check for update the record itself
-        url2 = reverse('ajax_creds_update', kwargs={'pk': credential2.pk})
+        url2 = reverse('ajax-credentials-update', kwargs={'pk': credential2.pk})
         response = self.client.patch(url2, self.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTaggedEqual(response.data, self.data)
@@ -321,7 +321,7 @@ class UpdateCredentialViewTest(APITestCase, AssertTaggedMixin):
 class CreateCredentialViewTest(APITestCase, AssertTaggedMixin):
 
     def setUp(self):
-        self.url = reverse('ajax_creds_create')
+        self.url = reverse('ajax-credentials-create')
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
@@ -538,7 +538,7 @@ class ActionViewTest(APITestCase):
 
 class MtlsCredsViewTest(APITestCase):
     def setUp(self):
-        self.url = reverse('mtls-creds')
+        self.url = reverse('mtls-credentials')
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.credential = Credential.objects.create(owner=self.user, name='name1', data={'key1': 'as9dfyaoiufhoasdfjh'},
@@ -588,7 +588,7 @@ class MtlsCredsViewTest(APITestCase):
 class MtlsDeviceMetadataViewTest(APITestCase):
 
     def setUp(self):
-        self.url = reverse('mtls-dev-md')
+        self.url = reverse('mtls-device-metadata')
         User = get_user_model()
         self.user = User.objects.create_user('test')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
