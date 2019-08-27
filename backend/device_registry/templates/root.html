@@ -398,7 +398,7 @@
       } );
 
       // batch control initialization.
-      batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
+      var batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
 
       /**
        *  DataTable Initialization (Devce List)
@@ -457,6 +457,7 @@
           }
       } );
 
+      // data table ajax processing
       function dt_ajax(data, callback, settings)
       {
           serializeUrlParams(data); // add url params (fiter) to payload
@@ -486,7 +487,7 @@
               error: dt_ajax_fail
           });
       }
-
+      // data table ajax errors processing
       function dt_ajax_fail(jqXHR, textStatus, errorThrown)
       {
           $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).hide();
