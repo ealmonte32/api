@@ -762,7 +762,7 @@ class BatchUpdateTagsView(APIView):
             Relation.objects.bulk_create(relations)
 
         verb = "Added" if action=='add' else 'Set'
-        msg = f"{verb} tags to {objects.count()} {model_name}s"
+        msg = f"{verb} tags to {objects.count()} {model_name}s."
         return Response(msg, status=status.HTTP_200_OK)
 
 
