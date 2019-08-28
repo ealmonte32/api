@@ -402,16 +402,6 @@
 
       /**
        *  DataTable Initialization (Devce List)
-       *  for switch to ServerSide processing replace `ajax: dt_ajax,` below to this code:
-        serverSide: true,
-        ajax: {
-            url: '/ajax-devices/list/',
-            processing: true,
-            method: 'GET',
-            data: function(data){
-              serializeUrlParams(data);
-            }
-        },
        */
       $('#inst-btn').on('click', show_install_msg );
       table = $('#datatables-basic').DataTable({
@@ -476,7 +466,6 @@
                           type: 'GET',
                           data: orig_data,
                           success: function (data) {
-                              data.data = data.data.slice(100);
                               callback(data);
                           },
                           error: dt_ajax_fail

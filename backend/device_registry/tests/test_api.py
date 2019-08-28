@@ -1145,9 +1145,10 @@ class DeviceListAjaxViewTest(APITestCase):
         serializer = DeviceListSerializer(instance=device)
         return serializer.data
 
-    def _dev_list_data(self, lst, total=3, draw='-'):
+    def _dev_list_data(self, lst, total=3, draw='-', length=None):
         data = [self._dev_list_item(dev) for dev in lst]
-        return {'data': data, 'draw': draw, 'recordsTotal': total, 'recordsFiltered': len(lst)}
+        return {'data': data, 'draw': draw, 'recordsTotal': total,
+                'recordsFiltered': len(lst) if length is None else length}
 
     def _filter_url(self, by, predicate, value):
         return reverse('ajax_device_list') + '?' + urlencode({
@@ -1204,40 +1205,17 @@ class DeviceListAjaxViewTest(APITestCase):
         response = self.client.get(url)
         self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
 
-    def _search_url(self, value, order_column=0, order_dir='asc', additional=None):
-        params = {
-            'draw': 0,
-            'search[value]': value,
-            'search[regex]': False,
-            'start': 0,
-            'length': 10,
-            'order[0][column]': order_column,
-            'order[0][dir]': order_dir
-        }
-        for i in range(1, 6):
-            params.update({f'columns[{i}][searchable]': True})
-        if additional:
-            params.update(additional)
-        return reverse('ajax_device_list') + '?' + urlencode(params)
-
-    def test_datatables_search(self):
+    def test_datatables(self):
         self.client.login(username='test', password='123')
-        url = self._search_url('fir')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0], draw='0'))
 
-    def test_datatables_column_search(self):
-        self.client.login(username='test', password='123')
-        url = self._search_url('fqdn', additional={'columns[1][search][value]': 'fir'})
+        url = reverse('ajax_device_list') + '?' + urlencode({'length': 2})
         response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0], draw='0'))
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1], length=3))
 
-    def test_datatables_order(self):
-        self.client.login(username='test', password='123')
-        url = self._search_url('')
+        url = reverse('ajax_device_list') + '?' + urlencode({'start': 1})
         response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2], draw='0'))
+        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2], length=3))
 
-        url = self._search_url('', 0, 'desc')
+        url = reverse('ajax_device_list') + '?' + urlencode({'start': 1, 'length': 1})
         response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device2, self.device1, self.device0], draw='0'))
+        self.assertDictEqual(response.data, self._dev_list_data([ self.device1], length=3))
