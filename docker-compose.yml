@@ -3,23 +3,24 @@ services:
   migrate:
     command: python manage.py migrate --noinput
     environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings.dev
-      - DB_PASSWORD=SuperSecurePassword
-      - DB_USER=postgres
+    - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DB_PASSWORD=SuperSecurePassword
+    - DB_USER=postgres
     build:
       context: .
     volumes:
       - ./backend:/usr/src/app
     depends_on:
-      - psql
+    - psql
+    - nginx-static
 
   dash-dev:
     hostname: dash-dev0
     environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings.dev
-      - DB_PASSWORD=SuperSecurePassword
-      - DB_USER=postgres
-      - DATASTORE_KEY_JSON
+    - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DB_PASSWORD=SuperSecurePassword
+    - DB_USER=postgres
+    - DATASTORE_KEY_JSON
     build:
       context: .
     volumes:
@@ -27,17 +28,17 @@ services:
     ports:
       - '8000:8000'
     depends_on:
-      - psql
-      - migrate
-      - nginx-static
+    - psql
+    - migrate
+    - nginx-static
 
   api-dev:
     hostname: api-dev0
     environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings.dev
-      - DB_PASSWORD=SuperSecurePassword
-      - DB_USER=postgres
-      - DATASTORE_KEY_JSON
+    - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DB_PASSWORD=SuperSecurePassword
+    - DB_USER=postgres
+    - DATASTORE_KEY_JSON
     image: api:latest
     build:
       context: .
@@ -46,16 +47,16 @@ services:
     ports:
       - '8001:8000'
     depends_on:
-      - psql
-      - migrate
+    - psql
+    - migrate
 
   mtls-api-dev:
     hostname: mtls-api-dev0
     environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings.dev
-      - DB_PASSWORD=SuperSecurePassword
-      - DB_USER=postgres
-      - DATASTORE_KEY_JSON
+    - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    - DB_PASSWORD=SuperSecurePassword
+    - DB_USER=postgres
+    - DATASTORE_KEY_JSON
     build:
       context: .
     volumes:
@@ -63,8 +64,8 @@ services:
     ports:
       - '8002:8000'
     depends_on:
-      - psql
-      - migrate
+    - psql
+    - migrate
 
   nginx-static:
     hostname: wott-static
@@ -79,58 +80,11 @@ services:
 
   psql:
     environment:
-      - POSTGRES_DB=wott-backend
-      - POSTGRES_PASSWORD=SuperSecurePassword
+    - POSTGRES_DB=wott-backend
+    - POSTGRES_PASSWORD=SuperSecurePassword
     image: postgres:alpine
     volumes:
-      - db-data:/var/lib/postgresql/data
-
-  rabbit:
-    image: rabbitmq:3-alpine
-    environment:
-      - RABBITMQ_DEFAULT_USER=user
-      - RABBITMQ_DEFAULT_PASS=SuperSecurePassword
-      - RABBITMQ_DEFAULT_VHOST=wott-dash
-    ports:
-      - '5672:5672'
-
-  celery:
-    environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings.dev
-      - DB_PASSWORD=SuperSecurePassword
-      - DB_USER=postgres
-      - RABBIT_HOST=rabbit
-      - RABBIT_USER=user
-      - RABBIT_PASSWORD=SuperSecurePassword
-      - RABBIT_VHOST=wott-dash
-    build:
-      context: .
-    command: celery -A backend worker -l error --time-limit=90 --soft-time-limit=60
-    volumes:
-      - ./backend:/usr/src/app
-    depends_on:
-      - psql
-      - migrate
-      - rabbit
-
-  celery-beat:
-    environment:
-      - DJANGO_SETTINGS_MODULE=backend.settings.dev
-      - DB_PASSWORD=SuperSecurePassword
-      - DB_USER=postgres
-      - RABBIT_HOST=rabbit
-      - RABBIT_USER=user
-      - RABBIT_PASSWORD=SuperSecurePassword
-      - RABBIT_VHOST=wott-dash
-    build:
-      context: .
-    command: celery -A backend beat -l error
-    volumes:
-      - ./backend:/usr/src/app
-    depends_on:
-      - psql
-      - migrate
-      - rabbit
+    - db-data:/var/lib/postgresql/data
 
 volumes:
   db-data:
