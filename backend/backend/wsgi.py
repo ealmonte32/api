@@ -14,7 +14,7 @@ from django.db.backends.base import base as django_db_base
 
 from .utils import ensure_connection_with_retries
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings.base')
 
 # Patch the standard django database connection class' method in order to try to
 # connect to DB multiple times using exponential backoff algorithm until success
