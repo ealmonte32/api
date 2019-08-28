@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'tagulous',
     'device_registry.apps.DeviceRegistryConfig',
     'profile_page.apps.ProfilePageConfig',
+    'monitoring.apps.MonitoringConfig',
     'bootstrap4'
 ]
 
@@ -226,9 +227,9 @@ CELERY_BROKER_URL = 'amqp://%s:%s@%s:5672/%s' % (os.getenv('RABBIT_USER', 'user'
                                                  os.getenv('RABBIT_HOST', 'localhost'),
                                                  os.getenv('RABBIT_VHOST', 'wott-dash'))
 
-# CELERY_BEAT_SCHEDULE = {
-#     'task1': {
-#         'task': 'backend.celery.debug_task',
-#         'schedule': crontab()  # Execute once a minute.
-#     }
-# }
+CELERY_BEAT_SCHEDULE = {
+    'update_celery_pulse_timestamp': {
+        'task': 'monitoring.tasks.update_celery_pulse_timestamp',
+        'schedule': crontab()  # Execute once a minute.
+    }
+}
