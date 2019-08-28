@@ -26,6 +26,5 @@ urlpatterns = [
     url(r'^accounts/', include('registration.backends.simple.urls')),
     path('user/', include('profile_page.urls')),
     path('', include('device_registry.urls')),
-    path('monitoring/', include('monitoring.urls')),
     url('', include('django_prometheus.urls'))
 ]

@@ -13,6 +13,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from tagulous.forms import TagWidget
+
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, average_trust_score, PortScan, FirewallState
 from device_registry.models import PairingKey, get_bootstrap_color
@@ -112,7 +114,7 @@ class RootView(LoginRequiredMixin, ListView):
                     number = 0
                 number = int(number)
                 if filter_predicate == 'eq':
-                    interval_start = timezone.now() - datetime.timedelta(**{measure: number + 1})
+                    interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
                     interval_end = timezone.now() - datetime.timedelta(**{measure: number})
                     filter_value = (interval_start, interval_end)
                     predicate = 'range'
@@ -154,8 +156,7 @@ class RootView(LoginRequiredMixin, ListView):
                 'Trust Score',
                 'Comment'
             ],
-            'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in
-                              self.FILTER_FIELDS.items()],
+            'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in self.FILTER_FIELDS.items()],
 
             # TODO: convert this into a list of dicts for multiple filters
             'filter': self.request.filter_dict
@@ -183,8 +184,8 @@ def claim_device_view(request):
                     get_device.owner = request.user
                     get_device.claim_token = ""
                     get_device.save(update_fields=['owner', 'claim_token'])
-                    text, style = f'You\'ve successfully claimed {get_device.get_name()}. ' \
-                                  f'Learn more about the security state of the device by clicking&nbsp;' \
+                    text, style = f'You\'ve successfully claimed {get_device.get_name()}. '\
+                                  f'Learn more about the security state of the device by clicking&nbsp;'\
                                   f'<a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": get_device.pk})}">' \
                                   f'here</a>.', \
                                   'success'
@@ -194,7 +195,7 @@ def claim_device_view(request):
     # GET with claim_token and device_id set will fill the form.
     # Empty GET or any other request will generate empty form.
     if request.method == 'GET' and \
-            'claim_token' in request.GET and \
+        'claim_token' in request.GET and \
             'device_id' in request.GET:
         try:
             Device.objects.get(
@@ -465,7 +466,7 @@ def actions_view(request, device_pk=None):
     if insecure_password_devices.exists():
         text_blocks = []
         for dev in insecure_password_devices:
-            device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
+            device_text_block = f'<a href="{ reverse("device-detail", kwargs={"pk": dev.pk}) }">{ dev.get_name() }</a>'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
@@ -483,7 +484,7 @@ def actions_view(request, device_pk=None):
     if disabled_firewall_devices.exists():
         text_blocks = []
         for dev in disabled_firewall_devices:
-            device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
+            device_text_block = f'<a href="{ reverse("device-detail", kwargs={"pk": dev.pk}) }">{ dev.get_name() }</a>'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
