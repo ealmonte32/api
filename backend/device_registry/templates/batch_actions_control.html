@@ -222,7 +222,11 @@
                       contentType: 'application/json',
                   }).done(function(e, res){
                       if(res == 'success') {
-                        show_popover(button, 'Action Applied', e);
+                          $('#wott-toast-message').text(e);
+                          $('#wott-toast-title').text('Action Applied');
+                          $('#wott-toast-extra').text('now');
+                          $('.toast').toast('show');
+                        {#show_popover(button, 'Action Applied', e);#}
                       }
                       $('#batch_apply_spinner')[0].style.display = 'none';
                       button.prop('disabled', false);
