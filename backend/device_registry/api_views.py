@@ -916,16 +916,26 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
     serializer_class = DeviceListSerializer
     ajax_info = dict()
 
+    def _get_int_arg(self, name, default, min_val):
+        try:
+            val = int(self.request.GET.get(name, default))
+        except ValueError:
+            raise ValidationError(f'{name} argument is invalid.')
+        if val < min_val:
+            raise ValidationError(f'{name} argument is invalid.')
+        return val
+
     def _datatables(self, *args, **kwargs):
         """
         Process JQuery DataTables AJAX arguments (GET mode used, because of device list filter use GET params)
         parameters description https://datatables.net/manual/server-side
         :return: device list queryset, and additional DataTables params in self.ajax_info
         """
-        self.ajax_info['draw'] = self.request.GET.get('draw', '-')  # this value should be repeated in response
-        start = int(self.request.GET.get('start', 0))         # start row of page
-        length = int(self.request.GET.get('length', -1))      # page length or -1 for all
 
+        self.ajax_info['draw'] = self.request.GET.get('draw', '-')  # this value should be repeated in response
+
+        start = self._get_int_arg('start', 0, 0)              # start row of page [0..oo)
+        length = self._get_int_arg('length', -1, -1)          # page length or -1 for all [-1..oo)
         queryset = self.get_queryset(*args, **kwargs)
         self.ajax_info['recordsTotal'] = queryset.count()     # total unfiltered records count
         query = self.get_filter_q(*args, **kwargs)            # our filters
