@@ -890,9 +890,8 @@ class DeviceListFilterMixin:
                     filter_value = timezone.now() - datetime.timedelta(**{measure: number})
             elif query_type == 'tags':
                 filter_value = filter_value.split(',') if filter_value else []
-                tags_count = len(filter_value)
-                if tags_count > 0:
-                    if tags_count != Tag.objects.filter(owner=self.request.user, name__in=filter_value).count():
+                if filter_value:
+                    if len(filter_value) != Tag.objects.filter(owner=self.request.user, name__in=filter_value).count():
                         raise ValidationError('tags argument list is invalid.')
 
             if isinstance(query_by, list):
