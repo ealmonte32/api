@@ -850,15 +850,15 @@ class DeviceListFilterMixin:
         filter_value = self.request.GET.get('filter_value')
 
         if filter_by and filter_predicate:
-            if not filter_by in self.FILTER_FIELDS:
-                raise ValidationError(detail='filter subject is invalid.')
+            if filter_by not in self.FILTER_FIELDS:
+                raise ValidationError('filter subject is invalid.')
 
             query_by, _, query_type = self.FILTER_FIELDS[filter_by]
             invert = filter_predicate[0] == 'n'
             if invert:
                 filter_predicate = filter_predicate[1:]
             if filter_predicate not in ['', 'eq', 'c', 'lt', 'gt']:
-                raise ValidationError(detail='filter predicate is invalid.')
+                raise ValidationError('filter predicate is invalid.')
 
             predicate = self.PREDICATES[query_type][filter_predicate]
             if query_type != 'str' and not filter_value:
@@ -873,12 +873,12 @@ class DeviceListFilterMixin:
 
             if query_type == 'datetime':
                 if ',' not in filter_value:
-                    raise ValidationError(detail='datetime interval argument is invalid.')
+                    raise ValidationError('datetime interval argument is invalid.')
                 number, measure = filter_value.split(',')
                 if not number:
                     number = '0'
                 if not number.isdigit() or measure not in ['hours', 'days']:
-                    raise ValidationError(detail='datetime interval argument is invalid.')
+                    raise ValidationError('datetime interval argument is invalid.')
 
                 number = int(number)
                 if filter_predicate == 'eq':
@@ -893,7 +893,7 @@ class DeviceListFilterMixin:
                 tags_count = len(filter_value)
                 if tags_count > 0:
                     if tags_count != Tag.objects.filter(owner=self.request.user, name__in=filter_value).count():
-                        raise ValidationError(detail='tags argument list is invalid.')
+                        raise ValidationError('tags argument list is invalid.')
 
             if isinstance(query_by, list):
                 query = Q()
