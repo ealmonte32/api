@@ -218,12 +218,9 @@
 
     var deleted_pk;
     function revoke_key(a){
-      wott_alert_hide("main-alert");
-      deleted_pk = a.parentElement.parentElement.parentElement.id;
-      show_dialog("Confirm Revoke Key",
-          "Are you sure you want to revoke?",
-          "Revoke"
-      );
+      wott_alert_hide("main-alert");  var ab=$(a), pb=ab.parents('tr');
+      if(pb.attr('class')=='child'){deleted_pk=$(ab.parents('tbody').children()[pb.index()-1]).attr('id');}else{deleted_pk=pb.attr('id');}; 
+      show_dialog("Confirm Revoke Key","Are you sure you want to revoke?","Revoke");
     }
 
     function show_popover(el, title, content='')
