@@ -65,6 +65,7 @@ class Device(models.Model):
     agent_version = models.CharField(max_length=36, blank=True, null=True)
     tags = tagulous.models.TagField(to=Tag, blank=True)
     trust_score = models.FloatField(null=True)
+    deb_packages = JSONField(blank=True, default=dict)
 
     @property
     def certificate_expired(self):

@@ -58,15 +58,22 @@ class MtlsPingView(APIView):
         firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
         block_networks = portscan_object.block_networks.copy()
         block_networks.extend(settings.SPAM_NETWORKS)
-        return Response({'policy': firewallstate_object.policy_string,
-                         firewallstate_object.ports_field_name: portscan_object.block_ports,
-                         'block_networks': block_networks})
+        return Response({
+            'firewall': {
+                'policy': firewallstate_object.policy_string,
+                firewallstate_object.ports_field_name: portscan_object.block_ports,
+                'block_networks': block_networks
+            },
+            'deb_packages_hash': device.deb_packages.get('hash')
+        })
 
     def post(self, request, *args, **kwargs):
         data = request.data
         device = Device.objects.get(device_id=request.device_id)
         device.last_ping = timezone.now()
         device.agent_version = data.get('agent_version')
+        if 'deb_packages' in data:
+            device.deb_packages = data['deb_packages']
 
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
@@ -102,7 +109,7 @@ class MtlsPingView(APIView):
         firewall_state.rules = firewall_rules
         firewall_state.save()
 
-        device.save(update_fields=['last_ping', 'agent_version', 'trust_score'])
+        device.save(update_fields=['last_ping', 'agent_version', 'deb_packages', 'trust_score'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
