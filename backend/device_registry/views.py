@@ -11,7 +11,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
 
-from tagulous.forms import TagWidget
 
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, average_trust_score, PortScan, FirewallState
@@ -29,7 +28,7 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
         queryset = super().get_queryset()
         common_query = Q(owner=self.request.user, deviceinfo__detected_mirai=True)
         query = self.get_filter_q(set_filter_dict=True)
-        return queryset.filter(common_query & query ).distinct()
+        return queryset.filter(common_query & query).distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
