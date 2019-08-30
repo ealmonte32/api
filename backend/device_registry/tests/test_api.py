@@ -2,9 +2,12 @@ from collections import OrderedDict
 import uuid
 from unittest.mock import patch, mock_open
 import json
+import datetime
+
 
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import urlencode
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
@@ -15,6 +18,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
 from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
+from device_registry.serializers import DeviceListSerializer
 
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
@@ -1092,3 +1096,126 @@ class BatchUpdateTagsViewTest(APITestCase):
         response = self.client.post(self.url, data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), {'non_field_errors': ['Invalid argument']})
+
+
+class DeviceListAjaxViewTest(APITestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user,
+            certificate=TEST_CERT,
+            name='First',
+            last_ping=timezone.now()-datetime.timedelta(days=1, hours=1)
+        )
+        self.deviceinfo0 = DeviceInfo.objects.create(
+            device=self.device0,
+            fqdn='FirstFqdn',
+            default_password=False,
+        )
+
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            owner=self.user,
+            certificate=TEST_CERT,
+            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23)
+        )
+        self.deviceinfo1 = DeviceInfo.objects.create(
+            device=self.device1,
+            fqdn='SecondFqdn',
+            default_password=True,
+        )
+        self.device2 = Device.objects.create(
+            device_id='device2.d.wott-dev.local',
+            owner=self.user,
+            certificate=TEST_CERT,
+            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23)
+        )
+        self.deviceinfo2 = DeviceInfo.objects.create(
+            device=self.device2,
+            fqdn='ThirdFqdn',
+            default_password=True,
+        )
+
+    def _dev_list_item(self, device):
+        serializer = DeviceListSerializer(instance=device)
+        return serializer.data
+
+    def _dev_list_data(self, lst, total=3, draw='-', length=None):
+        data = [self._dev_list_item(dev) for dev in lst]
+        return {'data': data, 'draw': draw, 'recordsTotal': total,
+                'recordsFiltered': len(lst) if length is None else length}
+
+    def _filter_url(self, by, predicate, value):
+        return reverse('ajax_device_list') + '?' + urlencode({
+            'filter_by': by,
+            'filter_predicate': predicate,
+            'filter_value': value
+        })
+
+    def test_no_filter(self):
+        self.client.login(username='test', password='123')
+        url = reverse('ajax_device_list')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2]))
+
+    def test_filter_date(self):
+        self.client.login(username='test', password='123')
+
+        url = self._filter_url('last-ping', 'eq', '1,days')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+
+        url = self._filter_url('last-ping', 'eq', '2,days')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+
+        url = self._filter_url('last-ping', 'lt', '1,days')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2]))
+
+        url = self._filter_url('last-ping', 'gt', '1,days')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([]))
+
+    def test_filter_name(self):
+        self.client.login(username='test', password='123')
+
+        url = self._filter_url('device-name', 'eq', 'first')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+
+        url = self._filter_url('device-name', 'eq', 'firstfqdn')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+
+        url = self._filter_url('device-name', 'neq', 'firstfqdn')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+
+        url = self._filter_url('device-name', 'c', 'fir')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+
+        url = self._filter_url('device-name', 'nc', 'fir')
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+
+    def test_datatables(self):
+        self.client.login(username='test', password='123')
+
+        url = reverse('ajax_device_list') + '?' + urlencode({'length': 2})
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1], length=3))
+
+        url = reverse('ajax_device_list') + '?' + urlencode({'start': 1})
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2], length=3))
+
+        url = reverse('ajax_device_list') + '?' + urlencode({'start': 1, 'length': 1})
+        response = self.client.get(url)
+        self.assertDictEqual(response.data, self._dev_list_data([ self.device1], length=3))

@@ -577,7 +577,8 @@ class RootViewTests(TestCase):
         self.deviceinfo0 = DeviceInfo.objects.create(
             device=self.device0,
             fqdn='FirstFqdn',
-            default_password=False
+            default_password=False,
+            detected_mirai=True,
         )
 
         self.device1 = Device.objects.create(
@@ -589,7 +590,8 @@ class RootViewTests(TestCase):
         self.deviceinfo1 = DeviceInfo.objects.create(
             device=self.device1,
             fqdn='SecondFqdn',
-            default_password=True
+            default_password=True,
+            detected_mirai=True,
         )
 
     def test_no_filter(self):

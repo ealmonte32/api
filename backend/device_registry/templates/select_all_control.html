@@ -1,4 +1,3 @@
- {% block css %}
   <style xmlns:cursor="http://www.w3.org/1999/xhtml">
   table.dataTable tbody tr.selected {
     color: #2d3646;
@@ -10,21 +9,25 @@
   table.dataTable tbody tr.selected a{
         color: #355fff !important;
   }
-  </style>
- {% endblock %}
 
-  <template id="select-all-toolbar-template">
-    <div class="row">
-      <div class="col-6">
-        <span id="select-all-info-title"></span>
-        <button id="select-all-info-link" onclick="select_all('all', true)"
-          style="background:none; color:blue; border:none; padding:0!important; font: inherit; border-bottom:1px solid #444; cursor: pointer;" >
-        </button>
-      </div>
-      <div class="col-6">
-        <label>Search:<input type="search" class="form-control form-control-sm" placeholder="" aria-controls="datatables-basic"></label>
-      </div>
-    </div>
+  table.dataTable tr.selected td.select-checkbox:after, table.dataTable tr.selected th.select-checkbox:after {
+    /* font-family: "Times", "Times New Roman", "serif", "sans-serif", "EmojiSymbols" !important;*/
+    font-family: EmojiSymbols !important;
+    color: #454bc5;
+  }
+
+  .selectall-toolbar {
+      float: left;
+  }
+
+  </style>
+
+  <template id="select-all-link-btn-template">
+    <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+    <span id="select-all-info-title"></span>
+    <button id="select-all-info-link" onclick="select_all('all', true)"
+      style="background:none; color:blue; border:none; padding:0!important; font: inherit; border-bottom:1px solid #444; cursor: pointer;" >
+    </button>
   </template>
 
   <template id="select-all-template">
@@ -37,6 +40,20 @@
   </template>
 
   <script>
+
+      /***
+       * insert select-all link button panel into datatable toolbar, before search
+       */
+      function set_select_all_link_toolbar(dt_id='datatables-basic')
+      {
+        var dt_filter = $(`#${dt_id}_filter`)[0];
+        var select_toolbar = document.createElement('div');
+        select_toolbar.innerHTML = $('#select-all-link-btn-template').html();
+        select_toolbar.classList.add('selectall-toolbar');
+        var dt_wrapper = $(`#${dt_id}_wrapper`)[0];
+        dt_wrapper.insertBefore(select_toolbar, dt_filter);
+      }
+
       /* select all control for table */
       function clear_select_all_info(){
           $("#select-all-info-title").html('');
@@ -58,13 +75,35 @@
           }
       }
 
+      function _pagination(table, paginate=null, lengthChange=null)
+      {
+          let settings = table.settings();
+          if ( paginate===null || lengthChange===null ){
+              return [ settings[0].oFeatures.bPaginate, settings[0].oFeatures.bLengthChange ];
+          } else {
+              settings[0].oFeatures.bPaginate = paginate;
+              settings[0].oFeatures.bLengthChange = lengthChange;
+              return table.settings(settings);
+          }
+      }
+
       function select_all(page, extend_on_toolbar=false)
       {
           let table = $("#datatables-basic").dataTable().api();
-
+          let page_info = table.page.info();
           let on_page = table.rows({page:'current'}).count();
-          let total = table.rows({page:'all'}).count();
-          table.rows({page:page}).select();
+          let total = page_info.recordsTotal;
+          if (page == 'all' && page_info.serverSide)
+          {
+              let [paginate, lengthChange] = _pagination(table);
+              table.one('draw', function(e, settings){
+                  settings["deferRender"] = true;
+                  table.settings(settings).rows({page:page}).select();
+              });
+              _pagination(table, false, false).ajax.reload(null,false);
+              _pagination(table, paginate, lengthChange);
+          }
+          else table.rows({page:page}).select();
           if(extend_on_toolbar){
               if ( total > on_page && page == 'current'){
                   $("#select-all-info-title").html(`${on_page} rows selected on page.`);
@@ -116,6 +155,6 @@
        *
        *
        *        $("#select-all").html($("#select-all-template").html());
-       *        $("#div.toolbar").html($('#select-all-toolbar-template').html());
+       *        set_select_all_link_toolbar();
        */
   </script>

@@ -1,5 +1,14 @@
 {% extends "admin_base.html" %}
 {% load static %}
+{% block css %}
+  <link rel="stylesheet" href="{% static "css/dark.css" %}">
+  {{ form_media.css }}
+{% endblock %}
+
+{% block js %}
+  <script src="{% static "js/highlight.pack.js" %}"></script>
+  {{ form_media.js }}
+{% endblock %}
 
 {% block title %}WoTT - Dashboard{% endblock title %}
 
@@ -9,14 +18,12 @@
 
 {% block admin_content %}
   <div class="container-fluid p-0">
-{% for device in object_list %}
-{% if device.deviceinfo.detected_mirai %}
+{% for device in mirai_devices %}
 <div class="alert alert-danger" role="alert">
     <p><br />
     <strong>Warning!</strong>
     Detected Mirai (botnet) on {{ device.device_id }}. We've proactively blocked the connection to Mirai's Command and Control nodes.</p>
 </div>
-{% endif %}
 {% endfor %}
     <div class="row">
       <div class="col-12 col-sm-12 col-md-6 col-lg-6  d-none d-xl-flex col-xl d-flex">
@@ -129,27 +136,6 @@
                 <th colspan="6"></th>
               </tfoot>
               <tbody>
-              {% for device in object_list %}
-                <tr>
-                  <td></td>
-                  <td><a href="{% url 'device-detail' device.id %}">{{ device.get_name }}</a></td>
-                  <td>{{ device.deviceinfo.fqdn }}</td>
-                  <td>{{ device.last_ping | timesince }} ago</td>
-                  <td>
-                    {% if device.trust_score is not None %}
-                    <div class="progress position-relative">
-                      <div class="progress-bar bg-{{ device.trust_score_color }}" role="progressbar"
-                           style="width: {{ device.trust_score_percent }}%"></div>
-                      <span
-                          class="justify-content-center d-flex position-absolute w-100">{{ device.trust_score_percent }}%</span>
-                    </div>
-                    {% else %}
-                      N/A
-                    {% endif %}
-                  </td>
-                  <td>{{ device.comment | default_if_none:'' }}</td>
-                </tr>
-              {% endfor %}
               </tbody>
             </table>
           </div>
@@ -316,7 +302,7 @@
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title">Add new device</h2>
+          <h2 class="modal-title" id="modal-title-h2">Add new device</h2>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -354,6 +340,14 @@
     </div>
   </template>
 
+  <template id="trust-score-template">
+    <div class="progress position-relative">
+      <div class="progress-bar bg-white" role="progressbar"
+           style="width: 0000%"></div>
+      <span
+          class="justify-content-center d-flex position-absolute w-100"><!--trust_score_percent-->%</span>
+    </div>
+  </template>
 {% endblock admin_content %}
 
 {% block scripts %}
@@ -370,26 +364,62 @@
     }
   </style>
   <script>
-  const cols = {
-
-  }
+  var table;
   $(() => {
 
+      // last-ping sorting
+      const minute = 60;
+      const hour = 60 * minute;
+      const day = hour * 24;
+      const week = day * 7;
+      const month = day * 30;
+      const year = day * 365;
+      const time_chunks = {
+          'year': year, 'years': year,
+          'month': month, 'months': month,
+          'week': week, 'weeks':week,
+          'day': day, 'days': day,
+          'hour': hour, 'hours': hour,
+          'minute': minute, 'minutes': minute
+          };
+
+      $.extend( $.fn.dataTable.ext.type.order, {
+          "last-ping-pre": function (data){
+              if( !data.endsWith('ago')) return 0;
+              data = data.slice(0, -4);
+              let parts = data.split(',');
+              value = 0;
+              for(let i in parts){
+                let vals = parts[i].trim().replace("\xA0", "\x20").split(" ");
+                value += ( Number(vals[0].trim()) * time_chunks[vals[1].trim()] );
+              }
+              return value;
+          }
+      } );
+
       // batch control initialization.
-      batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
+      var batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
+
+      /**
+       *  DataTable Initialization (Devce List)
+       */
       $('#inst-btn').on('click', show_install_msg );
-      var table = $('#datatables-basic').DataTable({
+      table = $('#datatables-basic').DataTable({
+        processing: true,
+        ajax: dt_ajax,
         responsive: true,
         dom: '<"toolbar">frtip',
         "footerCallback": batch_footer,
         columns:[
-            {data:'', orderable: false, sortable:false, className: 'select-checkbox'},
-            {% for column_name in column_names %}
-                {data: {{ forloop.counter }} },
-            {% endfor %}
+            {data: null, render: render_checkbox, orderable: false, sortable:false, /*className: 'select-checkbox'*/},
+            {data: 'get_name' , render: render_device_name },
+            {data: 'hostname' },
+            {data: 'last_ping', type: 'last-ping' , orderable: true, sortable:true,},
+            {data: 'trust_score', render: render_trustscore },
+            {data: 'comment' },
         ],
         select: {
-            style:    'multi+shift',
+            style:    'os multi+shift',
             selector: 'td:first-child'
         },
       });
@@ -401,8 +431,57 @@
 
       // apply 'select all' features to table.
       $("#select-all").html($("#select-all-template").html());
-      $("#datatables-basic_filter").html($('#select-all-toolbar-template').html());
+      set_select_all_link_toolbar();
 
+      table.on( 'select', function ( e, dt, type, indexes ) {
+          for(let i in indexes){
+             let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
+             item.checked = true;
+          }
+      } );
+
+      table.on( 'deselect', function ( e, dt, type, indexes ) {
+          for(let i in indexes){
+             let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
+             item.checked = false;
+          }
+      } );
+
+      // data table ajax processing
+      function dt_ajax(data, callback, settings)
+      {
+          serializeUrlParams(data); // add url params (fiter) to payload
+          let orig_data = data;
+          $.ajax({
+              url: '/ajax-devices/list?length=100',
+              type: 'GET',
+              data: data,
+              success: function (data) {
+                  if(data.recordsFiltered > 100)
+                  {
+                      callback(data);
+                      $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).show();
+                      $.ajax({
+                          url: '/ajax-devices/list?start=100',
+                          type: 'GET',
+                          data: orig_data,
+                          success: function (data) {
+                              callback(data);
+                          },
+                          error: dt_ajax_fail
+                      });
+                  }
+                  else callback(data);
+              },
+              error: dt_ajax_fail
+          });
+      }
+      // data table ajax errors processing
+      function dt_ajax_fail(jqXHR, textStatus, errorThrown)
+      {
+          $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).hide();
+          show_dialog(`${textStatus} ${jqXHR.status}`, errorThrown, jqXHR.responseText, 'Data retrieving error');
+      }
       /**
        * DataTable footerCallback. Place batch action control to footer
        */
@@ -422,10 +501,7 @@
        */
       function get_object_pk_for_batch( action, row )
       {
-          let re = /<a href="\/devices\/(\d+)\/">/i
-          let res = row[1].match(re);
-          if (res === null) return null;
-          return Number(res[1]);
+          return Number(row.id);
       }
 
 
@@ -551,8 +627,9 @@
        *  @param message - dialog message
        *  @param errors - the errors string to display, if is not null.
        */
-      function show_dialog(title, message, errors=null )
+      function show_dialog(title, message, errors=null, h2_title='Add new device' )
       {
+          $('#modal-title-h2')[0].innerText = h2_title;
           $('#modal-title')[0].innerText = title;
           $('#modal-msg')[0].innerHTML = message;
           if(errors == null)
@@ -576,5 +653,65 @@
           $('.col-md-auto').children().attr('disabled', !b)
       }
 
+      /**
+       * fill payload with url params
+       * @param payload
+       */
+      function serializeUrlParams(payload)
+      {
+          let hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+          for(let i = 0; i < hashes.length; i++)
+          {
+              let hash = hashes[i].split('=');
+              payload[hash[0]] = hash[1];
+          }
+      }
+
+  /**
+   *  datatable cell rendering callback for selection checkbox column
+   * @param data - cell data
+   * @param type - call type (mode)
+   * @param row  - row data
+   * @param meta - meta: [meta.column, meta.row - int]
+   * @returns {string}
+   */
+      function render_checkbox(data, type, row, meta){
+          if(type === 'display'){
+              data = `<input type="checkbox" class="dt-checkbox"></checkbox>`;
+          }
+          return data;
+      }
+
+  /**
+   * datatable cell rendering callback for device name column
+   * @param data - cell data
+   * @param type - call type (mode)
+   * @param row  - row data
+   * @param meta - meta: [meta.column, meta.row - int]
+   * @returns {string|*}
+   */
+      function render_device_name(data, type, row, meta){
+          if (type == 'sort') return data;
+          return `<a href="/devices/${row['id']}/">${data}</a>`;
+      }
+
+  /**
+   * datatable cell rendering callback for trustscore column
+   * @param data - cell data
+   * @param type - call type (mode)
+   * @param row  - row data
+   * @param meta - meta: [meta.column, meta.row - int]
+   * @returns {string|*}
+   */
+      function render_trustscore(data, type, row, meta){
+          if (type == 'sort') return data;
+          if (data == null || data == '') return 'N/A';
+          let template = $("#trust-score-template").html()
+              .replace('white', row['trust_score_color'])
+              .replace('0000', row['trust_score_percent'])
+              .replace('<!--trust_score_percent-->', row['trust_score_percent']);
+
+          return template;
+      }
   </script>
 {% endblock scripts %}

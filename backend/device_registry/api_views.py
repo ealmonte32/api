@@ -1,6 +1,7 @@
 import json
 import logging
 import uuid
+import datetime
 
 from django.http import HttpResponse
 from django.utils import timezone
@@ -11,6 +12,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.query import QuerySet
 from django.urls import reverse
 from django.db import transaction
+from django.db.models import Q
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from google.cloud import datastore
 from rest_framework import status
@@ -20,6 +23,7 @@ from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView, 
 from rest_framework.generics import get_object_or_404
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import ValidationError
 from netaddr import IPAddress
 
 from device_registry import ca_helper
@@ -27,6 +31,7 @@ from device_registry import google_cloud_helper
 from device_registry.serializers import DeviceInfoSerializer, CredentialsListSerializer, CredentialSerializer
 from device_registry.serializers import CreateDeviceSerializer, RenewExpiredCertSerializer, DeviceIDSerializer
 from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSerializer, BatchArgsTagsSerializer
+from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
@@ -758,3 +763,204 @@ class BatchUpdateTagsView(APIView):
 
         msg = f"{objects.count()} {model_name} records updated successfully."
         return Response(msg, status=status.HTTP_200_OK)
+
+
+class DeviceListFilterMixin:
+    """
+    Mixin with device list filtering functionality
+    """
+    FILTER_FIELDS = {
+        'device-name': (
+            ['deviceinfo__fqdn', 'name'],
+            'Device Name',
+            'str'
+        ),
+        'hostname': (
+            'deviceinfo__fqdn',
+            'Hostname',
+            'str'
+        ),
+        'comment': (
+            'comment',
+            'Comment',
+            'str'
+        ),
+        'last-ping': (
+            'last_ping',
+            'Last Ping',
+            'datetime'
+        ),
+        'trust-score': (
+            'trust_score',
+            'Trust Score',
+            'float'
+        ),
+        'default-credentials': (
+            'deviceinfo__default_password',
+            'Default Credentials Found',
+            'bool'
+        ),
+        'tags': (
+            'tags__name',
+            'Tags',
+            'tags'
+        )
+    }
+    PREDICATES = {
+        'str': {
+            'eq': 'iexact',
+            'c': 'icontains'
+        },
+        'tags': {
+            'c': 'in'
+        },
+        'float': {
+            'eq': 'exact',
+            'lt': 'lt',
+            'gt': 'gt'
+        },
+        'datetime': {
+            'eq': 'exact',
+            'lt': 'lt',
+            'gt': 'gt'
+        },
+        'bool': {
+            'eq': 'exact'
+        }
+    }
+
+    def get_filter_q(self, set_filter_dict=False, *args, **kwargs):
+        """
+        Create Device List Filter Query Object
+        GET params:
+        filter_by : filter field argument. (see self.FILTER_FIELDS)
+        filter_value: value used for filtering
+        filter_predicate:
+                "eq" - matches
+                "neq" - not matches
+                "c" - contains
+                "nc" - not contains
+                "lt" - greater than
+                "gt" - less than
+        :return: Q object
+        """
+        query = Q()
+        filter_by = self.request.GET.get('filter_by')
+        filter_predicate = self.request.GET.get('filter_predicate')
+        filter_value = self.request.GET.get('filter_value')
+
+        if filter_by and filter_predicate:
+            if filter_by not in self.FILTER_FIELDS:
+                raise ValidationError('filter subject is invalid.')
+
+            query_by, _, query_type = self.FILTER_FIELDS[filter_by]
+            invert = filter_predicate[0] == 'n'
+            if invert:
+                filter_predicate = filter_predicate[1:]
+            if filter_predicate not in ['', 'eq', 'c', 'lt', 'gt']:
+                raise ValidationError('filter predicate is invalid.')
+
+            predicate = self.PREDICATES[query_type][filter_predicate]
+            if query_type != 'str' and not filter_value:
+                filter_value = None
+            if set_filter_dict:
+                self.filter_dict = {
+                    'by': filter_by,
+                    'predicate': filter_predicate,
+                    'value': filter_value,
+                    'type': query_type
+                }
+
+            if query_type == 'datetime':
+                if ',' not in filter_value:
+                    raise ValidationError('invalid datetime interval argument format.')
+                parts = filter_value.split(',')
+                if len(parts) != 2:
+                    raise ValidationError('invalid datetime interval argument parts.')
+                number, measure = parts
+                if not number:
+                    number = '0'
+                if not number.isdigit() or measure not in ['hours', 'days']:
+                    raise ValidationError('datetime interval argument is invalid.')
+
+                number = int(number)
+                if filter_predicate == 'eq':
+                    interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
+                    interval_end = timezone.now() - datetime.timedelta(**{measure: number})
+                    filter_value = (interval_start, interval_end)
+                    predicate = 'range'
+                else:
+                    filter_value = timezone.now() - datetime.timedelta(**{measure: number})
+            elif query_type == 'tags':
+                filter_value = filter_value.split(',') if filter_value else []
+                if filter_value:
+                    if len(filter_value) != Tag.objects.filter(owner=self.request.user, name__in=filter_value).count():
+                        raise ValidationError('tags argument list is invalid.')
+
+            if isinstance(query_by, list):
+                query = Q()
+                for field in query_by:
+                    query.add(Q(**{f'{field}__{predicate}': filter_value}), Q.OR)
+            else:
+                query = Q(**{f'{query_by}__{predicate}': filter_value})
+
+            if invert:
+                query = ~query
+        else:
+            if set_filter_dict:
+                self.filter_dict = None
+        return query
+
+
+class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
+    """
+    List all of the users devices.
+    """
+    serializer_class = DeviceListSerializer
+    ajax_info = dict()
+
+    def _get_int_arg(self, name, default, min_val):
+        try:
+            val = int(self.request.GET.get(name, default))
+        except ValueError:
+            raise ValidationError(f'{name} argument is invalid.')
+        if val < min_val:
+            raise ValidationError(f'{name} argument is out of range.')
+        return val
+
+    def _datatables(self, *args, **kwargs):
+        """
+        Process JQuery DataTables AJAX arguments (GET mode used, because of device list filter use GET params)
+        parameters description https://datatables.net/manual/server-side
+        :return: device list queryset, and additional DataTables params in self.ajax_info
+        """
+
+        self.ajax_info['draw'] = self.request.GET.get('draw', '-')  # this value should be repeated in response
+
+        start = self._get_int_arg('start', 0, 0)              # start row of page [0..oo)
+        length = self._get_int_arg('length', -1, -1)          # page length or -1 for all [-1..oo)
+        queryset = self.get_queryset(*args, **kwargs)
+        self.ajax_info['recordsTotal'] = queryset.count()     # total unfiltered records count
+        query = self.get_filter_q(*args, **kwargs)            # our filters
+        devices = queryset.filter(query).distinct()
+        self.ajax_info['recordsFiltered'] = devices.count()   # total filtered records count
+        if length == -1:                                      # currently we have only 2 "modes":
+            if start == 0:                                    # - with length = -1, then returns all records
+                return devices
+            else:
+                return devices[start:]
+        if start == 0:                                        # - with length = N, then return first N records
+            return devices[:length]
+        else:
+            return devices[start:start+length]
+
+    def get_queryset(self, *args, **kwargs):
+        queryset = Device.objects.filter(owner=self.request.user)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self._datatables(*args, **kwargs)
+        serializer = self.get_serializer(queryset, many=True)
+        payload = {'data': serializer.data}
+        payload.update(self.ajax_info)
+        return Response(payload)

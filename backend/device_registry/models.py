@@ -73,7 +73,7 @@ class Device(models.Model):
     def get_name(self):
         if self.name:
             return self.name
-        fqdn = self.deviceinfo.fqdn
+        fqdn = self.hostname
         if fqdn:
             return fqdn[:36]
         else:
@@ -98,6 +98,12 @@ class Device(models.Model):
     @property
     def has_valid_hostname(self):
         self.device_id.endswith(settings.COMMON_NAME_PREFIX)
+
+    @property
+    def hostname(self):
+        if not hasattr(self, 'deviceinfo'):
+            return ''
+        return self.deviceinfo.fqdn if self.deviceinfo else ''
 
     @property
     def actions_count(self):
@@ -162,7 +168,10 @@ class Device(models.Model):
                sum(cls.COEFFICIENTS.values())
 
     def trust_score_percent(self):
-        return int(self.trust_score * 100)
+        if self.trust_score:
+            return int(self.trust_score * 100)
+        else:
+            return 0
 
     def trust_score_color(self):
         return get_bootstrap_color(self.trust_score_percent())

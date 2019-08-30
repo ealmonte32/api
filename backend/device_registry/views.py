@@ -1,4 +1,3 @@
-import datetime
 import json
 import uuid
 
@@ -11,138 +10,29 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
-from django.utils import timezone
 
-from tagulous.forms import TagWidget
 
 from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from device_registry.models import Action, Device, average_trust_score, PortScan, FirewallState
 from device_registry.models import PairingKey, get_bootstrap_color
+from device_registry.api_views import DeviceListFilterMixin
 
 
-class RootView(LoginRequiredMixin, ListView):
+class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
     model = Device
     template_name = 'root.html'
-
-    FILTER_FIELDS = {
-        'device-name': (
-            ['deviceinfo__fqdn', 'name'],
-            'Device Name',
-            'str'
-        ),
-        'hostname': (
-            'deviceinfo__fqdn',
-            'Hostname',
-            'str'
-        ),
-        'comment': (
-            'comment',
-            'Comment',
-            'str'
-        ),
-        'last-ping': (
-            'last_ping',
-            'Last Ping',
-            'datetime'
-        ),
-        'trust-score': (
-            'trust_score',
-            'Trust Score',
-            'float'
-        ),
-        'default-credentials': (
-            'deviceinfo__default_password',
-            'Default Credentials Found',
-            'bool'
-        ),
-        'tags': (
-            'tags__name',
-            'Tags',
-            'tags'
-        )
-    }
-    PREDICATES = {
-        'str': {
-            'eq': 'iexact',
-            'c': 'icontains'
-        },
-        'tags': {
-            'c': 'in'
-        },
-        'float': {
-            'eq': 'exact',
-            'lt': 'lt',
-            'gt': 'gt'
-        },
-        'datetime': {
-            'eq': 'exact',
-            'lt': 'lt',
-            'gt': 'gt'
-        },
-        'bool': {
-            'eq': 'exact'
-        }
-    }
+    context_object_name = 'mirai_devices'  # device list moved to ajax, so only mirai detected devices still here
+    filter_dict = None
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        common_query = Q(owner=self.request.user)
-        query = Q()
-
-        filter_by = self.request.GET.get('filter_by')
-        filter_predicate = self.request.GET.get('filter_predicate')
-        filter_value = self.request.GET.get('filter_value')
-
-        if filter_by and filter_predicate:
-            query_by, _, query_type = self.FILTER_FIELDS[filter_by]
-            invert = filter_predicate[0] == 'n'
-            if invert:
-                filter_predicate = filter_predicate[1:]
-            predicate = self.PREDICATES[query_type][filter_predicate]
-            if query_type != 'str' and not filter_value:
-                filter_value = None
-            self.request.filter_dict = {
-                'by': filter_by,
-                'predicate': filter_predicate,
-                'value': filter_value,
-                'type': query_type
-            }
-
-            if query_type == 'datetime':
-                number, measure = filter_value.split(',')
-                if not number:
-                    number = 0
-                number = int(number)
-                if filter_predicate == 'eq':
-                    interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
-                    interval_end = timezone.now() - datetime.timedelta(**{measure: number})
-                    filter_value = (interval_start, interval_end)
-                    predicate = 'range'
-                else:
-                    filter_value = timezone.now() - datetime.timedelta(**{measure: number})
-            elif query_type == 'tags':
-                # this query may produce duplicate rows, that's why distinct() is added at the end
-                filter_value = filter_value.split(',') if filter_value else []
-
-            if isinstance(query_by, list):
-                query = Q()
-                for field in query_by:
-                    query.add(Q(**{f'{field}__{predicate}': filter_value}), Q.OR)
-            else:
-                query = Q(**{f'{query_by}__{predicate}': filter_value})
-
-            if invert:
-                query = ~query
-        else:
-            self.request.filter_dict = None
-
+        common_query = Q(owner=self.request.user, deviceinfo__detected_mirai=True)
+        query = self.get_filter_q(set_filter_dict=True)
         return queryset.filter(common_query & query).distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         avg_trust_score = average_trust_score(self.request.user)
-
         context.update({
             'avg_trust_score': avg_trust_score,
             'avg_trust_score_percent': int(avg_trust_score * 100) if avg_trust_score is not None else None,
@@ -159,7 +49,7 @@ class RootView(LoginRequiredMixin, ListView):
             'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in self.FILTER_FIELDS.items()],
 
             # TODO: convert this into a list of dicts for multiple filters
-            'filter': self.request.filter_dict
+            'filter': self.filter_dict
         })
         return context
 
