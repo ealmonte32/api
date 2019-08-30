@@ -875,13 +875,15 @@ class DeviceListFilterMixin:
                 if ',' not in filter_value:
                     raise ValidationError('datetime interval argument is invalid.')
                 parts = filter_value.split(',')
-                if not parts[0]:
-                    parts[0] = '0'
-                if not parts[0].isdigit() or parts[1] not in ['hours', 'days']:
+                if len(parts) != 2:
+                    raise ValidationError('datetime interval argument is invalid.')
+                number, measure = parts
+                if not number:
+                    number = '0'
+                if not number.isdigit() or measure not in ['hours', 'days']:
                     raise ValidationError('datetime interval argument is invalid.')
 
-                number = int(parts[0])
-                measure = parts[1]
+                number = int(number)
                 if filter_predicate == 'eq':
                     interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
                     interval_end = timezone.now() - datetime.timedelta(**{measure: number})
