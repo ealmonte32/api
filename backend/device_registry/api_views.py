@@ -873,10 +873,10 @@ class DeviceListFilterMixin:
 
             if query_type == 'datetime':
                 if ',' not in filter_value:
-                    raise ValidationError('datetime interval argument is invalid.')
+                    raise ValidationError('invalid datetime interval argument format.')
                 parts = filter_value.split(',')
                 if len(parts) != 2:
-                    raise ValidationError('datetime interval argument is invalid.')
+                    raise ValidationError('invalid datetime interval argument parts.')
                 number, measure = parts
                 if not number:
                     number = '0'
@@ -925,7 +925,7 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         except ValueError:
             raise ValidationError(f'{name} argument is invalid.')
         if val < min_val:
-            raise ValidationError(f'{name} argument is invalid.')
+            raise ValidationError(f'{name} argument is out of range.')
         return val
 
     def _datatables(self, *args, **kwargs):
