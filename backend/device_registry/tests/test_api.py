@@ -717,15 +717,26 @@ class MtlsPingViewTest(APITestCase):
     def test_ping_get_success(self):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'policy': self.device.firewallstate.policy_string,
-                                             'block_ports': [], 'block_networks': settings.SPAM_NETWORKS})
+        self.assertDictEqual(response.data, {
+            'firewall': {
+                'policy': self.device.firewallstate.policy_string,
+                'block_ports': [], 'block_networks': settings.SPAM_NETWORKS
+            },
+            'deb_packages_hash': None
+        })
 
     def test_pong_data(self):
         # 1st request
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
-                                             'policy': self.device.firewallstate.policy_string})
+        self.assertDictEqual(response.data, {
+            'firewall': {
+                'block_ports': [], 
+                'block_networks': settings.SPAM_NETWORKS,
+                'policy': self.device.firewallstate.policy_string
+            },
+            'deb_packages_hash': None
+        })
         # 2nd request
         self.device.portscan.block_ports = [['192.168.1.178', 'tcp', 22, False]]
         self.device.portscan.block_networks = [['192.168.1.177', False]]
@@ -735,9 +746,14 @@ class MtlsPingViewTest(APITestCase):
 
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, {'policy': self.device.firewallstate.policy_string,
-                                             'block_ports': [['192.168.1.178', 'tcp', 22, False]],
-                                             'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS})
+        self.assertDictEqual(response.data, {
+            'firewall': {
+                'policy': self.device.firewallstate.policy_string,
+                'block_ports': [['192.168.1.178', 'tcp', 22, False]],
+                'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS
+            },
+            'deb_packages_hash': None
+        })
 
     def test_ping_creates_models(self):
         devinfo_obj_count_before = DeviceInfo.objects.count()
