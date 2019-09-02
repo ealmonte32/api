@@ -43,7 +43,7 @@
             <div class="col-4" id="subj_element_div">
             </div>
             <div class="col-2">
-              <button type="button" class="btn btn-facebook" id="action_button" data-toggle="popover" data-placement="top" style="width: 6rem;">
+              <button type="button" class="btn btn-facebook" id="action_button" style="width: 6rem;">
                 <span class="spinner-border spinner-border-sm" style="display: none;" id="batch_apply_spinner"></span> Apply
               </button>
             </div>
@@ -226,7 +226,6 @@
                           $('#wott-toast-title').text('Action Applied');
                           $('#wott-toast-extra').text('now');
                           $('.toast').toast('show');
-                        {#show_popover(button, 'Action Applied', e);#}
                       }
                       $('#batch_apply_spinner')[0].style.display = 'none';
                       button.prop('disabled', false);
@@ -272,16 +271,5 @@
           };
           return batchControl;
       }
-
-      function show_popover(el, title, content='') {
-        el.attr('title', title);
-        el.attr('data-content', content);
-        el.popover('show');
-        el.on( "mouseout", function (ev) {
-            let el = $(ev.currentTarget);
-            el.off("mouseout");
-            el.popover('hide');
-        });
-    }
 
   </script>
