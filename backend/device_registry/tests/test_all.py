@@ -536,6 +536,20 @@ class DeviceDetailViewTests(TestCase):
     def test_insecure_services(self):
         self.client.login(username='test', password='123')
         url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+        
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '>telnetd<')
+        self.assertNotContains(response, '>fingerd<')
+        self.assertNotContains(response, 'No insecure services detected')
+
+        self.device.deb_packages = {
+            'packages': [
+                {'name': 'python2', 'version': 'VERSION'},
+                {'name': 'python3', 'version': 'VERSION'}
+            ]
+        }
+        self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, '>telnetd<')

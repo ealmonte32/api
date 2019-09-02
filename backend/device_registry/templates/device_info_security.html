@@ -86,8 +86,10 @@
                       <li>{{ service_name }}</p>
                     {% endfor %}
                     </ul>
-                    {% else %}
+                    {% elif services is not None %}
                     No insecure services detected.
+                    {% else %}
+                    N/A
                     {% endif %}
                   {% endwith %}
                   </td>
