@@ -540,6 +540,7 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, '>telnetd<')
         self.assertNotContains(response, '>fingerd<')
+        self.assertContains(response, 'No insecure services detected')
 
         self.device.deb_packages = {
             'packages': [

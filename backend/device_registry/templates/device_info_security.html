@@ -79,11 +79,17 @@
                         Insecure Services
                     </th>
                   <td>
-                  <ul>
-                  {% for service_name in object.insecure_services %}
-                    <li>{{ service_name }}</p>
-                  {% endfor %}
-                  </ul>
+                  {% with object.insecure_services as services %}
+                    {% if services %}
+                    <ul>
+                    {% for service_name in services %}
+                      <li>{{ service_name }}</p>
+                    {% endfor %}
+                    </ul>
+                    {% else %}
+                    No insecure services detected.
+                    {% endif %}
+                  {% endwith %}
                   </td>
                 </tr>
                 <th scope="row">Logins</th>

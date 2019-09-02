@@ -868,7 +868,7 @@ class MtlsPingViewTest(APITestCase):
             'deb_packages_hash': 'abcdef'
         })
         self.device.refresh_from_db()
-        self.assertListEqual(self.device.deb_packages, packages)
+        self.assertListEqual(self.device.deb_packages['packages'], packages)
 
 
 class DeviceEnrollView(APITestCase):
