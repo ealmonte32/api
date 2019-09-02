@@ -78,7 +78,11 @@
                     <th scope="row">
                         Insecure Services
                     </th>
-                  <td>Coming soon!</td>
+                  <td>
+                  {% for service_name in object.insecure_services %}
+                    <p class="m-0">{{ service_name }}</p>
+                  {% endfor %}
+                  </td>
                 </tr>
                 <th scope="row">Logins</th>
                 <td>

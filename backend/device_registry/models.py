@@ -71,6 +71,23 @@ class Device(models.Model):
     def certificate_expired(self):
         return self.certificate_expires < timezone.now()
 
+    INSECURE_SERVICES = [
+        'fingerd',
+        'tftpd',
+        'telnetd',
+        'snmpd',
+        'xinetd',
+        'nis',
+        'atftpd',
+        'tftpd-hpa',
+        'rsh-server',
+        'rsh-redone-server'
+    ]
+    @property
+    def insecure_services(self):
+        packages = set([p['name'] for p in self.deb_packages['packages']])
+        return set(self.INSECURE_SERVICES) & packages
+
     def get_name(self):
         if self.name:
             return self.name
