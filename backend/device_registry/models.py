@@ -85,8 +85,9 @@ class Device(models.Model):
     ]
     @property
     def insecure_services(self):
-        packages = set([p['name'] for p in self.deb_packages['packages']])
-        return set(self.INSECURE_SERVICES) & packages
+        if 'packages' in self.deb_packages:
+            packages = set([p['name'] for p in self.deb_packages['packages']])
+            return set(self.INSECURE_SERVICES) & packages
 
     def get_name(self):
         if self.name:
