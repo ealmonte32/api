@@ -79,9 +79,11 @@
                         Insecure Services
                     </th>
                   <td>
+                  <ul>
                   {% for service_name in object.insecure_services %}
-                    <p class="m-0">{{ service_name }}</p>
+                    <li>{{ service_name }}</p>
                   {% endfor %}
+                  </ul>
                   </td>
                 </tr>
                 <th scope="row">Logins</th>

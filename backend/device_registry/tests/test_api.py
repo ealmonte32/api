@@ -849,6 +849,27 @@ class MtlsPingViewTest(APITestCase):
         self.device.refresh_from_db()
         self.assertGreater(self.device.trust_score, 0.42)
 
+    def test_ping_writes_packages(self):
+        packages = [{'name': 'PACKAGE', 'version': 'VERSION'}]
+        self.ping_payload['deb_packages'] = {
+            'hash': 'abcdef',
+            'packages': packages
+        }
+        self.client.post(self.url, self.ping_payload, **self.headers)
+
+        response = self.client.get(self.url, **self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, {
+            'firewall': {
+                'block_ports': [],
+                'block_networks': settings.SPAM_NETWORKS,
+                'policy': self.device.firewallstate.policy_string
+            },
+            'deb_packages_hash': 'abcdef'
+        })
+        self.device.refresh_from_db()
+        self.assertListEqual(self.device.deb_packages, packages)
+
 
 class DeviceEnrollView(APITestCase):
     def setUp(self):

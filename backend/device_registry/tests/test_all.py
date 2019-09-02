@@ -532,6 +532,26 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<pre>pi:')
         self.assertContains(response, 'success: 1')
+    
+    def test_insecure_services(self):
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '>telnetd<')
+        self.assertNotContains(response, '>fingerd<')
+
+        self.device.deb_packages = {
+            'packages': [
+                {'name': 'telnetd', 'version': 'VERSION'},
+                {'name': 'fingerd', 'version': 'VERSION'}
+            ]
+        }
+        self.device.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '>telnetd<')
+        self.assertContains(response, '>fingerd<')
 
 
 class PairingKeysView(TestCase):
