@@ -761,7 +761,8 @@ class BatchUpdateTagsView(APIView):
                 Relation.objects.filter(**kwargs).delete()
             Relation.objects.bulk_create(relations)
 
-        msg = f"{objects.count()} {model_name} records updated successfully."
+        verb = "Added" if action == 'add' else 'Set'
+        msg = f"{verb} tags to {objects.count()} {model_name}s."
         return Response(msg, status=status.HTTP_200_OK)
 
 

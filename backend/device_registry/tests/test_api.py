@@ -1056,7 +1056,7 @@ class BatchUpdateTagsViewTest(APITestCase):
                 'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
         response = self.client.post(self.url, data=data )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        msg = f"2 device records updated successfully."
+        msg = f"Set tags to 2 devices."
         self.assertEqual(response.data, msg)
         self.assertEqual(Device.objects.get(pk=self.device.pk).tags.__str__(), "tag2, tag3, tag4")
         self.assertEqual(Device.objects.get(pk=self.device1.pk).tags.__str__(), "tag1, tag2")
@@ -1067,7 +1067,7 @@ class BatchUpdateTagsViewTest(APITestCase):
                 'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
         response = self.client.post(self.url, data=data )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        msg = f"2 device records updated successfully."
+        msg = f"Added tags to 2 devices."
         self.assertEqual(response.data, msg)
         self.assertEqual(Device.objects.get(pk=self.device.pk).tags.__str__(), "tag1, tag2, tag3, tag4")
         self.assertEqual(Device.objects.get(pk=self.device1.pk).tags.__str__(), "tag1, tag2")

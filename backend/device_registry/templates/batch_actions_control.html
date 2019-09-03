@@ -43,7 +43,7 @@
             <div class="col-4" id="subj_element_div">
             </div>
             <div class="col-2">
-              <button type="button" class="btn btn-facebook" id="action_button">
+              <button type="button" class="btn btn-facebook" id="action_button" style="width: 6rem;">
                 <span class="spinner-border spinner-border-sm" style="display: none;" id="batch_apply_spinner"></span> Apply
               </button>
             </div>
@@ -220,7 +220,13 @@
                       }),
                       method: 'POST',
                       contentType: 'application/json',
-                  }).done(function(e){
+                  }).done(function(e, res){
+                      if(res == 'success') {
+                          $('#wott-toast-message').text(e);
+                          $('#wott-toast-title').text('Action Applied');
+                          $('#wott-toast-extra').text('now');
+                          $('.toast').toast('show');
+                      }
                       $('#batch_apply_spinner')[0].style.display = 'none';
                       button.prop('disabled', false);
                   }).fail(function(a){
