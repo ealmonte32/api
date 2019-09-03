@@ -59,11 +59,9 @@ class MtlsPingView(APIView):
         block_networks = portscan_object.block_networks.copy()
         block_networks.extend(settings.SPAM_NETWORKS)
         return Response({
-            'firewall': {
-                'policy': firewallstate_object.policy_string,
-                firewallstate_object.ports_field_name: portscan_object.block_ports,
-                'block_networks': block_networks
-            },
+            'policy': firewallstate_object.policy_string,
+            firewallstate_object.ports_field_name: portscan_object.block_ports,
+            'block_networks': block_networks,
             'deb_packages_hash': device.deb_packages.get('hash')
         })
 

@@ -718,10 +718,8 @@ class MtlsPingViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
-            'firewall': {
-                'policy': self.device.firewallstate.policy_string,
-                'block_ports': [], 'block_networks': settings.SPAM_NETWORKS
-            },
+            'policy': self.device.firewallstate.policy_string,
+            'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
             'deb_packages_hash': None
         })
 
@@ -730,11 +728,9 @@ class MtlsPingViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
-            'firewall': {
-                'block_ports': [], 
-                'block_networks': settings.SPAM_NETWORKS,
-                'policy': self.device.firewallstate.policy_string
-            },
+            'block_ports': [],
+            'block_networks': settings.SPAM_NETWORKS,
+            'policy': self.device.firewallstate.policy_string,
             'deb_packages_hash': None
         })
         # 2nd request
@@ -747,11 +743,9 @@ class MtlsPingViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
-            'firewall': {
-                'policy': self.device.firewallstate.policy_string,
-                'block_ports': [['192.168.1.178', 'tcp', 22, False]],
-                'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS
-            },
+            'policy': self.device.firewallstate.policy_string,
+            'block_ports': [['192.168.1.178', 'tcp', 22, False]],
+            'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS,
             'deb_packages_hash': None
         })
 
@@ -860,11 +854,9 @@ class MtlsPingViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
-            'firewall': {
-                'block_ports': [],
-                'block_networks': settings.SPAM_NETWORKS,
-                'policy': self.device.firewallstate.policy_string
-            },
+            'block_ports': [],
+            'block_networks': settings.SPAM_NETWORKS,
+            'policy': self.device.firewallstate.policy_string,
             'deb_packages_hash': 'abcdef'
         })
         self.device.refresh_from_db()
