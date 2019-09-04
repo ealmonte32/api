@@ -5,6 +5,13 @@ from django.conf import settings
 from psycopg2 import OperationalError
 
 
+def starts_with_any(string, patterns_list):
+    for pattern in patterns_list:
+        if string.startswith(pattern):
+            return True
+    return False
+
+
 def ensure_connection_with_retries(self):
     """
     A function supposed to be used for patching the standard django database connection class' method
@@ -12,6 +19,9 @@ def ensure_connection_with_retries(self):
     After each consecutive connection error it waits 1, 2, 4, 8, 16, 32, ... seconds until success or
      the end of time allowed to spend on reconnection attempts.
     """
+    handled_errors_patterns = ('could not connect to server: Connection refused',
+                               'could not connect to server: No route to host'
+                               'could not translate host name')
 
     def custom_properties_cleanup(obj):
         delattr(obj, '_is_connecting')
@@ -28,8 +38,7 @@ def ensure_connection_with_retries(self):
                 self.connect()
             except OperationalError as e:
                 # We need to reconnect only after particular OperationalError types.
-                if e.args and (e.args[0].startswith('could not connect to server: Connection refused') or
-                               e.args[0].startswith('could not translate host name')):
+                if e.args and isinstance(e.args[0], str) and starts_with_any(e.args[0], handled_errors_patterns):
                     # Connection error.
                     if not hasattr(self, "_connection_retry"):
                         self._connection_retry = 0
