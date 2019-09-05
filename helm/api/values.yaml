@@ -30,6 +30,12 @@ service:
     externalPort: 80
     internalPort: 8000
     debug: 0
+  celery:
+    name: "celery"
+    debug: 0
+  celery-beat:
+        name: "celery-beat"
+    debug: 0
   static:
     name: "static"
     externalPort: 80
@@ -41,6 +47,10 @@ apiSecrets: api-secrets
 namespace: api
 databaseHost: psql0-gcloud-sqlproxy.sqlproxy
 caHost: asgard.us-central1-c.c.wott-prod.internal
+
+rabbitHost: rabbit0-rabbitmq.rabbit
+rabbitUser: user
+rabbitVhost: wott-dash
 
 ingress:
   enabled: true
