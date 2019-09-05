@@ -12,6 +12,7 @@ services:
       - ./backend:/usr/src/app
     depends_on:
       - psql
+      - wott-static
 
   dash-dev:
     hostname: dash-dev0
@@ -22,6 +23,7 @@ services:
       - DATASTORE_KEY_JSON
     build:
       context: .
+    image: wott-api:latest
     volumes:
       - ./backend:/usr/src/app
     ports:
@@ -29,7 +31,7 @@ services:
     depends_on:
       - psql
       - migrate
-      - nginx-static
+      - wott-static
 
   api-dev:
     hostname: api-dev0
@@ -66,14 +68,14 @@ services:
       - psql
       - migrate
 
-  nginx-static:
+  wott-static:
     hostname: wott-static
     build:
       context: .
       dockerfile: Dockerfile-nginx
       args:
         DJANGO_SETTINGS_MODULE: backend.settings.dev
-    image: nginx-static:latest
+    image: wott-static:latest
     ports:
       - '8003:80'
 

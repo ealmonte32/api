@@ -25,7 +25,11 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["celery"]
-          args: ["-A backend worker -l error --time-limit=90 --soft-time-limit=60"]
+          args:
+            - "-A backend worker"
+            - "-l error"
+            - "--time-limit=90"
+            - "--soft-time-limit=60"
           env:
             - name: RELEASE_TRIGGER
               value: "{{ .Values.releaseTimeStamp }}"

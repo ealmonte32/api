@@ -25,7 +25,9 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["celery"]
-          args: ["-A backend beat -l error"]
+          args:
+            - "-A backend beat"
+            - "-l error"
           env:
             - name: RELEASE_TRIGGER
               value: "{{ .Values.releaseTimeStamp }}"
