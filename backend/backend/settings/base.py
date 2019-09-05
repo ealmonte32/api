@@ -203,9 +203,13 @@ USE_NATIVE_JSONFIELD = True
 SENTRY_DSN = os.getenv('SENTRY_DSN')
 if SENTRY_DSN:
     import sentry_sdk
+
+    with open(os.path.join(REPO_DIR, 'release.txt'), 'r') as release_file:
+        release = release_file.read().strip()
+
     from sentry_sdk.integrations.django import DjangoIntegration
 
-    sentry_sdk.init(SENTRY_DSN, integrations=[DjangoIntegration()])
+    sentry_sdk.init(SENTRY_DSN, integrations=[DjangoIntegration()], release=release)
 
 # 'tagulous'
 SERIALIZATION_MODULES = {
