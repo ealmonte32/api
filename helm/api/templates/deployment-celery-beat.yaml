@@ -26,8 +26,11 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["celery"]
           args:
-            - "-A backend beat"
+            - "-A backend"
             - "-l error"
+            - "--pidfile=/tmp/celery.pid"
+            - "-s /tmp/celerybeat-schedule"
+            - "beat"
           env:
             - name: RELEASE_TRIGGER
               value: "{{ .Values.releaseTimeStamp }}"

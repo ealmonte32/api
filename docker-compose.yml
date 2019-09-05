@@ -107,7 +107,7 @@ services:
       - RABBIT_VHOST=wott-dash
     build:
       context: .
-    command: celery -A backend worker -l error --time-limit=90 --soft-time-limit=60
+    command: celery -A backend -l error --time-limit=90 --soft-time-limit=60 --pidfile="/tmp/celery.pid" worker
     volumes:
       - ./backend:/usr/src/app
     depends_on:
@@ -126,7 +126,7 @@ services:
       - RABBIT_VHOST=wott-dash
     build:
       context: .
-    command: celery -A backend beat -l error
+    command: celery -A backend -l error --pidfile="/tmp/celery.pid" -s "/tmp/celerybeat-schedule" beat
     volumes:
       - ./backend:/usr/src/app
     depends_on:
