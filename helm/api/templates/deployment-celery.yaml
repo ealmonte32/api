@@ -26,12 +26,12 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["celery"]
           args:
+            - "worker"
             - "-A backend"
             - "-l error"
             - "--time-limit=90"
             - "--soft-time-limit=60"
             - "--pidfile=/tmp/celery.pid"
-            - "worker"
           env:
             - name: RELEASE_TRIGGER
               value: "{{ .Values.releaseTimeStamp }}"
@@ -66,7 +66,7 @@ spec:
                   name: {{ .Values.apiSecrets }}
                   key: rabbitPassword
           resources:
-{{ toYaml .Values.resources.api | indent 12 }}
+{{ toYaml .Values.resources.celery | indent 12 }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

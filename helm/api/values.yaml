@@ -74,6 +74,20 @@ resources:
     requests:
       cpu: "0.2"
       memory: "512Mi"
+  celery:
+    limits:
+      cpu: "1"
+      memory: "768Mi"
+    requests:
+      cpu: "0.2"
+      memory: "512Mi"
+  celery_beat:
+    limits:
+      cpu: "1"
+      memory: "768Mi"
+    requests:
+      cpu: "0.2"
+      memory: "512Mi"
   dash:
     limits:
       cpu: "1"
