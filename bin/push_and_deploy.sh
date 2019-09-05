@@ -26,4 +26,3 @@ helm upgrade \
     --set image.tag=${GITHASH} \
     --set releaseTimeStamp="$(date +%s)" \
     --reuse-values
-

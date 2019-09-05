@@ -51,6 +51,7 @@ Then create a vhost using:
 
 ```
 rabbitmqctl add_vhost wott-dash
+rabbitmqctl set_permissions -p wott-dash user ".*" ".*" ".*"
 ```
 
 ## Cert-manager
