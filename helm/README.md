@@ -36,6 +36,24 @@ $ helm install stable/nginx-ingress \
     --set controller.stats.enabled=true
 ```
 
+## RabbitMQ
+
+```
+$ kubectl create ns rabbit
+$ helm install stable/rabbitmq
+    --name rabbit0
+    --name nginx0 \
+    --namespace rabbit \
+    --set metrics.enabled=true
+```
+
+Then create a vhost using:
+
+```
+rabbitmqctl add_vhost wott-dash
+rabbitmqctl set_permissions -p wott-dash user ".*" ".*" ".*"
+```
+
 ## Cert-manager
 
 CertManager is used to facilitate Let's Encrypt certificate management. The installation instructions can be found [here](https://docs.cert-manager.io/en/latest/getting-started/install.html), but in short, here's what we need to do to install it:
@@ -70,7 +88,6 @@ $ kubectl create -f misc/{ENV}-secrets.yaml
 $ kubectl create secret generic wott-ca -n api --from-file=ca.crt=backend/files/cert-bundle.crt
 $ k8sec set api-secrets --base64 datastoreKey=$(cat ~/Downloads/wott-prod-[...].json| base64 -w0)  -n api
 ```
-
 
 
 Once the secrets are live, you can deploy the actual app using:

@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend ./
 COPY ./misc /usr/src/misc
-COPY --from=nginx-static /usr/share/nginx/html/webpack-stats.json /usr/src/misc/
+COPY --from=wott-static /usr/share/nginx/html/webpack-stats.json /usr/src/misc/
 
 ENV CFSSL_SERVER wott-ca
 

@@ -11,10 +11,10 @@ GITHASH="git-$(git rev-parse --short HEAD)"
 
 docker-compose build
 
-docker tag api_api-dev gcr.io/wott-prod/wott-api:${GITHASH}
-docker tag api_api-dev gcr.io/wott-prod/wott-api:latest
-docker tag api_nginx-static gcr.io/wott-prod/wott-static:${GITHASH}
-docker tag api_nginx-static gcr.io/wott-prod/wott-static:latest
+docker tag wott-api gcr.io/wott-prod/wott-api:${GITHASH}
+docker tag wott-api gcr.io/wott-prod/wott-api:latest
+docker tag wott-static gcr.io/wott-prod/wott-static:${GITHASH}
+docker tag wott-static gcr.io/wott-prod/wott-static:latest
 
 docker push gcr.io/wott-prod/wott-api:${GITHASH}
 docker push gcr.io/wott-prod/wott-api:latest
