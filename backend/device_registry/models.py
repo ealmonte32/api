@@ -1,3 +1,4 @@
+from enum import Enum
 import datetime
 from statistics import mean
 import json
@@ -39,6 +40,18 @@ class JsonFieldTransitionHelper(JSONField):
         return value
 
 
+class DebPackage(models.Model):
+    class Distro(Enum):
+        DEBIAN = 'debian'
+        RASPBIAN = 'raspbian'
+        UBUNTU = 'ubuntu'
+
+    name = models.CharField(max_length=128, null=False, blank=False)
+    version = models.CharField(max_length=128, null=False, blank=False)
+    distro = models.CharField(max_length=128, null=False, blank=False,
+                              choices=[(tag, tag.value) for tag in Distro])
+
+
 class Device(models.Model):
     device_id = models.CharField(
         max_length=128,
@@ -65,7 +78,8 @@ class Device(models.Model):
     agent_version = models.CharField(max_length=36, blank=True, null=True)
     tags = tagulous.models.TagField(to=Tag, blank=True)
     trust_score = models.FloatField(null=True)
-    deb_packages = JSONField(blank=True, default=dict)
+    deb_packages = models.ManyToManyField(DebPackage)
+    deb_packages_hash = models.CharField(max_length=16, blank=True, null=True)
 
     @property
     def certificate_expired(self):
@@ -85,9 +99,9 @@ class Device(models.Model):
     ]
     @property
     def insecure_services(self):
-        if 'packages' in self.deb_packages:
-            packages = set([p['name'] for p in self.deb_packages['packages']])
-            return set(self.INSECURE_SERVICES) & packages
+        if not self.deb_packages_hash:
+            return None
+        return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
 
     def get_name(self):
         if self.name:

@@ -82,8 +82,8 @@
                   {% with object.insecure_services as services %}
                     {% if services %}
                     <ul>
-                    {% for service_name in services %}
-                      <li>{{ service_name }}</li>
+                    {% for service in services %}
+                      <li>{{ service.name }}</li>
                     {% endfor %}
                     </ul>
                     {% elif services is not None %}

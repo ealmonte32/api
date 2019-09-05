@@ -22,6 +22,7 @@ INSTALLED_APPS += [
     'django_extensions'
 ]
 
-IS_DEV = True
+IS_MTLS_API=IS_API=IS_DASH=IS_DEV = True
+ALLOWED_HOSTS += ['*']
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
