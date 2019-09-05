@@ -17,7 +17,10 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=128)),
                 ('version', models.CharField(max_length=128)),
-                ('distro', models.CharField(choices=[(device_registry.models.Distro('debian'), 'debian'), (device_registry.models.Distro('raspbian'), 'raspbian'), (device_registry.models.Distro('ubuntu'), 'ubuntu')], max_length=128)),
+                ('distro', models.CharField(choices=[(device_registry.models.DebPackage.Distro('debian'), 'debian'),
+                                                     (device_registry.models.DebPackage.Distro('raspbian'), 'raspbian'),
+                                                     (device_registry.models.DebPackage.Distro('ubuntu'), 'ubuntu')],
+                                            max_length=128)),
             ],
         ),
         migrations.AddField(

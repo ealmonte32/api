@@ -79,7 +79,7 @@ class Device(models.Model):
     tags = tagulous.models.TagField(to=Tag, blank=True)
     trust_score = models.FloatField(null=True)
     deb_packages = models.ManyToManyField(DebPackage)
-    deb_packages_hash = models.CharField(max_length=16, blank=True, null=True)
+    deb_packages_hash = models.CharField(max_length=32, blank=True, null=True)
 
     @property
     def certificate_expired(self):
@@ -102,6 +102,32 @@ class Device(models.Model):
         if not self.deb_packages_hash:
             return None
         return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
+
+    def set_deb_packages(self, packages):
+        packages_set = set((p['name'], p['version']) for p in packages)
+
+        # Find which packages we already have in db.
+        existing_packages = DebPackage.objects.filter(name__in=(p[0] for p in packages_set)).intersection(
+            DebPackage.objects.filter(version__in=(p[1] for p in packages_set)))
+        existing_packages_set = set((p.name, p.version) for p in existing_packages)
+
+        # Find the difference between the incoming package list and what we already have in db.
+        # Insert the missing packages.
+        extra_packages = packages_set.difference(existing_packages_set)
+        DebPackage.objects.bulk_create(DebPackage(name=p[0], version=p[1]) for p in extra_packages)
+
+        # Since bulk_create doesn't fetch created ids we need to do this ourselves.
+        extra_packages = DebPackage.objects.filter(name__in=(p[0] for p in extra_packages)).intersection(
+            DebPackage.objects.filter(version__in=(p[1] for p in extra_packages)))
+
+        # Re-create the m2m relation deb_packages in a bulk.
+        # The list of all packages is a union of existing_packages (which had existed in the db already) and
+        # extra_packages (which we've just created).
+        # FIXME: use new ignore_conflicts arg to bulk_create in Django 2.2.
+        Device.deb_packages.through.objects.all().delete()
+        Device.deb_packages.through.objects.bulk_create(
+            (Device.deb_packages.through(device_id=self.pk, debpackage_id=p.pk) for p in existing_packages|extra_packages)
+        )
 
     def get_name(self):
         if self.name:
