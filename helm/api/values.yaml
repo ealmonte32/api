@@ -33,8 +33,8 @@ service:
   celery:
     name: "celery"
     debug: 0
-  celery-beat:
-        name: "celery-beat"
+  celery_beat:
+    name: "celery-beat"
     debug: 0
   static:
     name: "static"
