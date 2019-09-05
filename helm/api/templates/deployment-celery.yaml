@@ -27,8 +27,8 @@ spec:
           command: ["celery"]
           args:
             - "worker"
-            - "-A backend"
-            - "-l error"
+            - "--app=backend"
+            - "--loglevel=error"
             - "--time-limit=90"
             - "--soft-time-limit=60"
             - "--pidfile=/tmp/celery.pid"

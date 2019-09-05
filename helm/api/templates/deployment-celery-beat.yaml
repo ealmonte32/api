@@ -27,10 +27,10 @@ spec:
           command: ["celery"]
           args:
             - "beat"
-            - "-A backend"
-            - "-l error"
+            - "--app=backend"
+            - "--loglevel=error"
             - "--pidfile=/tmp/celery.pid"
-            - "-s /tmp/celerybeat-schedule"
+            - "--schedule=/tmp/celerybeat-schedule"
           env:
             - name: RELEASE_TRIGGER
               value: "{{ .Values.releaseTimeStamp }}"
