@@ -88,24 +88,15 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
 
-  rabbit:
-    image: rabbitmq:3-alpine
-    environment:
-      - RABBITMQ_DEFAULT_USER=user
-      - RABBITMQ_DEFAULT_PASS=SuperSecurePassword
-      - RABBITMQ_DEFAULT_VHOST=wott-dash
-    ports:
-      - '5672:5672'
+  redis:
+    image: redis:5.0-alpine
+    command: redis-server --requirepass SuperSecurePassword
 
   celery:
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings.dev
       - DB_PASSWORD=SuperSecurePassword
       - DB_USER=postgres
-      - RABBIT_HOST=rabbit
-      - RABBIT_USER=user
-      - RABBIT_PASSWORD=SuperSecurePassword
-      - RABBIT_VHOST=wott-dash
     build:
       context: .
     command: celery worker -A backend -l error --time-limit=90 --soft-time-limit=60 --pidfile="/tmp/celery.pid"
@@ -114,17 +105,13 @@ services:
     depends_on:
       - psql
       - migrate
-      - rabbit
+      - redis
 
   celery-beat:
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings.dev
       - DB_PASSWORD=SuperSecurePassword
       - DB_USER=postgres
-      - RABBIT_HOST=rabbit
-      - RABBIT_USER=user
-      - RABBIT_PASSWORD=SuperSecurePassword
-      - RABBIT_VHOST=wott-dash
     build:
       context: .
     command: celery beat -A backend -l error --pidfile="/tmp/celery.pid" -s "/tmp/celerybeat-schedule"
@@ -133,7 +120,7 @@ services:
     depends_on:
       - psql
       - migrate
-      - rabbit
+      - redis
 
 volumes:
   db-data:
