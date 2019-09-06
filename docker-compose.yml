@@ -23,6 +23,8 @@ services:
       - DATASTORE_KEY_JSON
     build:
       context: .
+      args:
+        - CIRCLE_SHA1
     image: wott-api:latest
     volumes:
       - ./backend:/usr/src/app
@@ -40,7 +42,6 @@ services:
       - DB_PASSWORD=SuperSecurePassword
       - DB_USER=postgres
       - DATASTORE_KEY_JSON
-    image: api:latest
     build:
       context: .
     volumes:
