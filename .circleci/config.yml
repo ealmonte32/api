@@ -51,7 +51,7 @@ jobs:
       - run:
           name: Build docker images
           command: |
-            docker-compose -p api build
+            docker-compose -p api build --build-arg CIRCLE_SHA1=${CIRCLE_SHA1}
       - run:
           name: Build docker test images
           command: |
@@ -68,18 +68,18 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               source $BASH_ENV
 
-                echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
+              echo "$GCR_CREDS" | docker login -u _json_key --password-stdin https://gcr.io
 
-                docker tag wott-api gcr.io/wott-prod/wott-api:${GITHASH}
-                docker tag wott-api gcr.io/wott-prod/wott-api:latest
-                docker tag wott-static gcr.io/wott-prod/wott-static:${GITHASH}
-                docker tag wott-static gcr.io/wott-prod/wott-static:latest
+              docker tag wott-api gcr.io/wott-prod/wott-api:${GITHASH}
+              docker tag wott-api gcr.io/wott-prod/wott-api:latest
+              docker tag wott-static gcr.io/wott-prod/wott-static:${GITHASH}
+              docker tag wott-static gcr.io/wott-prod/wott-static:latest
 
-                docker push gcr.io/wott-prod/wott-api:${GITHASH}
-                docker push gcr.io/wott-prod/wott-api:latest
-                docker push gcr.io/wott-prod/wott-static:${GITHASH}
-                docker push gcr.io/wott-prod/wott-static:latest
-                echo "Pushed gcr.io/wott-prod/wott-api:${GITHASH}"
+              docker push gcr.io/wott-prod/wott-api:${GITHASH}
+              docker push gcr.io/wott-prod/wott-api:latest
+              docker push gcr.io/wott-prod/wott-static:${GITHASH}
+              docker push gcr.io/wott-prod/wott-static:latest
+              echo "Pushed gcr.io/wott-prod/wott-api:${GITHASH}"
             fi
       - run:
           name: Deploy to GKE
