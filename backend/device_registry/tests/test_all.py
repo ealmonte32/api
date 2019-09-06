@@ -543,12 +543,11 @@ class DeviceDetailViewTests(TestCase):
         self.assertNotContains(response, '>fingerd<')
         self.assertNotContains(response, 'No insecure services detected')
 
-        self.device.deb_packages = {
-            'packages': [
-                {'name': 'python2', 'version': 'VERSION'},
-                {'name': 'python3', 'version': 'VERSION'}
-            ]
-        }
+        self.device.set_deb_packages([
+            {'name': 'python2', 'version': 'VERSION'},
+            {'name': 'python3', 'version': 'VERSION'}
+        ])
+        self.device.deb_packages_hash = 'abcdef'
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -556,17 +555,16 @@ class DeviceDetailViewTests(TestCase):
         self.assertNotContains(response, '>fingerd<')
         self.assertContains(response, 'No insecure services detected')
 
-        self.device.deb_packages = {
-            'packages': [
-                {'name': 'telnetd', 'version': 'VERSION'},
-                {'name': 'fingerd', 'version': 'VERSION'}
-            ]
-        }
+        self.device.set_deb_packages([
+            {'name': 'telnetd', 'version': 'VERSION'},
+            {'name': 'fingerd', 'version': 'VERSION'}
+        ])
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '>telnetd<')
         self.assertContains(response, '>fingerd<')
+        self.assertNotContains(response, 'No insecure services detected')
 
 
 class PairingKeysView(TestCase):
