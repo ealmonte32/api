@@ -72,8 +72,8 @@ class MtlsPingView(APIView):
         device.agent_version = data.get('agent_version')
         if 'deb_packages' in data:
             deb_packages = data['deb_packages']
-            device.deb_packages_hash = deb_packages.get('hash')
-            device.set_deb_packages(deb_packages.get('packages'))
+            device.deb_packages_hash = deb_packages['hash']
+            device.set_deb_packages(deb_packages['packages'])
 
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()

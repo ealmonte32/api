@@ -46,10 +46,18 @@ class DebPackage(models.Model):
         RASPBIAN = 'raspbian'
         UBUNTU = 'ubuntu'
 
-    name = models.CharField(max_length=128, null=False, blank=False)
-    version = models.CharField(max_length=128, null=False, blank=False)
-    distro = models.CharField(max_length=128, null=False, blank=False,
-                              choices=[(tag, tag.value) for tag in Distro])
+    class Arch(Enum):
+        i386 = 'i386'
+        amd64 = 'amd64'
+        armhf = 'armhf'
+
+    name = models.CharField(max_length=128)
+    version = models.CharField(max_length=128)
+    distro = models.CharField(max_length=128, choices=[(tag, tag.value) for tag in Distro])
+    arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Distro])
+
+    class Meta:
+        unique_together = ['name', 'version', 'distro']
 
 
 class Device(models.Model):

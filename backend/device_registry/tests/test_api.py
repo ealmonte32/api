@@ -17,7 +17,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
-from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey, DebPackage
+from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
 from device_registry.serializers import DeviceListSerializer
 
 
