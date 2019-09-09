@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='device',
             name='deb_packages_hash',
-            field=models.CharField(blank=True, max_length=32, null=True),
+            field=models.CharField(blank=True, max_length=32),
         ),
         migrations.AlterUniqueTogether(
             name='debpackage',

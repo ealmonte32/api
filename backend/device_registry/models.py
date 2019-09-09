@@ -87,7 +87,7 @@ class Device(models.Model):
     tags = tagulous.models.TagField(to=Tag, blank=True)
     trust_score = models.FloatField(null=True)
     deb_packages = models.ManyToManyField(DebPackage)
-    deb_packages_hash = models.CharField(max_length=32, blank=True, null=True)
+    deb_packages_hash = models.CharField(max_length=32, blank=True)
 
     @property
     def certificate_expired(self):

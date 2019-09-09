@@ -720,7 +720,7 @@ class MtlsPingViewTest(APITestCase):
         self.assertDictEqual(response.data, {
             'policy': self.device.firewallstate.policy_string,
             'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
-            'deb_packages_hash': None
+            'deb_packages_hash': ''
         })
 
     def test_pong_data(self):
@@ -731,7 +731,7 @@ class MtlsPingViewTest(APITestCase):
             'block_ports': [],
             'block_networks': settings.SPAM_NETWORKS,
             'policy': self.device.firewallstate.policy_string,
-            'deb_packages_hash': None
+            'deb_packages_hash': ''
         })
         # 2nd request
         self.device.portscan.block_ports = [['192.168.1.178', 'tcp', 22, False]]
@@ -746,7 +746,7 @@ class MtlsPingViewTest(APITestCase):
             'policy': self.device.firewallstate.policy_string,
             'block_ports': [['192.168.1.178', 'tcp', 22, False]],
             'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS,
-            'deb_packages_hash': None
+            'deb_packages_hash': ''
         })
 
     def test_ping_creates_models(self):
