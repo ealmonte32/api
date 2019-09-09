@@ -47,7 +47,6 @@ apiSecrets: api-secrets
 namespace: api
 databaseHost: psql0-gcloud-sqlproxy.sqlproxy
 caHost: asgard.us-central1-c.c.wott-prod.internal
-
 redisHost: 10.0.0.3
 
 ingress:
