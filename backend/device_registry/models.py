@@ -48,16 +48,16 @@ class DebPackage(models.Model):
 
     class Arch(Enum):
         i386 = 'i386'
-        amd64 = 'amd64'
-        armhf = 'armhf'
+        AMD64 = 'amd64'
+        ARMHF = 'armhf'
+        ALL = 'all'
 
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
-    distro = models.CharField(max_length=128, choices=[(tag, tag.value) for tag in Distro])
-    arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Distro])
+    arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Arch])
 
     class Meta:
-        unique_together = ['name', 'version', 'distro']
+        unique_together = ['name', 'version', 'arch']
 
 
 class Device(models.Model):
@@ -112,21 +112,23 @@ class Device(models.Model):
         return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
 
     def set_deb_packages(self, packages):
-        packages_set = set((p['name'], p['version']) for p in packages)
+        packages_set = set((p['name'], p['version'], p['arch']) for p in packages)
 
         # Find which packages we already have in db.
-        existing_packages = DebPackage.objects.filter(name__in=(p[0] for p in packages_set)).intersection(
-            DebPackage.objects.filter(version__in=(p[1] for p in packages_set)))
-        existing_packages_set = set((p.name, p.version) for p in existing_packages)
+        existing_packages = DebPackage.objects.filter(name__in=(p[0] for p in packages_set))\
+            .filter(version__in=(p[1] for p in packages_set))\
+            .filter(arch__in=(p[2] for p in packages_set))
+        existing_packages_set = set((p.name, p.version, p.arch) for p in existing_packages)
 
         # Find the difference between the incoming package list and what we already have in db.
         # Insert the missing packages.
         extra_packages = packages_set.difference(existing_packages_set)
-        DebPackage.objects.bulk_create(DebPackage(name=p[0], version=p[1]) for p in extra_packages)
+        DebPackage.objects.bulk_create(DebPackage(name=p[0], version=p[1], arch=p[2]) for p in extra_packages)
 
         # Since bulk_create doesn't fetch created ids we need to do this ourselves.
-        extra_packages = DebPackage.objects.filter(name__in=(p[0] for p in extra_packages)).intersection(
-            DebPackage.objects.filter(version__in=(p[1] for p in extra_packages)))
+        extra_packages = DebPackage.objects.filter(name__in=(p[0] for p in extra_packages))\
+            .filter(version__in=(p[1] for p in extra_packages))\
+            .filter(arch__in=(p[2] for p in extra_packages))
 
         # Re-create the m2m relation deb_packages in a bulk.
         # The list of all packages is a union of existing_packages (which had existed in the db already) and

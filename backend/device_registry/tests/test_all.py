@@ -544,8 +544,8 @@ class DeviceDetailViewTests(TestCase):
         self.assertNotContains(response, 'No insecure services detected')
 
         self.device.set_deb_packages([
-            {'name': 'python2', 'version': 'VERSION'},
-            {'name': 'python3', 'version': 'VERSION'}
+            {'name': 'python2', 'version': 'VERSION', 'arch': 'i386'},
+            {'name': 'python3', 'version': 'VERSION', 'arch': 'i386'}
         ])
         self.device.deb_packages_hash = 'abcdef'
         self.device.save()
@@ -556,8 +556,8 @@ class DeviceDetailViewTests(TestCase):
         self.assertContains(response, 'No insecure services detected')
 
         self.device.set_deb_packages([
-            {'name': 'telnetd', 'version': 'VERSION'},
-            {'name': 'fingerd', 'version': 'VERSION'}
+            {'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386'},
+            {'name': 'fingerd', 'version': 'VERSION', 'arch': 'i386'}
         ])
         self.device.save()
         response = self.client.get(url)

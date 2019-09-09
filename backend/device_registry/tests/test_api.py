@@ -844,7 +844,7 @@ class MtlsPingViewTest(APITestCase):
         self.assertGreater(self.device.trust_score, 0.42)
 
     def test_ping_writes_packages(self):
-        packages = [{'name': 'PACKAGE', 'version': 'VERSION'}]
+        packages = [{'name': 'PACKAGE', 'version': 'VERSION', 'arch': 'all'}]
         self.ping_payload['deb_packages'] = {
             'hash': 'abcdef',
             'packages': packages
@@ -861,7 +861,7 @@ class MtlsPingViewTest(APITestCase):
         })
         self.device.refresh_from_db()
         self.assertQuerysetEqual(self.device.deb_packages.all(), packages,
-                                 transform=lambda p: {'name': p.name, 'version': p.version})
+                                 transform=lambda p: {'name': p.name, 'version': p.version, 'arch': p.arch})
 
 
 class DeviceEnrollView(APITestCase):
