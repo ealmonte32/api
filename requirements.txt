@@ -38,7 +38,7 @@ netaddr==0.7.19
 netifaces==0.10.9
 prometheus-client==0.7.1
 protobuf==3.9.0
-psycopg2-binary==2.8.3
+psycopg2==2.8.3
 pyasn1==0.4.5
 pyasn1-modules==0.2.5
 pycparser==2.19
