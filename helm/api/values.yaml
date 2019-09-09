@@ -48,9 +48,7 @@ namespace: api
 databaseHost: psql0-gcloud-sqlproxy.sqlproxy
 caHost: asgard.us-central1-c.c.wott-prod.internal
 
-rabbitHost: rabbit0-rabbitmq.rabbit
-rabbitUser: user
-rabbitVhost: wott-dash
+redisHost: 10.0.0.3
 
 ingress:
   enabled: true

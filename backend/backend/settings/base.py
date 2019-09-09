@@ -226,8 +226,11 @@ INCLUDE_REGISTER_URL = False
 DB_RETRY_TO_CONNECT_SEC = 60
 
 # Celery settings.
-CELERY_BROKER_URL = 'redis://:%s@%s:6379/0' % (os.getenv('REDIS_PASSWORD', 'SuperSecurePassword'),
-                                               os.getenv('REDIS_HOST', 'redis'))
+CELERY_BROKER_URL = 'redis://:%s:%s/0' % (
+    os.getenv('REDIS_HOST', 'redis'),
+    int(os.getenv('REDIS_PORT', '6379')
+        )
+)
 
 CELERY_BEAT_SCHEDULE = {
     'update_celery_pulse_timestamp': {

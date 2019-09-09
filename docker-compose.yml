@@ -90,7 +90,7 @@ services:
 
   redis:
     image: redis:5.0-alpine
-    command: redis-server --requirepass SuperSecurePassword
+    command: redis-server
 
   celery:
     environment:

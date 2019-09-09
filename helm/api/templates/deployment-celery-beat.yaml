@@ -53,17 +53,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
                   key: sentryDsn
-            - name: RABBIT_HOST
-              value: {{ .Values.rabbitHost }}
-            - name: RABBIT_USER
-              value: {{ .Values.rabbitUser }}
-            - name: RABBIT_VHOST
-              value: {{ .Values.rabbitVhost }}
-            - name: RABBIT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.apiSecrets }}
-                  key: rabbitPassword
+            - name: REDIS_HOST
+              value: {{ .Values.redisHost }}
           resources:
 {{ toYaml .Values.resources.celery_beat | indent 12 }}
     {{- with .Values.nodeSelector }}
