@@ -226,10 +226,11 @@ INCLUDE_REGISTER_URL = False
 DB_RETRY_TO_CONNECT_SEC = 60
 
 # Celery settings.
-CELERY_BROKER_URL = 'amqp://%s:%s@%s:5672/%s' % (os.getenv('RABBIT_USER', 'user'),
-                                                 os.getenv('RABBIT_PASSWORD', 'SuperSecurePassword'),
-                                                 os.getenv('RABBIT_HOST', 'localhost'),
-                                                 os.getenv('RABBIT_VHOST', 'wott-dash'))
+CELERY_BROKER_URL = 'redis://%s%s:%i/0' % (
+    '{}:'.format(os.getenv('REDIS_PASSWORD')) if os.getenv('REDIS_PASSWORD', False) else '',
+    os.getenv('REDIS_HOST', 'redis'),
+    int(os.getenv('REDIS_PORT', '6379'))
+)
 
 CELERY_BEAT_SCHEDULE = {
     'update_celery_pulse_timestamp': {
