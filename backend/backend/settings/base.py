@@ -227,7 +227,7 @@ DB_RETRY_TO_CONNECT_SEC = 60
 
 # Celery settings.
 CELERY_BROKER_URL = 'redis://%s%s:%i/0' % (
-    '{}@'.format(os.getenv('REDIS_PASSWORD')) if os.getenv('REDIS_PASSWORD', False) else '',
+    ':{}@'.format(os.getenv('REDIS_PASSWORD')) if os.getenv('REDIS_PASSWORD', False) else '',
     os.getenv('REDIS_HOST', 'redis'),
     int(os.getenv('REDIS_PORT', '6379'))
 )
