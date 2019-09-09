@@ -107,11 +107,19 @@ class Device(models.Model):
     ]
     @property
     def insecure_services(self):
+        """
+        Get a list of deb packages which are marked "insecure", i.e. their names are in INSECURE_SERVICES list.
+        :return: list of DebPackage or None if set_deb_packages() wasn't called before.
+        """
         if not self.deb_packages_hash:
             return None
         return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
 
     def set_deb_packages(self, packages):
+        """
+        Assign the list of installed deb packages to this device.
+        :param packages: list of dicts with the following values: 'name': str, 'version': str, 'arch': DebPackage.Arch.
+        """
         packages_set = set((p['name'], p['version'], p['arch']) for p in packages)
 
         # Find which packages we already have in db.
