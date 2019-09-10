@@ -1,5 +1,16 @@
 version: '3'
 services:
+  python-base:
+    command: bash -c "exit 0"
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings.dev
+    build:
+      context: .
+      dockerfile: Dockerfile-python-base
+    image: python-base:latest
+    volumes:
+      - ./backend:/usr/src/app
+
   migrate:
     command: python manage.py migrate --noinput
     environment:
@@ -11,6 +22,7 @@ services:
     volumes:
       - ./backend:/usr/src/app
     depends_on:
+      - python-base
       - psql
       - wott-static
 
@@ -51,6 +63,7 @@ services:
     depends_on:
       - psql
       - migrate
+      - python-base
 
   mtls-api-dev:
     hostname: mtls-api-dev0
@@ -68,6 +81,7 @@ services:
     depends_on:
       - psql
       - migrate
+      - python-base
 
   wott-static:
     hostname: wott-static
@@ -79,6 +93,8 @@ services:
     image: wott-static:latest
     ports:
       - '8003:80'
+    depends_on:
+      - python-base
 
   psql:
     environment:
@@ -106,6 +122,7 @@ services:
       - psql
       - migrate
       - redis
+      - python-base
 
   celery-beat:
     environment:
@@ -121,6 +138,7 @@ services:
       - psql
       - migrate
       - redis
+      - python-base
 
 volumes:
   db-data:
