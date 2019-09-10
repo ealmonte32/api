@@ -3,7 +3,6 @@ from django.utils.timesince import timesince
 
 from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
-from rest_framework.compat import unicode_to_repr
 
 from device_registry.models import Device, DeviceInfo, Credential, Tag, PairingKey
 
@@ -31,10 +30,10 @@ class RequiredValidator(object):
         self.enforce_required_fields(attrs)
 
     def __repr__(self):
-        return unicode_to_repr('<%s(fields=%s)>' % (
+        return '<%s(fields=%s)>' % (
             self.__class__.__name__,
             smart_repr(self.fields)
-        ))
+        )
 
 
 class DeviceSerializer(serializers.ModelSerializer):
@@ -80,6 +79,7 @@ class CredentialSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError('At least one key-value pair is required.')
         return value
+
 
 class CreateDeviceSerializer(serializers.ModelSerializer):
     csr = serializers.CharField(source='certificate_csr')
@@ -152,7 +152,6 @@ class RenewCertSerializer(serializers.ModelSerializer):
 
 
 class EnrollDeviceSerializer(serializers.Serializer):
-
     device_id = serializers.CharField(max_length=128)
     key = serializers.UUIDField()
     claim_token = serializers.CharField(max_length=128)
@@ -169,7 +168,6 @@ class EnrollDeviceSerializer(serializers.Serializer):
 
 
 class PairingKeyListSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = PairingKey
         fields = ['key', 'created', 'comment']
@@ -181,7 +179,6 @@ class PairingKeyListSerializer(serializers.ModelSerializer):
 
 
 class UpdatePairingKeySerializer(serializers.ModelSerializer):
-
     class Meta:
         model = PairingKey
         fields = ['comment']
