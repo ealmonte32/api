@@ -1,6 +1,7 @@
 version: '3'
 services:
   python-base:
+    command: exit 0
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings.dev
     build:
