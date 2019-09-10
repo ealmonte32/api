@@ -23,8 +23,32 @@ $ helm upgrade psql0 stable/gcloud-sqlproxy --namespace sqlproxy \
     --set "cloudsql.instances[0].port=5432" -i
 ```
 
-## Nginx
+## Redis
 
+For Redis, we use Google MemoryStore, which is a hosted Redis. This needs to be manually created.
+
+If the cluster was created using legacy networking (i.e. without IP Alias), the [following steps](https://cloud.google.com/memorystore/docs/redis/connect-redis-instance-gke) need to be taken:
+
+
+### Get the reserved IP range:
+
+```
+$ gcloud beta \
+    --project=wott-(prod|stage) \
+    redis instances describe redis0 \
+    --region=us-central1 | grep reservedIpRange
+```
+
+### Setting up NAT'ing
+
+```
+$ git clone https://github.com/bowei/k8s-custom-iptables.git
+$ cd k8s-custom-iptables/
+$ TARGETS="RESERVED_IP_RANGE" ./install.sh
+```
+
+
+## Nginx
 
 ```
 $ kubectl create ns nginx
