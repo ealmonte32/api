@@ -1,16 +1,5 @@
-FROM python:3.7-slim-stretch
-WORKDIR /usr/src/app
+FROM python-base
 
-ENV PYTHONUNBUFFERED 1
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential libssl-dev libffi-dev libltdl-dev && \
-    apt-get clean
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY backend ./
-COPY ./misc /usr/src/misc
 COPY --from=wott-static /usr/share/nginx/html/webpack-stats.json /usr/src/misc/
 
 ENV CFSSL_SERVER wott-ca
