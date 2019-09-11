@@ -5,10 +5,9 @@ import json
 import uuid
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
-from django.db import transaction
 
 import yaml
 import tagulous.models
@@ -105,6 +104,7 @@ class Device(models.Model):
         'rsh-server',
         'rsh-redone-server'
     ]
+
     @property
     def insecure_services(self):
         """
@@ -120,32 +120,17 @@ class Device(models.Model):
         Assign the list of installed deb packages to this device.
         :param packages: list of dicts with the following values: 'name': str, 'version': str, 'arch': DebPackage.Arch.
         """
-        packages_set = set((p['name'], p['version'], p['arch']) for p in packages)
+        # Save new packages to DB.
+        DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
+                                                   arch=package['arch']) for package in packages],
+                                       ignore_conflicts=True)
+        # Get packages qs.
+        q_objects = models.Q()
+        for package in packages:
+            q_objects.add(models.Q(name=package['name'], version=package['version'], arch=package['arch']), models.Q.OR)
 
-        # Find which packages we already have in db.
-        existing_packages = DebPackage.objects.filter(name__in=(p[0] for p in packages_set))\
-            .filter(version__in=(p[1] for p in packages_set))\
-            .filter(arch__in=(p[2] for p in packages_set))
-        existing_packages_set = set((p.name, p.version, p.arch) for p in existing_packages)
-
-        # Find the difference between the incoming package list and what we already have in db.
-        # Insert the missing packages.
-        extra_packages = packages_set.difference(existing_packages_set)
-        DebPackage.objects.bulk_create(DebPackage(name=p[0], version=p[1], arch=p[2]) for p in extra_packages)
-
-        # Since bulk_create doesn't fetch created ids we need to do this ourselves.
-        extra_packages = DebPackage.objects.filter(name__in=(p[0] for p in extra_packages))\
-            .filter(version__in=(p[1] for p in extra_packages))\
-            .filter(arch__in=(p[2] for p in extra_packages))
-
-        # Re-create the m2m relation deb_packages in a bulk.
-        # The list of all packages is a union of existing_packages (which had existed in the db already) and
-        # extra_packages (which we've just created).
-        # FIXME: use new ignore_conflicts arg to bulk_create in Django 2.2.
-        Device.deb_packages.through.objects.all().delete()
-        Device.deb_packages.through.objects.bulk_create(
-            (Device.deb_packages.through(device_id=self.pk, debpackage_id=p.pk) for p in existing_packages|extra_packages)
-        )
+        # Set deb_packages.
+        self.deb_packages.set(DebPackage.objects.filter(q_objects).only('pk'))
 
     def get_name(self):
         if self.name:
