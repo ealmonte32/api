@@ -1,13 +1,13 @@
+from enum import Enum
 import datetime
 from statistics import mean
 import json
 import uuid
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.contrib.postgres.fields import JSONField
-from django.db import transaction
 
 import yaml
 import tagulous.models
@@ -39,6 +39,26 @@ class JsonFieldTransitionHelper(JSONField):
         return value
 
 
+class DebPackage(models.Model):
+    class Distro(Enum):
+        DEBIAN = 'debian'
+        RASPBIAN = 'raspbian'
+        UBUNTU = 'ubuntu'
+
+    class Arch(Enum):
+        i386 = 'i386'
+        AMD64 = 'amd64'
+        ARMHF = 'armhf'
+        ALL = 'all'
+
+    name = models.CharField(max_length=128)
+    version = models.CharField(max_length=128)
+    arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Arch])
+
+    class Meta:
+        unique_together = ['name', 'version', 'arch']
+
+
 class Device(models.Model):
     device_id = models.CharField(
         max_length=128,
@@ -65,10 +85,52 @@ class Device(models.Model):
     agent_version = models.CharField(max_length=36, blank=True, null=True)
     tags = tagulous.models.TagField(to=Tag, blank=True)
     trust_score = models.FloatField(null=True)
+    deb_packages = models.ManyToManyField(DebPackage)
+    deb_packages_hash = models.CharField(max_length=32, blank=True)
 
     @property
     def certificate_expired(self):
         return self.certificate_expires < timezone.now()
+
+    INSECURE_SERVICES = [
+        'fingerd',
+        'tftpd',
+        'telnetd',
+        'snmpd',
+        'xinetd',
+        'nis',
+        'atftpd',
+        'tftpd-hpa',
+        'rsh-server',
+        'rsh-redone-server'
+    ]
+
+    @property
+    def insecure_services(self):
+        """
+        Get a list of deb packages which are marked "insecure", i.e. their names are in INSECURE_SERVICES list.
+        :return: list of DebPackage or None if set_deb_packages() wasn't called before.
+        """
+        if not self.deb_packages_hash:
+            return None
+        return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
+
+    def set_deb_packages(self, packages):
+        """
+        Assign the list of installed deb packages to this device.
+        :param packages: list of dicts with the following values: 'name': str, 'version': str, 'arch': DebPackage.Arch.
+        """
+        # Save new packages to DB.
+        DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
+                                                   arch=package['arch']) for package in packages],
+                                       ignore_conflicts=True)
+        # Get packages qs.
+        q_objects = models.Q()
+        for package in packages:
+            q_objects.add(models.Q(name=package['name'], version=package['version'], arch=package['arch']), models.Q.OR)
+
+        # Set deb_packages.
+        self.deb_packages.set(DebPackage.objects.filter(q_objects).only('pk'))
 
     def get_name(self):
         if self.name:

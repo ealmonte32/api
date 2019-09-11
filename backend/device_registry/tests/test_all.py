@@ -533,6 +533,47 @@ class DeviceDetailViewTests(TestCase):
         self.assertContains(response, '<pre>pi:')
         self.assertContains(response, 'success: 1')
 
+    def test_insecure_services(self):
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '>telnetd<')
+        self.assertNotContains(response, '>fingerd<')
+        self.assertNotContains(response, 'No insecure services detected')
+
+        self.device.set_deb_packages([
+            {'name': 'python2', 'version': 'VERSION', 'arch': 'i386'},
+            {'name': 'python3', 'version': 'VERSION', 'arch': 'i386'}
+        ])
+        self.device.deb_packages_hash = 'abcdef'
+        self.device.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '>telnetd<')
+        self.assertNotContains(response, '>fingerd<')
+        self.assertContains(response, 'No insecure services detected')
+        self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch')), [
+            {'name': 'python2', 'version': 'VERSION', 'arch': 'i386'},
+            {'name': 'python3', 'version': 'VERSION', 'arch': 'i386'}
+        ])
+
+        self.device.set_deb_packages([
+            {'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386'},
+            {'name': 'fingerd', 'version': 'VERSION', 'arch': 'i386'}
+        ])
+        self.device.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '>telnetd<')
+        self.assertContains(response, '>fingerd<')
+        self.assertNotContains(response, 'No insecure services detected')
+        self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch')), [
+            {'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386'},
+            {'name': 'fingerd', 'version': 'VERSION', 'arch': 'i386'}
+        ])
+
 
 class PairingKeysView(TestCase):
     def setUp(self):
@@ -572,7 +613,7 @@ class RootViewTests(TestCase):
             owner=self.user,
             certificate=TEST_CERT,
             name='First',
-            last_ping=timezone.now()-datetime.timedelta(days=1, hours=1)
+            last_ping=timezone.now() - datetime.timedelta(days=1, hours=1)
         )
         self.deviceinfo0 = DeviceInfo.objects.create(
             device=self.device0,

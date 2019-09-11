@@ -78,7 +78,21 @@
                     <th scope="row">
                         Insecure Services
                     </th>
-                  <td>Coming soon!</td>
+                  <td>
+                  {% with object.insecure_services as services %}
+                    {% if services %}
+                    <ul>
+                    {% for service in services %}
+                      <li>{{ service.name }}</li>
+                    {% endfor %}
+                    </ul>
+                    {% elif services is not None %}
+                    No insecure services detected.
+                    {% else %}
+                    N/A
+                    {% endif %}
+                  {% endwith %}
+                  </td>
                 </tr>
                 <th scope="row">Logins</th>
                 <td>
