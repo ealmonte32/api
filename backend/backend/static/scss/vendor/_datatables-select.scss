@@ -151,3 +151,8 @@ div.dataTables_wrapper {
 		}
 	}
 }
+
+// Disable wrapping of headers.
+th.sorting {
+  white-space: nowrap;
+}
