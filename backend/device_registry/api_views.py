@@ -66,8 +66,8 @@ class MtlsPingView(APIView):
         portscan_object, _ = PortScan.objects.get_or_create(device=device)
         firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
         if firewallstate_object.global_policy:  # Use security settings from the global policy.
-            block_networks = firewallstate_object.global_policy.networks.copy()
-            block_ports = firewallstate_object.global_policy.ports
+            block_networks = firewallstate_object.global_policy.networks_as_list
+            block_ports = firewallstate_object.global_policy.ports_as_list
             policy_string = firewallstate_object.global_policy.policy_string
             ports_field_name = firewallstate_object.global_policy.ports_field_name
         else:  # User's per-device security settings.
