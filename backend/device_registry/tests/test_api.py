@@ -702,7 +702,17 @@ class MtlsPingViewTest(APITestCase):
         device_id = 'device0.d.wott-dev.local'
         self.device = Device.objects.create(device_id=device_id, owner=self.user)
         self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW,
-                                              ports=[['::', 'udp', 5353, True], ['0.0.0.0', 'udp', 5353, False]],
+                                              ports=[{
+                                                  'address': '::',
+                                                  'protocol': 'udp',
+                                                  'port': 5353,
+                                                  'ip_version': True
+                                              }, {
+                                                  'address': '0.0.0.0',
+                                                  'protocol': 'udp',
+                                                  'port': 5353,
+                                                  'ip_version': False
+                                              }],
                                               networks=[['192.168.0.100', False]])
         self.ping_payload = {
             'device_operating_system_version': 'linux',
@@ -736,8 +746,8 @@ class MtlsPingViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {'policy': self.gp.policy_string,
-                                             'block_ports': self.gp.ports,
-                                             'block_networks': self.gp.networks + settings.SPAM_NETWORKS})
+                                             'block_ports': self.gp.ports_as_list,
+                                             'block_networks': self.gp.networks_as_list + settings.SPAM_NETWORKS})
 
     def test_pong_data(self):
         # 1st request
