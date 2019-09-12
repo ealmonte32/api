@@ -232,9 +232,15 @@ CELERY_BROKER_URL = 'redis://%s%s:%i/0' % (
     int(os.getenv('REDIS_PORT', '6379'))
 )
 
+TRUST_SCORE_UPDATE_INTERVAL = 5  # minutes.
+
 CELERY_BEAT_SCHEDULE = {
     'update_celery_pulse_timestamp': {
         'task': 'monitoring.tasks.update_celery_pulse_timestamp',
         'schedule': crontab()  # Execute once a minute.
+    },
+    'update_trust_score': {
+        'task': 'device_registry.tasks.update_trust_score',
+        'schedule': crontab(minute=f'*/{TRUST_SCORE_UPDATE_INTERVAL}')  # Execute once in every 5 minutes.
     }
 }
