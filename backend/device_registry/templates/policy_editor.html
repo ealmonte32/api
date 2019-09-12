@@ -44,8 +44,8 @@
               <div class="form-group col-md-2">
                 <label for="ip_version">IP ver.</label>
                 <select class="form-control" id="ip_version" name="ip_version">
-                  <option value="true">IP v.6</option>
-                  <option value="false">IP v.4</option>
+                  <option value="true">v6</option>
+                  <option value="false">v4</option>
                 </select>
               </div>
               <input type="hidden" name="method" id="method">
@@ -132,8 +132,7 @@
                 {data:'address'},
                 {data:'protocol'},
                 {data:'port'},
-                {data:'ip_version', render:function(data, type, row, meta){
-                    return data == "true" ? 'IP v.6' : 'IP v.4'; }},
+                {data:'ip_version', render: (data, type, row, meta) => `v`+ (String(data)=='true' ? '6': '4') },
                 {data: null, className: 'wott-kv-btns', defaultContent: render_ports_buttons() }
             ],
         });
@@ -155,7 +154,6 @@
 
             $('#wott-policy-modal').modal('hide');
             refresh_port_table_button_events();
-
         }
 
         function edit_policy_port(e){
@@ -168,7 +166,6 @@
             let data = validated_to_table(values);
             ports_table.row(values['row']).data( data ).draw(false);
             $('#wott-policy-modal').modal('hide');
-            refresh_port_table_button_events();
         }
 
         function validateEditorValues(){
@@ -267,7 +264,6 @@
             let alertbox = $("#"+alert_box_id)[0];
             alertbox.style.display = 'block';
             alertbox.innerText = messages.join("\n");
-            return;
         }
 
         function alertbox_errors(errors, alert_box_id){
@@ -283,29 +279,31 @@
             wott_alert_strings(errMsgs, alert_box_id);
         }
 
-        function refresh_port_table_button_events()
-        {
-            $('.wott-port-edit-btn').on('click', function(e){
+        function refresh_port_table_button_events() {
+            $('.wott-port-edit-btn').off('click');
+            $('.wott-port-edit-btn').click((e) => {
                 e.preventDefault();
                 wott_alert_hide('edit-alert');
                 let row = ports_table.row(e.currentTarget.parentElement.parentElement);
-                data = row.data();
-                values = { 'row': row.index()}
-                for( let key in fields ){
+                let data = row.data(),
+                    values = {'row': row.index()};
+                for (let key in fields) {
                     values[fields[key]] = data[fields[key]];
                 }
-                showDialog('edit', 'Edit Port Rule', values, edit_policy_port );
+                showDialog('edit', 'Edit Port Rule', values, edit_policy_port);
             });
-            $('.wott-port-del-btn').on('click', function(e){
+            $('.wott-port-del-btn').off('click');
+            $('.wott-port-del-btn').click((e) => {
                 let row = ports_table.row(e.currentTarget.parentElement.parentElement);
                 show_confirm_dialog('Confirm delete', 'Are you sure want to delete this rule?', 'Delete',
-                function(e){
-                    e.preventDefault();
-                    hide_confirm_dialog();
-                    ports_table.rows(row).remove().draw(false);
-                });
+                    function (e) {
+                        e.preventDefault();
+                        hide_confirm_dialog();
+                        ports_table.rows(row).remove().draw(false);
+                    });
             });
         }
+        refresh_port_table_button_events();
 
         return ports_table;
     }

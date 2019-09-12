@@ -35,7 +35,7 @@
 
   <script>
       document.addEventListener("DOMContentLoaded", function () {
-          var ports_table = init_policy_ports_editor([]);
+          let ports_table = init_policy_ports_editor([]);
 
           $('#policy-form').submit(function (e) {
               $('#id_ports').html( parse_policy_ports_editor(ports_table));
