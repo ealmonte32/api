@@ -63,7 +63,37 @@ class GlobalPoliciesListView(LoginRequiredMixin, ListView):
         return queryset.filter(owner=self.request.user)
 
 
-class GlobalPolicyEditView(LoginRequiredMixin, UpdateView):
+class ConvertPortsInfoMixin:
+    def dicts_to_lists(self, ports):
+        if ports:
+            return [[d[k] for k in ('address', 'protocol', 'port', 'ip_version')] for d in ports]
+        else:
+            return []
+
+    def lists_to_dicts(self, ports):
+        return [{'address': d[0], 'protocol': d[1], 'port': d[2], 'ip_version': d[3]} for d in ports]
+
+
+class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMixin):
+    model = GlobalPolicy
+    fields = ['name', 'policy', 'ports', 'networks']
+    template_name = 'create_policy.html'
+    success_url = reverse_lazy('global_policies')
+
+    def form_valid(self, form):
+        """
+        Standard method overwritten in order to:
+         - assign a proper owner
+         - modify ports info to make it conform to the PortScan.block_ports field format
+        """
+        self.object = form.save(commit=False)
+        self.object.owner = self.request.user
+        self.object.ports = self.dicts_to_lists(form.cleaned_data['ports'])
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class GlobalPolicyEditView(LoginRequiredMixin, UpdateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
     fields = ['name', 'policy', 'ports', 'networks']
     template_name = 'edit_policy.html'
@@ -73,19 +103,24 @@ class GlobalPolicyEditView(LoginRequiredMixin, UpdateView):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
 
-
-class GlobalPolicyCreateView(LoginRequiredMixin, CreateView):
-    model = GlobalPolicy
-    fields = ['name', 'policy', 'ports', 'networks']
-    template_name = 'create_policy.html'
-    success_url = reverse_lazy('global_policies')
-
     def form_valid(self, form):
         """
-        Standard method overwritten in order to assigne proper owner a global policy before its saving.
+        Standard method overwritten in order to:
+         - modify ports info to make it conform to the PortScan.block_ports field format
         """
-        form.instance.owner = self.request.user
-        return super().form_valid(form)
+        self.object = form.save(commit=False)
+        self.object.ports = self.dicts_to_lists(form.cleaned_data['ports'])
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get(self, request, *args, **kwargs):
+        """
+        Standard method overwritten in order to:
+         - modify ports info to format to the format expected by the frontend
+        """
+        self.object = self.get_object()
+        self.object.ports = self.lists_to_dicts(self.object.ports)
+        return self.render_to_response(self.get_context_data())
 
 
 class GlobalPolicyDeleteView(LoginRequiredMixin, DeleteView):

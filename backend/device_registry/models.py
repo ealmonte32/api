@@ -568,15 +568,6 @@ class GlobalPolicy(models.Model):
     networks = JSONField(blank=True, default=list)
 
     @property
-    def ports_as_list(self):
-        return [[d[k] for k in ('address', 'protocol', 'port', 'ip_version')] for d in self.ports]
-
-    @property
-    def networks_as_list(self):
-        # TODO: implement if needed
-        return []
-
-    @property
     def policy_string(self):
         if self.policy == self.POLICY_ALLOW:
             return 'allow'
