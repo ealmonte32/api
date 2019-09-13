@@ -95,7 +95,7 @@ class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMix
 
 class GlobalPolicyEditView(LoginRequiredMixin, UpdateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
-    fields = ['name', 'policy', 'ports', 'networks']
+    fields = ['name', 'policy', 'ports']
     template_name = 'edit_policy.html'
     success_url = reverse_lazy('global_policies')
 

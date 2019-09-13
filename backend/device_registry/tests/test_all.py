@@ -863,10 +863,7 @@ class GlobalPolicyEditViewTests(TestCase):
         self.assertContains(response, '<option value="1" selected>Allow by default</option>')
         self.assertContains(response, '<div class="form-group"><label for="id_ports">Ports</label><textarea '
                                       'name="ports" cols="40" rows="10" class="form-control" placeholder="Ports" '
-                                      'title="" id="id_ports">\n[]</textarea></div>\n<div class="form-group"><label '
-                                      'for="id_networks">Networks</label><textarea name="networks" cols="40" rows="10" '
-                                      'class="form-control" placeholder="Networks" title="" '
-                                      'id="id_networks">\n[]</textarea></div>')
+                                      'title="" id="id_ports">\n[]</textarea></div>')
 
     def test_post(self):
         self.client.login(username='test', password='123')

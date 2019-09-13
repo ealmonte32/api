@@ -27,6 +27,7 @@
           <form method="POST" action="" id="edit-policy-form">
             {% csrf_token %}
             {% bootstrap_form form %}
+            <hr>
             <button class="btn btn-primary" id="save-button" type="button">Save changes</button>
             <button class="btn btn-danger" id="delete-button" style="float: right;" type="button">Delete</button>
             <a href="{% url 'global_policies' %}" class="btn btn-secondary" role="button"
