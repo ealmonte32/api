@@ -12,7 +12,7 @@ from django.contrib.postgres.fields import JSONField
 import yaml
 import tagulous.models
 
-from device_registry import ca_helper, validators
+from device_registry import validators
 
 
 def get_bootstrap_color(val):
@@ -85,6 +85,7 @@ class Device(models.Model):
     agent_version = models.CharField(max_length=36, blank=True, null=True)
     tags = tagulous.models.TagField(to=Tag, blank=True)
     trust_score = models.FloatField(null=True)
+    update_trust_score = models.BooleanField(default=False, db_index=True)
     deb_packages = models.ManyToManyField(DebPackage)
     deb_packages_hash = models.CharField(max_length=32, blank=True)
 
@@ -238,6 +239,10 @@ class Device(models.Model):
     def trust_score_color(self):
         return get_bootstrap_color(self.trust_score_percent())
 
+    def update_trust_score_now(self):
+        self.trust_score = self.get_trust_score()
+        self.save(update_fields=['trust_score'])
+
     def set_meta_tags(self):
         """
         Add proper meta tags in accordance with the device's hardware type.
@@ -251,11 +256,6 @@ class Device(models.Model):
             self.tags.add(all_devices_tag)
         if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
-
-    def save(self, *args, **kwargs):
-        with transaction.atomic():
-            self.trust_score = self.get_trust_score()
-            super().save(*args, **kwargs)
 
     class Meta:
         ordering = ('created',)
@@ -534,8 +534,7 @@ class Action:
 
 
 def average_trust_score(user):
-    scores = [p.trust_score for p in Device.objects.filter(owner=user).all()]
-    scores = [s for s in scores if s is not None]
+    scores = [p.trust_score for p in Device.objects.filter(owner=user, trust_score__isnull=False)]
     return mean(scores) if scores else None
 
 

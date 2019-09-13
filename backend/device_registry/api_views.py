@@ -13,7 +13,6 @@ from django.db.models.query import QuerySet
 from django.urls import reverse
 from django.db import transaction
 from django.db.models import Q
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from google.cloud import datastore
 from rest_framework import status
@@ -109,7 +108,8 @@ class MtlsPingView(APIView):
         firewall_state.rules = firewall_rules
         firewall_state.save()
 
-        device.save(update_fields=['last_ping', 'agent_version', 'deb_packages_hash', 'trust_score'])
+        device.update_trust_score = True
+        device.save(update_fields=['last_ping', 'agent_version', 'deb_packages_hash', 'update_trust_score'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
@@ -633,6 +633,7 @@ class CreatePairingKeyView(CreateAPIView):
     """
     Create a new pairing key for the current user
     """
+
     def create(self, request, *args, **kwargs):
         pairing_key = PairingKey.objects.create(owner=self.request.user)
         serializer = PairingKeyListSerializer(instance=pairing_key)
@@ -666,7 +667,7 @@ class BatchAction:
     """
 
     def __init__(self, target, subject='', subject_model=None, name='', display_name=None,
-                 js_init=None, js_init_ext='', js_postprocess=None, js_get = None, url='#', ctl_ext='', **kwargs):
+                 js_init=None, js_init_ext='', js_postprocess=None, js_get=None, url='#', ctl_ext='', **kwargs):
         """
         Create BatchAction Object
         :param target: Model/object name who is the target of action ( f.ex. on the device pace it would be 'Device')
@@ -693,9 +694,9 @@ class BatchAction:
 
 class GetBatchActionsView(APIView):
     def __init__(self, *args, **kwargs):
-        super(GetBatchActionsView,self).__init__(**kwargs)
+        super(GetBatchActionsView, self).__init__(**kwargs)
         #  tags elements js init/post_place. (also needed to be included TagsWidget().Media to context)
-        tags_ctl_ext= '''
+        tags_ctl_ext = '''
             data-tagulous data-tag-url="/ajax/tags/autocomplete/" autocomplete="off" style="width:100%;"
             '''.strip()
         tags_js_postprocess = 'function(el){Tagulous.select2(el);}'
@@ -710,12 +711,12 @@ class GetBatchActionsView(APIView):
         #  batch actions lists initialization.
         self.batch_actions = {
             'device': [
-              BatchAction('device', 'Tags', name='add', display_name='Add Tags',
-                          url=reverse('tags_batch', kwargs={'model_name': 'device'}), js_get=tags_js_get,
-                          ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__,
-              BatchAction('device', 'Tags', name='set', display_name='Set Tags',
-                          url=reverse('tags_batch', kwargs={'model_name': 'device'}), js_get=tags_js_get,
-                          ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__
+                BatchAction('device', 'Tags', name='add', display_name='Add Tags',
+                            url=reverse('tags_batch', kwargs={'model_name': 'device'}), js_get=tags_js_get,
+                            ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__,
+                BatchAction('device', 'Tags', name='set', display_name='Set Tags',
+                            url=reverse('tags_batch', kwargs={'model_name': 'device'}), js_get=tags_js_get,
+                            ctl_ext=tags_ctl_ext, js_postprocess=tags_js_postprocess).__dict__
             ],
             'default': []
         }
@@ -893,7 +894,7 @@ class DeviceListFilterMixin:
 
                 number = int(number)
                 if filter_predicate == 'eq':
-                    interval_start = timezone.now() - datetime.timedelta(**{measure: number+1})
+                    interval_start = timezone.now() - datetime.timedelta(**{measure: number + 1})
                     interval_end = timezone.now() - datetime.timedelta(**{measure: number})
                     filter_value = (interval_start, interval_end)
                     predicate = 'range'
@@ -945,22 +946,22 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
 
         self.ajax_info['draw'] = self.request.GET.get('draw', '-')  # this value should be repeated in response
 
-        start = self._get_int_arg('start', 0, 0)              # start row of page [0..oo)
-        length = self._get_int_arg('length', -1, -1)          # page length or -1 for all [-1..oo)
+        start = self._get_int_arg('start', 0, 0)  # start row of page [0..oo)
+        length = self._get_int_arg('length', -1, -1)  # page length or -1 for all [-1..oo)
         queryset = self.get_queryset(*args, **kwargs)
-        self.ajax_info['recordsTotal'] = queryset.count()     # total unfiltered records count
-        query = self.get_filter_q(*args, **kwargs)            # our filters
+        self.ajax_info['recordsTotal'] = queryset.count()  # total unfiltered records count
+        query = self.get_filter_q(*args, **kwargs)  # our filters
         devices = queryset.filter(query).distinct()
-        self.ajax_info['recordsFiltered'] = devices.count()   # total filtered records count
-        if length == -1:                                      # currently we have only 2 "modes":
-            if start == 0:                                    # - with length = -1, then returns all records
+        self.ajax_info['recordsFiltered'] = devices.count()  # total filtered records count
+        if length == -1:  # currently we have only 2 "modes":
+            if start == 0:  # - with length = -1, then returns all records
                 return devices
             else:
                 return devices[start:]
-        if start == 0:                                        # - with length = N, then return first N records
+        if start == 0:  # - with length = N, then return first N records
             return devices[:length]
         else:
-            return devices[start:start+length]
+            return devices[start:start + length]
 
     def get_queryset(self, *args, **kwargs):
         queryset = Device.objects.filter(owner=self.request.user)

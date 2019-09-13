@@ -27,8 +27,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         def average_trust_score(devices):
-            scores = [d.trust_score for d in devices]
-            scores = [s for s in scores if s is not None]
+            scores = [d.trust_score for d in devices if d.trust_score is not None]
             return mean(scores) if scores else 0
 
         now = timezone.now()

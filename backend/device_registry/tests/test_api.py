@@ -840,7 +840,7 @@ class MtlsPingViewTest(APITestCase):
         }
 
         self.client.post(self.url, ping_payload, **self.headers)
-        self.device.refresh_from_db()
+        self.device.update_trust_score_now()
         self.assertGreater(self.device.trust_score, 0.42)
 
     def test_ping_writes_packages(self):

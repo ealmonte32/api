@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, Credential
+from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score
 from device_registry.models import PairingKey
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm
 
@@ -222,7 +222,7 @@ class DeviceModelTest(TestCase):
         self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
 
     def test_fixed_issues(self):
-        self.device4.save(update_fields=['trust_score'])
+        self.device4.update_trust_score_now()
         # initial state: firewall disabled, telnet port found, default password found - trust score low
         self.assertLess(self.device4.trust_score_percent(), 66)
 
@@ -238,7 +238,7 @@ class DeviceModelTest(TestCase):
         self.firewall4.save()
         self.device_info4.default_password = False
         self.device_info4.save()
-        self.device4.save(update_fields=['trust_score'])
+        self.device4.update_trust_score_now()
 
         # result: trust score high
         self.assertGreaterEqual(self.device4.trust_score_percent(), 66)
@@ -273,8 +273,8 @@ class DeviceModelTest(TestCase):
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
-        self.device0.save(update_fields=['trust_score'])
-        self.device1.save(update_fields=['trust_score'])
+        self.device0.update_trust_score_now()
+        self.device1.update_trust_score_now()
         all_good_except_port_score = sum(Device.COEFFICIENTS.values()) - Device.COEFFICIENTS['port_score']
         self.assertEqual(self.device0.trust_score,
                          (all_good_except_port_score + 0.6 * Device.COEFFICIENTS['port_score']) /
@@ -284,8 +284,8 @@ class DeviceModelTest(TestCase):
                          sum(Device.COEFFICIENTS.values()))
 
     def test_average_trust_score(self):
-        self.device0.save(update_fields=['trust_score'])
-        self.device1.save(update_fields=['trust_score'])
+        self.device0.update_trust_score_now()
+        self.device1.update_trust_score_now()
         score = average_trust_score(self.user1)
         self.assertEqual(score, ((self.device0.trust_score + self.device1.trust_score) / 2.0))
 
