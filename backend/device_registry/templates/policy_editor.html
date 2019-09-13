@@ -142,7 +142,7 @@
             showDialog('add', 'Add New Port Rule',  null, add_policy_port);
         });
 
-        function add_policy_port(e){
+        function add_policy_port(e) {
             e.preventDefault();
             let [values, errors] = validateEditorValues();
             if( errors !== null ){
@@ -156,7 +156,7 @@
             refresh_port_table_button_events();
         }
 
-        function edit_policy_port(e){
+        function edit_policy_port(e) {
             e.preventDefault();
             let [values, errors] = validateEditorValues();
             if( errors !== null ){
@@ -166,34 +166,34 @@
             let data = validated_to_table(values);
             ports_table.row(values['row']).data( data ).draw(false);
             $('#wott-policy-modal').modal('hide');
+            refresh_port_table_button_events();
         }
 
-        function validateEditorValues(){
-            let res = {}
-            for(let k of fields)
-            {
+        function validateEditorValues() {
+            let res = {};
+            for(let k of fields) {
                 res[k] = document.getElementById(k).value;
             }
-            res['row'] = document.getElementById('row').value;
+            res.row = document.getElementById('row').value;
             let errors = [];
-            ports_table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
-                var data = ports_table.row( rowIdx ).data();
-                if( res['row'] == -1 || res['row'] == rowIdx )
-                {
-                    // skip
-                } else {
-                    if( data['address'] == res['address'] && data['protocol'] == res['protocol']
-                       && data['port'] == res['port'] && data['ip_version'] == res['ip_version'] )
-                    {
-                        errors.push({'duplicate error': 'there is already rule with that values in ports table.'});
+            for(const [idx,data] of ports_table.rows().data().toArray().entries()) {
+                if(idx == res.row )
+                  continue;
+
+                let is_equal = true;
+                for(let k in data) {
+                    if(String(data[k]) != String(res[k])) {
+                        is_equal = false;
+                        break;
                     }
                 }
-            });
-            //if ( res['address'] ){       // address validation
-            // errors.push({'address': 'is incorrect'});
-            // }
-            if( !isNormalInteger(res['port'])){
-                errors.push({'port': 'is incorrect, must be a positive integer.'});
+                if(is_equal) {
+                    errors.push({'duplicate error': 'the same rule already exists.'});
+                    break;
+                }
+            }
+            if((res.port != "0" && !/^[1-9]\d*$/.test(res.port)) || Number(res.port) > 65535) {
+                errors.push({'port': 'must be an integer within the range of 0..65535.'});
             }
 
             errors = (errors.length > 0) ? res['errors'] = errors : null;
