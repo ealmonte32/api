@@ -57,6 +57,7 @@
     "feather-icons": "4.17.0",
     "fullcalendar": "^3.10.0",
     "highlight.js": "9.15.10",
+    "ip-regex": "4.1.0",
     "jquery": "^3.4.1",
     "jquery-mask-plugin": "1.14.15",
     "jquery-validation": "1.19.0",

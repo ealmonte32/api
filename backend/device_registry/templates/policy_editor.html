@@ -195,6 +195,9 @@
             if((res.port != "0" && !/^[1-9]\d*$/.test(res.port)) || Number(res.port) > 65535) {
                 errors.push({'port': 'must be an integer within the range of 0..65535.'});
             }
+            if(!(res.ip_version == "false"? ip.v4: ip.v6)({exact: true}).test(res.address)) {
+                errors.push({'address': 'invalid IP address.'});
+            }
 
             errors = (errors.length > 0) ? res['errors'] = errors : null;
             return [res, errors];
