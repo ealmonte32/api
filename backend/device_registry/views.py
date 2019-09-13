@@ -92,6 +92,18 @@ class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMix
         self.object.save()
         return HttpResponseRedirect(self.get_success_url())
 
+    def get(self, request, *args, **kwargs):
+        if 'pk' in kwargs:
+            device = get_object_or_404(Device, owner=self.request.user, pk=kwargs['pk'])
+            portscan_object, _ = PortScan.objects.get_or_create(device=device)
+            firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
+            if firewallstate_object.global_policy:
+                return HttpResponseForbidden()
+            # TODO: pass networks when we enable this field support.
+            self.initial = {'policy': firewallstate_object.policy,
+                            'ports': self.lists_to_dicts(portscan_object.block_ports)}
+        return super().get(request, *args, **kwargs)
+
 
 class GlobalPolicyEditView(LoginRequiredMixin, UpdateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
@@ -134,23 +146,6 @@ class GlobalPolicyDeleteView(LoginRequiredMixin, DeleteView):
 
     def get(self, request, *args, **kwargs):
         return self.delete(request, *args, **kwargs)
-
-
-class SaveDeviceSettingsAsPolicyView(LoginRequiredMixin, View):
-    """
-    Create a new Global Policy based on a device's local security settings.
-    """
-
-    def get(self, request, *args, **kwargs):
-        device = get_object_or_404(Device, owner=self.request.user, pk=kwargs['pk'])
-        portscan_object, _ = PortScan.objects.get_or_create(device=device)
-        firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
-        if firewallstate_object.global_policy:
-            return HttpResponseForbidden()
-        policy_object = GlobalPolicy.objects.create(owner=request.user, policy=firewallstate_object.policy,
-                                                    ports=portscan_object.block_ports,
-                                                    networks=portscan_object.block_networks)
-        return HttpResponseRedirect(reverse('edit_global_policy', kwargs={'pk': policy_object.pk}))
 
 
 @login_required

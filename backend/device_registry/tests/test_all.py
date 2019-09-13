@@ -800,13 +800,8 @@ class SaveDeviceSettingsAsPolicyViewTests(TestCase):
         self.assertEqual(GlobalPolicy.objects.count(), 0)
         self.client.login(username='test', password='123')
         response = self.client.get(self.url)
-        self.assertEqual(GlobalPolicy.objects.count(), 1)
-        gp = GlobalPolicy.objects.all()[0]
-        self.assertRedirects(response, f'/policies/{gp.pk}/')
-        self.assertEqual(gp.owner, self.user)
-        self.assertEqual(gp.policy, self.firewallstate.policy)
-        self.assertEqual(gp.ports, self.portscan.block_ports)
-        self.assertEqual(gp.networks, self.portscan.block_networks)
+        self.assertEqual(GlobalPolicy.objects.count(), 0)
+        # TODO: check page content.
 
     def test_get_forbidden(self):
         self.assertEqual(GlobalPolicy.objects.count(), 0)

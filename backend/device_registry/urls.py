@@ -76,7 +76,7 @@ if settings.IS_DASH:
             name='device-detail-software'
         ),
         path('devices/<int:pk>/security/', views.DeviceDetailSecurityView.as_view(), name='device_detail_security'),
-        path('devices/<int:pk>/security/save-as-policy/', views.SaveDeviceSettingsAsPolicyView.as_view(),
+        path('devices/<int:pk>/security/save-as-policy/', views.GlobalPolicyCreateView.as_view(),
              name='save_as_policy'),
         path(
             'devices/<int:pk>/network/',
