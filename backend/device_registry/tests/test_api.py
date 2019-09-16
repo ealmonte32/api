@@ -737,7 +737,8 @@ class MtlsPingViewTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {'policy': self.gp.policy_string,
                                              'block_ports': self.gp.ports,
-                                             'block_networks': self.gp.networks + settings.SPAM_NETWORKS})
+                                             'block_networks': self.gp.networks + settings.SPAM_NETWORKS,
+                                             'deb_packages_hash': ''})
 
     def test_pong_data(self):
         # 1st request

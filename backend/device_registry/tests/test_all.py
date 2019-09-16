@@ -386,7 +386,7 @@ class DeviceDetailViewTests(TestCase):
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall = FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
-        self.url2 = reverse('device_detail_security', kwargs={'pk': self.device.pk})
+        self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
         self.url3 = reverse('device-detail-metadata', kwargs={'pk': self.device.pk})
 
         self.device_no_portscan = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user,
@@ -578,7 +578,7 @@ class DeviceDetailViewTests(TestCase):
 
     def test_no_logins(self):
         self.client.login(username='test', password='123')
-        url = reverse('device_detail_security', kwargs={'pk': self.device_no_logins.pk})
+        url = reverse('device-detail-security', kwargs={'pk': self.device_no_logins.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No recent login attempts detected')

@@ -76,7 +76,7 @@ class ConvertPortsInfoMixin:
 
 class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
-    fields = ['name', 'policy', 'ports', 'networks']
+    fields = ['name', 'policy', 'ports']
     template_name = 'create_policy.html'
     success_url = reverse_lazy('global_policies')
 
@@ -170,7 +170,7 @@ def claim_device_view(request):
                     get_device.save(update_fields=['owner', 'claim_token'])
                     text, style = f'You\'ve successfully claimed {get_device.get_name()}. ' \
                                   f'Learn more about the security state of the device by clicking&nbsp;' \
-                                  f'<a class="claim-link" href="{reverse("device_detail_security", kwargs={"pk": get_device.pk})}">' \
+                                  f'<a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": get_device.pk})}">' \
                                   f'here</a>.', \
                                   'success'
             except Device.DoesNotExist:
@@ -334,7 +334,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
                     out_data.append(connections_form_data[2][connection_record_index])
                 portscan.block_networks = out_data
                 portscan.save(update_fields=['block_networks'])
-        return HttpResponseRedirect(reverse('device_detail_security', kwargs={'pk': kwargs['pk']}))
+        return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
 class DeviceDetailNetworkView(LoginRequiredMixin, DetailView):
