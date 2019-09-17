@@ -874,6 +874,17 @@ class GlobalPolicyEditViewTests(TestCase):
                                       'placeholder="Name" title="" required id="id_name"></div>')
         self.assertContains(response, '<option value="2" selected>Block by default</option>')
 
+    def test_post_non_unique_name(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        GlobalPolicy.objects.create(owner=self.user, name='Policy 1', policy=GlobalPolicy.POLICY_ALLOW)
+        self.assertEqual(GlobalPolicy.objects.count(), 2)
+        self.client.login(username='test', password='123')
+        form_data = {'name': 'Policy 1', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(None)}
+        response = self.client.post(self.url, form_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Global policy with this name already exists.')
+        self.assertEqual(GlobalPolicy.objects.count(), 2)
+
 
 class GlobalPolicyCreateViewTests(TestCase):
     def setUp(self):
@@ -904,6 +915,17 @@ class GlobalPolicyCreateViewTests(TestCase):
                                       'name="name" value="My policy" maxlength="32" class="form-control" '
                                       'placeholder="Name" title="" required id="id_name"></div>')
         self.assertContains(response, '<option value="2" selected>Block by default</option>')
+
+    def test_post_non_unique_name(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 0)
+        GlobalPolicy.objects.create(owner=self.user, name='Policy 1', policy=GlobalPolicy.POLICY_ALLOW)
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        self.client.login(username='test', password='123')
+        form_data = {'name': 'Policy 1', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(None)}
+        response = self.client.post(self.url, form_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Global policy with this name already exists.')
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
 
 
 class GlobalPoliciesListViewTests(TestCase):
