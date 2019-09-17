@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -17,7 +18,8 @@ from cryptography.x509.oid import NameOID
 from device_registry import ca_helper
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, GlobalPolicy
 from device_registry.models import PairingKey
-from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, GlobalPolicyForm
+from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
+from device_registry.forms import GlobalPolicyForm
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -329,7 +331,7 @@ class FormsTests(TestCase):
 
     def test_global_policy_form(self):
         form_data = {'global_policy': str(self.gp.pk)}
-        form = GlobalPolicyForm(data=form_data, instance=self.firewallstate)
+        form = FirewallStateGlobalPolicyForm(data=form_data, instance=self.firewallstate)
         self.assertTrue(form.is_valid())
 
 
@@ -854,7 +856,7 @@ class GlobalPolicyEditViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
                                       'name="name" value="gp1" maxlength="32" class="form-control" placeholder="Name" '
-                                      'title="" id="id_name"></div>')
+                                      'title="" required id="id_name"></div>')
         self.assertContains(response, '<option value="1" selected>Allow by default</option>')
         self.assertContains(response, '<div class="form-group"><label for="id_ports">Ports</label><textarea '
                                       'name="ports" cols="40" rows="10" class="form-control" placeholder="Ports" '
@@ -869,7 +871,7 @@ class GlobalPolicyEditViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
                                       'name="name" value="My policy" maxlength="32" class="form-control" '
-                                      'placeholder="Name" title="" id="id_name"></div>')
+                                      'placeholder="Name" title="" required id="id_name"></div>')
         self.assertContains(response, '<option value="2" selected>Block by default</option>')
 
 
@@ -900,7 +902,7 @@ class GlobalPolicyCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
                                       'name="name" value="My policy" maxlength="32" class="form-control" '
-                                      'placeholder="Name" title="" id="id_name"></div>')
+                                      'placeholder="Name" title="" required id="id_name"></div>')
         self.assertContains(response, '<option value="2" selected>Block by default</option>')
 
 
@@ -919,3 +921,77 @@ class GlobalPoliciesListViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<h5 class="card-title">Policies</h5>')
+
+
+class GlobalPolicyFormTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
+
+    def test_success(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.1', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_wrong_key(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.1', 'xxx': 'yyy', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['Wrong or missing fields.']})
+
+    def test_missing_key(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.1', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['Wrong or missing fields.']})
+
+    def test_duplicated_rule(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.1', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"0.0.0.0:34/udp" is a duplicating/conflicting rule.']})
+
+    def test_wrong_address(self):
+        ports_data = [{'address': '0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"0.0.0" is not a correct IP address.']})
+
+    def test_wrong_protocol(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'xxx', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"xxx" is not a valid protocol value.']})
+
+    def test_wrong_port_type(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': '34', 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"34" is not a valid port value.']})
+
+    def test_wrong_port_value(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': -34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"-34" is not a valid port value.']})
+
+    def test_wrong_ip_version(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': 'false'}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"false" is not a valid IP version field value.']})

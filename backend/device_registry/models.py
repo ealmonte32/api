@@ -560,7 +560,7 @@ class GlobalPolicy(models.Model):
         (POLICY_ALLOW, 'Allow by default'),
         (POLICY_BLOCK, 'Block by default')
     )
-    name = models.CharField(max_length=32, blank=True)
+    name = models.CharField(max_length=32)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='global_policies', on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     policy = models.PositiveSmallIntegerField(choices=POLICY_CHOICES, verbose_name='firewall ports policy')
@@ -595,3 +595,4 @@ class GlobalPolicy(models.Model):
         verbose_name = 'global policy'
         verbose_name_plural = 'global policies'
         ordering = ['-pk']
+        constraints = [models.UniqueConstraint(fields=['name', 'owner'], name='unique_name')]

@@ -11,7 +11,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
 
-from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm, GlobalPolicyForm
+from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
+from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Action, Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey
 from .models import GlobalPolicy
 from device_registry.api_views import DeviceListFilterMixin
@@ -76,7 +77,7 @@ class ConvertPortsInfoMixin:
 
 class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
-    fields = ['name', 'policy', 'ports']
+    form_class = GlobalPolicyForm
     template_name = 'create_policy.html'
     success_url = reverse_lazy('global_policies')
 
@@ -107,7 +108,7 @@ class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMix
 
 class GlobalPolicyEditView(LoginRequiredMixin, UpdateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
-    fields = ['name', 'policy', 'ports']
+    form_class = GlobalPolicyForm
     template_name = 'edit_policy.html'
     success_url = reverse_lazy('global_policies')
 
@@ -273,7 +274,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
         except FirewallState.DoesNotExist:
             context['firewall'] = None
         else:
-            context['global_policy_form'] = GlobalPolicyForm(instance=self.object.firewallstate)
+            context['global_policy_form'] = FirewallStateGlobalPolicyForm(instance=self.object.firewallstate)
             has_global_policy = bool(self.object.firewallstate.global_policy)
             context['has_global_policy'] = has_global_policy
         try:
@@ -299,7 +300,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
         firewallstate = self.object.firewallstate
 
         if 'global_policy' in request.POST:
-            form = GlobalPolicyForm(request.POST, instance=firewallstate)
+            form = FirewallStateGlobalPolicyForm(request.POST, instance=firewallstate)
             if form.is_valid():
                 firewallstate.global_policy = form.cleaned_data["global_policy"]
                 firewallstate.save(update_fields=['global_policy'])
