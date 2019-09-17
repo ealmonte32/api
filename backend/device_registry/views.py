@@ -87,6 +87,11 @@ class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMix
          - assign a proper owner
          - modify ports info to make it conform to the PortScan.block_ports field format
         """
+        # Check name uniqueness.
+        if GlobalPolicy.objects.filter(owner=self.request.user, name=form.cleaned_data['name']).exists():
+            form.add_error('name', 'Global policy with this name already exists.')
+            return super().form_invalid(form)
+
         self.object = form.save(commit=False)
         self.object.owner = self.request.user
         self.object.ports = self.dicts_to_lists(form.cleaned_data['ports'])
@@ -121,6 +126,12 @@ class GlobalPolicyEditView(LoginRequiredMixin, UpdateView, ConvertPortsInfoMixin
         Standard method overwritten in order to:
          - modify ports info to make it conform to the PortScan.block_ports field format
         """
+        # Check name uniqueness.
+        if GlobalPolicy.objects.filter(owner=self.request.user, name=form.cleaned_data['name']).exclude(
+                pk=form.instance.pk).exists():
+            form.add_error('name', 'Global policy with this name already exists.')
+            return super().form_invalid(form)
+
         self.object = form.save(commit=False)
         self.object.ports = self.dicts_to_lists(form.cleaned_data['ports'])
         self.object.save()
