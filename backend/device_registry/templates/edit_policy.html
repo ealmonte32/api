@@ -22,7 +22,7 @@
             <hr>
             <button class="btn btn-primary" id="save-button" type="button">Save changes</button>
             <button class="btn btn-danger" id="delete-button" style="float: right;" type="button">Delete</button>
-            <a href="{% url 'global_policies' %}" class="btn btn-secondary" role="button"
+            <a href="{% url 'global_policies' %}" class="btn btn-secondary mr-1" role="button"
                style="float: right;">Cancel</a>
           </form>
         </div>
@@ -35,7 +35,8 @@
 {% include "policy_editor.html" %}
   <script type="text/javascript">
       $(() => {
-          var ports_table = init_policy_ports_editor( JSON.parse($('#id_ports').html()) );
+          let data = JSON.parse($('#id_ports').text()),
+              ports_table = init_policy_ports_editor(data);
 
           $('#edit-policy-form').submit(function (e) {
               $('#id_ports').html( parse_policy_ports_editor(ports_table));
