@@ -97,7 +97,7 @@ class GlobalPolicyForm(forms.ModelForm):
                     unique_rules.add(rule_key_info)
                 # Check 'address' element.
                 try:
-                    _ = ipaddress.ip_address(rule['address'])
+                    address_obj = ipaddress.ip_address(rule['address'])
                 except ValueError:
                     raise forms.ValidationError('"%s" is not a correct IP address.' % rule['address'])
                 # Check 'protocol' element.
@@ -109,4 +109,9 @@ class GlobalPolicyForm(forms.ModelForm):
                 # Check 'ip_version' element.
                 if not type(rule['ip_version']) == bool:
                     raise forms.ValidationError('"%s" is not a valid IP version field value.' % rule['ip_version'])
+                # Check 'address' and 'ip_version' elements' conformance.
+                if address_obj.version == 4 and rule['ip_version']:
+                    raise forms.ValidationError('"%s" is wrong IP address format for IPv6.' % rule['address'])
+                if address_obj.version == 6 and not rule['ip_version']:
+                    raise forms.ValidationError('"%s" is wrong IP address format for IPv4.' % rule['address'])
         return data

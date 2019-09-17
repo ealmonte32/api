@@ -931,7 +931,7 @@ class GlobalPolicyFormTests(TestCase):
 
     def test_success(self):
         ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
-                      {'address': '0.0.0.1', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+                      {'address': '2002:c0a8:101::', 'protocol': 'udp', 'port': 34, 'ip_version': True}]
         form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
         form = GlobalPolicyForm(data=form_data)
         self.assertTrue(form.is_valid())
@@ -995,3 +995,17 @@ class GlobalPolicyFormTests(TestCase):
         form = GlobalPolicyForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertDictEqual(form.errors, {'ports': ['"false" is not a valid IP version field value.']})
+
+    def test_wrong_ipv6_address(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': True}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"0.0.0.0" is wrong IP address format for IPv6.']})
+
+    def test_wrong_ipv4_address(self):
+        ports_data = [{'address': '2002:c0a8:101::', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"2002:c0a8:101::" is wrong IP address format for IPv4.']})
