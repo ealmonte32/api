@@ -361,8 +361,8 @@
     
     function render_rule_icons() {
         let policy = $('#id_policy')[0].selectedIndex;
-        let icon = policy==2? 'ban': 'check-circle',
-            color = policy==2? 'danger': 'success';
+        let icon    = policy == 2 ? 'ban':    'check-circle',
+            color   = policy == 2 ? 'danger': 'success';
         return `<i class="wott-rule-icon fas fa-${icon} text-${color}"></i>`;
     }    
 
@@ -371,12 +371,12 @@
     {
         let result = [];
         ports_table.rows().every( function ( rowIdx, tableLoop, rowLoop ) {
-            var data = ports_table.row( rowIdx ).data();
+            let data = ports_table.row( rowIdx ).data();
             result.push( {
                 'address': data['address'],
                 'protocol': data['protocol'],
                 'port': Number(data['port']),
-                'ip_version': (data['ip_version'] == 'true')
+                'ip_version': (String(data['ip_version']) == 'true')
             });
         });
         return JSON.stringify(result);
