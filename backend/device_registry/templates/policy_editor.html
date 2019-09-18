@@ -27,13 +27,13 @@
         <div class="modal-body">
             <div class="form-row">
               <div class="form-group col-md-6">
-                <label for="address">Address</label>
+                <label for="address">Source Address</label>
                 <input type="text" class="form-control" id="address" placeholder="Address" name="address">
               </div>
               <div class="form-group col-md-2">
                 <label for="protocol">Protocol</label>
                 <select class="form-control" id="protocol" name="protocol">
-                  <option value="tcp">TCP</option>
+                  <option value="tcp" selected>TCP</option>
                   <option value="udp">UDP</option>
                 </select>
               </div>
@@ -42,10 +42,10 @@
                 <input type="text" class="form-control" id="port" placeholder="Port" name="port">
               </div>
               <div class="form-group col-md-2">
-                <label for="ip_version">IP ver.</label>
+                <label for="ip_version">IP version</label>
                 <select class="form-control" id="ip_version" name="ip_version">
-                  <option value="true">v6</option>
-                  <option value="false">v4</option>
+                  <option value="true">IPv6</option>
+                  <option value="false">IPv4</option>
                 </select>
               </div>
               <input type="hidden" name="method" id="method">
@@ -361,9 +361,13 @@
     
     function render_rule_icons() {
         let policy = $('#id_policy')[0].selectedIndex;
-        let icon    = policy == 2 ? 'ban':    'check-circle',
-            color   = policy == 2 ? 'danger': 'success';
-        return `<i class="wott-rule-icon fas fa-${icon} text-${color}"></i>`;
+        if(policy > 0) {
+            let icon = policy == 1 ? 'ban' : 'check-circle',
+                color = policy == 1 ? 'danger' : 'success';
+            return `<i class="wott-rule-icon fas fa-${icon} text-${color}"></i>`;
+        } else {
+            return '';
+        }
     }    
 
 
