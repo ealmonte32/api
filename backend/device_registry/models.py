@@ -97,6 +97,7 @@ class Device(models.Model):
     update_trust_score = models.BooleanField(default=False, db_index=True)
     deb_packages = models.ManyToManyField(DebPackage)
     deb_packages_hash = models.CharField(max_length=32, blank=True)
+    audit_files = JSONField(blank=True, default=list)
 
     @property
     def certificate_expired(self):
