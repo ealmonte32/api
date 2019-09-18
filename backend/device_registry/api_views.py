@@ -33,7 +33,7 @@ from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSeri
 from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,16 @@ if google_cloud_helper.credentials and google_cloud_helper.project:
                                         credentials=google_cloud_helper.credentials)
 else:
     datastore_client = None
+
+
+class PolicyDeviceNumberView(APIView):
+    """
+    Ajax view for getting the number of devices with a given global policy applied.
+    """
+
+    def get(self, request, *args, **kwargs):
+        global_policy = get_object_or_404(GlobalPolicy, owner=request.user, pk=kwargs['pk'])
+        return Response({'devices_nr': global_policy.get_devices_nr()})
 
 
 class MtlsPingView(APIView):
@@ -55,12 +65,19 @@ class MtlsPingView(APIView):
         device.save(update_fields=['last_ping'])
         portscan_object, _ = PortScan.objects.get_or_create(device=device)
         firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
-        block_networks = portscan_object.block_networks.copy()
+        if firewallstate_object.global_policy:  # Use security settings from the global policy.
+            block_networks = firewallstate_object.global_policy.networks.copy()
+            block_ports = firewallstate_object.global_policy.ports
+            policy_string = firewallstate_object.global_policy.policy_string
+            ports_field_name = firewallstate_object.global_policy.ports_field_name
+        else:  # User's per-device security settings.
+            block_networks = portscan_object.block_networks.copy()
+            block_ports = portscan_object.block_ports
+            policy_string = firewallstate_object.policy_string
+            ports_field_name = firewallstate_object.ports_field_name
         block_networks.extend(settings.SPAM_NETWORKS)
         return Response({
-            'policy': firewallstate_object.policy_string,
-            firewallstate_object.ports_field_name: portscan_object.block_ports,
-            'block_networks': block_networks,
+            'policy': policy_string, ports_field_name: block_ports, 'block_networks': block_networks,
             'deb_packages_hash': device.deb_packages_hash
         })
 

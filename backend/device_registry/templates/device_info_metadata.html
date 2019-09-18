@@ -1,7 +1,6 @@
 {% extends "admin_base.html" %}
 
 {% block css %}
-    {{ form_media.css }}
     <style type="text/css">
     .wott-form-alert {
       color: black;
@@ -13,10 +12,6 @@
     }
 
     </style>
-{% endblock %}
-
-{% block js %}
-    {{ form_media.js }}
 {% endblock %}
 
 {% load split_string %}

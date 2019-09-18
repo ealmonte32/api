@@ -1,0 +1,106 @@
+{% extends "admin_base.html" %}
+
+{% load bootstrap4 %}
+
+{% block title %}WoTT - Edit Policy{% endblock title %}
+
+{% block dashboard_title %}
+  <h1>Edit Policy</h1>
+{% endblock dashboard_title %}
+
+{% block admin_content %}
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title">{{ object }}</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="" id="edit-policy-form">
+            {% csrf_token %}
+            {% bootstrap_form form %}
+            <hr>
+            <button class="btn btn-primary" id="save-button" type="button">Save changes</button>
+            <button class="btn btn-danger" id="delete-button" style="float: right;" type="button">Delete</button>
+            <a href="{% url 'global_policies' %}" class="btn btn-secondary mr-1" role="button"
+               style="float: right;">Cancel</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock admin_content %}
+
+{% block scripts %}
+{% include "policy_editor.html" %}
+  <script type="text/javascript">
+      $(() => {
+          let data = JSON.parse($('#id_ports').text()),
+              ports_table = init_policy_ports_editor(data);
+
+          $('#edit-policy-form').submit(function (e) {
+              $('#id_ports').html( parse_policy_ports_editor(ports_table));
+              return true;
+          });
+
+      });
+
+
+      $('#delete-button').on('click', function () {
+          $.ajax({
+              dataType: "json",
+              url: '{% url "ajax_policy_device_nr" object.pk %}',
+              success: function (data) {
+                  if (data.devices_nr > 0)
+                      $.confirm({
+                          title: 'Confirmation required',
+                          content: 'This policy applied to <b>' + data.devices_nr + '</b> devices.<br>Are you sure you want to delete it?',
+                          icon: 'fa fa-question-circle',
+                          buttons: {
+                              delete: {
+                                  btnClass: 'btn-danger',
+                                  action: function () {
+                                      location.href = '{% url "delete_global_policy" object.pk %}';
+                                  }
+                              },
+                              cancel: {
+                                  btnClass: 'btn-secondary'
+                              }
+                          }
+                      });
+                  else
+                      location.href = '{% url "delete_global_policy" object.pk %}';
+              }
+          });
+      });
+
+      $('#save-button').on('click', function () {
+          $.ajax({
+              dataType: "json",
+              url: '{% url "ajax_policy_device_nr" object.pk %}',
+              success: function (data) {
+                  if (data.devices_nr > 0)
+                      $.confirm({
+                          title: 'Confirmation required',
+                          content: 'This policy applied to <b>' + data.devices_nr + '</b> devices.<br>Are you sure you want to modify it?',
+                          icon: 'fa fa-question-circle',
+                          buttons: {
+                              modify: {
+                                  btnClass: 'btn-danger',
+                                  action: function () {
+                                      $('#edit-policy-form').submit();
+                                  }
+                              },
+                              cancel: {
+                                  btnClass: 'btn-secondary'
+                              }
+                          }
+                      });
+                  else {
+                      $('#edit-policy-form').submit();
+                  }
+              }
+          });
+      });
+  </script>
+{% endblock %}

@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -15,9 +16,10 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score
+from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, GlobalPolicy
 from device_registry.models import PairingKey
-from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm
+from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
+from device_registry.forms import GlobalPolicyForm
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -300,6 +302,10 @@ class FormsTests(TestCase):
         )
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
+        self.firewallstate = FirewallState.objects.create(device=self.device)
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
 
     def test_device_metadata_form(self):
         form_data = {'device_metadata': {"test": "value"}}
@@ -313,8 +319,7 @@ class FormsTests(TestCase):
 
     def test_ports_form(self):
         ports_form_data = self.portscan.ports_form_data()
-        firewallstate = FirewallState.objects.create(device=self.device)
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': firewallstate.policy}
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewallstate.policy}
         form = PortsForm(data=form_data, ports_choices=ports_form_data[0])
         self.assertTrue(form.is_valid())
 
@@ -322,6 +327,11 @@ class FormsTests(TestCase):
         connections_form_data = self.portscan.connections_form_data()
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
         form = ConnectionsForm(data=form_data, open_connections_choices=connections_form_data[0])
+        self.assertTrue(form.is_valid())
+
+    def test_global_policy_form(self):
+        form_data = {'global_policy': str(self.gp.pk)}
+        form = FirewallStateGlobalPolicyForm(data=form_data, instance=self.firewallstate)
         self.assertTrue(form.is_valid())
 
 
@@ -405,36 +415,36 @@ class DeviceDetailViewTests(TestCase):
         self.portscan3 = PortScan.objects.create(device=self.device_no_logins, scan_info=OPEN_PORTS_INFO,
                                                  netstat=OPEN_CONNECTIONS_INFO)
         self.firewall3 = FirewallState.objects.create(device=self.device_no_logins)
+        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
 
     def test_device_detail_not_logged_in(self):
         url = reverse('device-detail', kwargs={'pk': self.device.pk})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/')
 
     def test_device_detail_software_not_logged_in(self):
         url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/software/')
 
     def test_device_detail_security_not_logged_in(self):
-        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
+        response = self.client.get(self.url2)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/security/')
 
     def test_device_detail_network_not_logged_in(self):
         url = reverse('device-detail-network', kwargs={'pk': self.device.pk})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/network/')
 
     def test_device_detail_hardware_not_logged_in(self):
         url = reverse('device-detail-hardware', kwargs={'pk': self.device.pk})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/hardware/')
 
     def test_credentials_not_logged_in(self):
         url = reverse('credentials')
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, '/accounts/login/?next=/credentials/')
 
     def test_get(self):
         """
@@ -510,6 +520,33 @@ class DeviceDetailViewTests(TestCase):
         self.client.post(self.url2, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22, False]])
+        response = self.client.get(self.url2)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Firewall Ports Policy')
+        self.assertContains(response, '<th scope="col" width="5%"><span\n                                      '
+                                      'id="ports-table-column-1">Allowed</span></th>')
+
+    def test_open_ports_global_policy(self):
+        self.client.login(username='test', password='123')
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
+        self.client.post(self.url2, form_data)
+        portscan = PortScan.objects.get(pk=self.portscan.pk)
+        self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22, False]])
+        self.firewall.global_policy = self.gp
+        self.firewall.save(update_fields=['global_policy'])
+        response = self.client.get(self.url2)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Open Ports')
+        self.assertNotContains(response, '<th scope="col" width="5%"><span\n                                      '
+                                         'id="ports-table-column-1">Allowed</span></th>')
+
+    def test_open_ports_forbidden(self):
+        self.client.login(username='test', password='123')
+        self.firewall.global_policy = self.gp
+        self.firewall.save(update_fields=['global_policy'])
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
+        response = self.client.post(self.url2, form_data)
+        self.assertEqual(response.status_code, 403)
 
     def test_open_connections(self):
         self.client.login(username='test', password='123')
@@ -517,6 +554,29 @@ class DeviceDetailViewTests(TestCase):
         self.client.post(self.url2, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
+        response = self.client.get(self.url2)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<th scope="col" width="5%">Blocked</th>')
+
+    def test_open_connections_global_policy(self):
+        self.client.login(username='test', password='123')
+        form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
+        self.client.post(self.url2, form_data)
+        portscan = PortScan.objects.get(pk=self.portscan.pk)
+        self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
+        self.firewall.global_policy = self.gp
+        self.firewall.save(update_fields=['global_policy'])
+        response = self.client.get(self.url2)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '<th scope="col" width="5%">Blocked</th>')
+
+    def test_open_connections_forbidden(self):
+        self.client.login(username='test', password='123')
+        self.firewall.global_policy = self.gp
+        self.firewall.save(update_fields=['global_policy'])
+        form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
+        response = self.client.post(self.url2, form_data)
+        self.assertEqual(response.status_code, 403)
 
     def test_no_logins(self):
         self.client.login(username='test', password='123')
@@ -527,8 +587,7 @@ class DeviceDetailViewTests(TestCase):
 
     def test_logins(self):
         self.client.login(username='test', password='123')
-        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-        response = self.client.get(url)
+        response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<pre>pi:')
         self.assertContains(response, 'success: 1')
@@ -584,7 +643,7 @@ class PairingKeysView(TestCase):
 
     def test_not_logged_in(self):
         response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, '/accounts/login/?next=/pairing-keys/')
 
     def test_get(self):
         self.client.login(username='test', password='123')
@@ -723,3 +782,252 @@ class RootViewTests(TestCase):
         })
         response = self.client.get(url)
         self.assertListEqual(list(response.context['object_list']), [self.device1])
+
+
+class SaveDeviceSettingsAsPolicyViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='test', password='123')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
+                                                netstat=OPEN_CONNECTIONS_INFO)
+        self.firewallstate = FirewallState.objects.create(device=self.device)
+        self.url = reverse('save_as_policy', kwargs={'pk': self.device.pk})
+
+    def test_not_logged_in(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/security/save-as-policy/')
+
+    def test_get(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 0)
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(GlobalPolicy.objects.count(), 0)
+        # TODO: check page content.
+
+    def test_get_forbidden(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 0)
+        self.client.login(username='test', password='123')
+        gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        self.firewallstate.global_policy = gp
+        self.firewallstate.save(update_fields=['global_policy'])
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+
+
+class GlobalPolicyDeleteViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='test', password='123')
+        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
+        self.url = reverse('delete_global_policy', kwargs={'pk': self.gp.pk})
+
+    def test_not_logged_in(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f'/accounts/login/?next=/policies/{self.gp.pk}/delete/')
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+
+    def test_get(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(GlobalPolicy.objects.count(), 0)
+        self.assertRedirects(response, '/policies/')
+
+
+class GlobalPolicyEditViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='test', password='123')
+        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
+        self.url = reverse('edit_global_policy', kwargs={'pk': self.gp.pk})
+
+    def test_not_logged_in(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f'/accounts/login/?next=/policies/{self.gp.pk}/')
+
+    def test_get(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
+                                      'name="name" value="gp1" maxlength="32" class="form-control" placeholder="Name" '
+                                      'title="" required id="id_name"></div>')
+        self.assertContains(response, '<option value="1" selected>Allow by default</option>')
+        self.assertContains(response, '<div class="form-group"><label for="id_ports">Ports</label><textarea '
+                                      'name="ports" cols="40" rows="10" class="form-control" placeholder="Ports" '
+                                      'title="" id="id_ports">\n[]</textarea></div>')
+
+    def test_post(self):
+        self.client.login(username='test', password='123')
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK)}
+        response = self.client.post(self.url, form_data)
+        self.assertRedirects(response, '/policies/')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
+                                      'name="name" value="My policy" maxlength="32" class="form-control" '
+                                      'placeholder="Name" title="" required id="id_name"></div>')
+        self.assertContains(response, '<option value="2" selected>Block by default</option>')
+
+    def test_post_non_unique_name(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        GlobalPolicy.objects.create(owner=self.user, name='Policy 1', policy=GlobalPolicy.POLICY_ALLOW)
+        self.assertEqual(GlobalPolicy.objects.count(), 2)
+        self.client.login(username='test', password='123')
+        form_data = {'name': 'Policy 1', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(None)}
+        response = self.client.post(self.url, form_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Global policy with this name already exists.')
+        self.assertEqual(GlobalPolicy.objects.count(), 2)
+
+
+class GlobalPolicyCreateViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='test', password='123')
+        self.url = reverse('create_global_policy')
+
+    def test_not_logged_in(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, '/accounts/login/?next=/policies/add/')
+
+    def test_get(self):
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_post(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 0)
+        self.client.login(username='test', password='123')
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK)}
+        response = self.client.post(self.url, form_data)
+        self.assertRedirects(response, '/policies/')
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        gp = GlobalPolicy.objects.all()[0]
+        response = self.client.get(reverse('edit_global_policy', kwargs={'pk': gp.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
+                                      'name="name" value="My policy" maxlength="32" class="form-control" '
+                                      'placeholder="Name" title="" required id="id_name"></div>')
+        self.assertContains(response, '<option value="2" selected>Block by default</option>')
+
+    def test_post_non_unique_name(self):
+        self.assertEqual(GlobalPolicy.objects.count(), 0)
+        GlobalPolicy.objects.create(owner=self.user, name='Policy 1', policy=GlobalPolicy.POLICY_ALLOW)
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+        self.client.login(username='test', password='123')
+        form_data = {'name': 'Policy 1', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(None)}
+        response = self.client.post(self.url, form_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Global policy with this name already exists.')
+        self.assertEqual(GlobalPolicy.objects.count(), 1)
+
+
+class GlobalPoliciesListViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='test', password='123')
+        self.url = reverse('global_policies')
+
+    def test_not_logged_in(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, '/accounts/login/?next=/policies/')
+
+    def test_get(self):
+        self.client.login(username='test', password='123')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<h5 class="card-title">Policies</h5>')
+
+
+class GlobalPolicyFormTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
+
+    def test_success(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '2002:c0a8:101::', 'protocol': 'udp', 'port': 34, 'ip_version': True}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_wrong_key(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.1', 'xxx': 'yyy', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['Wrong or missing fields.']})
+
+    def test_missing_key(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.1', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['Wrong or missing fields.']})
+
+    def test_duplicated_rule(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.1', 'protocol': 'udp', 'port': 34, 'ip_version': False},
+                      {'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"0.0.0.0:34/udp" is a duplicating/conflicting rule.']})
+
+    def test_wrong_address(self):
+        ports_data = [{'address': '0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"0.0.0" is not a correct IP address.']})
+
+    def test_wrong_protocol(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'xxx', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"xxx" is not a valid protocol value.']})
+
+    def test_wrong_port_type(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': '34', 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"34" is not a valid port value.']})
+
+    def test_wrong_port_value(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': -34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"-34" is not a valid port value.']})
+
+    def test_wrong_ip_version(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': 'false'}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"false" is not a valid IP version field value.']})
+
+    def test_wrong_ipv6_address(self):
+        ports_data = [{'address': '0.0.0.0', 'protocol': 'udp', 'port': 34, 'ip_version': True}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"0.0.0.0" is wrong IP address format for IPv6.']})
+
+    def test_wrong_ipv4_address(self):
+        ports_data = [{'address': '2002:c0a8:101::', 'protocol': 'udp', 'port': 34, 'ip_version': False}]
+        form_data = {'name': 'My policy', 'policy': str(GlobalPolicy.POLICY_BLOCK), 'ports': json.dumps(ports_data)}
+        form = GlobalPolicyForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertDictEqual(form.errors, {'ports': ['"2002:c0a8:101::" is wrong IP address format for IPv4.']})

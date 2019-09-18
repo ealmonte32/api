@@ -1,19 +1,20 @@
 import json
 import uuid
 
-from django.views.generic import DetailView, TemplateView, ListView, View
-from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
+from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
 
-from device_registry.forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
-from device_registry.models import Action, Device, average_trust_score, PortScan, FirewallState
-from device_registry.models import PairingKey, get_bootstrap_color
+from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
+from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
+from .models import Action, Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey
+from .models import GlobalPolicy
 from device_registry.api_views import DeviceListFilterMixin
 
 
@@ -52,6 +53,111 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
             'filter': self.filter_dict
         })
         return context
+
+
+class GlobalPoliciesListView(LoginRequiredMixin, ListView):
+    model = GlobalPolicy
+    template_name = 'policies.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+
+class ConvertPortsInfoMixin:
+    def dicts_to_lists(self, ports):
+        if ports:
+            return [[d[k] for k in ('address', 'protocol', 'port', 'ip_version')] for d in ports]
+        else:
+            return []
+
+    def lists_to_dicts(self, ports):
+        return [{'address': d[0], 'protocol': d[1], 'port': d[2], 'ip_version': d[3]} for d in ports]
+
+
+class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMixin):
+    model = GlobalPolicy
+    form_class = GlobalPolicyForm
+    template_name = 'create_policy.html'
+    success_url = reverse_lazy('global_policies')
+
+    def form_valid(self, form):
+        """
+        Standard method overwritten in order to:
+         - assign a proper owner
+         - modify ports info to make it conform to the PortScan.block_ports field format
+        """
+        # Check name uniqueness.
+        if GlobalPolicy.objects.filter(owner=self.request.user, name=form.cleaned_data['name']).exists():
+            form.add_error('name', 'Global policy with this name already exists.')
+            return super().form_invalid(form)
+
+        self.object = form.save(commit=False)
+        self.object.owner = self.request.user
+        self.object.ports = self.dicts_to_lists(form.cleaned_data['ports'])
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get(self, request, *args, **kwargs):
+        if 'pk' in kwargs:
+            device = get_object_or_404(Device, owner=self.request.user, pk=kwargs['pk'])
+            portscan_object, _ = PortScan.objects.get_or_create(device=device)
+            firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
+            if firewallstate_object.global_policy:
+                return HttpResponseForbidden()
+            # TODO: pass networks when we enable this field support.
+            self.initial = {'policy': firewallstate_object.policy,
+                            'ports': self.lists_to_dicts(portscan_object.block_ports)}
+        return super().get(request, *args, **kwargs)
+
+
+class GlobalPolicyEditView(LoginRequiredMixin, UpdateView, ConvertPortsInfoMixin):
+    model = GlobalPolicy
+    form_class = GlobalPolicyForm
+    template_name = 'edit_policy.html'
+    success_url = reverse_lazy('global_policies')
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
+    def form_valid(self, form):
+        """
+        Standard method overwritten in order to:
+         - modify ports info to make it conform to the PortScan.block_ports field format
+        """
+        # Check name uniqueness.
+        if GlobalPolicy.objects.filter(owner=self.request.user, name=form.cleaned_data['name']).exclude(
+                pk=form.instance.pk).exists():
+            form.add_error('name', 'Global policy with this name already exists.')
+            return super().form_invalid(form)
+
+        self.object = form.save(commit=False)
+        self.object.ports = self.dicts_to_lists(form.cleaned_data['ports'])
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get(self, request, *args, **kwargs):
+        """
+        Standard method overwritten in order to:
+         - modify ports info to format to the format expected by the frontend
+        """
+        self.object = self.get_object()
+        self.object.ports = self.lists_to_dicts(self.object.ports)
+        return self.render_to_response(self.get_context_data())
+
+
+class GlobalPolicyDeleteView(LoginRequiredMixin, DeleteView):
+    """
+    Global policy delete view.
+
+    The only customization: delete by GET request support added.
+    """
+    model = GlobalPolicy
+    success_url = reverse_lazy('global_policies')
+
+    def get(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
 
 
 @login_required
@@ -173,31 +279,46 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        has_global_policy = False
+        try:
+            context['firewall'] = self.object.firewallstate
+        except FirewallState.DoesNotExist:
+            context['firewall'] = None
+        else:
+            context['global_policy_form'] = FirewallStateGlobalPolicyForm(instance=self.object.firewallstate)
+            has_global_policy = bool(self.object.firewallstate.global_policy)
+            context['has_global_policy'] = has_global_policy
         try:
             context['portscan'] = self.object.portscan
         except PortScan.DoesNotExist:
             context['portscan'] = None
         else:
-            ports_form_data = self.object.portscan.ports_form_data()
-            context['ports_choices'] = bool(ports_form_data[0])
-            context['ports_form'] = PortsForm(ports_choices=ports_form_data[0],
-                                              initial={'open_ports': ports_form_data[1],
-                                                       'policy': self.object.firewallstate.policy})
-            connections_form_data = self.object.portscan.connections_form_data()
-            context['connections_choices'] = bool(connections_form_data[0])
-            context['connections_form'] = ConnectionsForm(open_connections_choices=connections_form_data[0],
-                                                          initial={'open_connections': connections_form_data[1]})
-        try:
-            context['firewall'] = self.object.firewallstate
-        except FirewallState.DoesNotExist:
-            context['firewall'] = None
+            if not has_global_policy:
+                ports_form_data = self.object.portscan.ports_form_data()
+                context['ports_choices'] = bool(ports_form_data[0])
+                context['ports_form'] = PortsForm(ports_choices=ports_form_data[0],
+                                                  initial={'open_ports': ports_form_data[1],
+                                                           'policy': self.object.firewallstate.policy})
+                connections_form_data = self.object.portscan.connections_form_data()
+                context['connections_choices'] = bool(connections_form_data[0])
+                context['connections_form'] = ConnectionsForm(open_connections_choices=connections_form_data[0],
+                                                              initial={'open_connections': connections_form_data[1]})
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         portscan = self.object.portscan
         firewallstate = self.object.firewallstate
-        if 'is_ports_form' in request.POST:
+
+        if 'global_policy' in request.POST:
+            form = FirewallStateGlobalPolicyForm(request.POST, instance=firewallstate)
+            if form.is_valid():
+                firewallstate.global_policy = form.cleaned_data["global_policy"]
+                firewallstate.save(update_fields=['global_policy'])
+
+        elif 'is_ports_form' in request.POST:
+            if firewallstate and firewallstate.global_policy:
+                return HttpResponseForbidden()
             ports_form_data = self.object.portscan.ports_form_data()
             form = PortsForm(request.POST, ports_choices=ports_form_data[0])
             if form.is_valid():
@@ -214,6 +335,8 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
                     self.object.save(update_fields=['update_trust_score'])
 
         elif 'is_connections_form' in request.POST:
+            if firewallstate and firewallstate.global_policy:
+                return HttpResponseForbidden()
             connections_form_data = self.object.portscan.connections_form_data()
             form = ConnectionsForm(request.POST, open_connections_choices=connections_form_data[0])
             if form.is_valid():
