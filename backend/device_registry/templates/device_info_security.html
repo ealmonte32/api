@@ -84,7 +84,7 @@
                     {% if services %}
                     <ul>
                     {% for service in services %}
-                      <li>{{ service.name }}</li>
+                      <li>{% include "badge.html" with icon="question-circle" color="primary" %} {{ service.name }}</li>
                     {% endfor %}
                     </ul>
                     {% elif services is not None %}
