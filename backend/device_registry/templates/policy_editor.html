@@ -361,9 +361,13 @@
     
     function render_rule_icons() {
         let policy = $('#id_policy')[0].selectedIndex;
-        let icon    = policy == 2 ? 'ban':    'check-circle',
-            color   = policy == 2 ? 'danger': 'success';
-        return `<i class="wott-rule-icon fas fa-${icon} text-${color}"></i>`;
+        if(policy > 0) {
+            let icon = policy == 1 ? 'ban' : 'check-circle',
+                color = policy == 1 ? 'danger' : 'success';
+            return `<i class="wott-rule-icon fas fa-${icon} text-${color}"></i>`;
+        } else {
+            return '';
+        }
     }    
 
 
