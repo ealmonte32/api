@@ -644,10 +644,11 @@ class Vulnerability(models.Model):
 
     def is_vulnerable(self, src_ver):
         if self.unstable_version:
-            unstable_version = Version(self.unstable_version)
+            unstable_version = Vulnerability.Version(self.unstable_version)
         else:
             unstable_version = None
-        other_versions = map(Version, self.other_versions)
+        other_versions = map(Vulnerability.Version, self.other_versions)
+        src_ver = Vulnerability.Version(src_ver)
 
         if self.unstable_version:
             return src_ver < unstable_version \
