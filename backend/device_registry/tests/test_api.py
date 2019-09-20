@@ -4,7 +4,6 @@ from unittest.mock import patch, mock_open
 import json
 import datetime
 
-
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -880,7 +879,9 @@ class MtlsPingViewTest(APITestCase):
         })
         self.device.refresh_from_db()
         self.assertQuerysetEqual(self.device.deb_packages.all(), packages,
-                                 transform=lambda p: {'name': p.name, 'version': p.version, 'arch': p.arch})
+                                 transform=lambda p: {'name': p.name, 'version': p.version,
+                                                      'source_name': p.source_name,
+                                                      'source_version': p.source_version, 'arch': p.arch})
 
 
 class DeviceEnrollView(APITestCase):
@@ -1062,12 +1063,12 @@ class GetBatchActionsViewTest(APITestCase):
         response = self.client.get(self.url)
         args_control = '<input type="text" name="batch_{name}" id="batch_{name}" action_name="{name}" ' \
                        'data-tagulous data-tag-url="/ajax/tags/autocomplete/" autocomplete="off" style="width:100%;" >'
-        js_get = 'function(el){\n'\
-                 '            let tags=[];\n'\
-                 '            Tagulous.parseTags( el.val(), true, false ).forEach( function (tag) {\n'\
-                 '                tags.push({ "name" : tag  })\n'\
-                 '            });\n'\
-                 '            return tags;\n'\
+        js_get = 'function(el){\n' \
+                 '            let tags=[];\n' \
+                 '            Tagulous.parseTags( el.val(), true, false ).forEach( function (tag) {\n' \
+                 '                tags.push({ "name" : tag  })\n' \
+                 '            });\n' \
+                 '            return tags;\n' \
                  '          }'
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -1102,8 +1103,8 @@ class BatchUpdateTagsViewTest(APITestCase):
 
     def test_set_ok(self):
         data = {'action': 'set', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk}],
-                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
-        response = self.client.post(self.url, data=data )
+                'args': [{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+        response = self.client.post(self.url, data=data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         msg = f"Set tags to 2 devices."
         self.assertEqual(response.data, msg)
@@ -1113,8 +1114,8 @@ class BatchUpdateTagsViewTest(APITestCase):
 
     def test_add_ok(self):
         data = {'action': 'add', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk}],
-                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
-        response = self.client.post(self.url, data=data )
+                'args': [{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+        response = self.client.post(self.url, data=data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         msg = f"Added tags to 2 devices."
         self.assertEqual(response.data, msg)
@@ -1124,14 +1125,14 @@ class BatchUpdateTagsViewTest(APITestCase):
 
     def test_invalid_action(self):
         data = {'action': 'unknown', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk}],
-                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+                'args': [{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
         response = self.client.post(self.url, data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), {'action': ['Invalid argument']})
 
     def test_invalid_device(self):
-        data = {'action': 'set', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk+100}],
-                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+        data = {'action': 'set', 'objects': [{'pk': self.device.pk}, {'pk': self.device2.pk + 100}],
+                'args': [{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
         response = self.client.post(self.url, data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), {'non_field_errors': ['Invalid argument']})
@@ -1141,7 +1142,7 @@ class BatchUpdateTagsViewTest(APITestCase):
         user2 = User.objects.create_user('test2', password='123')
         device3 = Device.objects.create(device_id='device3.d.wott-dev.local', owner=user2, tags='tag1,tag2')
         data = {'action': 'set', 'objects': [{'pk': self.device.pk}, {'pk': device3.pk}],
-                'args':[{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
+                'args': [{'name': 'tag2'}, {'name': 'tag3'}, {'name': 'tag4'}]}
         response = self.client.post(self.url, data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json(), {'non_field_errors': ['Invalid argument']})
@@ -1159,7 +1160,7 @@ class DeviceListAjaxViewTest(APITestCase):
             owner=self.user,
             certificate=TEST_CERT,
             name='First',
-            last_ping=timezone.now()-datetime.timedelta(days=1, hours=1)
+            last_ping=timezone.now() - datetime.timedelta(days=1, hours=1)
         )
         self.deviceinfo0 = DeviceInfo.objects.create(
             device=self.device0,
@@ -1267,7 +1268,7 @@ class DeviceListAjaxViewTest(APITestCase):
 
         url = reverse('ajax_device_list') + '?' + urlencode({'start': 1, 'length': 1})
         response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([ self.device1], length=3))
+        self.assertDictEqual(response.data, self._dev_list_data([self.device1], length=3))
 
 
 class PolicyDeviceNumberViewTests(APITestCase):
