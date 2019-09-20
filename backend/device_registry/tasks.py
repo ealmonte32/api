@@ -75,7 +75,6 @@ def fetch_vulnerabilities():
     with transaction.atomic():
         Vulnerability.objects.all().delete()
         Vulnerability.objects.bulk_create(vulnerabilities)
-        DebPackage.objects.filter(device__isnull=True).delete()  # Unused packages clean up.
         DebPackage.objects.update(processed=False)
 
 
