@@ -12,7 +12,7 @@ from django.contrib.postgres.fields import ArrayField, JSONField
 import yaml
 import tagulous.models
 
-from device_registry import validators
+from . import validators
 
 import apt_pkg
 apt_pkg.init()
@@ -59,6 +59,9 @@ class DebPackage(models.Model):
     source_name = models.CharField(max_length=128)
     source_version = models.CharField(max_length=128)
     arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Arch])
+    processed = models.BooleanField(default=False, db_index=True)
+    vulnerabilities = models.ManyToManyField('Vulnerability')
+
 
     class Meta:
         unique_together = ['name', 'version', 'arch']
@@ -634,7 +637,7 @@ class Vulnerability(models.Model):
         HIGH = 'H'
 
     name = models.CharField(max_length=64)
-    package = models.CharField(max_length=64)
+    package = models.CharField(max_length=64, db_index=True)
     is_binary = models.BooleanField()
     unstable_version = models.CharField(max_length=64, blank=True)
     other_versions = ArrayField(models.CharField(max_length=64), blank=True)

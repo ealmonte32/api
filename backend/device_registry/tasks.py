@@ -1,13 +1,13 @@
 import logging
 import zlib
-from collections import defaultdict
 from itertools import groupby
 from urllib.request import urlopen, Request
 
+from django.db import transaction
+
 from celery import shared_task
 
-from .models import Device, Vulnerability
-
+from .models import Device, Vulnerability, DebPackage
 
 logger = logging.getLogger('django')
 
@@ -72,6 +72,23 @@ def fetch_vulnerabilities():
                           fix_available=flags[3] == 'F')
         vulnerabilities.append(v)
     logger.info('saving data...')
-    Vulnerability.objects.all().delete()
-    Vulnerability.objects.bulk_create(vulnerabilities)
+    with transaction.atomic():
+        Vulnerability.objects.all().delete()
+        Vulnerability.objects.bulk_create(vulnerabilities)
+        DebPackage.objects.filter(device__isnull=True).delete()  # Unused packages clean up.
+        DebPackage.objects.update(processed=False)
 
+
+@shared_task
+def update_packages_vulnerabilities():
+    packages = DebPackage.objects.filter(processed=False)
+    for package in packages:
+        actionable_valns = []
+        vulns = Vulnerability.objects.filter(package=package.source_name)
+        for vuln in vulns:
+            if vuln.is_vulnerable(package.source_version) and vuln.fix_available:
+                actionable_valns.append(vuln)
+        with transaction.atomic():
+            package.vulnerabilities.set(actionable_valns)
+            package.processed = True
+            package.save(update_fields=['processed'])
