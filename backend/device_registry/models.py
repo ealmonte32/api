@@ -99,6 +99,20 @@ class Device(models.Model):
     deb_packages_hash = models.CharField(max_length=32, blank=True)
     audit_files = JSONField(blank=True, default=list)
 
+    def sshd_issues(self):
+        if self.audit_files:
+            for file_info in self.audit_files:
+                if 'sshd' in file_info['name']:
+                    issues = []
+                    for k, v in file_info['issues'].items():
+                        if v == 'yes':
+                            secure_value = 'no'
+                        else:
+                            secure_value = '2'  # Support only 'Protocol' now. TODO: improve this.
+                        issues.append((k, v, secure_value))
+                    return issues
+        return None
+
     @property
     def certificate_expired(self):
         return self.certificate_expires < timezone.now()

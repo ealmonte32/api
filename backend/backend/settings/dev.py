@@ -25,3 +25,5 @@ INSTALLED_APPS += [
 IS_DEV = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+ALLOWED_HOSTS = ['*']

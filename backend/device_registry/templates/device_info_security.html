@@ -79,10 +79,41 @@
                 </tr>
                 <tr>
                 <tr>
-                  <th scope="row">
-                    OpenSSH Audit
-                  </th>
-                  <td>Coming soon!</td>
+                  <th scope="row">System File Audit</th>
+                  <td>
+                    {% if object.audit_files %}
+                      <table class="table table-borderless table-sm">
+                        <thead class="thead-light">
+                        <tr>
+                          <th scope="col">Path</th>
+                          <th scope="col">Checksum (SHA-256)</th>
+                          <th scope="col">Last Modified</th>
+                        </tr>
+                        </thead>
+                        {% for file in object.audit_files %}
+                          <tr>
+                            <td>{{ file.name }}</td>
+                            <td>{{ file.sha256 }}</td>
+                            <td>
+                              {% if file.last_modified %}{{ file.last_modified|fromunix|timesince }} ago{% endif %}</td>
+                          </tr>
+                        {% endfor %}
+                      </table>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Configuration Audit</th>
+                  <td>
+                    {% if object.sshd_issues %}
+                      <h5>OpenSSH</h5>
+                      <ul style="list-style-type:none; padding: 0;">
+                      {% for issue in object.sshd_issues %}
+                        <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider changing "{{ issue.0 }}" from "{{ issue.1 }}" to "{{ issue.2 }}"</li>
+                      {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </td>
                 </tr>
                 <tr>
                 <tr>
@@ -398,40 +429,6 @@
                       {% else %}
                         In {{ object.certificate_expires|timeuntil }}
                       {% endif %}
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Audited files</th>
-                  <td>
-                    {% if object.audit_files %}
-                      <table class="table table-borderless table-sm">
-                        <thead class="thead-light">
-                        <tr>
-                          <th scope="col">Path</th>
-                          <th scope="col">Checksum (SHA-256)</th>
-                          <th scope="col">Last modified</th>
-                          <th scope="col">Issues</th>
-                        </tr>
-                        </thead>
-                        {% for file in object.audit_files %}
-                          <tr>
-                            <td>{{ file.name }}</td>
-                            <td>{{ file.sha256 }}</td>
-                            <td>
-                              {% if file.last_modified %}{{ file.last_modified|fromunix|timesince }} ago{% endif %}</td>
-                            <td>
-                              {% if file.issues %}
-                                <ul>
-                                  {% for issue in file.issues.items %}
-                                    <li>{{ issue.0 }}={{ issue.1 }}</li>
-                                  {% endfor %}
-                                </ul>
-                              {% endif %}
-                            </td>
-                          </tr>
-                        {% endfor %}
-                      </table>
                     {% endif %}
                   </td>
                 </tr>
