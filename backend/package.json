@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "5.7.1",
+    "Select2": "git+https://github.com/select2/select2.git#3.5.4",
     "apexcharts": "2.5.1",
     "bootstrap": "^4.3.1",
     "bootstrap-daterangepicker": "3.0.3",
@@ -67,7 +68,6 @@
     "moment": "2.24.0",
     "popper.js": "1.14.7",
     "quill": "1.3.6",
-    "select2": "https://github.com/select2/select2#3.5.4",
     "simplebar": "2.6.1",
     "smartwizard": "4.3.1",
     "tempusdominus-bootstrap-4": "5.1.2",

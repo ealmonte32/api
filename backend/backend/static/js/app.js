@@ -14,7 +14,7 @@ import "./modules/chartjs";
 
 // Forms
 import "./modules/mask";
-import "./modules/select2";
+import "Select2/select2.js";
 import "./modules/validation";
 
 // Tables
@@ -25,8 +25,8 @@ import hljs from 'highlight.js';
 window.hljs = hljs;
 
 // Tags
-window.Tagulous = require('exports-loader?Tagulous!../../staticfiles/tagulous/tagulous.js')
-require('exports-loader?window.select23!../../staticfiles/tagulous/adaptor/select2-3.js')
+window.Tagulous = require('exports-loader?Tagulous!../../staticfiles/tagulous/tagulous.js');
+require('exports-loader?window.select23!../../staticfiles/tagulous/adaptor/select2-3.js');
 
 // Copy to clipboard
 import * as clipboard from "clipboard-polyfill"

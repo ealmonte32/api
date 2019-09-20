@@ -7,12 +7,15 @@ import uuid
 from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
-from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.fields import ArrayField, JSONField
 
 import yaml
 import tagulous.models
 
 from device_registry import validators
+
+import apt_pkg
+apt_pkg.init()
 
 
 def get_bootstrap_color(val):
@@ -596,3 +599,53 @@ class GlobalPolicy(models.Model):
         verbose_name_plural = 'global policies'
         ordering = ['-pk']
         constraints = [models.UniqueConstraint(fields=['name', 'owner'], name='unique_name')]
+
+
+class Vulnerability(models.Model):
+    class Version:
+        """Version class which uses the original APT comparison algorithm."""
+
+        def __init__(self, version):
+            """Creates a new Version object."""
+            assert version != ""
+            self.__asString = version
+
+        def __str__(self):
+            return self.__asString
+
+        def __repr__(self):
+            return 'Version({})'.format(repr(self.__asString))
+
+        def __lt__(self, other):
+            return apt_pkg.version_compare(self.__asString, other.__asString) < 0
+
+        def __eq__(self, other):
+            return apt_pkg.version_compare(self.__asString, other.__asString) == 0
+
+    class Urgency(Enum):
+        NONE = ' '
+        LOW = 'L'
+        MEDIUM = 'M'
+        HIGH = 'H'
+
+    name = models.CharField(max_length=64)
+    package = models.CharField(max_length=64)
+    is_binary = models.BooleanField()
+    unstable_version = models.CharField(max_length=64, blank=True)
+    other_versions = ArrayField(models.CharField(max_length=64), blank=True)
+    urgency = models.CharField(max_length=64, choices=[(tag, tag.value) for tag in Urgency])
+    remote = models.BooleanField(null=True)
+    fix_available = models.BooleanField()
+
+    def is_vulnerable(self, src_ver):
+        if self.unstable_version:
+            unstable_version = Version(self.unstable_version)
+        else:
+            unstable_version = None
+        other_versions = map(Version, self.other_versions)
+
+        if self.unstable_version:
+            return src_ver < unstable_version \
+                   and src_ver not in other_versions
+        else:
+            return src_ver not in other_versions
