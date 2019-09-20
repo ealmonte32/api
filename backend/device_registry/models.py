@@ -56,6 +56,8 @@ class DebPackage(models.Model):
 
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
+    source_name = models.CharField(max_length=128)
+    source_version = models.CharField(max_length=128)
     arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Arch])
 
     class Meta:
@@ -126,12 +128,15 @@ class Device(models.Model):
         """
         # Save new packages to DB.
         DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
+                                                   source_name=package['source_name'], source_version=package['source_version'],
                                                    arch=package['arch']) for package in packages],
                                        ignore_conflicts=True)
         # Get packages qs.
         q_objects = models.Q()
         for package in packages:
-            q_objects.add(models.Q(name=package['name'], version=package['version'], arch=package['arch']), models.Q.OR)
+            q_objects.add(models.Q(name=package['name'], version=package['version'],
+                                   source_name=package['source_name'], source_version=package['source_version'],
+                                   arch=package['arch']), models.Q.OR)
 
         # Set deb_packages.
         self.deb_packages.set(DebPackage.objects.filter(q_objects).only('pk'))

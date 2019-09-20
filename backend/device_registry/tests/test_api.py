@@ -861,7 +861,9 @@ class MtlsPingViewTest(APITestCase):
         self.assertGreater(self.device.trust_score, 0.42)
 
     def test_ping_writes_packages(self):
-        packages = [{'name': 'PACKAGE', 'version': 'VERSION', 'arch': 'all'}]
+        packages = [{
+            'name': 'PACKAGE', 'version': 'VERSION', 'source_name': 'SOURCE', 'source_version': 'VERSION', 'arch': 'all'
+        }]
         self.ping_payload['deb_packages'] = {
             'hash': 'abcdef',
             'packages': packages

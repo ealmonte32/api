@@ -8,11 +8,12 @@ RUN python3 manage.py collectstatic --noinput
 
 FROM node:12 as webpack
 WORKDIR /usr/src/app
-COPY ./misc /usr/src/misc
-COPY backend ./
-COPY --from=build /usr/src/app/backend/staticfiles ./backend/
 RUN apt-get update && \
     apt-get install -y build-essential g++ libsass-dev python
+
+COPY ./misc /usr/src/misc
+COPY ./backend ./
+COPY --from=build /usr/src/app/backend/staticfiles ./backend/staticfiles
 RUN rm -rf node_modules && npm install
 RUN npm run build
 
