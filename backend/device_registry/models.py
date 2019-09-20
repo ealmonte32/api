@@ -15,6 +15,7 @@ import tagulous.models
 from . import validators
 
 import apt_pkg
+
 apt_pkg.init()
 
 
@@ -61,7 +62,6 @@ class DebPackage(models.Model):
     arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Arch])
     processed = models.BooleanField(default=False, db_index=True)
     vulnerabilities = models.ManyToManyField('Vulnerability')
-
 
     class Meta:
         unique_together = ['name', 'version', 'arch']
@@ -131,7 +131,8 @@ class Device(models.Model):
         """
         # Save new packages to DB.
         DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
-                                                   source_name=package['source_name'], source_version=package['source_version'],
+                                                   source_name=package['source_name'],
+                                                   source_version=package['source_version'],
                                                    arch=package['arch']) for package in packages],
                                        ignore_conflicts=True)
         # Get packages qs.
@@ -267,6 +268,12 @@ class Device(models.Model):
             self.tags.add(all_devices_tag)
         if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
+
+    def vulnerable_packages(self):
+        return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
+
+    def has_vulnerable_packages(self):
+        return self.vulnerable_packages().count()
 
     class Meta:
         ordering = ('created',)

@@ -371,6 +371,21 @@
                     {% endif %}
                   </td>
                 </tr>
+                <tr>
+                  <th scope="row">Vulnerable Packages</th>
+                  <td>
+                    {% if object.has_vulnerable_packages %}
+                      <ul>
+                        {% for package in object.vulnerable_packages %}
+                          <li>{{ package.name }} / {{ package.version }} [{% for v in package.vulnerabilities.all %}
+                            <a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
+                               target="_blank">{{ v.name }}</a>{% endfor %}]
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </td>
+                </tr>
                 </tbody>
               </table>
             </div>
