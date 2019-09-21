@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
+from django.core.exceptions import ObjectDoesNotExist
 
 import yaml
 import tagulous.models
@@ -129,6 +130,21 @@ class Device(models.Model):
         Assign the list of installed deb packages to this device.
         :param packages: list of dicts with the following values: 'name': str, 'version': str, 'arch': DebPackage.Arch.
         """
+        # Update packages with empty source_name and source_version.
+        if DebPackage.objects.filter(source_name='').exists():
+            affected_packages_qs = DebPackage.objects.filter(source_name='')
+            affected_packages = []
+            for package in packages:
+                try:
+                    package_obj = affected_packages_qs.get(name=package['name'], version=package['version'],
+                                                           arch=package['arch'])
+                except ObjectDoesNotExist:
+                    continue
+                package_obj.source_name = package['source_name']
+                package_obj.source_version = package['source_version']
+                affected_packages.append(package_obj)
+            DebPackage.objects.bulk_update(affected_packages, ['source_name', 'source_version'])
+
         # Save new packages to DB.
         DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
                                                    source_name=package['source_name'],
@@ -138,9 +154,7 @@ class Device(models.Model):
         # Get packages qs.
         q_objects = models.Q()
         for package in packages:
-            q_objects.add(models.Q(name=package['name'], version=package['version'],
-                                   source_name=package['source_name'], source_version=package['source_version'],
-                                   arch=package['arch']), models.Q.OR)
+            q_objects.add(models.Q(name=package['name'], version=package['version'], arch=package['arch']), models.Q.OR)
 
         # Set deb_packages.
         self.deb_packages.set(DebPackage.objects.filter(q_objects).only('pk'))
