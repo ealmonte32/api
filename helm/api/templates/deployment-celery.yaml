@@ -19,6 +19,8 @@ spec:
       labels:
         app: {{ .Values.service.celery.name }}
         release: {{ .Release.Name }}
+      annotations:
+        prometheus.io/scrape: 'false'
     spec:
       containers:
         - name: {{ .Values.service.celery.name }}
