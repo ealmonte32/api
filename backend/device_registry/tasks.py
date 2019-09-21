@@ -72,10 +72,10 @@ def fetch_vulnerabilities():
                           fix_available=flags[3] == 'F')
         vulnerabilities.append(v)
     logger.info('saving data...')
-    with transaction.atomic():
-        Vulnerability.objects.all().delete()
-        Vulnerability.objects.bulk_create(vulnerabilities)
-        DebPackage.objects.update(processed=False)
+    # with transaction.atomic():
+    Vulnerability.objects.all().delete()
+    Vulnerability.objects.bulk_create(vulnerabilities)
+    DebPackage.objects.update(processed=False)
 
 
 @shared_task
@@ -87,7 +87,7 @@ def update_packages_vulnerabilities():
         for vuln in vulns:
             if vuln.is_vulnerable(package.source_version) and vuln.fix_available:
                 actionable_valns.append(vuln)
-        with transaction.atomic():
-            package.vulnerabilities.set(actionable_valns)
-            package.processed = True
-            package.save(update_fields=['processed'])
+        # with transaction.atomic():
+        package.vulnerabilities.set(actionable_valns)
+        package.processed = True
+        package.save(update_fields=['processed'])
