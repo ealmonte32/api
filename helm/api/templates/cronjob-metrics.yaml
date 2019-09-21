@@ -22,7 +22,7 @@ spec:
           containers:
           - name: bi-metrics
             image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-            command: ["python", "manage.py", "metrics"]
+            command: ["python3", "manage.py", "metrics"]
             env:
             - name: WOTT_METRICS_PROJECT
               value: "wott-prod"

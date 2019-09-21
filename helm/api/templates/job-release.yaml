@@ -20,7 +20,7 @@ spec:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: [ 'python', 'manage.py', 'migrate' ]
+          command: [ 'python3', 'manage.py', 'migrate' ]
           env:
             - name: DEBUG
               value: "{{ .Values.service.api.debug }}"
