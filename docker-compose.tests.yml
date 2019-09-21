@@ -1,13 +1,13 @@
 version: '3'
 services:
   check:
-    command: python manage.py check
+    command: python3 manage.py check
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings.tests
     build:
       context: .
   tests:
-    command: python manage.py test
+    command: python3 manage.py test
     environment:
     - DJANGO_SETTINGS_MODULE=backend.settings.tests
     build:
@@ -15,7 +15,7 @@ services:
     depends_on:
       - psql
   check_migrations:
-    command: python manage.py makemigrations --check --dry-run
+    command: python3 manage.py makemigrations --check --dry-run
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings.tests
     build:
@@ -24,7 +24,7 @@ services:
       - psql
       - migrate
   migrate:
-    command: python manage.py migrate --noinput
+    command: python3 manage.py migrate --noinput
     environment:
       - DJANGO_SETTINGS_MODULE=backend.settings.tests
     build:

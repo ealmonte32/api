@@ -242,5 +242,13 @@ CELERY_BEAT_SCHEDULE = {
     'update_trust_score': {
         'task': 'device_registry.tasks.update_trust_score',
         'schedule': crontab(minute=f'*/{TRUST_SCORE_UPDATE_INTERVAL}')  # Execute once in every 5 minutes.
+    },
+    'fetch_vulnerabilities': {
+        'task': 'device_registry.tasks.fetch_vulnerabilities',
+        'schedule': crontab(hour=1)  # Execute once in a day at 1AM.
+    },
+    'update_packages_vulnerabilities': {
+        'task': 'device_registry.tasks.update_packages_vulnerabilities',
+        'schedule': crontab(minute=f'*/1')  # Execute once a minute.
     }
 }

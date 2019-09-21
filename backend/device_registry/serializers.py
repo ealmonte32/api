@@ -4,7 +4,7 @@ from django.utils.timesince import timesince
 from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
 
-from device_registry.models import Device, DeviceInfo, Credential, Tag, PairingKey
+from .models import Device, DeviceInfo, Credential, Tag, PairingKey
 
 
 class RequiredValidator(object):

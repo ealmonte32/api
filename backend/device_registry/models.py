@@ -7,12 +7,16 @@ import uuid
 from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
-from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.fields import ArrayField, JSONField
 
 import yaml
 import tagulous.models
 
-from device_registry import validators
+from . import validators
+
+import apt_pkg
+
+apt_pkg.init()
 
 
 def get_bootstrap_color(val):
@@ -53,7 +57,11 @@ class DebPackage(models.Model):
 
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
+    source_name = models.CharField(max_length=128)
+    source_version = models.CharField(max_length=128)
     arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Arch])
+    processed = models.BooleanField(default=False, db_index=True)
+    vulnerabilities = models.ManyToManyField('Vulnerability')
 
     class Meta:
         unique_together = ['name', 'version', 'arch']
@@ -123,12 +131,16 @@ class Device(models.Model):
         """
         # Save new packages to DB.
         DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
+                                                   source_name=package['source_name'],
+                                                   source_version=package['source_version'],
                                                    arch=package['arch']) for package in packages],
                                        ignore_conflicts=True)
         # Get packages qs.
         q_objects = models.Q()
         for package in packages:
-            q_objects.add(models.Q(name=package['name'], version=package['version'], arch=package['arch']), models.Q.OR)
+            q_objects.add(models.Q(name=package['name'], version=package['version'],
+                                   source_name=package['source_name'], source_version=package['source_version'],
+                                   arch=package['arch']), models.Q.OR)
 
         # Set deb_packages.
         self.deb_packages.set(DebPackage.objects.filter(q_objects).only('pk'))
@@ -256,6 +268,12 @@ class Device(models.Model):
             self.tags.add(all_devices_tag)
         if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
+
+    def vulnerable_packages(self):
+        return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
+
+    def has_vulnerable_packages(self):
+        return self.vulnerable_packages().count()
 
     class Meta:
         ordering = ('created',)
@@ -596,3 +614,54 @@ class GlobalPolicy(models.Model):
         verbose_name_plural = 'global policies'
         ordering = ['-pk']
         constraints = [models.UniqueConstraint(fields=['name', 'owner'], name='unique_name')]
+
+
+class Vulnerability(models.Model):
+    class Version:
+        """Version class which uses the original APT comparison algorithm."""
+
+        def __init__(self, version):
+            """Creates a new Version object."""
+            assert version != ""
+            self.__asString = version
+
+        def __str__(self):
+            return self.__asString
+
+        def __repr__(self):
+            return 'Version({})'.format(repr(self.__asString))
+
+        def __lt__(self, other):
+            return apt_pkg.version_compare(self.__asString, other.__asString) < 0
+
+        def __eq__(self, other):
+            return apt_pkg.version_compare(self.__asString, other.__asString) == 0
+
+    class Urgency(Enum):
+        NONE = ' '
+        LOW = 'L'
+        MEDIUM = 'M'
+        HIGH = 'H'
+
+    name = models.CharField(max_length=64)
+    package = models.CharField(max_length=64, db_index=True)
+    is_binary = models.BooleanField()
+    unstable_version = models.CharField(max_length=64, blank=True)
+    other_versions = ArrayField(models.CharField(max_length=64), blank=True)
+    urgency = models.CharField(max_length=64, choices=[(tag, tag.value) for tag in Urgency])
+    remote = models.BooleanField(null=True)
+    fix_available = models.BooleanField()
+
+    def is_vulnerable(self, src_ver):
+        if self.unstable_version:
+            unstable_version = Vulnerability.Version(self.unstable_version)
+        else:
+            unstable_version = None
+        other_versions = map(Vulnerability.Version, self.other_versions)
+        src_ver = Vulnerability.Version(src_ver)
+
+        if self.unstable_version:
+            return src_ver < unstable_version \
+                   and src_ver not in other_versions
+        else:
+            return src_ver not in other_versions
