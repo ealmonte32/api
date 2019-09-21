@@ -44,10 +44,19 @@
               <table class="table table-striped table-responsive-xs">
                 <tbody>
                 <tr>
-                    <th scope="row">
-                        CVE Scanning
-                    </th>
-                  <td>Coming soon!</td>
+                  <th scope="row">Vulnerable Packages</th>
+                  <td>
+                    {% if object.has_vulnerable_packages %}
+                      <ul>
+                        {% for package in object.vulnerable_packages %}
+                          <li>{{ package.name }} / {{ package.version }}
+                            ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
+                               target="_blank">{{ v.name }}</a>{% if not forloop.last %},&nbsp;&nbsp;{% endif %}{% endfor %})
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </td>
                 </tr>
               <tr>
                   <th scope="row">
@@ -368,21 +377,6 @@
                       {% else %}
                         In {{ object.certificate_expires|timeuntil }}
                       {% endif %}
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Vulnerable Packages</th>
-                  <td>
-                    {% if object.has_vulnerable_packages %}
-                      <ul>
-                        {% for package in object.vulnerable_packages %}
-                          <li>{{ package.name }} / {{ package.version }}
-                            ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
-                               target="_blank">{{ v.name }}</a>{% if not forloop.last %},&nbsp;&nbsp;{% endif %}{% endfor %})
-                          </li>
-                        {% endfor %}
-                      </ul>
                     {% endif %}
                   </td>
                 </tr>
