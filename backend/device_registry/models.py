@@ -150,8 +150,8 @@ class Device(models.Model):
 
         # Save new packages to DB.
         DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
-                                                   source_name=package['source_name'],
-                                                   source_version=package['source_version'],
+                                                   source_name=package.get('source_name', ''),
+                                                   source_version=package.get('source_version', ''),
                                                    arch=package['arch']) for package in packages],
                                        ignore_conflicts=True)
         # Get packages qs.
