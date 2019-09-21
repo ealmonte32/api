@@ -135,6 +135,8 @@ class Device(models.Model):
             affected_packages_qs = DebPackage.objects.filter(source_name='')
             affected_packages = []
             for package in packages:
+                if 'source_name' not in package:
+                    continue
                 try:
                     package_obj = affected_packages_qs.get(name=package['name'], version=package['version'],
                                                            arch=package['arch'])
@@ -142,8 +144,9 @@ class Device(models.Model):
                     continue
                 package_obj.source_name = package['source_name']
                 package_obj.source_version = package['source_version']
+                package_obj.processed = False
                 affected_packages.append(package_obj)
-            DebPackage.objects.bulk_update(affected_packages, ['source_name', 'source_version'])
+            DebPackage.objects.bulk_update(affected_packages, ['source_name', 'source_version', 'processed'])
 
         # Save new packages to DB.
         DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
