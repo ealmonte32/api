@@ -395,6 +395,18 @@ class PortScan(models.Model):
     block_ports = JSONField(blank=True, default=list)
     block_networks = JSONField(blank=True, default=list)
 
+    @staticmethod
+    def get_process_info_html(port_record):
+        process_info = port_record.get('process_info')
+        if process_info:
+            process_info_html = '<b>Name:</b> %s<br><b>User:</b> %s' % (process_info['name'],
+                                                                        process_info['user'])
+            if process_info['cmdline']:
+                process_info_html += '<br><b>Command line:</b> %s' % ' '.join(process_info['cmdline'])
+        else:
+            process_info_html = None
+        return process_info_html
+
     def get_score(self):
         score = 1
         ports = [port['port'] for port in self.scan_info if port['proto'] == 'tcp']
@@ -408,22 +420,28 @@ class PortScan(models.Model):
     def ports_form_data(self):
         """
         Build 3 lists:
-        1) list of choices for the ports form
-         (gonna be split in a template by '/' separator):
-         [[0, '::ffff:192.168.1.178/22/TCP/6'], [0, '192.168.1.178/33/UDP/4']]
+        1) list of choices for the ports form:
+         [(0, ''), (1, '')]
         2) list of initial values for the ports form:
          [0, 1]
         3) list of choices for saving to the block list:
          [['::ffff:192.168.1.178', 22, 'tcp', True], ['192.168.1.178', 33, 'udp', False]]
+        and 1 dict:
+        1) dictionary of choices' extra data:
+         {0: ('192.168.1.178', 33, 'UDP', 4, 'html for process info popover(optional)'),
+          1: ('::ffff:192.168.1.178', 22, 'TCP', 6, None)}
         """
-        initial_data = []
         choices_data = []
+        initial_data = []
         ports_data = []
+        choices_extra_data = {}
+
         port_record_index = 0
         # 1st - take ports from the block list.
         for port_record in self.block_ports:
-            choices_data.append((port_record_index, '%s/%s/%s/%d' % (
-                port_record[0], port_record[2], port_record[1].upper(), 6 if port_record[3] else 4)))
+            choices_data.append((port_record_index, ''))
+            choices_extra_data[port_record_index] = (port_record[0], port_record[2], port_record[1].upper(),
+                                                     6 if port_record[3] else 4, None)
             ports_data.append(port_record)
             initial_data.append(port_record_index)
             port_record_index += 1
@@ -431,13 +449,14 @@ class PortScan(models.Model):
         for port_record in self.scan_info:
             if [port_record['host'], port_record['proto'], port_record['port'], port_record['ip_version'] == 6] \
                     not in self.block_ports:
-                choices_data.append((port_record_index, '%s/%s/%s/%d' % (
-                    port_record['host'], port_record['port'], port_record['proto'].upper(),
-                    port_record['ip_version'])))
+                choices_data.append((port_record_index, ''))
+                choices_extra_data[port_record_index] = (port_record['host'], port_record['port'],
+                                                         port_record['proto'].upper(), port_record['ip_version'],
+                                                         self.get_process_info_html(port_record))
                 ports_data.append([port_record['host'], port_record['proto'], port_record['port'],
                                    port_record['ip_version'] == 6])
                 port_record_index += 1
-        return choices_data, initial_data, ports_data
+        return choices_data, initial_data, ports_data, choices_extra_data
 
     def connections_form_data(self):
         """

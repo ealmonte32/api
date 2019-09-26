@@ -296,6 +296,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
             if not has_global_policy:
                 ports_form_data = self.object.portscan.ports_form_data()
                 context['ports_choices'] = bool(ports_form_data[0])
+                context['choices_extra_data'] = ports_form_data[3]
                 context['ports_form'] = PortsForm(ports_choices=ports_form_data[0],
                                                   initial={'open_ports': ports_form_data[1],
                                                            'policy': self.object.firewallstate.policy})
