@@ -362,7 +362,7 @@ class DeviceInfo(models.Model):
     def get_model(self):
         model = None
         if self.device_manufacturer == 'Raspberry Pi':
-            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model.lower(), None)
+            model = self.device_model
         return model
 
     def get_hardware_type(self):
