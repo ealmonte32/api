@@ -20,8 +20,8 @@ spec:
         app: {{ .Values.service.dash.name }}
         release: {{ .Release.Name }}
       annotations:
-          prometheus.io/port: {{ .Values.service.dash.internalPort }}
-          prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.service.dash.internalPort }}"
+        prometheus.io/scrape: "true"
     spec:
       containers:
         - name: {{ .Values.service.dash.name }}

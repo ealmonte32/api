@@ -20,8 +20,8 @@ spec:
         app: {{ .Values.service.mtlsApi.name }}
         release: {{ .Release.Name }}
       annotations:
-          prometheus.io/port: {{ .Values.service.mtlsApi.internalPort }}
-          prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.service.mtlsApi.internalPort }}"
+        prometheus.io/scrape: "true"
     spec:
       containers:
         - name: {{ .Values.service.mtlsApi.name }}
