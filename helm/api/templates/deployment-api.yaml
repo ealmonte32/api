@@ -19,6 +19,9 @@ spec:
       labels:
         app: {{ .Values.service.api.name }}
         release: {{ .Release.Name }}
+      annotations:
+          prometheus.io/port: {{ .Values.service.api.internalPort }}
+          prometheus.io/scrape: "true"
     spec:
       containers:
         - name: {{ .Values.service.api.name }}

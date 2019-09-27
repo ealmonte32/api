@@ -29,6 +29,14 @@ For Redis, we use Google MemoryStore, which is a hosted Redis. This needs to be 
 
 If the cluster was created using legacy networking (i.e. without IP Alias), the [following steps](https://cloud.google.com/memorystore/docs/redis/connect-redis-instance-gke) need to be taken:
 
+## Prometheus
+```
+helm upgrade \
+       -i prom0 \
+        stable/prometheus \
+        --set "server.persistentVolume.size=20Gi" \
+        --namespace="prom"
+```
 
 ### Get the reserved IP range:
 
@@ -62,27 +70,30 @@ $ helm install stable/nginx-ingress \
 
 ## Cert-manager
 
-CertManager is used to facilitate Let's Encrypt certificate management. The installation instructions can be found [here](https://docs.cert-manager.io/en/latest/getting-started/install.html), but in short, here's what we need to do to install it:
+CertManager is used to facilitate Let's Encrypt certificate management. The installation instructions can be found [here](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html), but in short, here's what we need to do to install it:
 
 ```
 # Install the CustomResourceDefinition resources separately
-$ kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.6/deploy/manifests/00-crds.yaml
+kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.10/deploy/manifests/00-crds.yaml
 
 # Create the namespace for cert-manager
-$ kubectl create namespace cert-manager
+kubectl create namespace cert-manager
 
 # Label the cert-manager namespace to disable resource validation
-$ kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
+kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
+
+# Add the Jetstack Helm repository
+helm repo add jetstack https://charts.jetstack.io
 
 # Update your local Helm chart repository cache
-$ helm repo update
+helm repo update
 
 # Install the cert-manager Helm chart
-$ helm install \
+helm install \
   --name cert-manager \
   --namespace cert-manager \
-  --version v0.6.0 \
-  stable/cert-manager
+  --version v0.10.0 \
+  jetstack/cert-manager
 ```
 ## API
 
