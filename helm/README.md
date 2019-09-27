@@ -60,12 +60,11 @@ $ TARGETS="RESERVED_IP_RANGE" ./install.sh
 
 ```
 $ kubectl create ns nginx
-$ helm install stable/nginx-ingress \
-    --name nginx0 \
-    --namespace nginx \
-    --set controller.service.externalTrafficPolicy=Local \
-    --set controller.metrics.enabled=true \
-    --set controller.stats.enabled=true
+$ helm install \
+    stable/nginx-ingress \
+    --name nginx0  \
+    --namespace=nginx
+    -f nginx-values.yaml
 ```
 
 ## Cert-manager
