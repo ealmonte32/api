@@ -115,7 +115,7 @@ services:
       - DB_USER=postgres
     build:
       context: .
-    command: celery worker -A backend -l error --time-limit=90 --soft-time-limit=60 --pidfile="/tmp/celery.pid"
+    command: celery worker -A backend -O fair -l error --concurrency=4 --time-limit=65 --soft-time-limit=60 --pidfile="/tmp/celery.pid"
     volumes:
       - ./backend:/usr/src/app
     depends_on:
