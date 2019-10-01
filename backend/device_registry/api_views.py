@@ -103,6 +103,12 @@ class MtlsPingView(APIView):
         device_info_object.selinux_state = data.get('selinux_status', {})
         device_info_object.app_armor_enabled = data.get('app_armor_enabled')
         device_info_object.logins = data.get('logins', {})
+        processes = data.get('processes')
+        if processes:
+            # Convert from list to dict.
+            device_info_object.processes = {e['pid']: (e['name'], e['username'], e['cmdline']) for e in processes}
+        else:
+            device_info_object.processes = {}
         device_info_object.default_password = data.get('default_password')
         device_info_object.save()
 
