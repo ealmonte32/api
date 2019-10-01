@@ -600,7 +600,7 @@ class MtlsDeviceMetadataViewTest(APITestCase):
         self.device_info = DeviceInfo.objects.create(
             device=self.device,
             device_manufacturer='Raspberry Pi',
-            device_model='900092',
+            device_model='Zero v1.2',
             device_metadata={"test": "value"}
         )
         self.headers = {
@@ -615,8 +615,7 @@ class MtlsDeviceMetadataViewTest(APITestCase):
             'test': 'value',
             'device_id': 'device0.d.wott-dev.local',
             'manufacturer': 'Raspberry Pi',
-            'model': '900092',
-            'model-decoded': 'Zero v1.2',
+            'model': 'Zero v1.2',
             'device-name': 'the-device-name'
         })
 

@@ -197,7 +197,6 @@ class MtlsDeviceMetadataView(APIView):
             metadata['device_id'] = request.device_id
             metadata['manufacturer'] = device.deviceinfo.device_manufacturer
             metadata['model'] = device.deviceinfo.device_model
-            metadata['model-decoded'] = device.deviceinfo.get_model()
         else:
             metadata = {}
         return Response(metadata)

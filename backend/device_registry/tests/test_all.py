@@ -247,9 +247,7 @@ class DeviceModelTest(TestCase):
 
     def test_get_model(self):
         model = self.device_info0.device_model
-        self.device_info0.device_model = '000d'
-        self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
-        self.device_info0.device_model = '000D'  # case insensitive
+        self.device_info0.device_model = 'Model B Rev 2'
         self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
         self.device_info0.device_model = model
 

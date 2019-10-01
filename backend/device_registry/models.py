@@ -320,50 +320,12 @@ class DeviceInfo(models.Model):
     detected_mirai = models.BooleanField(default=False, blank=True)
     device_metadata = JSONField(blank=True, default=dict)
 
-    RASPBERRY_MODEL_MAP = {
-        '0002': 'Model B Rev 1',
-        '0003': 'Model B Rev 1',
-        '0004': 'Model B Rev 2',
-        '0005': 'Model B Rev 2',
-        '0006': 'Model B Rev 2',
-        '0007': 'Model A',
-        '0008': 'Model A',
-        '0009': 'Model A',
-        '000d': 'Model B Rev 2',
-        '000e': 'Model B Rev 2',
-        '000f': 'Model B Rev 2',
-        '0010': 'Model B+',
-        '0013': 'Model B+',
-        '900032': 'Model B+',
-        '0011': 'Compute Module',
-        '0014': 'Compute Module',
-        '0012': 'Model A+',
-        '0015': 'Model A+',
-        'a01041': '2 Model B v1.1',
-        'a21041': '2 Model B v1.1',
-        'a22042': '2 Model B v1.2',
-        '900092': 'Zero v1.2',
-        '900093': 'Zero v1.3',
-        '9000c1': 'Zero W',
-        'a02082': '3 Model B',
-        'a22082': '3 Model B',
-        'a32082': '3 Model B',
-        'a52082': '3 Model B',
-        'a22083': '3 Model B',
-        'a020d3': '3 Model B+',
-        'a03111': '4 Model B',
-        'b03111': '4 Model B',
-        'c03111': '4 Model B'
-    }
-
     def __str__(self):
         return self.device.device_id
 
     def get_model(self):
-        model = None
         if self.device_manufacturer == 'Raspberry Pi':
-            model = DeviceInfo.RASPBERRY_MODEL_MAP.get(self.device_model.lower(), None)
-        return model
+            return self.device_model
 
     def get_hardware_type(self):
         if self.device_manufacturer == 'Raspberry Pi':
