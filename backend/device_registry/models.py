@@ -314,6 +314,7 @@ class DeviceInfo(models.Model):
     selinux_state = JSONField(blank=True, default=dict)
     app_armor_enabled = models.BooleanField(null=True, blank=True)
     logins = JSONField(blank=True, default=dict)
+    processes = JSONField(blank=True, default=dict)
     default_password = models.BooleanField(null=True, blank=True)
 
     # We need this for the YC demo.
@@ -395,17 +396,18 @@ class PortScan(models.Model):
     block_ports = JSONField(blank=True, default=list)
     block_networks = JSONField(blank=True, default=list)
 
-    @staticmethod
-    def get_process_info_html(port_record):
-        process_info = port_record.get('process_info')
-        if process_info:
-            process_info_html = '<b>Name:</b> %s<br><b>User:</b> %s' % (process_info['name'],
-                                                                        process_info['user'])
-            if process_info['cmdline']:
-                process_info_html += '<br><b>Command line:</b> %s' % ' '.join(process_info['cmdline'])
-        else:
-            process_info_html = None
-        return process_info_html
+    def get_process_info_html(self, port_record):
+        if 'pid' in port_record and hasattr(self.device, 'deviceinfo') and self.device.deviceinfo and \
+                self.device.deviceinfo.processes:
+            pid = port_record['pid']
+            process_info = self.device.deviceinfo.processes.get(str(pid))
+            if process_info:
+                process_info_html = '<b>Name:</b> %s<br><b>User:</b> %s' % (process_info[0],
+                                                                            process_info[1])
+                if len(process_info[2]) > 1:  # 1 element cmdline is useless, skip it.
+                    process_info_html += '<br><b>Command line:</b> %s' % ' '.join(process_info[2])
+                return process_info_html
+        return None
 
     def get_score(self):
         score = 1

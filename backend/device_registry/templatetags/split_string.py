@@ -1,8 +1,6 @@
 from django import template
 from django.template.defaultfilters import stringfilter
 
-from device_registry.models import PortScan
-
 register = template.Library()
 
 
@@ -31,5 +29,5 @@ def list_index(list_obj, index):
 
 
 @register.filter
-def get_process_info_html(port_record):
-    return PortScan.get_process_info_html(port_record)
+def get_process_info_html(port_record, portscan):
+    return portscan.get_process_info_html(port_record)

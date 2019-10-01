@@ -225,11 +225,13 @@
                             <td>{{ port.port }}</td>
                             <td>{{ port.proto|upper }}</td>
                             <td>
-                              {% if port.process_info %}
-                                <span class="badge badge-info" data-container="body" data-toggle="popover"
-                                      data-placement="top" data-trigger="hover"
-                                      data-content="{{ port|get_process_info_html }}">Info</span>
-                              {% endif %}
+                              {% with process_info=port|get_process_info_html:portscan %}
+                                {% if process_info %}
+                                  <span class="badge badge-info" data-container="body" data-toggle="popover"
+                                        data-placement="top" data-trigger="hover"
+                                        data-content="{{ process_info }}">Info</span>
+                                {% endif %}
+                              {% endwith %}
                             </td>
                           </tr>
                         {% endfor %}
