@@ -68,6 +68,15 @@ class DebPackage(models.Model):
         unique_together = ['name', 'version', 'arch']
 
 
+SSHD_CONFIG_PARAMS_SAFE_VALUES = {
+    'PermitEmptyPasswords': 'no',
+    'PermitRootLogin': 'no',
+    'PasswordAuthentication': 'no',
+    'AllowAgentForwarding': 'no',
+    'Protocol': '2'
+}
+
+
 class Device(models.Model):
     device_id = models.CharField(
         max_length=128,
@@ -105,11 +114,7 @@ class Device(models.Model):
                 if 'sshd' in file_info['name']:
                     issues = []
                     for k, v in file_info['issues'].items():
-                        if v == 'yes':
-                            secure_value = 'no'
-                        else:
-                            secure_value = '2'  # Support only 'Protocol' now. TODO: improve this.
-                        issues.append((k, v, secure_value))
+                        issues.append((k, v, SSHD_CONFIG_PARAMS_SAFE_VALUES[k]))
                     return issues
         return None
 

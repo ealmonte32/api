@@ -105,14 +105,18 @@
                 <tr>
                   <th scope="row">Configuration Audit</th>
                   <td>
-                    {% if object.sshd_issues %}
-                      <h5>OpenSSH</h5>
-                      <ul style="list-style-type:none; padding: 0;">
-                      {% for issue in object.sshd_issues %}
-                        <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider changing "{{ issue.0 }}" from "{{ issue.1 }}" to "{{ issue.2 }}"</li>
-                      {% endfor %}
-                      </ul>
-                    {% endif %}
+                    {% with object.sshd_issues as sshd_issues %}
+                      {% if sshd_issues %}
+                        <h5>OpenSSH</h5>
+                        <ul style="list-style-type:none; padding: 0;">
+                          {% for issue in sshd_issues %}
+                            <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider
+                              changing "{{ issue.0 }}" from "{{ issue.1 }}" to "{{ issue.2 }}"
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    {% endwith %}
                   </td>
                 </tr>
                 <tr>
