@@ -68,6 +68,15 @@ class DebPackage(models.Model):
         unique_together = ['name', 'version', 'arch']
 
 
+SSHD_CONFIG_PARAMS_SAFE_VALUES = {
+    'PermitEmptyPasswords': 'no',
+    'PermitRootLogin': 'no',
+    'PasswordAuthentication': 'no',
+    'AllowAgentForwarding': 'no',
+    'Protocol': '2'
+}
+
+
 class Device(models.Model):
     device_id = models.CharField(
         max_length=128,
@@ -97,6 +106,17 @@ class Device(models.Model):
     update_trust_score = models.BooleanField(default=False, db_index=True)
     deb_packages = models.ManyToManyField(DebPackage)
     deb_packages_hash = models.CharField(max_length=32, blank=True)
+    audit_files = JSONField(blank=True, default=list)
+
+    def sshd_issues(self):
+        if self.audit_files:
+            for file_info in self.audit_files:
+                if 'sshd' in file_info['name']:
+                    issues = []
+                    for k, v in file_info['issues'].items():
+                        issues.append((k, v, SSHD_CONFIG_PARAMS_SAFE_VALUES[k]))
+                    return issues
+        return None
 
     @property
     def certificate_expired(self):

@@ -1,5 +1,6 @@
 {% extends "admin_base.html" %}
 {% load split_string %}
+{% load misc %}
 
 {% block title %}WoTT - Device Info{% endblock title %}
 
@@ -58,7 +59,7 @@
                     {% endif %}
                   </td>
                 </tr>
-              <tr>
+                <tr>
                   <th scope="row">
                     Default Credentials
                     <a href="https://wott.io/documentation/faq#default-credentials"
@@ -77,17 +78,52 @@
                   </td>
                 </tr>
                 <tr>
-                  <tr>
-                    <th scope="row">
-                        OpenSSH Audit
-                    </th>
-                  <td>Coming soon!</td>
-                </tr>
-              <tr>
                 <tr>
-                    <th scope="row">
-                        Insecure Services
-                    </th>
+                  <th scope="row">System File Audit</th>
+                  <td>
+                    {% if object.audit_files %}
+                      <table class="table table-borderless table-sm">
+                        <thead class="thead-light">
+                        <tr>
+                          <th scope="col">Path</th>
+                          <th scope="col">Checksum (SHA-256)</th>
+                          <th scope="col">Last Modified</th>
+                        </tr>
+                        </thead>
+                        {% for file in object.audit_files %}
+                          <tr>
+                            <td>{{ file.name }}</td>
+                            <td>{{ file.sha256 }}</td>
+                            <td>
+                              {% if file.last_modified %}{{ file.last_modified|fromunix|timesince }} ago{% endif %}</td>
+                          </tr>
+                        {% endfor %}
+                      </table>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Configuration Audit</th>
+                  <td>
+                    {% with object.sshd_issues as sshd_issues %}
+                      {% if sshd_issues %}
+                        <h5>OpenSSH</h5>
+                        <ul style="list-style-type:none; padding: 0;">
+                          {% for issue in sshd_issues %}
+                            <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider
+                              changing "{{ issue.0 }}" from "{{ issue.1 }}" to "{{ issue.2 }}"
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    {% endwith %}
+                  </td>
+                </tr>
+                <tr>
+                <tr>
+                  <th scope="row">
+                    Insecure Services
+                  </th>
                   <td>
                   {% with object.insecure_services as services %}
                     {% if services %}
@@ -105,13 +141,13 @@
                   </td>
                 </tr>
                 <th scope="row">Logins</th>
-                  <td>
-                    {% if object.deviceinfo.logins %}
-                      <pre>{{ object.deviceinfo.beautified_logins }}</pre>
-                    {% else %}
-                      No recent login attempts detected.
-                    {% endif %}
-                  </td>
+                <td>
+                  {% if object.deviceinfo.logins %}
+                    <pre>{{ object.deviceinfo.beautified_logins }}</pre>
+                  {% else %}
+                    No recent login attempts detected.
+                  {% endif %}
+                </td>
                 </tr>
                 <tr>
                   <th scope="row">
