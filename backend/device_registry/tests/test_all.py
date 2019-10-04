@@ -17,7 +17,7 @@ from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, GlobalPolicy
-from device_registry.models import PairingKey
+from device_registry.models import PairingKey, DebPackage, Vulnerability
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 
@@ -345,6 +345,12 @@ class ActionsViewTests(TestCase):
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall = FirewallState.objects.create(device=self.device)
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
+        deb_package = DebPackage.objects.create(name='name1', version='version1', source_name='sname1',
+                                                source_version='sversion1', arch='amd64')
+        vulnerability = Vulnerability.objects.create(name='name', package='package', is_binary=True, other_versions=[],
+                                                     urgency='L', fix_available=True)
+        deb_package.vulnerabilities.add(vulnerability)
+        self.device.deb_packages.add(deb_package)
         self.url = reverse('actions')
 
     def test_get(self):
@@ -353,7 +359,8 @@ class ActionsViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            f'We found permissive firewall policy present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            f'We found permissive firewall policy present on <a href="/devices/{self.device.pk}/">'
+            f'{self.device.get_name()}</a>'
         )
         self.assertContains(
             response,
@@ -361,7 +368,13 @@ class ActionsViewTests(TestCase):
         )
         self.assertContains(
             response,
-            f'We found enabled Telnet server present on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            f'We found enabled Telnet server present on <a href="/devices/{self.device.pk}/">'
+            f'{self.device.get_name()}</a>'
+        )
+        self.assertContains(
+            response,
+            f'We found vulnerable packages on <a href="/devices/{self.device.pk}/">'
+            f'{self.device.get_name()}</a>(1 packages)'
         )
 
 
@@ -452,7 +465,7 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
-        self.assertFalse(self.device.has_actions)
+        self.assertEqual(self.device.actions_count, 0)
         self.assertNotContains(response, 'Show recommended actions')
 
     def test_actions_btn_pos(self):
@@ -460,7 +473,7 @@ class DeviceDetailViewTests(TestCase):
         url = reverse('device-detail', kwargs={'pk': self.device_no_logins.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(self.device_no_logins.has_actions)
+        self.assertGreater(self.device_no_logins.actions_count, 0)
         self.assertContains(response, 'Recommended Actions')
 
     def test_no_portscan(self):

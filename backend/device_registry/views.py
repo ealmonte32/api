@@ -486,7 +486,7 @@ def actions_view(request, device_pk=None):
         action = Action(
             1,
             'Default credentials detected',
-            'We found default credentials present on %s. Please consider changing them as soon as possible.' %
+            '<p>We found default credentials present on %s. Please consider changing them as soon as possible.</p>' %
             ('this device' if device_name else full_string), []
         )
         actions.append(action)
@@ -504,8 +504,8 @@ def actions_view(request, device_pk=None):
         action = Action(
             2,
             'Permissive firewall policy detected',
-            'We found permissive firewall policy present on %s. Please consider change it to more restrictive one.' %
-            ('this device' if device_name else full_string), []
+            '<p>We found permissive firewall policy present on %s. Please consider change it to more restrictive one.'
+            '</p>' % ('this device' if device_name else full_string), []
         )
         actions.append(action)
 
@@ -528,8 +528,31 @@ def actions_view(request, device_pk=None):
         action = Action(
             3,
             'Enabled Telnet server detected',
-            'We found enabled Telnet server present on %s. Please consider disabling it.' %
+            '<p>We found enabled Telnet server present on %s. Please consider disabling it.</p>' %
             ('this device' if device_name else full_string), []
+        )
+        actions.append(action)
+
+    # Vulnerable packages found action.
+    devices_with_vuln_packages = request.user.devices.filter(deb_packages__vulnerabilities__isnull=False).distinct()
+    if device_pk is not None:
+        devices_with_vuln_packages = devices_with_vuln_packages.filter(pk=device_pk)
+    if devices_with_vuln_packages.exists():
+        text_blocks = []
+        for dev in devices_with_vuln_packages:
+            device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>' \
+                                f'({dev.vulnerable_packages().count()} packages)'
+            text_blocks.append(device_text_block)
+        full_string = ', '.join(text_blocks)
+        action = Action(
+            4,
+            'Vulnerable packages found',
+            """<p>We found vulnerable packages on %s. These packages could be used by an attacker to either gain 
+            access to your node, or escalate permission. It is recommended that you address this at your earliest 
+            convenience.</p>
+            <p>Run <code>sudo apt-get update && sudo apt-get upgrade</code> to bring your system up to date.</p>
+            <p>Please note that there might be vulnerabilities detected that are yet to be fixed by the operating 
+            system vendor.</p>""" % ('this device' if device_name else full_string), []
         )
         actions.append(action)
 
