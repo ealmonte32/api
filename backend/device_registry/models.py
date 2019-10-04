@@ -228,11 +228,9 @@ class Device(models.Model):
         else:
             raise NotImplementedError
         return sum((self.deviceinfo.default_password is True,
-                    self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK, telnet))
-
-    @property
-    def has_actions(self):
-        return self.actions_count > 0
+                    self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK,
+                    self.vulnerable_packages().exists(),
+                    telnet))
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,
@@ -308,9 +306,6 @@ class Device(models.Model):
 
     def vulnerable_packages(self):
         return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
-
-    def has_vulnerable_packages(self):
-        return self.vulnerable_packages().count()
 
     class Meta:
         ordering = ('created',)

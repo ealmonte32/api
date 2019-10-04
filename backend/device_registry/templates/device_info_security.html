@@ -47,16 +47,19 @@
                 <tr>
                   <th scope="row">Vulnerable Packages</th>
                   <td>
-                    {% if object.has_vulnerable_packages %}
-                      <ul>
-                        {% for package in object.vulnerable_packages %}
-                          <li>{{ package.name }} / {{ package.version }}
-                            ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
-                               target="_blank">{{ v.name }}</a>{% if not forloop.last %},&nbsp;&nbsp;{% endif %}{% endfor %})
-                          </li>
-                        {% endfor %}
-                      </ul>
-                    {% endif %}
+                    {% with object.vulnerable_packages as vulnerable_packages %}
+                      {% if vulnerable_packages %}
+                        <ul>
+                          {% for package in vulnerable_packages %}
+                            <li>{{ package.name }} / {{ package.version }}
+                              ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
+                                   target="_blank">{{ v.name }}</a>{% if not forloop.last %}, {% endif %}
+                              {% endfor %})
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    {% endwith %}
                   </td>
                 </tr>
                 <tr>
