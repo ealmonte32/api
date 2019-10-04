@@ -252,3 +252,6 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute=f'*/1')  # Execute once a minute.
     }
 }
+
+# Mixpanel token
+MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN', '')

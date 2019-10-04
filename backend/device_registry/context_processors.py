@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from backend.settings.base import BASE_DIR
+from backend.settings.base import BASE_DIR, MIXPANEL_TOKEN
 
 WEBPACK_STATS_NAME = 'webpack-stats.json'
 webpack_stats_path = Path('/usr/src/misc') / WEBPACK_STATS_NAME
@@ -16,5 +16,6 @@ def webpack_bundle(request):
         'WEBPACK_BUNDLE': {
             'js': WEBPACK_BUNDLE_JS,
             'css': WEBPACK_BUNDLE_CSS
-        }
+        },
+        'MIXPANEL_TOKEN': MIXPANEL_TOKEN
     }
