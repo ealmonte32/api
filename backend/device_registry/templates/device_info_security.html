@@ -53,8 +53,8 @@
                           {% for package in vulnerable_packages %}
                             <li>{{ package.name }} / {{ package.version }}
                               ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
-                                   target="_blank">{{ v.name }}</a>{% if not forloop.last %},&nbsp;&nbsp;
-                                {% endif %}{% endfor %})
+                                   target="_blank">{{ v.name }}</a>{% if not forloop.last %}, {% endif %}
+                              {% endfor %})
                             </li>
                           {% endfor %}
                         </ul>
