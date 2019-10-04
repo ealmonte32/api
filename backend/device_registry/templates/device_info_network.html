@@ -12,30 +12,7 @@
   <div class="row">
     <div class="col-12">
       <div class="tab">
-        <ul class="nav nav-tabs" role="tablist">
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail' object.pk %}" role="tab" aria-selected="false">Overview</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail-software' object.pk %}" role="tab" aria-selected="false">Software</a>
-          </li>
-        {% if portscan and firewall %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail-security' object.pk %}" role="tab" aria-selected="false">Security</a>
-          </li>
-        {% endif %}
-          <li class="nav-item">
-            <a class="nav-link active" href="{% url 'device-detail-network' object.pk %}" role="tab" aria-selected="true">Network</a>
-          </li>
-        {% if portscan %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail-hardware' object.pk %}" role="tab" aria-selected="false">Hardware</a>
-          </li>
-        {% endif %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail-metadata' object.pk %}" role="tab" aria-selected="false">Metadata</a>
-          </li>
-        </ul>
+        {% include 'device_info_tabs.html' with active="network" %}
         <div class="tab-content">
           <div class="tab-pane active" id="network" role="tabpanel">
             <h4 class="tab-title">Network</h4>

@@ -46,7 +46,8 @@
         {% endif %}
 
         mixpanel.register({
-            path: "{{ request.path }}"
+            path: "{{ request.path }}",
+            view: "{{ request.resolver_match.view_name }}"
         });
 
       {% endif %}
