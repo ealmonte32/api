@@ -473,8 +473,8 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
-        self.assertNotContains(response, '>Security<')
-        self.assertNotContains(response, '>Hardware<')
+        self.assertNotContains(response, '<a id="tab-security"')
+        self.assertNotContains(response, '<a id="tab-hardware"')
 
     def test_no_firewall(self):
         """
@@ -485,8 +485,8 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Device Profile')
-        self.assertContains(response, '>Hardware<')
-        self.assertNotContains(response, '>Security<')
+        self.assertContains(response, '<a id="tab-hardware"')
+        self.assertNotContains(response, '<a id="tab-security"')
 
     def test_device_metadata(self):
         self.client.login(username='test', password='123')
