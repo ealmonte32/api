@@ -556,6 +556,28 @@ def actions_view(request, device_pk=None):
         )
         actions.append(action)
 
+    # Insecure services found action.
+    devices_with_insecure_services = request.user.devices.exclude(deb_packages_hash='').filter(
+        deb_packages__name__in=Device.INSECURE_SERVICES).distinct()
+    if device_pk is not None:
+        devices_with_insecure_services = devices_with_insecure_services.filter(pk=device_pk)
+    if devices_with_insecure_services.exists():
+        text_blocks = []
+        for dev in devices_with_insecure_services:
+            device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>' \
+                                f'({dev.insecure_services.count()} services)'
+            text_blocks.append(device_text_block)
+        full_string = ', '.join(text_blocks)
+        action = Action(
+            5,
+            'Insecure services found',
+            """<p>We found insecure services running on %s. Because these services are considered insecure, it is 
+            recommended that you uninstall them.</p>
+            <p>Run <code>sudo apt-get purge $SERVICE-PACKAGE</code> to disable a service.</p>""" % (
+                'this device' if device_name else full_string), []
+        )
+        actions.append(action)
+
     return render(request, 'actions.html', {
         'actions': actions,
         'device_name': device_name,

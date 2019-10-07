@@ -230,7 +230,8 @@ class Device(models.Model):
         return sum((self.deviceinfo.default_password is True,
                     self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK,
                     self.vulnerable_packages().exists(),
-                    telnet))
+                    telnet,
+                    bool(self.insecure_services)))
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,

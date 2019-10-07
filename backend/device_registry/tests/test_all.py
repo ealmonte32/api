@@ -340,12 +340,12 @@ class ActionsViewTests(TestCase):
         self.user.set_password('123')
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
-                                            certificate=TEST_CERT)
+                                            certificate=TEST_CERT, deb_packages_hash='abcd')
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO_TELNET,
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall = FirewallState.objects.create(device=self.device)
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
-        deb_package = DebPackage.objects.create(name='name1', version='version1', source_name='sname1',
+        deb_package = DebPackage.objects.create(name='fingerd', version='version1', source_name='fingerd',
                                                 source_version='sversion1', arch='amd64')
         vulnerability = Vulnerability.objects.create(name='name', package='package', is_binary=True, other_versions=[],
                                                      urgency='L', fix_available=True)
@@ -375,6 +375,11 @@ class ActionsViewTests(TestCase):
             response,
             f'We found vulnerable packages on <a href="/devices/{self.device.pk}/">'
             f'{self.device.get_name()}</a>(1 packages)'
+        )
+        self.assertContains(
+            response,
+            f'We found insecure services running on <a href="/devices/{self.device.pk}/">'
+            f'{self.device.get_name()}</a>(1 services)'
         )
 
 
