@@ -58,6 +58,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
                   key: smtpPassword
+            - name: MIXPANEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: mixpanelToken
           livenessProbe:
             httpGet:
               path: /healthz
