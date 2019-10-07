@@ -23,7 +23,7 @@
 	<meta name="msapplication-square150x150logo" content="https://static.wott.io/favicon/mstile-150x150.png" />
 	<meta name="msapplication-wide310x150logo" content="https://static.wott.io/favicon/mstile-310x150.png" />
 	<meta name="msapplication-square310x310logo" content="https://static.wott.io/favicon/mstile-310x310.png" />
-	
+
     {% load static %}
     <title>{% block title %}WoTT{% endblock title %}</title>
 
@@ -42,6 +42,7 @@
         {% if user.is_authenticated %}
         mixpanel.register({
             user_id: "{{ user.id }}",
+            email: "{{ user.email }}",
         });
         {% endif %}
 
