@@ -102,6 +102,5 @@ jobs:
               helm upgrade \
                 -i api helm/api \
                 --set image.tag="$GITHASH" \
-                --set releaseTimeStamp="$CIRCLE_BUILD_NUM" \
-                --reuse-values
+                --set releaseTimeStamp="$CIRCLE_BUILD_NUM"
             fi

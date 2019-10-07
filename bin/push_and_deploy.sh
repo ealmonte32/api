@@ -24,5 +24,4 @@ docker push gcr.io/wott-prod/wott-static:latest
 helm upgrade \
     -i api helm/api \
     --set image.tag=${GITHASH} \
-    --set releaseTimeStamp="$(date +%s)" \
-    --reuse-values
+    --set releaseTimeStamp="$(date +%s)"
