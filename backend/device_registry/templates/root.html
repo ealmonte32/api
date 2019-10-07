@@ -724,6 +724,27 @@
       }
       $('.toast').toast({delay: 5000});
 
-      $("#inst-btn").on('click', () => mixpanel.track("Add Device"));
+    $("#inst-btn").on('click', () => mixpanel.track("Add Device"));
+
+  {% if not user.profile.wizard_shown %}
+    $(() => {
+        let intro = $.hemiIntro({
+            steps: [
+                {
+                    selector: "#inst-btn",
+                    placement: "bottom",
+                    content: "Text text text text text text text text text text",
+                },
+                {
+                    selector: "#sidebar-actions",
+                    placement: "bottom",
+                    content: "Text2 text2 text2 text2 text2 text2 text2 text2 text2 text2 text2 text2"
+                },
+            ]
+        });
+        window.intro = intro;
+        intro.start();
+    });
+  {% endif %}
   </script>
 {% endblock scripts %}

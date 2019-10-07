@@ -38,3 +38,5 @@ window.ip = ip;
 require('jquery-confirm');
 
 window.mixpanel = require('mixpanel-browser');
+
+require('jquery-hemi-intro');
