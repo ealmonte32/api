@@ -10,6 +10,14 @@
       color: black;
     }
 </style>
+
+<script type="text/javascript">
+  $(() => {
+    mixpanel.register({device_id: "{{ object.pk }}"});
+    $('#recommended-actions').click(() => mixpanel.track("Recommended Actions"))
+  });
+</script>
+
 <div class="row">
   <div class="col">
     <h2 style="
@@ -31,7 +39,10 @@
   <div class="col">
   {%  with actions_count=object.actions_count %}
     {% if actions_count %}
-      <a href="{% url 'device_actions' object.pk %}" class="wott-recommended-actions btn btn-primary" role="button">
+      <a id="recommended-actions"
+         href="{% url 'device_actions' object.pk %}"
+         class="wott-recommended-actions btn btn-primary"
+         role="button">
         Recommended Actions
         <span class="badge badge-light wott-actions-badge ml-2">{{ actions_count }}</span>
       </a>

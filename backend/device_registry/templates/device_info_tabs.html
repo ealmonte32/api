@@ -1,0 +1,62 @@
+<script type="text/javascript">
+  $(() => {
+      $('.nav-tabs .nav-link').click((e) => {
+          mixpanel.track("Tab", {element: e.target.id})
+      });
+  });
+</script>
+
+<ul class="nav nav-tabs" role="tablist">
+  <li class="nav-item">
+    <a id="tab-overview"
+       class="nav-link{% if active == 'overview' %} active{% endif %}"
+       href="{% url 'device-detail' object.pk %}"
+       role="tab">
+      Overview
+    </a>
+  </li>
+  <li class="nav-item">
+    <a id="tab-software"
+       class="nav-link{% if active == 'software' %} active{% endif %}"
+       href="{% url 'device-detail-software' object.pk %}"
+       role="tab">
+      Software
+    </a>
+  </li>
+{% if portscan and firewall %}
+  <li class="nav-item">
+    <a id="tab-security"
+       class="nav-link{% if active == 'security' %} active{% endif %}"
+       href="{% url 'device-detail-security' object.pk %}"
+       role="tab">
+      Security
+    </a>
+  </li>
+{% endif %}
+  <li class="nav-item">
+    <a id="tab-network"
+       class="nav-link{% if active == 'network' %} active{% endif %}"
+       href="{% url 'device-detail-network' object.pk %}"
+       role="tab">
+      Network
+    </a>
+  </li>
+{% if portscan %}
+  <li class="nav-item">
+    <a id="tab-hardware"
+       class="nav-link{% if active == 'hardware' %} active{% endif %}"
+       href="{% url 'device-detail-hardware' object.pk %}"
+       role="tab">
+      Hardware
+    </a>
+  </li>
+{% endif %}
+  <li class="nav-item">
+    <a id="tab-metadata" class="nav-link{% if active == 'metadata' %} active{% endif %}"
+       href="{% url 'device-detail-metadata' object.pk %}"
+       role="tab">
+      Metadata
+    </a>
+  </li>
+</ul>
+

@@ -723,5 +723,7 @@
           return template;
       }
       $('.toast').toast({delay: 5000});
+
+      $("#inst-btn").on('click', () => mixpanel.track("Add Device"));
   </script>
 {% endblock scripts %}

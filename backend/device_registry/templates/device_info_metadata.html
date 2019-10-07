@@ -34,7 +34,7 @@
           </button>
         </div>
         <div class="modal-body">
-          <p id="confirm-msg">You do not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?</p>
+          <p id="confirm-msg">You did not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?</p>
         </div>
         <div class="alert alert-warning wott-form-alert p-1" role="alert" id="confirm-alert">
           Server error
@@ -50,30 +50,7 @@
   <div class="row">
     <div class="col-12">
       <div class="tab">
-        <ul class="nav nav-tabs" role="tablist">
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail' object.pk %}" role="tab" aria-selected="false">Overview</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail-software' object.pk %}" role="tab" aria-selected="false">Software</a>
-          </li>
-        {% if portscan and firewall %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail-security' object.pk %}" role="tab" aria-selected="false">Security</a>
-          </li>
-        {% endif %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail-network' object.pk %}" role="tab" aria-selected="false">Network</a>
-          </li>
-        {% if portscan %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'device-detail-hardware' object.pk %}" role="tab" aria-selected="false">Hardware</a>
-          </li>
-        {% endif %}
-          <li class="nav-item">
-            <a class="nav-link active" href="{% url 'device-detail-metadata' object.pk %}" role="tab" aria-selected="true">Metadata</a>
-          </li>
-        </ul>
+        {% include 'device_info_tabs.html' with active="metadata" %}
         <div class="tab-content">
           <div class="tab-pane active" id="device-metadata" role="tabpanel">
             <h4 class="tab-title">Metadata</h4>

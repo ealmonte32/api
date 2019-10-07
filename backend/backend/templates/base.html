@@ -32,6 +32,26 @@
     {% endblock %}
 
     <script src="{% static WEBPACK_BUNDLE.js %}"></script>
+    <script type="text/javascript">
+      {% if MIXPANEL_TOKEN %}
+        mixpanel.init("{{ MIXPANEL_TOKEN }}");
+        if(mixpanel.has_opted_out_tracking()) {
+            console.error("DNT active - can't use mixpanel");
+        }
+
+        {% if user.is_authenticated %}
+        mixpanel.register({
+            user_id: "{{ user.id }}",
+        });
+        {% endif %}
+
+        mixpanel.register({
+            path: "{{ request.path }}",
+            view: "{{ request.resolver_match.view_name }}"
+        });
+
+      {% endif %}
+    </script>
     {% block js %}
     {% endblock %}
 
