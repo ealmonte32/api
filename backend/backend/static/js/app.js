@@ -35,8 +35,9 @@ window.copyToClipboard = (text) => clipboard.writeText(text);
 import ip from "ip-regex";
 window.ip = ip;
 
-require('jquery-confirm');
+import 'jquery-confirm';
 
 window.mixpanel = require('mixpanel-browser');
 
-require('jquery-hemi-intro');
+import Shepherd from 'shepherd.js'
+window.Shepherd = Shepherd;
