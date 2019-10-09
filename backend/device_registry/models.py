@@ -219,18 +219,9 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
-        if self.firewallstate.policy == FirewallState.POLICY_ENABLED_ALLOW:
-            telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}]).exclude(
-                portscan__block_ports__contains=[[23]]).exists()
-        elif self.firewallstate.policy == FirewallState.POLICY_ENABLED_BLOCK:
-            telnet = self.__class__.objects.filter(pk=self.pk, portscan__scan_info__contains=[{'port': 23}],
-                                                   portscan__block_ports__contains=[[23]]).exists()
-        else:
-            raise NotImplementedError
         return sum((self.deviceinfo.default_password is True,
                     self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK,
                     self.vulnerable_packages().exists(),
-                    telnet,
                     bool(self.insecure_services)))
 
     COEFFICIENTS = {

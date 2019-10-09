@@ -110,7 +110,6 @@ class CsrHelperTests(TestCase):
 
 
 OPEN_PORTS_INFO = [{"host": "192.168.1.178", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4}]
-OPEN_PORTS_INFO_TELNET = [{"host": "192.168.1.178", "port": 23, "proto": "tcp", "state": "open", "ip_version": 4}]
 
 OPEN_CONNECTIONS_INFO = [
     {'ip_version': 4, 'type': 'tcp', 'local_address': ['192.168.1.178', 4567],
@@ -213,11 +212,9 @@ class DeviceModelTest(TestCase):
             default_password=True,
             logins={'pi': {'failed': 1, 'success': 1}}
         )
-        self.portscan4 = PortScan.objects.create(device=self.device4, scan_info=[
-            {"host": "0.0.0.0", "port": 23, "proto": "tcp", "state": "open", "ip_version": 4},
+        PortScan.objects.create(device=self.device4, scan_info=[
             {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6},
-            {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
         ])
@@ -225,17 +222,8 @@ class DeviceModelTest(TestCase):
 
     def test_fixed_issues(self):
         self.device4.update_trust_score_now()
-        # initial state: firewall disabled, telnet port found, default password found - trust score low
+        # initial state: firewall disabled, default password found - trust score low
         self.assertLess(self.device4.trust_score_percent(), 66)
-
-        # fix issues: enable firewall, remove telnet, set non-default password
-        self.portscan4.scan_info = [
-            {"host": "0.0.0.0", "port": 22, "proto": "tcp", "state": "open", "ip_version": 4},
-            {"host": "::", "port": 22, "proto": "tcp", "state": "open", "ip_version": 6},
-            {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
-            {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
-        ]
-        self.portscan4.save()
         self.firewall4.policy = FirewallState.POLICY_ENABLED_BLOCK
         self.firewall4.save()
         self.device_info4.default_password = False
@@ -341,8 +329,6 @@ class ActionsViewTests(TestCase):
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
                                             certificate=TEST_CERT, deb_packages_hash='abcd')
-        self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO_TELNET,
-                                                netstat=OPEN_CONNECTIONS_INFO)
         self.firewall = FirewallState.objects.create(device=self.device)
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
         deb_package = DebPackage.objects.create(name='fingerd', version='version1', source_name='fingerd',
@@ -368,18 +354,13 @@ class ActionsViewTests(TestCase):
         )
         self.assertContains(
             response,
-            f'We found enabled Telnet server present on <a href="/devices/{self.device.pk}/">'
-            f'{self.device.get_name()}</a>'
-        )
-        self.assertContains(
-            response,
             f'We found vulnerable packages on <a href="/devices/{self.device.pk}/">'
             f'{self.device.get_name()}</a>(1 packages)'
         )
         self.assertContains(
             response,
-            f'We found insecure services running on <a href="/devices/{self.device.pk}/">'
-            f'{self.device.get_name()}</a>(1 services)'
+            f'We found insecure service <strong>fingerd</strong> installed on <a href="/devices/{self.device.pk}/">'
+            f'{self.device.get_name()}</a>'
         )
 
 

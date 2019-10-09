@@ -16,7 +16,7 @@
             <span aria-hidden="true">×</span>
           </button>
           <div class="alert-message">
-            <h3 class="alert-heading">{{ action.title }}</h3>
+            <h3 class="alert-heading">{{ action.title|safe }}</h3>
             <p>{{ action.description|safe }}</p>
             {% if device_name and action.actions %}
               <hr>

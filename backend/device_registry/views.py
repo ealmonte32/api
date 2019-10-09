@@ -14,7 +14,7 @@ from django.db.models import Q
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Action, Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey
-from .models import GlobalPolicy
+from .models import GlobalPolicy, DebPackage
 from device_registry.api_views import DeviceListFilterMixin
 
 
@@ -509,30 +509,6 @@ def actions_view(request, device_pk=None):
         )
         actions.append(action)
 
-    # Telnet server running action.
-    qs1 = request.user.devices.filter(
-        firewallstate__policy=FirewallState.POLICY_ENABLED_ALLOW, portscan__scan_info__contains=[{'port': 23}]).exclude(
-        portscan__block_ports__contains=[[23]])
-    qs2 = request.user.devices.filter(
-        firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK, portscan__scan_info__contains=[{'port': 23}],
-        portscan__block_ports__contains=[[23]])
-    enabled_telnet_devices = qs1 | qs2
-    if device_pk is not None:
-        enabled_telnet_devices = enabled_telnet_devices.filter(pk=device_pk)
-    if enabled_telnet_devices.exists():
-        text_blocks = []
-        for dev in enabled_telnet_devices:
-            device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
-            text_blocks.append(device_text_block)
-        full_string = ', '.join(text_blocks)
-        action = Action(
-            3,
-            'Enabled Telnet server detected',
-            '<p>We found enabled Telnet server present on %s. Please consider disabling it.</p>' %
-            ('this device' if device_name else full_string), []
-        )
-        actions.append(action)
-
     # Vulnerable packages found action.
     devices_with_vuln_packages = request.user.devices.filter(deb_packages__vulnerabilities__isnull=False).distinct()
     if device_pk is not None:
@@ -545,7 +521,7 @@ def actions_view(request, device_pk=None):
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
-            4,
+            3,
             'Vulnerable packages found',
             """<p>We found vulnerable packages on %s. These packages could be used by an attacker to either gain 
             access to your node, or escalate permission. It is recommended that you address this at your earliest 
@@ -559,24 +535,35 @@ def actions_view(request, device_pk=None):
     # Insecure services found action.
     devices_with_insecure_services = request.user.devices.exclude(deb_packages_hash='').filter(
         deb_packages__name__in=Device.INSECURE_SERVICES).distinct()
-    if device_pk is not None:
-        devices_with_insecure_services = devices_with_insecure_services.filter(pk=device_pk)
     if devices_with_insecure_services.exists():
-        text_blocks = []
-        for dev in devices_with_insecure_services:
-            device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>' \
-                                f'({dev.insecure_services.count()} services)'
-            text_blocks.append(device_text_block)
-        full_string = ', '.join(text_blocks)
-        action = Action(
-            5,
-            'Insecure services found',
-            """<p>We found insecure services running on %s. Because these services are considered insecure, it is 
-            recommended that you uninstall them.</p>
-            <p>Run <code>sudo apt-get purge $SERVICE-PACKAGE</code> to disable a service.</p>""" % (
-                'this device' if device_name else full_string), []
-        )
-        actions.append(action)
+        if device_pk is not None:
+            action_header = 'Insecure services found'
+            services_str = ' '.join(device.insecure_services.values_list('name', flat=True))
+            action_text = '<p>We found insecure services installed on this device. Because these services are ' \
+                          'considered insecure, it is recommended that you uninstall them.' \
+                          '</p><p>Run <code>sudo apt-get purge %s</code> to disable all insecure ' \
+                          'services.</p>' % services_str
+            action = Action(4, action_header, action_text, [])
+            actions.append(action)
+        else:
+            device_ids = devices_with_insecure_services.values_list('pk', flat=True)
+            service_packages = DebPackage.objects.filter(
+                device__in=device_ids, name__in=Device.INSECURE_SERVICES).distinct()
+            for package in service_packages:
+                action_header = 'Insecure service <strong>%s</strong> found' % package.name
+                text_blocks = []
+                for dev in devices_with_insecure_services:
+                    if dev.deb_packages.filter(pk=package.pk).exists():
+                        device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">' \
+                                            f'{dev.get_name()}</a>'
+                        text_blocks.append(device_text_block)
+                full_string = ', '.join(text_blocks)
+                action_text = '<p>We found insecure service <strong>%s</strong> installed on %s. Because this ' \
+                              'service is considered insecure, it is recommended that you uninstall it.</p>' \
+                              '<p>Run <code>sudo apt-get purge %s</code> to disable the ' \
+                              'service.</p>' % (package.name, full_string, package.name)
+                action = Action(actions[-1].id + 1, action_header, action_text, [])
+                actions.append(action)
 
     return render(request, 'actions.html', {
         'actions': actions,
