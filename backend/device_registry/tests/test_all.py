@@ -327,8 +327,12 @@ class ActionsViewTests(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
-                                            certificate=TEST_CERT, deb_packages_hash='abcd')
+        self.device = Device.objects.create(
+            device_id='device0.d.wott-dev.local', owner=self.user, certificate=TEST_CERT, deb_packages_hash='abcd',
+            audit_files=[{'name': '/etc/ssh/sshd_config', 'issues': {'PermitRootLogin': 'prohibit-password',
+                                                                     'AllowAgentForwarding': 'yes',
+                                                                     'PasswordAuthentication': 'yes'},
+                          'sha256': 'abcd', 'last_modified': 1554718384.0}])
         self.firewall = FirewallState.objects.create(device=self.device)
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
         deb_package = DebPackage.objects.create(name='fingerd', version='version1', source_name='fingerd',
@@ -360,6 +364,11 @@ class ActionsViewTests(TestCase):
         self.assertContains(
             response,
             f'We found insecure service <strong>fingerd</strong> installed on <a href="/devices/{self.device.pk}/">'
+            f'{self.device.get_name()}</a>'
+        )
+        self.assertContains(
+            response,
+            f'We found insecure configuration issues with OpenSSH on <a href="/devices/{self.device.pk}/">'
             f'{self.device.get_name()}</a>'
         )
 

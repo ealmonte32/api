@@ -467,7 +467,7 @@ class PairingKeySaveFileView(LoginRequiredMixin, View):
 @login_required
 def actions_view(request, device_pk=None):
     if device_pk is not None:
-        device = get_object_or_404(Device, pk=device_pk)
+        device = get_object_or_404(Device, pk=device_pk, owner=request.user)
         device_name = device.get_name()
     else:
         device_name = None
@@ -535,6 +535,8 @@ def actions_view(request, device_pk=None):
     # Insecure services found action.
     devices_with_insecure_services = request.user.devices.exclude(deb_packages_hash='').filter(
         deb_packages__name__in=Device.INSECURE_SERVICES).distinct()
+    if device_pk is not None:
+        devices_with_insecure_services = devices_with_insecure_services.filter(pk=device_pk)
     if devices_with_insecure_services.exists():
         if device_pk is not None:
             action_header = 'Insecure services found'
@@ -562,6 +564,27 @@ def actions_view(request, device_pk=None):
                               'service is considered insecure, it is recommended that you uninstall it.</p>' \
                               '<p>Run <code>sudo apt-get purge %s</code> to disable the ' \
                               'service.</p>' % (package.name, full_string, package.name)
+                action = Action(actions[-1].id + 1, action_header, action_text, [])
+                actions.append(action)
+
+    # Configuration issue found action.
+    devices = request.user.devices.exclude(audit_files__in=('', []))
+    if device_pk is not None:
+        devices = devices.filter(pk=device_pk)
+    if devices.exists():
+        action_header = 'Insecure configuration for <strong>OpenSSH</strong> found'
+        for dev in devices:
+            sshd_issues = dev.sshd_issues()
+            if sshd_issues:
+                recommendations = ''
+                for issue in sshd_issues:
+                    recommendations += f'<li>change "<strong>{issue[0]}</strong>" from "<strong>{issue[1]}' \
+                                       f'</strong>" to "<strong>{issue[2]}</strong>"</li>'
+                recommendations = '<ul>%s</ul>' % recommendations
+                full_string = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
+                action_text = '<p>We found insecure configuration issues with OpenSSH on %s. To improve the ' \
+                              'security posture of your node, please consider making the following ' \
+                              'changes:%s</p>' % ('this device' if device_name else full_string, recommendations)
                 action = Action(actions[-1].id + 1, action_header, action_text, [])
                 actions.append(action)
 
