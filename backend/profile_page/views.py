@@ -11,9 +11,12 @@ from django.urls import reverse
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
 
+from rest_framework import status
 from rest_framework.authtoken.models import Token
 from registration.views import RegistrationView as BaseRegistrationView
 from registration.signals import user_registered
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .forms import ProfileForm, RegistrationForm
 from .models import Profile
@@ -110,3 +113,10 @@ class RegistrationView(BaseRegistrationView):
          All irrelevant values will be simply ignored by the form.
         """
         return {'payment_plan': self.request.GET.get('plan')}
+
+
+class WizardCompleteView(LoginRequiredMixin, APIView):
+    def post(self, request, *args, **kwargs):
+        request.user.profile.wizard_shown = True
+        request.user.profile.save(update_fields=['wizard_shown'])
+        return Response(status=status.HTTP_201_CREATED)

@@ -803,8 +803,7 @@
         function wizardShown() {
             if(sidebarToggled)
                 toggleSidebar();
-            console.log('DONE');
-            // TODO: set wizard_shown
+            $.post('/user/profile/wizard-complete')
         }
         tour.on('complete', wizardShown).on('cancel', wizardShown);
         window.tour = tour;
