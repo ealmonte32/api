@@ -119,4 +119,4 @@ class WizardCompleteView(LoginRequiredMixin, APIView):
     def post(self, request, *args, **kwargs):
         request.user.profile.wizard_shown = True
         request.user.profile.save(update_fields=['wizard_shown'])
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_200_OK)
