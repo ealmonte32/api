@@ -756,8 +756,10 @@
         });
         tour.addSteps([{
           title: 'Add Device',
-          text: `This is a text for Add Device.\
-          Write anything you want here.`,
+          text: `To get started with WoTT, you need to install
+              the WoTT agent on your node(s). WoTT will then automatically
+              perform a security audit of your node(s) and provide you with
+              customized recommendations based on your particular configuration.`,
           buttons: [{
             action: function() {
               return this.cancel();
@@ -779,8 +781,9 @@
             on: 'left'
         }}, {
           title: 'Recommended Actions',
-          text: `This is a text for Recommended Actions.\
-          Write anything you want here.`,
+          text: `Recommended Actions are specific security changes tailored to
+            your node(s). We will help you avoid making common security pitfalls,
+            which could put your data and node(s) at risk.`,
           buttons: [{
             action: function() {
               return this.complete();
