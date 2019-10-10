@@ -728,8 +728,6 @@
       }
       $('.toast').toast({delay: 5000});
 
-    $("#inst-btn").on('click', () => mixpanel.track("Add Device"));
-
   {% if not user.profile.wizard_shown %}
     $(() => {
         let sidebarToggled = false;
@@ -812,5 +810,10 @@
         window.tour = tour;
     });
   {% endif %}
+
+  {% if MIXPANEL_TOKEN %}
+    $("#inst-btn").on('click', () => mixpanel.track("Add Device"));
+  {% endif %}
+
   </script>
 {% endblock scripts %}

@@ -102,9 +102,11 @@
 {% block scripts %}
   {{ block.super }}
   <script src="{% static '/js/csrf.js' %}"></script>
+  {% if MIXPANEL_TOKEN %}
   <script type="text/javascript">
-  $('.sidebar-link').click((e) => {
-      mixpanel.track("Sidebar", {element: e.target.id});
-  })
+      $('.sidebar-link').click((e) => {
+          mixpanel.track("Sidebar", {element: e.target.id});
+      })
   </script>
+  {% endif %}
 {% endblock %}

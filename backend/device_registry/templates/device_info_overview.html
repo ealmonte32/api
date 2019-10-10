@@ -103,9 +103,11 @@
 
 {% block scripts %}
 {{ block.super }}
+{% if MIXPANEL_TOKEN %}
   <script type="text/javascript">
   $(() => {
       $('#revoke-button').click(() => mixpanel.track("Revoke"));
   });
   </script>
+{% endif %}
 {% endblock scripts %}

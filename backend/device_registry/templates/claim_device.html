@@ -68,7 +68,9 @@
 
 {% block scripts %}
 {{ block.super }}
+{% if MIXPANEL_TOKEN %}
   <script type="text/javascript">
   $("#claim-button").click(() => mixpanel.track("Claim Device"));
   </script>
+{% endif %}
 {% endblock scripts %}
