@@ -578,7 +578,7 @@ def actions_view(request, device_pk=None):
             if sshd_issues:
                 recommendations = ''
                 for issue in sshd_issues:
-                    recommendations += f'<li>change "<strong>{issue[0]}</strong>" from "<strong>{issue[1]}' \
+                    recommendations += f'<li>Change "<strong>{issue[0]}</strong>" from "<strong>{issue[1]}' \
                                        f'</strong>" to "<strong>{issue[2]}</strong>"</li>'
                 recommendations = '<ul>%s</ul>' % recommendations
                 full_string = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
