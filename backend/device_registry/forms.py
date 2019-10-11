@@ -26,7 +26,7 @@ class DeviceAttrsForm(forms.ModelForm):
             model_class = self.instance.__class__
             owner = self.instance.owner
             if model_class.objects.exclude(pk=self.instance.pk).filter(owner=owner, name__iexact=data):
-                raise forms.ValidationError("You already have a device with such name!")
+                raise forms.ValidationError("You already have a node with such name!")
         return data
 
     class Meta:

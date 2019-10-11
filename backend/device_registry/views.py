@@ -40,7 +40,7 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
                 int(avg_trust_score * 100)) if avg_trust_score is not None else None,
             'active_inactive': Device.get_active_inactive(self.request.user),
             'column_names': [
-                'Device Name',
+                'Node Name',
                 'Hostname',
                 'Last Ping',
                 'Trust Score',
@@ -175,7 +175,7 @@ def claim_device_view(request):
                 if get_device.claimed:
                     text, style = 'Device has already been claimed.', 'warning'
                 elif not get_device.claim_token == form.cleaned_data['claim_token']:
-                    text, style = 'Invalid claim/device id pair.', 'warning'
+                    text, style = 'Invalid claim/node id pair.', 'warning'
                 else:
                     get_device.owner = request.user
                     get_device.claim_token = ""
@@ -186,7 +186,7 @@ def claim_device_view(request):
                                   f'here</a>.', \
                                   'success'
             except Device.DoesNotExist:
-                text, style = 'Invalid claim/device id pair.', 'warning'
+                text, style = 'Invalid claim/node id pair.', 'warning'
 
     # GET with claim_token and device_id set will fill the form.
     # Empty GET or any other request will generate empty form.
@@ -199,7 +199,7 @@ def claim_device_view(request):
             )
             form = ClaimDeviceForm(request.GET)
         except Device.DoesNotExist:
-            text, style = 'Invalid claim/device id pair.', 'warning'
+            text, style = 'Invalid claim/node id pair.', 'warning'
             form = ClaimDeviceForm()
     else:
         form = ClaimDeviceForm()

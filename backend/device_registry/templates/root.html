@@ -41,12 +41,12 @@
           <div class="card-header">
             <div class="row">
               <div class="col-6">
-                <h5 class="card-title">Device List</h5>
-                <h6 class="card-subtitle text-muted">View registered devices.</h6>
+                <h5 class="card-title">Node List</h5>
+                <h6 class="card-subtitle text-muted">View registered nodes.</h6>
               </div>
               <div class="col-6">
                 <button type="button" class="btn btn-success" style="float: right;" id="inst-btn">
-                  Add Device
+                  Add Node
                 </button>
               </div>
             </div>
@@ -231,7 +231,7 @@
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title" id="modal-title-h2">Add new device</h2>
+          <h2 class="modal-title" id="modal-title-h2">Add new node</h2>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -535,7 +535,7 @@
             contentType: 'application/json',
         }).done(function (e) {
             console.log('success');
-            let title = "To add a device, simply SSH in and run the following commands:";
+            let title = "To add a node, simply SSH in and run the following commands:";
             let msg = bash_block(
                      `$ sudo apt-get install -y curl\n`
                    + `$ sudo mkdir -p /opt/wott\n`
@@ -560,7 +560,7 @@
        *  @param message - dialog message
        *  @param errors - the errors string to display, if is not null.
        */
-      function show_dialog(title, message, errors=null, h2_title='Add new device' )
+      function show_dialog(title, message, errors=null, h2_title='Add new node' )
       {
           $('#modal-title-h2')[0].innerText = h2_title;
           $('#modal-title')[0].innerText = title;
@@ -616,7 +616,7 @@
       }
 
   /**
-   * datatable cell rendering callback for device name column
+   * datatable cell rendering callback for node name column
    * @param data - cell data
    * @param type - call type (mode)
    * @param row  - row data
@@ -673,7 +673,7 @@
           useModalOverlay: true
         });
         tour.addSteps([{
-          title: 'Add Device',
+          title: 'Add Node',
           text: `To get started with WoTT, you need to install
               the WoTT agent on your node(s). WoTT will then automatically
               perform a security audit of your node(s) and provide you with
@@ -732,7 +732,7 @@
   {% endif %}
 
   {% if MIXPANEL_TOKEN %}
-    $("#inst-btn").on('click', () => mixpanel.track("Add Device"));
+    $("#inst-btn").on('click', () => mixpanel.track("Add Node"));
   {% endif %}
 
   </script>
