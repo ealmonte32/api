@@ -704,6 +704,15 @@ class RootViewTests(TestCase):
             detected_mirai=True,
         )
 
+    def test_wizard(self):
+        self.client.login(username='test', password='123')
+        response = self.client.get(reverse('root'))
+        self.assertContains(response, 'tour.start();')
+        response = self.client.post(reverse('wizard-complete'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('root'))
+        self.assertNotContains(response, 'tour.start();')
+
     def test_no_filter(self):
         self.client.login(username='test', password='123')
         url = reverse('root')

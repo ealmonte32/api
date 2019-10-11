@@ -11,12 +11,14 @@
     }
 </style>
 
+{% if MIXPANEL_TOKEN %}
 <script type="text/javascript">
   $(() => {
     mixpanel.register({device_id: "{{ object.pk }}"});
     $('#recommended-actions').click(() => mixpanel.track("Recommended Actions"))
   });
 </script>
+{% endif %}
 
 <div class="row">
   <div class="col">

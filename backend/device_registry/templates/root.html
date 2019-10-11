@@ -291,6 +291,10 @@
     .custom-control-label:before {
       background-color: white;
     }
+
+    .shepherd-element.shepherd-element-attached-middle.shepherd-element-attached-right .shepherd-arrow {
+      right: 5px;
+    }
   </style>
   <script>
   var table;
@@ -644,6 +648,92 @@
       }
       $('.toast').toast({delay: 5000});
 
-      $("#inst-btn").on('click', () => mixpanel.track("Add Device"));
+  {% if not user.profile.wizard_shown %}
+    $(() => {
+        let sidebarToggled = false;
+        function toggleSidebar() {
+            return $(".sidebar")
+                .toggleClass("toggled")
+                // Triger resize after animation
+                .one("transitionend", function() {
+                  setTimeout(function() {
+                    window.dispatchEvent(new Event("resize"));
+                    sidebarToggled = true;
+                  }, 100);
+                });
+        }
+        const tour = new Shepherd.Tour({
+          defaultStepOptions: {
+            cancelIcon: {
+              enabled: true
+            },
+            classes: 'class-1 class-2',
+            scrollTo: { behavior: 'smooth', block: 'center' }
+          },
+          useModalOverlay: true
+        });
+        tour.addSteps([{
+          title: 'Add Device',
+          text: `To get started with WoTT, you need to install
+              the WoTT agent on your node(s). WoTT will then automatically
+              perform a security audit of your node(s) and provide you with
+              customized recommendations based on your particular configuration.`,
+          buttons: [{
+            action: function() {
+              return this.cancel();
+            },
+            secondary: true,
+            text: "Exit"
+          }, {
+            action: function() {
+                if($('nav')[0].getBoundingClientRect().x == -250) {
+                    toggleSidebar();
+                }
+              return this.next();
+            },
+            text: 'Next'
+          }],
+          canClickTarget: false,
+          attachTo: {
+            element: '#inst-btn',
+            on: 'left'
+        }}, {
+          title: 'Recommended Actions',
+          text: `Recommended Actions are specific security changes tailored to
+            your node(s). We will help you avoid making common security pitfalls,
+            which could put your data and node(s) at risk.`,
+          buttons: [{
+            action: function() {
+              return this.complete();
+            },
+            text: "Finish"
+          }, {
+            action: function() {
+              return this.back();
+            },
+            text: 'Back',
+            secondary: true
+          }],
+          attachTo: {
+            element: '#sidebar-actions',
+            // on: 'right'
+        }}]);
+
+        tour.start();
+
+        function wizardShown() {
+            if(sidebarToggled)
+                toggleSidebar();
+            $.post('/user/profile/wizard-complete/')
+        }
+        tour.on('complete', wizardShown).on('cancel', wizardShown);
+        window.tour = tour;
+    });
+  {% endif %}
+
+  {% if MIXPANEL_TOKEN %}
+    $("#inst-btn").on('click', () => mixpanel.track("Add Device"));
+  {% endif %}
+
   </script>
 {% endblock scripts %}

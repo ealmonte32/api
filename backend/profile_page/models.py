@@ -24,3 +24,4 @@ class Profile(models.Model):
     last_active = models.DateField(null=True, blank=True)
     company_name = models.CharField(blank=True, max_length=128)
     payment_plan = models.PositiveSmallIntegerField(choices=PAYMENT_PLAN_CHOICES, default=PAYMENT_PLAN_FREE)
+    wizard_shown = models.BooleanField(default=False)
