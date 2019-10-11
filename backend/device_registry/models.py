@@ -233,7 +233,7 @@ class Device(models.Model):
     def actions_count(self):
         return sum((self.deviceinfo.default_password is True,
                     self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK,
-                    self.vulnerable_packages().exists(),
+                    bool(self.vulnerable_packages and self.vulnerable_packages.exists()),
                     bool(self.insecure_services),
                     bool(self.sshd_issues())))
 
@@ -313,11 +313,6 @@ class Device(models.Model):
     def vulnerable_packages(self):
         if self.deb_packages.exists():
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
-
-    def has_vulnerable_packages(self):
-        packages = self.vulnerable_packages
-        if packages is not None:
-            return packages.count()
 
     class Meta:
         ordering = ('created',)

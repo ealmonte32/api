@@ -517,7 +517,7 @@ def actions_view(request, device_pk=None):
         text_blocks = []
         for dev in devices_with_vuln_packages:
             device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>' \
-                                f'({dev.vulnerable_packages().count()} packages)'
+                                f'({dev.vulnerable_packages.count()} packages)'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(

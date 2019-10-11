@@ -691,9 +691,6 @@ class DeviceDetailViewTests(TestCase):
         self.assertContains(response, 'CVE-123')
 
 
-
-
-
 class PairingKeysView(TestCase):
     def setUp(self):
         User = get_user_model()
