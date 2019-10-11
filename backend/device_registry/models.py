@@ -309,8 +309,15 @@ class Device(models.Model):
         if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
 
+    @property
     def vulnerable_packages(self):
-        return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
+        if self.deb_packages.exists():
+            return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
+
+    def has_vulnerable_packages(self):
+        packages = self.vulnerable_packages
+        if packages is not None:
+            return packages.count()
 
     class Meta:
         ordering = ('created',)
