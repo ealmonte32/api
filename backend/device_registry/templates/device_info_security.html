@@ -106,7 +106,7 @@
                   <td>
                   {% with object.insecure_services as services %}
                     {% if services %}
-                    <ul style="list-style-type:none;">
+                    <ul style="list-style-type:none; padding: 0">
                     {% for service in services %}
                       <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} {{ service.name }}</li>
                     {% endfor %}
