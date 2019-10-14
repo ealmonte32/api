@@ -26,7 +26,7 @@
                     {% with object.vulnerable_packages as vulnerable_packages %}
                     {% if vulnerable_packages is None %}
                       N/A
-                    {% elif vulnerable_packages.count %}
+                    {% elif vulnerable_packages.exists %}
                       <ul>
                         {% for package in vulnerable_packages %}
                           <li>{{ package.name }} / {{ package.version }}
