@@ -12,12 +12,13 @@ from django.core.exceptions import ObjectDoesNotExist
 
 import yaml
 import tagulous.models
+import apt_pkg
 
 from . import validators
 
-import apt_pkg
-
 apt_pkg.init()
+
+DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
 
 
 def get_bootstrap_color(val):
@@ -45,17 +46,13 @@ class JsonFieldTransitionHelper(JSONField):
 
 
 class DebPackage(models.Model):
-    class Distro(Enum):
-        DEBIAN = 'debian'
-        RASPBIAN = 'raspbian'
-        UBUNTU = 'ubuntu'
-
     class Arch(Enum):
         i386 = 'i386'
         AMD64 = 'amd64'
         ARMHF = 'armhf'
         ALL = 'all'
 
+    os_release_codename = models.CharField(max_length=64)
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
     source_name = models.CharField(max_length=128)
@@ -65,7 +62,7 @@ class DebPackage(models.Model):
     vulnerabilities = models.ManyToManyField('Vulnerability')
 
     class Meta:
-        unique_together = ['name', 'version', 'arch']
+        unique_together = ['name', 'version', 'arch', 'os_release_codename']
 
 
 SSHD_CONFIG_PARAMS_SAFE_VALUES = {
@@ -145,39 +142,47 @@ class Device(models.Model):
             return None
         return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
 
-    def set_deb_packages(self, packages):
+    def set_deb_packages(self, packages, os_info):
         """
         Assign the list of installed deb packages to this device.
         :param packages: list of dicts with the following values: 'name': str, 'version': str, 'arch': DebPackage.Arch.
+        :param os_info: a dict with the `os_release` data from agent.
         """
+        os_release_codename = os_info.get('codename', '')
+
         # Update packages with empty source_name and source_version.
         if DebPackage.objects.filter(source_name='').exists():
             affected_packages_qs = DebPackage.objects.filter(source_name='')
             affected_packages = []
             for package in packages:
                 if 'source_name' not in package:
-                    continue
+                    continue  # Old agent version, nothing to do.
                 try:
                     package_obj = affected_packages_qs.get(name=package['name'], version=package['version'],
-                                                           arch=package['arch'])
+                                                           arch=package['arch'],
+                                                           os_release_codename=os_release_codename)
                 except ObjectDoesNotExist:
                     continue
                 package_obj.source_name = package['source_name']
                 package_obj.source_version = package['source_version']
                 package_obj.processed = False
                 affected_packages.append(package_obj)
-            DebPackage.objects.bulk_update(affected_packages, ['source_name', 'source_version', 'processed'])
+            DebPackage.objects.bulk_update(affected_packages, ['source_name', 'source_version', 'processed'],
+                                           batch_size=10000)
 
         # Save new packages to DB.
         DebPackage.objects.bulk_create([DebPackage(name=package['name'], version=package['version'],
                                                    source_name=package.get('source_name', ''),
                                                    source_version=package.get('source_version', ''),
-                                                   arch=package['arch']) for package in packages],
+                                                   arch=package['arch'],
+                                                   os_release_codename=os_release_codename) for package in packages],
+                                       batch_size=10000,
                                        ignore_conflicts=True)
         # Get packages qs.
         q_objects = models.Q()
         for package in packages:
-            q_objects.add(models.Q(name=package['name'], version=package['version'], arch=package['arch']), models.Q.OR)
+            q_objects.add(models.Q(name=package['name'], version=package['version'], arch=package['arch'],
+                                   os_release_codename=os_release_codename), models.Q.OR)
 
         # Set deb_packages.
         self.deb_packages.set(DebPackage.objects.filter(q_objects).only('pk'))
@@ -651,6 +656,7 @@ class Vulnerability(models.Model):
         MEDIUM = 'M'
         HIGH = 'H'
 
+    os_release_codename = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=64)
     package = models.CharField(max_length=64, db_index=True)
     is_binary = models.BooleanField()
@@ -669,7 +675,6 @@ class Vulnerability(models.Model):
         src_ver = Vulnerability.Version(src_ver)
 
         if self.unstable_version:
-            return src_ver < unstable_version \
-                   and src_ver not in other_versions
+            return src_ver < unstable_version and src_ver not in other_versions
         else:
             return src_ver not in other_versions

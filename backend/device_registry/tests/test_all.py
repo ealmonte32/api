@@ -336,9 +336,9 @@ class ActionsViewTests(TestCase):
         self.firewall = FirewallState.objects.create(device=self.device)
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
         deb_package = DebPackage.objects.create(name='fingerd', version='version1', source_name='fingerd',
-                                                source_version='sversion1', arch='amd64')
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
         vulnerability = Vulnerability.objects.create(name='name', package='package', is_binary=True, other_versions=[],
-                                                     urgency='L', fix_available=True)
+                                                     urgency='L', fix_available=True, os_release_codename='jessie')
         deb_package.vulnerabilities.add(vulnerability)
         self.device.deb_packages.add(deb_package)
         self.url = reverse('actions')
@@ -610,10 +610,10 @@ class DeviceDetailViewTests(TestCase):
 
         self.device.set_deb_packages([
             {'name': 'python2', 'version': 'VERSION', 'source_name': 'python2', 'source_version': 'abcd',
-             'arch': 'i386'},
+             'arch': 'i386', 'os_release_codename': 'jessie'},
             {'name': 'python3', 'version': 'VERSION', 'source_name': 'python3', 'source_version': 'abcd',
-             'arch': 'i386'}
-        ])
+             'arch': 'i386', 'os_release_codename': 'jessie'}
+        ], {'codename': 'jessie'})
         self.device.deb_packages_hash = 'abcdef'
         self.device.save()
         response = self.client.get(url)
@@ -621,27 +621,29 @@ class DeviceDetailViewTests(TestCase):
         self.assertNotContains(response, '>telnetd<')
         self.assertNotContains(response, '>fingerd<')
         self.assertContains(response, 'No insecure services detected')
-        self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch')), [
-            {'name': 'python2', 'version': 'VERSION', 'arch': 'i386'},
-            {'name': 'python3', 'version': 'VERSION', 'arch': 'i386'}
-        ])
+        self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
+                             [{'name': 'python2', 'version': 'VERSION', 'arch': 'i386',
+                               'os_release_codename': 'jessie'},
+                              {'name': 'python3', 'version': 'VERSION', 'arch': 'i386',
+                               'os_release_codename': 'jessie'}])
 
         self.device.set_deb_packages([
             {'name': 'telnetd', 'version': 'VERSION', 'source_name': 'telnetd', 'source_version': 'abcd',
-             'arch': 'i386'},
+             'arch': 'i386', 'os_release_codename': 'jessie'},
             {'name': 'fingerd', 'version': 'VERSION', 'source_name': 'fingerd', 'source_version': 'abcd',
-             'arch': 'i386'}
-        ])
+             'arch': 'i386', 'os_release_codename': 'jessie'}
+        ], {'codename': 'jessie'})
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'telnetd</li>')
         self.assertContains(response, 'fingerd</li>')
         self.assertNotContains(response, 'No insecure services detected')
-        self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch')), [
-            {'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386'},
-            {'name': 'fingerd', 'version': 'VERSION', 'arch': 'i386'}
-        ])
+        self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
+                             [{'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386',
+                               'os_release_codename': 'jessie'},
+                              {'name': 'fingerd', 'version': 'VERSION', 'arch': 'i386',
+                               'os_release_codename': 'jessie'}])
 
 
 class PairingKeysView(TestCase):
