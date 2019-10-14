@@ -4,7 +4,7 @@
 {% block title %}WoTT - Device Info{% endblock title %}
 
 {% block dashboard_title %}
-  <h1 style="margin-bottom: 0">Device Profile</h1>
+  <h1 style="margin-bottom: 0">Node Profile</h1>
 {% endblock dashboard_title %}
 
 {% block admin_content %}
@@ -20,7 +20,7 @@
               <tbody>
               <tr>
                 <th scope="row">
-                    Device ID
+                    Node ID
                     <a href="https://wott.io/documentation/faq#device-id" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
                 </th>
                 <td>{{ object.device_id|default_if_none:'N/A' }}</td>

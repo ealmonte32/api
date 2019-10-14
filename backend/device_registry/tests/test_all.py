@@ -459,7 +459,7 @@ class DeviceDetailViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Device Profile')
+        self.assertContains(response, 'Node Profile')
         self.assertEqual(self.device.actions_count, 0)
         self.assertNotContains(response, 'Show recommended actions')
 
@@ -480,7 +480,7 @@ class DeviceDetailViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Device Profile')
+        self.assertContains(response, 'Node Profile')
         self.assertNotContains(response, '<a id="tab-security"')
         self.assertNotContains(response, '<a id="tab-hardware"')
 
@@ -492,7 +492,7 @@ class DeviceDetailViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Device Profile')
+        self.assertContains(response, 'Node Profile')
         self.assertContains(response, '<a id="tab-hardware"')
         self.assertNotContains(response, '<a id="tab-security"')
 
@@ -759,7 +759,7 @@ class RootViewTests(TestCase):
     def test_filter_name(self):
         self.client.login(username='test', password='123')
 
-        # Context-insensitive filter by device name set in device.name (exact match)
+        # Context-insensitive filter by node name set in device.name (exact match)
         url = reverse('root') + '?' + urlencode({
             'filter_by': 'device-name',
             'filter_predicate': 'eq',
@@ -768,7 +768,7 @@ class RootViewTests(TestCase):
         response = self.client.get(url)
         self.assertListEqual(list(response.context['object_list']), [self.device0])
 
-        # Context-insensitive filter by device name set in deviceinfo.fqdn (exact match)
+        # Context-insensitive filter by node name set in deviceinfo.fqdn (exact match)
         url = reverse('root') + '?' + urlencode({
             'filter_by': 'device-name',
             'filter_predicate': 'eq',
@@ -777,7 +777,7 @@ class RootViewTests(TestCase):
         response = self.client.get(url)
         self.assertListEqual(list(response.context['object_list']), [self.device0])
 
-        # Context-insensitive filter by device name set in device.name (not match)
+        # Context-insensitive filter by node name set in device.name (not match)
         url = reverse('root') + '?' + urlencode({
             'filter_by': 'device-name',
             'filter_predicate': 'neq',
@@ -786,7 +786,7 @@ class RootViewTests(TestCase):
         response = self.client.get(url)
         self.assertListEqual(list(response.context['object_list']), [self.device1])
 
-        # Context-insensitive filter by device name set in device.name (contains)
+        # Context-insensitive filter by node name set in device.name (contains)
         url = reverse('root') + '?' + urlencode({
             'filter_by': 'device-name',
             'filter_predicate': 'c',
@@ -795,7 +795,7 @@ class RootViewTests(TestCase):
         response = self.client.get(url)
         self.assertListEqual(list(response.context['object_list']), [self.device0])
 
-        # Context-insensitive filter by device name set in device.name (not contains)
+        # Context-insensitive filter by node name set in device.name (not contains)
         url = reverse('root') + '?' + urlencode({
             'filter_by': 'device-name',
             'filter_predicate': 'nc',
