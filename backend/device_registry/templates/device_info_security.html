@@ -23,18 +23,22 @@
                 <tr>
                   <th scope="row">Vulnerable Packages</th>
                   <td>
-                    {% with object.vulnerable_packages as vulnerable_packages %}
-                      {% if vulnerable_packages %}
-                        <ul>
-                          {% for package in vulnerable_packages %}
-                            <li>{{ package.name }} / {{ package.version }}
-                              ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
-                                   target="_blank">{{ v.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %})
-                            </li>
-                          {% endfor %}
-                        </ul>
-                      {% endif %}
-                    {% endwith %}
+                    {% if object.liable_for_vulnerable_packages_check %}
+                      {% with object.vulnerable_packages as vulnerable_packages %}
+                        {% if vulnerable_packages %}
+                          <ul>
+                            {% for package in vulnerable_packages %}
+                              <li>{{ package.name }} / {{ package.version }}
+                                ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
+                                     target="_blank">{{ v.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %})
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        {% endif %}
+                      {% endwith %}
+                    {% else %}
+                      N/A
+                    {% endif %}
                   </td>
                 </tr>
                 <tr>

@@ -105,6 +105,13 @@ class Device(models.Model):
     deb_packages_hash = models.CharField(max_length=32, blank=True)
     audit_files = JSONField(blank=True, default=list)
 
+    # TODO: to improve when we support saving full distro info.
+    def liable_for_vulnerable_packages_check(self):
+        if self.deb_packages_hash and self.deb_packages.exists() and \
+                self.deb_packages.first().os_release_codename in DEBIAN_SUITES:
+            return True
+        return False
+
     def sshd_issues(self):
         if self.audit_files:
             for file_info in self.audit_files:
