@@ -198,11 +198,14 @@ class DeviceListViewTest(APITestCase):
              ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
              ('comment', None), ('name', ''), ('agent_version', None), ('trust_score', None),
              ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
-                                                          ('device_manufacturer', self.device_info.device_manufacturer),
+                                                          (
+                                                              'device_manufacturer',
+                                                              self.device_info.device_manufacturer),
                                                           ('device_model', self.device_info.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
-                                                          ('device_operating_system_version', None), ('distr_id', None),
+                                                          ('device_operating_system_version', None),
+                                                          ('distr_id', None),
                                                           ('distr_release', None),
                                                           ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
@@ -222,11 +225,14 @@ class DeviceListViewTest(APITestCase):
              ('created', datetime_to_str(self.device.created)), ('last_ping', None), ('certificate_expires', None),
              ('comment', None), ('name', ''), ('agent_version', None), ('trust_score', None),
              ('tags', list(self.device.tags.values_list('pk', flat=True)))])),
-                                                          ('device_manufacturer', self.device_info.device_manufacturer),
+                                                          (
+                                                              'device_manufacturer',
+                                                              self.device_info.device_manufacturer),
                                                           ('device_model', self.device_info.device_model),
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
-                                                          ('device_operating_system_version', None), ('distr_id', None),
+                                                          ('device_operating_system_version', None),
+                                                          ('distr_id', None),
                                                           ('distr_release', None),
                                                           ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
@@ -545,7 +551,8 @@ class MtlsCredsViewTest(APITestCase):
         self.url = reverse('mtls-credentials')
         User = get_user_model()
         self.user = User.objects.create_user('test')
-        self.credential = Credential.objects.create(owner=self.user, name='name1', data={'key1': 'as9dfyaoiufhoasdfjh'},
+        self.credential = Credential.objects.create(owner=self.user, name='name1',
+                                                    data={'key1': 'as9dfyaoiufhoasdfjh'},
                                                     tags='tag1', linux_user='nobody')
         self.credential2 = Credential.objects.create(owner=self.user, name='name2', data={'key2': 'iuoiuoifpojoijccm'},
                                                      tags='Hardware: Raspberry Pi,')
@@ -633,7 +640,8 @@ class MtlsRenewCertViewTest(APITestCase):
         }
         self.expires = timezone.now() + timezone.timedelta(days=3)
         self.uuid = uuid.uuid4()
-        self.post_data = {'device_id': 'device0.d.wott-dev.local', 'csr': 'asdfsdf', 'device_operating_system': 'linux',
+        self.post_data = {'device_id': 'device0.d.wott-dev.local', 'csr': 'asdfsdf',
+                          'device_operating_system': 'linux',
                           'device_operating_system_version': '2', 'device_architecture': '386', 'fqdn': 'domain.com',
                           'ipv4_address': '192.168.1.15'}
 
@@ -711,7 +719,8 @@ class MtlsPingViewTest(APITestCase):
             'distr_release': '9.4',
             'scan_info': OPEN_PORTS_INFO,
             'netstat': OPEN_CONNECTIONS_INFO,
-            'firewall_rules': TEST_RULES
+            'firewall_rules': TEST_RULES,
+            'os_release': {'codename': 'jessie'}
         }
         self.url = reverse('mtls-ping')
         self.headers = {
@@ -859,9 +868,8 @@ class MtlsPingViewTest(APITestCase):
         self.assertGreater(self.device.trust_score, 0.42)
 
     def test_ping_writes_packages(self):
-        packages = [{
-            'name': 'PACKAGE', 'version': 'VERSION', 'source_name': 'SOURCE', 'source_version': 'VERSION', 'arch': 'all'
-        }]
+        packages = [{'name': 'PACKAGE', 'version': 'VERSION', 'source_name': 'SOURCE', 'source_version': 'VERSION',
+                     'arch': 'all'}]
         self.ping_payload['deb_packages'] = {
             'hash': 'abcdef',
             'packages': packages
@@ -877,10 +885,13 @@ class MtlsPingViewTest(APITestCase):
             'deb_packages_hash': 'abcdef'
         })
         self.device.refresh_from_db()
+        packages[0]['os_release_codename'] = 'jessie'
         self.assertQuerysetEqual(self.device.deb_packages.all(), packages,
                                  transform=lambda p: {'name': p.name, 'version': p.version,
                                                       'source_name': p.source_name,
-                                                      'source_version': p.source_version, 'arch': p.arch})
+                                                      'source_version': p.source_version,
+                                                      'arch': p.arch,
+                                                      'os_release_codename': p.os_release_codename})
 
 
 class DeviceEnrollView(APITestCase):
