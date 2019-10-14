@@ -105,13 +105,6 @@ class Device(models.Model):
     deb_packages_hash = models.CharField(max_length=32, blank=True)
     audit_files = JSONField(blank=True, default=list)
 
-    # TODO: to improve when we support saving full distro info.
-    def liable_for_vulnerable_packages_check(self):
-        if self.deb_packages_hash and self.deb_packages.exists() and \
-                self.deb_packages.first().os_release_codename in DEBIAN_SUITES:
-            return True
-        return False
-
     def sshd_issues(self):
         if self.audit_files:
             for file_info in self.audit_files:
@@ -233,7 +226,7 @@ class Device(models.Model):
     def actions_count(self):
         return sum((self.deviceinfo.default_password is True,
                     self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK,
-                    self.vulnerable_packages().exists(),
+                    bool(self.vulnerable_packages and self.vulnerable_packages.exists()),
                     bool(self.insecure_services),
                     bool(self.sshd_issues())))
 
@@ -309,8 +302,12 @@ class Device(models.Model):
         if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
             self.tags.add(raspberry_pi_tag)
 
+    @property
     def vulnerable_packages(self):
-        return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
+        if self.deb_packages_hash and self.deb_packages.exists() and \
+                self.deb_packages.first().os_release_codename in DEBIAN_SUITES:
+            # FIXME: should use self.os_release_codename instead of a first deb package
+            return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
     class Meta:
         ordering = ('created',)

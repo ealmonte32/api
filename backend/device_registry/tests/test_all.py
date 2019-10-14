@@ -645,6 +645,53 @@ class DeviceDetailViewTests(TestCase):
                               {'name': 'fingerd', 'version': 'VERSION', 'arch': 'i386',
                                'os_release_codename': 'jessie'}])
 
+    def test_vulnerable_packages_render(self):
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+
+        # No packages - should render N/A
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertInHTML('''
+            <th scope="row">
+                Vulnerable Packages
+            </th>
+            <td>
+                N/A
+            </td>''', response.rendered_content)
+
+        self.device.deb_packages_hash = 'aabbccdd'
+        self.device.save()
+        self.device.set_deb_packages([
+            {'name': 'python2', 'version': 'VERSION', 'source_name': 'python2', 'source_version': 'abcd',
+             'arch': 'i386'},
+            {'name': 'python3', 'version': 'VERSION', 'source_name': 'python3', 'source_version': 'abcd',
+             'arch': 'i386'}
+        ], os_info={'codename': 'stretch'})
+        # No vulnerable packages - green check mark
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertInHTML('''
+            <th scope="row">
+                Vulnerable Packages
+            </th>
+            <td>
+                <span class="p-1 text-success">
+                    <i class="fas fa-check" ></i>
+                </span>
+            </td>
+                ''', response.rendered_content)
+
+        v = Vulnerability.objects.create(name='CVE-123', package='python2', is_binary=False, other_versions=[],
+                                         urgency=Vulnerability.Urgency.NONE, fix_available=True)
+        self.device.deb_packages.get(name='python2').vulnerabilities.add(v)
+
+        # Has vulnerable packages - should render them
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'python2')
+        self.assertContains(response, 'CVE-123')
+
 
 class PairingKeysView(TestCase):
     def setUp(self):
