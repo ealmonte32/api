@@ -232,7 +232,7 @@
                   </th>
                   <td>
                     {% if has_global_policy %}
-                      <table class="table table-borderless table-sm">
+                      <table id="firewall-ports-table" class="table table-borderless table-sm">
                         <thead class="thead-light">
                         <tr>
                           <th scope="col">IP</th>
@@ -269,11 +269,11 @@
                         <div class="form-group">
                           {% if ports_choices %}
                             <div class="table-responsive" id="ports-table">
-                              <table class="table table-borderless table-sm">
+                              <table  id="firewall-ports-table" class="table table-borderless table-sm">
                                 <thead class="thead-light">
                                 <tr>
                                   <th scope="col" width="5%" nowrap>
-                                  <input type="checkbox" name="open_ports" value="0" class="list-unstyled" id="firewall-check-all">
+                                  <input type="checkbox" value="0"  id="ports-check-all">
                                       <span
                                       id="ports-table-column-1">{% if firewall.policy == 1 %}
                                     Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
@@ -352,10 +352,12 @@
                           {% csrf_token %}
                           <div class="form-group">
                             <div class="table-responsive">
-                              <table class="table table-borderless table-sm">
+                              <table class="table table-borderless table-sm" id="connections-table">
                                 <thead class="thead-light">
                                 <tr>
-                                  <th scope="col" width="5%">Blocked</th>
+                                  <th scope="col" width="5%" nowrap>
+                                      <input type="checkbox" value="0"  id="connections-check-all">
+                                      Blocked</th>
                                   <th scope="col">IP</th>
                                   <th scope="col">Rem addr</th>
                                   <th scope="col">Rem port</th>
@@ -438,10 +440,9 @@
 
 {% block scripts %}
   <script>
-      $(function () {
-          $('[data-toggle="popover"]').popover({
-              html: true
-          })
+    $(() => {
+      $('[data-toggle="popover"]').popover({
+          html: true
       });
 
       $('#id_policy').on('change', function () {
@@ -453,12 +454,32 @@
           } else if (this.value === '2') {
               $('#ports-table-column-1').text('Allowed');
           }
+          updateCheckAll('#ports-check-all', '#ports-table');
       });
 
-      $('#firewall-check-all').change((e,v) => {
-          $('#ports-table :checkbox').each((i,el) => {
-              el.checked = e.target.checked;
+      function updateCheckAll(checkbox, table) {
+          let value = $(checkbox).prop('checked');
+          if(value && $(table + ' .list-unstyled:checkbox:unchecked').length > 0)
+              value = false;
+          else if(!value && $(table + ' .list-unstyled:checkbox:unchecked').length==0)
+              value = true;
+          $(checkbox).prop('checked', value);
+      }
+
+      function setupCheckAll(checkbox, table) {
+          $(checkbox).change((e) => {
+              $(table + ' :checkbox').each((i,el) => {
+                  el.checked = e.target.checked;
+              });
           });
-      })
+          $(table + ' :checkbox').change(() => updateCheckAll(checkbox, table));
+
+          updateCheckAll(checkbox, table);
+      }
+      setupCheckAll('#ports-check-all', '#ports-table');
+      setupCheckAll('#connections-check-all', '#connections-table');
+
+    });
+
   </script>
 {% endblock %}
