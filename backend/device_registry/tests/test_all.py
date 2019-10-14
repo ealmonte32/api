@@ -660,12 +660,14 @@ class DeviceDetailViewTests(TestCase):
                 N/A
             </td>''', response.rendered_content)
 
+        self.device.deb_packages_hash = 'aabbccdd'
+        self.device.save()
         self.device.set_deb_packages([
             {'name': 'python2', 'version': 'VERSION', 'source_name': 'python2', 'source_version': 'abcd',
              'arch': 'i386'},
             {'name': 'python3', 'version': 'VERSION', 'source_name': 'python3', 'source_version': 'abcd',
              'arch': 'i386'}
-        ])
+        ], os_info={'codename': 'stretch'})
         # No vulnerable packages - green check mark
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
