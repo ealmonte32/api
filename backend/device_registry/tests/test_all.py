@@ -906,14 +906,14 @@ class GlobalPolicyDeleteViewTests(TestCase):
 
     def test_not_logged_in(self):
         self.assertEqual(GlobalPolicy.objects.count(), 1)
-        response = self.client.get(self.url)
+        response = self.client.post(self.url)
         self.assertRedirects(response, f'/accounts/login/?next=/policies/{self.gp.pk}/delete/')
         self.assertEqual(GlobalPolicy.objects.count(), 1)
 
-    def test_get(self):
+    def test_post(self):
         self.assertEqual(GlobalPolicy.objects.count(), 1)
         self.client.login(username='test', password='123')
-        response = self.client.get(self.url)
+        response = self.client.post(self.url)
         self.assertEqual(GlobalPolicy.objects.count(), 0)
         self.assertRedirects(response, '/policies/')
 

@@ -32,7 +32,8 @@
 {% endblock admin_content %}
 
 {% block scripts %}
-{% include "policy_editor.html" %}
+  {{ block.super }}
+  {% include "policy_editor.html" %}
   <script type="text/javascript">
       $(() => {
           let data = JSON.parse($('#id_ports').text()),
@@ -45,6 +46,12 @@
 
       });
 
+      function deletePolicy(url) {
+          $.post({
+              url,
+              success: () => location.href = '{% url 'global_policies' %}'
+          })
+      }
 
       $('#delete-button').on('click', function () {
           $.ajax({
@@ -60,7 +67,7 @@
                               delete: {
                                   btnClass: 'btn-danger',
                                   action: function () {
-                                      location.href = '{% url "delete_global_policy" object.pk %}';
+                                      deletePolicy('{% url "delete_global_policy" object.pk %}');
                                   }
                               },
                               cancel: {
@@ -69,7 +76,7 @@
                           }
                       });
                   else
-                      location.href = '{% url "delete_global_policy" object.pk %}';
+                      deletePolicy('{% url "delete_global_policy" object.pk %}');
               }
           });
       });

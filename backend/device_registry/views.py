@@ -160,9 +160,6 @@ class GlobalPolicyDeleteView(LoginRequiredMixin, DeleteView):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
 
-    def get(self, request, *args, **kwargs):
-        return self.post(request, *args, **kwargs)
-
 
 @login_required
 def claim_device_view(request):
