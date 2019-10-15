@@ -529,8 +529,7 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Firewall Ports Policy')
-        self.assertContains(response, '<th scope="col" width="5%"><span\n                                      '
-                                      'id="ports-table-column-1">Allowed</span></th>')
+        self.assertInHTML('<span id="ports-table-column-1">Allowed</span>', response.rendered_content)
 
     def test_open_ports_global_policy(self):
         self.client.login(username='test', password='123')
@@ -562,7 +561,7 @@ class DeviceDetailViewTests(TestCase):
         self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<th scope="col" width="5%">Blocked</th>')
+        self.assertInHTML('<input type="checkbox" value="0" id="connections-check-all">Blocked', response.rendered_content)
 
     def test_open_connections_global_policy(self):
         self.client.login(username='test', password='123')
