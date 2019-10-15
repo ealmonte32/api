@@ -224,11 +224,12 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
-        return sum((self.deviceinfo.default_password is True,
-                    self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK,
-                    bool(self.vulnerable_packages and self.vulnerable_packages.exists()),
-                    bool(self.insecure_services),
-                    bool(self.sshd_issues())))
+        if hasattr(self, 'firewallstate') and hasattr(self, 'portscan'):
+            return sum((self.deviceinfo.default_password is True,
+                        self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK,
+                        bool(self.vulnerable_packages and self.vulnerable_packages.exists()),
+                        bool(self.insecure_services),
+                        bool(self.sshd_issues())))
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,

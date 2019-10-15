@@ -44,7 +44,7 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
                 'Hostname',
                 'Last Ping',
                 'Trust Score',
-                'Comment'
+                'Recommended Actions'
             ],
             'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in
                               self.FILTER_FIELDS.items()],
