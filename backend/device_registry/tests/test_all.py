@@ -280,7 +280,9 @@ class DeviceModelTest(TestCase):
 
 class FormsTests(TestCase):
     def setUp(self):
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local')
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.device_info = DeviceInfo.objects.create(
             device=self.device,
             device_manufacturer='Raspberry Pi',
@@ -289,9 +291,6 @@ class FormsTests(TestCase):
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewallstate = FirewallState.objects.create(device=self.device)
-        User = get_user_model()
-        self.user = User.objects.create_user('test')
-        self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
 
     def test_device_metadata_form(self):
         form_data = {'device_metadata': {"test": "value"}}
@@ -316,7 +315,8 @@ class FormsTests(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_global_policy_form(self):
-        form_data = {'global_policy': str(self.gp.pk)}
+        gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
+        form_data = {'global_policy': str(gp.pk)}
         form = FirewallStateGlobalPolicyForm(data=form_data, instance=self.firewallstate)
         self.assertTrue(form.is_valid())
 

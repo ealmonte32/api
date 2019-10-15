@@ -156,8 +156,12 @@ class GlobalPolicyDeleteView(LoginRequiredMixin, DeleteView):
     model = GlobalPolicy
     success_url = reverse_lazy('global_policies')
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(owner=self.request.user)
+
     def get(self, request, *args, **kwargs):
-        return self.delete(request, *args, **kwargs)
+        return self.post(request, *args, **kwargs)
 
 
 @login_required
