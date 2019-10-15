@@ -379,6 +379,7 @@ class DeviceDetailViewTests(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
+        self.user2 = User.objects.create_user('user')
         self.device = Device.objects.create(
             device_id='device0.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
             certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc))
@@ -561,7 +562,8 @@ class DeviceDetailViewTests(TestCase):
         self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<input type="checkbox" value="0" id="connections-check-all">Blocked', response.rendered_content)
+        self.assertInHTML('<input type="checkbox" value="0" id="connections-check-all">Blocked',
+                          response.rendered_content)
 
     def test_open_connections_global_policy(self):
         self.client.login(username='test', password='123')
@@ -690,6 +692,17 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'python2')
         self.assertContains(response, 'CVE-123')
+
+    def test_global_policies_list(self):
+        gp2 = GlobalPolicy.objects.create(name='gp2', owner=self.user2, policy=GlobalPolicy.POLICY_ALLOW)
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # Current user's global policy is available as an option.
+        self.assertContains(response, '<option value="%d">%s</option>' % (self.gp.pk, self.gp.name))
+        # Other user's global policy is not available as an option.
+        self.assertNotContains(response, '<option value="%d">%s</option>' % (gp2.pk, gp2.name))
 
 
 class PairingKeysView(TestCase):
