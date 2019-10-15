@@ -222,5 +222,5 @@ class DeviceListSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super(DeviceListSerializer, self).to_representation(instance)
         representation['last_ping'] = timesince(instance.last_ping) + ' ago'
-        representation['actions_count'] = instance.actions_count
+        representation['actions_count'] = instance.actions_count or ''
         return representation
