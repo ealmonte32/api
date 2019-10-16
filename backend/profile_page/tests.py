@@ -98,3 +98,19 @@ class RegistrationViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user1@gmail.com')
         self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
+
+    def test_email_with_uppercase_letters(self):
+        data = {'email': 'uSeR2@gmail.com', 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',
+                'payment_plan': '2'}
+        response = self.client.post(reverse('registration_register'), data)
+        self.assertEqual(response.status_code, 302)
+        # Load page for checking its content.
+        response = self.client.get(reverse('root'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'user2@gmail.com')
+        self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
+        self.client.logout()
+        self.client.login(username='user2@gmail.com', password='SomeStrong56_Pass')
+        response = self.client.get(reverse('root'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'user2@gmail.com')
