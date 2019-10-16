@@ -73,6 +73,11 @@ class FirewallStateGlobalPolicyForm(forms.ModelForm):
             'global_policy': forms.Select(attrs={'class': 'form-control'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['global_policy'].queryset = self.fields['global_policy'].queryset.filter(
+            owner=self.instance.device.owner)
+
 
 class GlobalPolicyForm(forms.ModelForm):
     class Meta:
