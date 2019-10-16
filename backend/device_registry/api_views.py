@@ -98,8 +98,6 @@ class MtlsPingView(APIView):
         device_info_object.ipv4_address = data.get('ipv4_address')
         device_info_object.device_manufacturer = data.get('device_manufacturer')
         device_info_object.device_model = data.get('device_model')
-        device_info_object.distr_id = data.get('distr_id')
-        device_info_object.distr_release = data.get('distr_release')
         device_info_object.selinux_state = data.get('selinux_status', {})
         device_info_object.app_armor_enabled = data.get('app_armor_enabled')
         device_info_object.logins = data.get('logins', {})

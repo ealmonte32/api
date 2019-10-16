@@ -205,8 +205,6 @@ class DeviceListViewTest(APITestCase):
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
                                                           ('device_operating_system_version', None),
-                                                          ('distr_id', None),
-                                                          ('distr_release', None),
                                                           ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
                                                           ('app_armor_enabled', True),
@@ -232,8 +230,6 @@ class DeviceListViewTest(APITestCase):
                                                           ('device_architecture', None),
                                                           ('device_operating_system', None),
                                                           ('device_operating_system_version', None),
-                                                          ('distr_id', None),
-                                                          ('distr_release', None),
                                                           ('fqdn', None), ('ipv4_address', None),
                                                           ('selinux_state', {'mode': 'enforcing', 'enabled': True}),
                                                           ('app_armor_enabled', True),
@@ -715,8 +711,6 @@ class MtlsPingViewTest(APITestCase):
             'fqdn': 'test-device0',
             'ipv4_address': '127.0.0.1',
             'uptime': '0',
-            'distr_id': 'Raspbian',
-            'distr_release': '9.4',
             'scan_info': OPEN_PORTS_INFO,
             'netstat': OPEN_CONNECTIONS_INFO,
             'firewall_rules': TEST_RULES,
@@ -795,12 +789,6 @@ class MtlsPingViewTest(APITestCase):
         portscan = PortScan.objects.get(device=self.device)
         netstat = portscan.netstat
         self.assertListEqual(netstat, OPEN_CONNECTIONS_INFO)
-
-    def test_ping_distr_info(self):
-        self.client.post(self.url, self.ping_payload, **self.headers)
-        self.device.refresh_from_db()
-        self.assertEqual(self.device.deviceinfo.distr_id, 'Raspbian')
-        self.assertEqual(self.device.deviceinfo.distr_release, '9.4')
 
     def test_ping_writes_firewall_info_pos(self):
         self.client.post(self.url, self.ping_payload, **self.headers)
