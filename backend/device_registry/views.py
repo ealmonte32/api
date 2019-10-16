@@ -151,7 +151,7 @@ class GlobalPolicyDeleteView(LoginRequiredMixin, DeleteView):
     """
     Global policy delete view.
 
-    The only customization: delete by GET request support added.
+    The `get_queryset` method rewritten in order to limit access to other users' policies.
     """
     model = GlobalPolicy
     success_url = reverse_lazy('global_policies')
