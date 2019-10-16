@@ -1,5 +1,6 @@
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timesince import timesince
+from django.urls import reverse
 
 from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
@@ -222,4 +223,8 @@ class DeviceListSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super(DeviceListSerializer, self).to_representation(instance)
         representation['last_ping'] = timesince(instance.last_ping) + ' ago'
+        representation['actions'] = {
+            'count': instance.actions_count or '',
+            'url': reverse('device_actions', args=[instance.pk])
+        }
         return representation
