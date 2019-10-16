@@ -87,10 +87,12 @@ class MtlsPingView(APIView):
         device.last_ping = timezone.now()
         device.agent_version = data.get('agent_version')
         device.audit_files = data.get('audit_files', [])
+        os_release = data.get('os_release', {})
         if 'deb_packages' in data:
             deb_packages = data['deb_packages']
             device.deb_packages_hash = deb_packages['hash']
-            device.set_deb_packages(deb_packages['packages'], data.get('os_release', {}))
+            device.set_deb_packages(deb_packages['packages'], os_release)
+        device.os_release = os_release
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = data.get('device_operating_system_version')
@@ -98,8 +100,6 @@ class MtlsPingView(APIView):
         device_info_object.ipv4_address = data.get('ipv4_address')
         device_info_object.device_manufacturer = data.get('device_manufacturer')
         device_info_object.device_model = data.get('device_model')
-        device_info_object.distr_id = data.get('distr_id')
-        device_info_object.distr_release = data.get('distr_release')
         device_info_object.selinux_state = data.get('selinux_status', {})
         device_info_object.app_armor_enabled = data.get('app_armor_enabled')
         device_info_object.logins = data.get('logins', {})
@@ -132,7 +132,7 @@ class MtlsPingView(APIView):
         firewall_state.save()
 
         device.update_trust_score = True
-        device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
+        device.save(update_fields=['os_release', 'last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
                                    'update_trust_score'])
 
         if datastore_client:

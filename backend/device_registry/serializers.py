@@ -50,7 +50,7 @@ class DeviceInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceInfo
         fields = ['device', 'device_manufacturer', 'device_model', 'device_architecture', 'device_operating_system',
-                  'device_operating_system_version', 'distr_id', 'distr_release', 'fqdn', 'ipv4_address',
+                  'device_operating_system_version', 'fqdn', 'ipv4_address',
                   'selinux_state', 'app_armor_enabled', 'logins', 'default_password', 'detected_mirai',
                   'device_metadata']
 

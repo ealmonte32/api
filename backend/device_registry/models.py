@@ -104,6 +104,18 @@ class Device(models.Model):
     deb_packages = models.ManyToManyField(DebPackage)
     deb_packages_hash = models.CharField(max_length=32, blank=True)
     audit_files = JSONField(blank=True, default=list)
+    os_release = JSONField(blank=True, default=dict)
+
+    @property
+    def distribution(self):
+        if self.os_release:
+            full_version = self.os_release['full_version']
+            distro = self.os_release['distro']
+            if distro == 'ubuntu-core':
+                distro_name = 'Ubuntu Core'
+            else:
+                distro_name = distro.capitalize()
+            return f"{distro_name} {full_version}"
 
     def sshd_issues(self):
         if self.audit_files:
@@ -321,8 +333,6 @@ class DeviceInfo(models.Model):
     device_architecture = models.CharField(blank=True, null=True, max_length=32)
     device_operating_system = models.CharField(blank=True, null=True, max_length=128)
     device_operating_system_version = models.CharField(blank=True, null=True, max_length=128)
-    distr_id = models.CharField(blank=True, null=True, max_length=32)
-    distr_release = models.CharField(blank=True, null=True, max_length=32)
     fqdn = models.CharField(blank=True, null=True, max_length=128)
     ipv4_address = models.GenericIPAddressField(
         protocol="IPv4",
