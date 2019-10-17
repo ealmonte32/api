@@ -439,6 +439,7 @@
 {% endblock admin_content %}
 
 {% block scripts %}
+  {{ block.super }}
   <script>
     $(() => {
       $('[data-toggle="popover"]').popover({

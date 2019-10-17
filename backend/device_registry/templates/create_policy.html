@@ -31,10 +31,11 @@
 {% endblock admin_content %}
 
 {% block scripts %}
-{% include "policy_editor.html" %}
+  {{ block.super }}
+  {% include "policy_editor.html" %}
 
   <script>
-      document.addEventListener("DOMContentLoaded", function () {
+      $(() => {
           let ports_table = init_policy_ports_editor(JSON.parse($('#id_ports').text()));
 
           $('#policy-form').submit(function (e) {
