@@ -48,9 +48,6 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.scss'],
     modules: ['node_modules'],
-    alias: {
-      request$: 'xhr',
-      '@fortawesome/fontawesome-free-solid$': '@fortawesome/fontawesome-free-solid/shakable.es.js'
-    }
+    alias: {request$: 'xhr'}
   }
 };
