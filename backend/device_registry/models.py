@@ -112,10 +112,7 @@ class Device(models.Model):
         if self.os_release.get('distro') == 'ubuntu-core':
             return True
         elif self.os_release.get('distro') == 'debian' or self.os_release.get('distro_root') == 'debian':
-            if self.deb_packages.filter(name='unattended-upgrades').exists():
-                if self.auto_upgrades is True:
-                    return True
-            return False
+            return self.deb_packages.filter(name='unattended-upgrades').exists() and self.auto_upgrades is True
 
     @property
     def distribution(self):
