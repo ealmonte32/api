@@ -101,6 +101,14 @@
       $('.sidebar-link').click((e) => {
           mixpanel.track("Sidebar", {element: e.target.id});
       });
+      $('#logout').click(() => {
+          mixpanel.reset();
+      });
+
+      {% if first_signin %}
+      mixpanel.alias("{{ user.email }}");
+      {% endif %}
+      mixpanel.identify("{{ user.email }}");
     {% endif %}
   </script>
 {% endblock %}
