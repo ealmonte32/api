@@ -88,6 +88,7 @@ class MtlsPingView(APIView):
         device.agent_version = data.get('agent_version')
         device.audit_files = data.get('audit_files', [])
         os_release = data.get('os_release', {})
+        device.auto_upgrades = data.get('auto_upgrades')
         if 'deb_packages' in data:
             deb_packages = data['deb_packages']
             device.deb_packages_hash = deb_packages['hash']
@@ -132,8 +133,8 @@ class MtlsPingView(APIView):
         firewall_state.save()
 
         device.update_trust_score = True
-        device.save(update_fields=['os_release', 'last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
-                                   'update_trust_score'])
+        device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
+                                   'update_trust_score', 'os_release', 'auto_upgrades'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')

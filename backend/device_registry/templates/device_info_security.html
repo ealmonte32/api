@@ -109,9 +109,7 @@
                 </tr>
                 <tr>
                 <tr>
-                  <th scope="row">
-                    Insecure Services
-                  </th>
+                  <th scope="row">Insecure Services</th>
                   <td>
                     {% with object.insecure_services as services %}
                       {% if services %}
@@ -126,6 +124,19 @@
                         N/A
                       {% endif %}
                     {% endwith %}
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Automatic Security Update</th>
+                  <td>
+                    {% if 'Ubuntu Core' in object.distribution or object.auto_upgrades is True %}
+                      {% include "badge.html" with icon="check" color="success" %}
+                    {% elif object.auto_upgrades is False %}
+                      {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                        Automatic security update disabled!
+                    {% else %}
+                      N/A
+                    {% endif %}
                   </td>
                 </tr>
                 <th scope="row">Logins</th>

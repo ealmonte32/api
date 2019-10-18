@@ -105,6 +105,7 @@ class Device(models.Model):
     deb_packages_hash = models.CharField(max_length=32, blank=True)
     audit_files = JSONField(blank=True, default=list)
     os_release = JSONField(blank=True, default=dict)
+    auto_upgrades = models.BooleanField(null=True, blank=True)
 
     @property
     def distribution(self):
@@ -241,7 +242,8 @@ class Device(models.Model):
                         self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK,
                         bool(self.vulnerable_packages and self.vulnerable_packages.exists()),
                         bool(self.insecure_services),
-                        bool(self.sshd_issues())))
+                        bool(self.sshd_issues()),
+                        self.auto_upgrades is False))
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,
