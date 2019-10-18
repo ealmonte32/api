@@ -108,6 +108,16 @@ class Device(models.Model):
     auto_upgrades = models.BooleanField(null=True, blank=True)
 
     @property
+    def auto_upgrades_enabled(self):
+        if self.os_release.get('distro') == 'ubuntu-core':
+            return True
+        elif self.os_release.get('distro') == 'debian' or self.os_release.get('distro_root') == 'debian':
+            if self.deb_packages.filter(name='unattended-upgrades').exists():
+                if self.auto_upgrades is True:
+                    return True
+            return False
+
+    @property
     def distribution(self):
         if self.os_release:
             full_version = self.os_release['full_version']
@@ -243,7 +253,7 @@ class Device(models.Model):
                         bool(self.vulnerable_packages and self.vulnerable_packages.exists()),
                         bool(self.insecure_services),
                         bool(self.sshd_issues()),
-                        self.auto_upgrades is False))
+                        self.auto_upgrades_enabled is False))
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,

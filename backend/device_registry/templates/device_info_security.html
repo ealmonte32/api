@@ -129,9 +129,9 @@
                 <tr>
                   <th scope="row">Automatic Security Update</th>
                   <td>
-                    {% if 'Ubuntu Core' in object.distribution or object.auto_upgrades is True %}
+                    {% if object.auto_upgrades_enabled is True %}
                       {% include "badge.html" with icon="check" color="success" %}
-                    {% elif object.auto_upgrades is False %}
+                    {% elif object.auto_upgrades_enabled is False %}
                       {% include "badge.html" with icon="exclamation-circle" color="danger" %}
                         Automatic security update disabled!
                     {% else %}
