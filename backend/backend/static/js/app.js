@@ -2,15 +2,10 @@
 import "../scss/app.scss";
 
 // Global
-import "./modules/bootstrap";
-import "./modules/feather";
+import "bootstrap";
 import "./modules/font-awesome";
-import "./modules/moment";
 import "./modules/sidebar";
 import "./modules/user-agent";
-
-// Charts
-import "./modules/chartjs";
 
 // Forms
 import "./modules/mask";
@@ -21,7 +16,11 @@ import "./modules/validation";
 import "./modules/datatables";
 
 // Code highlight
-import hljs from 'highlight.js';
+import hljs from 'highlight.js/lib/highlight';
+import bash from 'highlight.js/lib/languages/bash';
+hljs.registerLanguage('bash', bash);
+
+
 window.hljs = hljs;
 
 // Tags
@@ -41,3 +40,6 @@ window.mixpanel = require('mixpanel-browser');
 
 import Shepherd from 'shepherd.js'
 window.Shepherd = Shepherd;
+
+import feather from "feather-icons";
+window.feather = feather;
