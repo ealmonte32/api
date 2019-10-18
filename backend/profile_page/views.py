@@ -93,8 +93,11 @@ class RegistrationView(BaseRegistrationView):
 
     def register(self, form):
         """Standard `register` method overwritten in order to properly handle our custom `payment_plan` form field."""
-        new_user = form.save()
+        new_user = form.save(commit=False)
         username_field = getattr(new_user, 'USERNAME_FIELD', 'username')
+        # Save lowercased email as username.
+        setattr(new_user, username_field, form.cleaned_data['email'].lower())
+        new_user.save()
         new_user = authenticate(username=getattr(new_user, username_field), password=form.cleaned_data['password1'])
         login(self.request, new_user)
         user_registered.send(sender=self.__class__, user=new_user, request=self.request)

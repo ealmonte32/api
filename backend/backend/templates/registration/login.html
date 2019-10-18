@@ -23,9 +23,9 @@
                   <form method="POST" action="">
                     {% csrf_token %}
                     <div class="form-group">
-                      <label for="username">Username</label>
+                      <label for="username">E-mail</label>
                       <input class="form-control form-control-lg" type="text" name="username"
-                             placeholder="Username" id="username"/>
+                             placeholder="E-mail" id="username"/>
                       {% if form.username.errors %}
                         {% for error in form.username.errors %}
                           <label class="error form-text invalid-feedback small"
