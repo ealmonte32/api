@@ -491,7 +491,7 @@ def actions_view(request, device_pk=None):
             1,
             'Default credentials detected',
             '<p>We found default credentials present on %s. Please consider changing them as soon as possible.</p>' %
-            ('this device' if device_name else full_string), []
+            ('this node' if device_name else full_string), []
         )
         actions.append(action)
 
@@ -509,7 +509,7 @@ def actions_view(request, device_pk=None):
             2,
             'Permissive firewall policy detected',
             '<p>We found permissive firewall policy present on %s. Please consider change it to more restrictive one.'
-            '</p>' % ('this device' if device_name else full_string), []
+            '</p>' % ('this node' if device_name else full_string), []
         )
         actions.append(action)
 
@@ -532,7 +532,7 @@ def actions_view(request, device_pk=None):
             convenience.</p>
             <p>Run <code>sudo apt-get update && sudo apt-get upgrade</code> to bring your system up to date.</p>
             <p>Please note that there might be vulnerabilities detected that are yet to be fixed by the operating 
-            system vendor.</p>""" % ('this device' if device_name else full_string), []
+            system vendor.</p>""" % ('this node' if device_name else full_string), []
         )
         actions.append(action)
 
@@ -545,7 +545,7 @@ def actions_view(request, device_pk=None):
         if device_pk is not None:
             action_header = 'Insecure services found'
             services_str = ' '.join(device.insecure_services.values_list('name', flat=True))
-            action_text = '<p>We found insecure services installed on this device. Because these services are ' \
+            action_text = '<p>We found insecure services installed on this node. Because these services are ' \
                           'considered insecure, it is recommended that you uninstall them.' \
                           '</p><p>Run <code>sudo apt-get purge %s</code> to disable all insecure ' \
                           'services.</p>' % services_str
@@ -588,9 +588,37 @@ def actions_view(request, device_pk=None):
                 full_string = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
                 action_text = '<p>We found insecure configuration issues with OpenSSH on %s. To improve the ' \
                               'security posture of your node, please consider making the following ' \
-                              'changes:%s</p>' % ('this device' if device_name else full_string, recommendations)
+                              'changes:%s</p>' % ('this node' if device_name else full_string, recommendations)
                 action = Action(actions[-1].id + 1, action_header, action_text, [])
                 actions.append(action)
+
+    # Automatic security update disabled action.
+    devices = request.user.devices.filter(auto_upgrades=False)
+    if device_pk is not None:
+        devices = devices.filter(pk=device_pk)
+    if devices.exists():
+        action_header = 'Consider enable automatic security updates'
+        text_blocks = []
+        for dev in devices:
+            device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
+            text_blocks.append(device_text_block)
+        full_string = ', '.join(text_blocks)
+        if len(text_blocks) > 1:
+            full_string = f'your nodes {full_string} are'
+            # Provide Debian's link if more than 1 device.
+            doc_url = 'https://wiki.debian.org/UnattendedUpgrades'
+        else:
+            full_string = f'your node {full_string} is'
+            if dev.os_release.get('distro') == 'ubuntu':
+                doc_url = 'https://help.ubuntu.com/lts/serverguide/automatic-updates.html'
+            else:  # Everything besides Ubuntu is Debian.
+                doc_url = 'https://wiki.debian.org/UnattendedUpgrades'
+        action_text = '<p>We found that %s not configured to automatically install security updates. Consider ' \
+                      'enabling this feature.</p>' \
+                      '<p>Details for how to do this can be found <a href="%s" target="_blank">here</a>.</p>' % \
+                      ('this node is' if device_name else full_string, doc_url)
+        action = Action(actions[-1].id + 1, action_header, action_text, [])
+        actions.append(action)
 
     return render(request, 'actions.html', {
         'actions': actions,
