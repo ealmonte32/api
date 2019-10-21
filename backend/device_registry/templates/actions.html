@@ -12,7 +12,7 @@
       {% for action in actions %}
         <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
           <button type="button" class="close" data-dismiss="alert" aria-label="Close"
-                  onclick="dismissAction({{ action.id }})">
+                  onclick="snoozeAction('{{ action.info.0 }}', {{ action.info.1 }})">
             <span aria-hidden="true">×</span>
           </button>
           <div class="alert-message">
@@ -38,33 +38,23 @@
 {% block scripts %}
   {{ block.super }}
   <script>
-    /**
-     * Generate the Action Url
-     * @param actionId
-     * @param actionType
-     * @returns {string} Action Url.
-     */
-    function getActionUrl(actionId, actionType) {
-      // TODO: return the real URL
-      return "";
-    }
 
     /**
-     * Submit an action to the web server
-     * @param actionId
-     * @param actionType
-     * @return {void}
+     * Snooze an action. Used by the close icon on the alerts.
+     * @param id - action id
+     * @param devices - list of device ids
      */
-    function submitAction(actionId, actionType) {
-      $.post(getActionUrl(actionId, actionType))
-    }
-
-    /**
-     * Dismiss an action. Used by the close icon on the alerts.
-     * @param actionId
-     */
-    function dismissAction(actionId) {
-      submitAction(actionId, 'DISMISS')
+    function snoozeAction(id, devices) {
+      $.ajax({
+          url: '/snooze-action/',
+          type:"POST",
+          data: JSON.stringify({
+              action_id: id,
+              device_ids: devices
+          }),
+          contentType: "application/json; charset=utf-8",
+          dataType: "json"
+      });
     }
   </script>
   <script>
