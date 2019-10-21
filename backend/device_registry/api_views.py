@@ -33,6 +33,7 @@ from device_registry.serializers import IsDeviceClaimedSerializer, RenewCertSeri
 from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
+from device_registry.serializers import SnoozeActionSerializer
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,7 @@ class MtlsPingView(APIView):
             device.deb_packages_hash = deb_packages['hash']
             device.set_deb_packages(deb_packages['packages'], os_release)
         device.os_release = os_release
+        device.snoozed_actions = []
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = data.get('device_operating_system_version')
@@ -134,7 +136,7 @@ class MtlsPingView(APIView):
 
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
-                                   'update_trust_score', 'os_release', 'auto_upgrades'])
+                                   'update_trust_score', 'os_release', 'auto_upgrades', 'snoozed_actions'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
@@ -997,3 +999,15 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         payload = {'data': serializer.data}
         payload.update(self.ajax_info)
         return Response(payload)
+
+
+class SnoozeActionView(APIView):
+    """Snooze particular recommended action for given devices list."""
+
+    def post(self, request, *args, **kwargs):
+        serializer = SnoozeActionSerializer(data=request.data, context={'user': request.user})
+        serializer.is_valid(raise_exception=True)
+        devices = request.user.devices.filter(pk__in=serializer.validated_data['device_ids'])
+        for dev in devices:
+            dev.snooze_action(serializer.validated_data['action_id'])
+        return Response(status=status.HTTP_200_OK)

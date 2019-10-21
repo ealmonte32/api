@@ -98,8 +98,10 @@ if settings.IS_DASH:
              views.CredentialsView.as_view(),
              name='credentials'),
         path('ajax-credentials/', api_views.CredentialsView.as_view(), name='ajax-credentials'),
-        path('ajax-credentials/<int:pk>/delete/', api_views.DeleteCredentialView.as_view(), name='ajax-credentials-delete'),
-        path('ajax-credentials/<int:pk>/update/', api_views.UpdateCredentialView.as_view(), name='ajax-credentials-update'),
+        path('ajax-credentials/<int:pk>/delete/', api_views.DeleteCredentialView.as_view(),
+             name='ajax-credentials-delete'),
+        path('ajax-credentials/<int:pk>/update/', api_views.UpdateCredentialView.as_view(),
+             name='ajax-credentials-update'),
         path('ajax-credentials/create/', api_views.CreateCredentialView.as_view(), name='ajax-credentials-create'),
         path('ajax-policies/<int:pk>/device-nr/', api_views.PolicyDeviceNumberView.as_view(),
              name='ajax_policy_device_nr'),
@@ -128,9 +130,11 @@ if settings.IS_DASH:
             api_views.UpdatePairingKeyView.as_view(),
             name='ajax_pairing_keys_update'
         ),
-        path('ajax-pairing-keys/add_dev/', api_views.InstallInstructionKeyView.as_view(), name='ajax_install_instruction'),
+        path('ajax-pairing-keys/add_dev/', api_views.InstallInstructionKeyView.as_view(),
+             name='ajax_install_instruction'),
         path('devices/device-cert/<str:device_id>/', api_views.DeviceCertView.as_view(), name='download_device_cert'),
         path('ajax-batch/list/<str:model_name>/', api_views.GetBatchActionsView.as_view(), name='get_batch_list'),
         path('ajax-batch/apply/<str:model_name>/tags/', api_views.BatchUpdateTagsView.as_view(), name='tags_batch'),
         path('ajax-devices/list/', api_views.DeviceListAjaxView.as_view(), name='ajax_device_list'),
+        path('snooze-action/', api_views.SnoozeActionView.as_view(), name='snooze_action')
     ]
