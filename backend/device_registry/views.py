@@ -567,7 +567,9 @@ def actions_view(request, device_pk=None):
 
     # Insecure MongoDB, MySQL, MariaDB
     SERVICE_PORTS = {
-        'mongod': (27017, 'MongoDB')
+        'mongod': (27017, 'MongoDB'),
+        'mysqld': (3306, 'MySQL'),
+        'mariadbd': (3306, 'MariaDB')
     }
     if device_pk is not None:
         devices = request.user.devices.filter(pk=device_pk)
@@ -583,7 +585,8 @@ def actions_view(request, device_pk=None):
                     port = SERVICE_PORTS[service][0]
                     def port_match(r, port, proto):
                         return int(r['port']) == port and r['proto'] == proto and \
-                               (int(r['ip_version']) == 4 and r['host']=='0.0.0.0') # TODO: ipv6
+                               ((int(r['ip_version']) == 4 and r['host']=='0.0.0.0') or
+                                (int(r['ip_version']) == 6 and r['host']=='::'))
                     listening = [r for r in device.portscan.scan_info if port_match(r, port, 'tcp')]
                     found_service = found_docker = False
                     for sock in listening:

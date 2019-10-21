@@ -338,12 +338,15 @@ class ActionsViewTests(TestCase):
         self.portscan = PortScan.objects.create(device=self.device, scan_info=[
             {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 27017, 'pid': 12345},
             {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 34567, 'pid': 12346},
-            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 27017, 'pid': 23456}
+            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 27017, 'pid': 23456},
+            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 3306, 'pid': 34567},
+            {'ip_version': 6, 'proto': 'tcp', 'state': '???', 'host': '::', 'port': 3306, 'pid': 34567}
         ])
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True, processes={
             12345: ('mongod', '', 'mongo', None),
             12346: ('mongod', '', 'mongo', 'docker'),
-            23456: ('docker-proxy', '', 'docker', None)
+            23456: ('docker-proxy', '', 'docker', None),
+            34567: ('mysqld', '', 'mysql', None)
         })
         deb_package = DebPackage.objects.create(name='fingerd', version='version1', source_name='fingerd',
                                                 source_version='sversion1', arch='amd64', os_release_codename='jessie')
@@ -380,7 +383,31 @@ class ActionsViewTests(TestCase):
         )
         self.assertContains(
             response,
-            f'We have detected that a MongoDB instance on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            f'We have detected that a MySQL instance on this node'
+        )
+
+        self.portscan.scan_info[3]['host'] = '127.0.0.1'
+        self.portscan.save()
+        response = self.client.get(url)
+        self.assertNotContains(
+            response,
+            f'We have detected that a MongoDB instance on this node'
+        )
+        self.assertContains(
+            response,
+            f'We have detected that a MySQL instance on this node'
+        )
+
+        self.portscan.scan_info[4]['host'] = '::1'
+        self.portscan.save()
+        response = self.client.get(url)
+        self.assertNotContains(
+            response,
+            f'We have detected that a MongoDB instance on this node'
+        )
+        self.assertNotContains(
+            response,
+            f'We have detected that a MySQL instance on this node'
         )
 
     def test_get(self):
