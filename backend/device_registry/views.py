@@ -565,6 +565,43 @@ def actions_view(request, device_pk=None):
             action = Action(action_header, action_text, [RecommendedActions.insecure_services.value, [dev.pk]])
             actions.append(action)
 
+    # Insecure MongoDB, MySQL, MariaDB
+    SERVICE_PORTS = {
+        'mongod': (27017, 'MongoDB')
+    }
+    if device_pk is not None:
+        processes = device.deviceinfo.processes
+        found = set()
+        for p in processes:
+            service = p[0].get('name')
+            if service not in found and service in SERVICE_PORTS:
+                port = SERVICE_PORTS[service][0]
+                listening = [r for r in device.portscan.scan_info if int(r['port'])==port and r['proto']=='tcp'] # TODO: host is any
+                found_service = found_docker = False
+                for sock in listening:
+                    process = processes.get(sock.get('pid'))
+                    if not process:
+                        continue
+                    name = process['name']
+                    if name == service:
+                        found_service = process
+                        break
+                    elif name == 'docker-proxy':
+                        found_docker = process
+                if (found_docker and any(p.get('container') == 'docker' and p.get('name') == service for p in process))\
+                        or found_service:
+                    found.add(service)
+        for s in found:
+            service_full_name = SERVICE_PORTS[s][1]
+            action_header = f'Your {service_full_name} instance may be publicly accessible'
+            service_port = SERVICE_PORTS[s]
+            action_text = f'''
+                <p>We have detected that a {service_full_name} instance on $HOST may be accessible remotely.
+                Consider either blocking port {service_port} through the 
+                WoTT firewall management tool, or re-configure {service_full_name} to only listen on localhost.</p>'''
+            action = Action(actions[-1].id + 1, action_header, action_text, [])
+            actions.append(action)
+
     # Configuration issue found action.
     devices = request.user.devices.exclude(audit_files__in=('', [])).exclude(
         snoozed_actions__contains=RecommendedActions.sshd_config_issues.value)
