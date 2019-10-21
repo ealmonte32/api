@@ -499,7 +499,8 @@ def actions_view(request, device_pk=None):
             1,
             'Default credentials detected',
             '<p>We found default credentials present on %s. Please consider changing them as soon as possible.</p>' %
-            ('this node' if device_name else full_string), []
+            ('this node' if device_name else full_string),
+            [RECOMMENDED_ACTION_IDS[0], list(devices.values_list('pk', flat=True))]
         )
         actions.append(action)
 
@@ -519,7 +520,8 @@ def actions_view(request, device_pk=None):
             2,
             'Permissive firewall policy detected',
             '<p>We found permissive firewall policy present on %s. Please consider change it to more restrictive one.'
-            '</p>' % ('this node' if device_name else full_string), []
+            '</p>' % ('this node' if device_name else full_string),
+            [RECOMMENDED_ACTION_IDS[1], list(devices.values_list('pk', flat=True))]
         )
         actions.append(action)
 
@@ -543,7 +545,8 @@ def actions_view(request, device_pk=None):
             convenience.</p>
             <p>Run <code>sudo apt-get update && sudo apt-get upgrade</code> to bring your system up to date.</p>
             <p>Please note that there might be vulnerabilities detected that are yet to be fixed by the operating 
-            system vendor.</p>""" % ('this node' if device_name else full_string), []
+            system vendor.</p>""" % ('this node' if device_name else full_string),
+            [RECOMMENDED_ACTION_IDS[2], list(devices.values_list('pk', flat=True))]
         )
         actions.append(action)
 
@@ -562,7 +565,8 @@ def actions_view(request, device_pk=None):
                           'considered insecure, it is recommended that you uninstall them.' \
                           '</p><p>Run <code>sudo apt-get purge %s</code> to disable all insecure ' \
                           'services.</p>' % ('this node' if device_name else full_string, services_str)
-            action = Action(actions[-1].id + 1 if actions else 1, action_header, action_text, [])
+            action = Action(actions[-1].id + 1 if actions else 1, action_header, action_text,
+                            [RECOMMENDED_ACTION_IDS[3], [dev.pk]])
             actions.append(action)
 
     # Configuration issue found action.
@@ -584,7 +588,8 @@ def actions_view(request, device_pk=None):
                 action_text = '<p>We found insecure configuration issues with OpenSSH on %s. To improve the ' \
                               'security posture of your node, please consider making the following ' \
                               'changes:%s</p>' % ('this node' if device_name else full_string, recommendations)
-                action = Action(actions[-1].id + 1 if actions else 1, action_header, action_text, [])
+                action = Action(actions[-1].id + 1 if actions else 1, action_header, action_text,
+                                [RECOMMENDED_ACTION_IDS[4], [dev.pk]])
                 actions.append(action)
 
     # Automatic security update disabled action.
@@ -613,7 +618,8 @@ def actions_view(request, device_pk=None):
                       'enabling this feature.</p>' \
                       '<p>Details for how to do this can be found <a href="%s" target="_blank">here</a>.</p>' % \
                       ('this node is' if device_name else full_string, doc_url)
-        action = Action(actions[-1].id + 1 if actions else 1, action_header, action_text, [])
+        action = Action(actions[-1].id + 1 if actions else 1, action_header, action_text,
+                        [RECOMMENDED_ACTION_IDS[5], list(devices.values_list('pk', flat=True))])
         actions.append(action)
 
     return render(request, 'actions.html', {

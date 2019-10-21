@@ -588,7 +588,7 @@ class Credential(models.Model):
 
 # Temporary POJO to showcase recommended actions template.
 class Action:
-    def __init__(self, action_id, title, description, actions):
+    def __init__(self, action_id, title, description, info):
         """
         Args:
             action_id: Action Id.
@@ -599,7 +599,7 @@ class Action:
         self.id = action_id
         self.title = title
         self.description = description
-        self.actions = actions
+        self.info = info
 
 
 def average_trust_score(user):
