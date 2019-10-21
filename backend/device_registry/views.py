@@ -574,6 +574,7 @@ def actions_view(request, device_pk=None):
     if device_pk is not None:
         devices = request.user.devices.filter(pk=device_pk)
     else:
+        # FIXME: optimize to only include those which have SERVICE_PORTS in portscan
         devices = request.user.devices.all()
     if devices.exists():
         for device in devices:
@@ -583,22 +584,28 @@ def actions_view(request, device_pk=None):
                 service = p[0]
                 if service not in found and service in SERVICE_PORTS:
                     port = SERVICE_PORTS[service][0]
-                    def port_match(r, port, proto):
-                        return int(r['port']) == port and r['proto'] == proto and \
-                               ((int(r['ip_version']) == 4 and r['host']=='0.0.0.0') or
-                                (int(r['ip_version']) == 6 and r['host']=='::'))
-                    listening = [r for r in device.portscan.scan_info if port_match(r, port, 'tcp')]
+
+                    # Get all sockerts listening to port
+                    listening = [r for r in device.portscan.scan_info if
+                                 int(r['port']) == port and r['proto'] == 'tcp' and
+                                 ((int(r['ip_version']) == 4 and r['host'] == '0.0.0.0') or
+                                 (int(r['ip_version']) == 6 and r['host'] == '::'))]
+
+                    # See which processes are listening. We need to find either the service or 'docker-proxy'
                     found_service = found_docker = False
                     for sock in listening:
-                        process = processes.get(str(sock.get('pid')))
-                        if not process:
+                        listening_process = processes.get(str(sock.get('pid')))
+                        if not listening_process:
                             continue
-                        name = process[0]
+                        name = listening_process[0]
                         if name == service:
-                            found_service = process
+                            found_service = listening_process
                             break
                         elif name == 'docker-proxy':
-                            found_docker = process
+                            found_docker = listening_process
+
+                    # If it is docker-proxy listening on the port and the service is running in container,
+                    # or it is the service listening on the port - recommend an action.
                     if (found_docker and any(len(p) > 3 and p[3] == 'docker' and p[0] == service for p in processes.values()))\
                             or found_service:
                         found.add(service)
