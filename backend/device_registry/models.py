@@ -271,7 +271,63 @@ class Device(models.Model):
                         bool(self.sshd_issues) and
                         RecommendedActions.sshd_config_issues.value not in self.snoozed_actions,
                         self.auto_upgrades_enabled is False and
-                        RecommendedActions.auto_updates.value not in self.snoozed_actions))
+                        RecommendedActions.auto_updates.value not in self.snoozed_actions,
+                        len(self.public_services),
+                        self.is_ftp_public))
+
+    IPV4_ANY = '0.0.0.0'
+    IPV6_ANY = '::'
+    PUBLIC_SERVICE_PORTS = {
+        'mongod': (27017, 'MongoDB'),
+        'mysqld': (3306, 'MySQL'),
+        'mariadbd': (3306, 'MariaDB')
+    }
+    FTP_PORT = 21
+
+    def _get_listening_sockets(self, port):
+        return [r for r in self.portscan.scan_info if
+         int(r['port']) == port and r['proto'] == 'tcp' and
+         ((int(r['ip_version']) == 4 and r['host'] == self.IPV4_ANY) or
+          (int(r['ip_version']) == 6 and r['host'] == self.IPV6_ANY))]
+
+    @property
+    def is_ftp_public(self):
+        return bool(self._get_listening_sockets(self.FTP_PORT))
+
+    @property
+    def public_services(self):
+        processes = self.deviceinfo.processes
+        found = set()
+        for p in processes.values():
+            if len(found) == len(self.PUBLIC_SERVICE_PORTS):
+                break
+            service = p[0]
+            if service not in found and service in self.PUBLIC_SERVICE_PORTS:
+                port = self.PUBLIC_SERVICE_PORTS[service][0]
+
+                # Get all sockerts listening to port
+                listening = self._get_listening_sockets(port)
+
+                # See which processes are listening. We need to find either the service or 'docker-proxy'
+                found_service = found_docker = False
+                for sock in listening:
+                    listening_process = processes.get(str(sock.get('pid')))
+                    if not listening_process:
+                        continue
+                    name = listening_process[0]
+                    if name == service:
+                        found_service = listening_process
+                        break
+                    elif name == 'docker-proxy':
+                        found_docker = listening_process
+
+                # If it is docker-proxy listening on the port and the service is running in container,
+                # or it is the service listening on the port - recommend an action.
+                if (found_docker
+                    and any(len(p) > 3 and p[3] == 'docker' and p[0] == service for p in processes.values())) \
+                        or found_service:
+                    found.add(service)
+        return found
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,

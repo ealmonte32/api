@@ -17,15 +17,6 @@ from .models import Action, Device, average_trust_score, PortScan, FirewallState
 from .models import GlobalPolicy, RecommendedActions
 from device_registry.api_views import DeviceListFilterMixin
 
-IPV4_ANY = '0.0.0.0'
-IPV6_ANY = '::'
-SERVICE_PORTS = {
-        'mongod': (27017, 'MongoDB'),
-        'mysqld': (3306, 'MySQL'),
-        'mariadbd': (3306, 'MariaDB')
-    }
-FTP_PORT = 21
-
 
 class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
     model = Device
@@ -582,42 +573,8 @@ def actions_view(request, device_pk=None):
         devices = request.user.devices.all()
     if devices.exists():
         for device in devices:
-            processes = device.deviceinfo.processes
-            found = set()
-            for p in processes.values():
-                if len(found) == len(SERVICE_PORTS):
-                    break
-                service = p[0]
-                if service not in found and service in SERVICE_PORTS:
-                    port = SERVICE_PORTS[service][0]
-
-                    # Get all sockerts listening to port
-                    listening = [r for r in device.portscan.scan_info if
-                                 int(r['port']) == port and r['proto'] == 'tcp' and
-                                 ((int(r['ip_version']) == 4 and r['host'] == IPV4_ANY) or
-                                 (int(r['ip_version']) == 6 and r['host'] == IPV6_ANY))]
-
-                    # See which processes are listening. We need to find either the service or 'docker-proxy'
-                    found_service = found_docker = False
-                    for sock in listening:
-                        listening_process = processes.get(str(sock.get('pid')))
-                        if not listening_process:
-                            continue
-                        name = listening_process[0]
-                        if name == service:
-                            found_service = listening_process
-                            break
-                        elif name == 'docker-proxy':
-                            found_docker = listening_process
-
-                    # If it is docker-proxy listening on the port and the service is running in container,
-                    # or it is the service listening on the port - recommend an action.
-                    if (found_docker
-                        and any(len(p) > 3 and p[3] == 'docker' and p[0] == service for p in processes.values())) \
-                            or found_service:
-                        found.add(service)
-            for s in found:
-                service_port, service_full_name = SERVICE_PORTS[s]
+            for s in device.public_services:
+                service_port, service_full_name = Device.PUBLIC_SERVICE_PORTS[s]
                 action_header = f'Your {service_full_name} instance may be publicly accessible'
                 full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
                 action_text = f'''
@@ -630,10 +587,7 @@ def actions_view(request, device_pk=None):
     # FTP listening on port 21
     if devices.exists():
         for device in devices:
-            if any(r for r in device.portscan.scan_info if
-                         int(r['port']) == FTP_PORT and r['proto'] == 'tcp' and
-                         ((int(r['ip_version']) == 4 and r['host'] == IPV4_ANY) or
-                          (int(r['ip_version']) == 6 and r['host'] == IPV6_ANY))):
+            if device.is_ftp_public:
                 full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
                 action_header = 'Consider moving to SFTP'
                 action_text = f'''
