@@ -17,6 +17,15 @@ from .models import Action, Device, average_trust_score, PortScan, FirewallState
 from .models import GlobalPolicy, RecommendedActions
 from device_registry.api_views import DeviceListFilterMixin
 
+IPV4_ANY = '0.0.0.0'
+IPV6_ANY = '::'
+SERVICE_PORTS = {
+        'mongod': (27017, 'MongoDB'),
+        'mysqld': (3306, 'MySQL'),
+        'mariadbd': (3306, 'MariaDB')
+    }
+FTP_PORT = 21
+
 
 class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
     model = Device
@@ -566,11 +575,6 @@ def actions_view(request, device_pk=None):
             actions.append(action)
 
     # Insecure MongoDB, MySQL, MariaDB
-    SERVICE_PORTS = {
-        'mongod': (27017, 'MongoDB'),
-        'mysqld': (3306, 'MySQL'),
-        'mariadbd': (3306, 'MariaDB')
-    }
     if device_pk is not None:
         devices = request.user.devices.filter(pk=device_pk)
     else:
@@ -581,6 +585,8 @@ def actions_view(request, device_pk=None):
             processes = device.deviceinfo.processes
             found = set()
             for p in processes.values():
+                if len(found) == len(SERVICE_PORTS):
+                    break
                 service = p[0]
                 if service not in found and service in SERVICE_PORTS:
                     port = SERVICE_PORTS[service][0]
@@ -588,8 +594,8 @@ def actions_view(request, device_pk=None):
                     # Get all sockerts listening to port
                     listening = [r for r in device.portscan.scan_info if
                                  int(r['port']) == port and r['proto'] == 'tcp' and
-                                 ((int(r['ip_version']) == 4 and r['host'] == '0.0.0.0') or
-                                 (int(r['ip_version']) == 6 and r['host'] == '::'))]
+                                 ((int(r['ip_version']) == 4 and r['host'] == IPV4_ANY) or
+                                 (int(r['ip_version']) == 6 and r['host'] == IPV6_ANY))]
 
                     # See which processes are listening. We need to find either the service or 'docker-proxy'
                     found_service = found_docker = False
@@ -606,7 +612,8 @@ def actions_view(request, device_pk=None):
 
                     # If it is docker-proxy listening on the port and the service is running in container,
                     # or it is the service listening on the port - recommend an action.
-                    if (found_docker and any(len(p) > 3 and p[3] == 'docker' and p[0] == service for p in processes.values()))\
+                    if (found_docker
+                        and any(len(p) > 3 and p[3] == 'docker' and p[0] == service for p in processes.values())) \
                             or found_service:
                         found.add(service)
             for s in found:
@@ -614,9 +621,25 @@ def actions_view(request, device_pk=None):
                 action_header = f'Your {service_full_name} instance may be publicly accessible'
                 full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
                 action_text = f'''
-                    <p>We have detected that a {service_full_name} instance on {'this node' if device_name else full_string} may be accessible remotely.
-                    Consider either blocking port {service_port} through the 
-                    WoTT firewall management tool, or re-configure {service_full_name} to only listen on localhost.</p>'''
+                <p>We have detected that a {service_full_name} instance on {'this node' if device_name else full_string}
+                may be accessible remotely. Consider either blocking port {service_port} through the WoTT firewall
+                management tool, or re-configure {service_full_name} to only listen on localhost.</p>'''
+                action = Action(actions[-1].id + 1, action_header, action_text, [])
+                actions.append(action)
+
+    # FTP listening on port 21
+    if devices.exists():
+        for device in devices:
+            if any(r for r in device.portscan.scan_info if
+                         int(r['port']) == FTP_PORT and r['proto'] == 'tcp' and
+                         ((int(r['ip_version']) == 4 and r['host'] == IPV4_ANY) or
+                          (int(r['ip_version']) == 6 and r['host'] == IPV6_ANY))):
+                full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
+                action_header = 'Consider moving to SFTP'
+                action_text = f'''
+                    <p>There appears to be an FTP server running on {'this node' if device_name else full_string}.
+                    FTP is generally considered insecure as the credentials are sent unencrypted over the internet. 
+                    Consider switching to an encrypted service, such as SFTP (https://www.ssh.com/ssh/sftp/)</p>'''
                 action = Action(actions[-1].id + 1, action_header, action_text, [])
                 actions.append(action)
 

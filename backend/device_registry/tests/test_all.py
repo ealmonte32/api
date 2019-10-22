@@ -340,7 +340,8 @@ class ActionsViewTests(TestCase):
             {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 34567, 'pid': 12346},
             {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 27017, 'pid': 23456},
             {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 3306, 'pid': 34567},
-            {'ip_version': 6, 'proto': 'tcp', 'state': '???', 'host': '::', 'port': 3306, 'pid': 34567}
+            {'ip_version': 6, 'proto': 'tcp', 'state': '???', 'host': '::', 'port': 3306, 'pid': 34567},
+            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 21, 'pid': 45678}
         ])
         self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True, processes={
             12345: ('mongod', '', 'mongo', None),
@@ -397,8 +398,13 @@ class ActionsViewTests(TestCase):
             response,
             f'We have detected that a MySQL instance on this node'
         )
+        self.assertContains(
+            response,
+            f'There appears to be an FTP server running'
+        )
 
         self.portscan.scan_info[4]['host'] = '::1'
+        self.portscan.scan_info[5]['host'] = '127.0.0.1'
         self.portscan.save()
         response = self.client.get(url)
         self.assertNotContains(
@@ -409,6 +415,11 @@ class ActionsViewTests(TestCase):
             response,
             f'We have detected that a MySQL instance on this node'
         )
+        self.assertNotContains(
+            response,
+            f'There appears to be an FTP server running'
+        )
+
 
     def test_get(self):
         self.client.login(username='test', password='123')
@@ -449,6 +460,10 @@ class ActionsViewTests(TestCase):
         self.assertContains(
             response,
             f'We have detected that a MongoDB instance on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.assertContains(
+            response,
+            f'There appears to be an FTP server running on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
 
     def test_snooze_default_credentials_action(self):
