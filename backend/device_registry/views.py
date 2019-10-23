@@ -14,7 +14,7 @@ from django.db.models import Q
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Action, Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey
-from .models import GlobalPolicy, DebPackage
+from .models import GlobalPolicy, RecommendedActions
 from device_registry.api_views import DeviceListFilterMixin
 
 
@@ -333,11 +333,18 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
                     out_data.append(ports_form_data[2][port_record_index])
                 portscan.block_ports = out_data
                 firewallstate.policy = form.cleaned_data['policy']
+                # Stop snoozing 'Permissive firewall policy detected' recommended action.
+                if int(firewallstate.policy) == FirewallState.POLICY_ENABLED_BLOCK and \
+                        RecommendedActions.permissive_policy.value in self.object.snoozed_actions:
+                    self.object.snoozed_actions.remove(RecommendedActions.permissive_policy.value)
+                    updated_fields = ['update_trust_score', 'snoozed_actions']
+                else:
+                    updated_fields = ['update_trust_score']
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
                     firewallstate.save(update_fields=['policy'])
                     self.object.update_trust_score = True
-                    self.object.save(update_fields=['update_trust_score'])
+                    self.object.save(update_fields=updated_fields)
 
         elif 'is_connections_form' in request.POST:
             if firewallstate and firewallstate.global_policy:
@@ -478,107 +485,95 @@ def actions_view(request, device_pk=None):
     actions = []
 
     # Default username/password used action.
-    insecure_password_devices = request.user.devices.filter(deviceinfo__default_password=True)
+    devices = request.user.devices.filter(deviceinfo__default_password=True).exclude(
+        snoozed_actions__contains=RecommendedActions.default_credentials.value)
     if device_pk is not None:
-        insecure_password_devices = insecure_password_devices.filter(pk=device_pk)
-    if insecure_password_devices.exists():
+        devices = devices.filter(pk=device_pk)
+    if devices.exists():
         text_blocks = []
-        for dev in insecure_password_devices:
+        for dev in devices:
             device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
-            1,
             'Default credentials detected',
             '<p>We found default credentials present on %s. Please consider changing them as soon as possible.</p>' %
-            ('this node' if device_name else full_string), []
+            ('this node' if device_name else full_string),
+            [RecommendedActions.default_credentials.value, list(devices.values_list('pk', flat=True))]
         )
         actions.append(action)
 
     # Firewall disabled action.
-    disabled_firewall_devices = request.user.devices.exclude(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)
+    devices = request.user.devices.exclude(
+        firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK).exclude(
+        snoozed_actions__contains=RecommendedActions.permissive_policy.value)
     if device_pk is not None:
-        disabled_firewall_devices = disabled_firewall_devices.filter(pk=device_pk)
-    if disabled_firewall_devices.exists():
+        devices = devices.filter(pk=device_pk)
+    if devices.exists():
         text_blocks = []
-        for dev in disabled_firewall_devices:
+        for dev in devices:
             device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
-            2,
             'Permissive firewall policy detected',
             '<p>We found permissive firewall policy present on %s. Please consider change it to more restrictive one.'
-            '</p>' % ('this node' if device_name else full_string), []
+            '</p>' % ('this node' if device_name else full_string),
+            [RecommendedActions.permissive_policy.value, list(devices.values_list('pk', flat=True))]
         )
         actions.append(action)
 
     # Vulnerable packages found action.
-    devices_with_vuln_packages = request.user.devices.filter(deb_packages__vulnerabilities__isnull=False).distinct()
+    devices = request.user.devices.filter(deb_packages__vulnerabilities__isnull=False).exclude(
+        snoozed_actions__contains=RecommendedActions.vulnerable_packages.value).distinct()
     if device_pk is not None:
-        devices_with_vuln_packages = devices_with_vuln_packages.filter(pk=device_pk)
-    if devices_with_vuln_packages.exists():
+        devices = devices.filter(pk=device_pk)
+    if devices.exists():
         text_blocks = []
-        for dev in devices_with_vuln_packages:
+        for dev in devices:
             device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>' \
                                 f'({dev.vulnerable_packages.count()} packages)'
             text_blocks.append(device_text_block)
         full_string = ', '.join(text_blocks)
         action = Action(
-            3,
             'Vulnerable packages found',
             """<p>We found vulnerable packages on %s. These packages could be used by an attacker to either gain 
             access to your node, or escalate permission. It is recommended that you address this at your earliest 
             convenience.</p>
             <p>Run <code>sudo apt-get update && sudo apt-get upgrade</code> to bring your system up to date.</p>
             <p>Please note that there might be vulnerabilities detected that are yet to be fixed by the operating 
-            system vendor.</p>""" % ('this node' if device_name else full_string), []
+            system vendor.</p>""" % ('this node' if device_name else full_string),
+            [RecommendedActions.vulnerable_packages.value, list(devices.values_list('pk', flat=True))]
         )
         actions.append(action)
 
     # Insecure services found action.
-    devices_with_insecure_services = request.user.devices.exclude(deb_packages_hash='').filter(
-        deb_packages__name__in=Device.INSECURE_SERVICES).distinct()
+    devices = request.user.devices.exclude(deb_packages_hash='').filter(
+        deb_packages__name__in=Device.INSECURE_SERVICES).exclude(
+        snoozed_actions__contains=RecommendedActions.insecure_services.value).distinct()
     if device_pk is not None:
-        devices_with_insecure_services = devices_with_insecure_services.filter(pk=device_pk)
-    if devices_with_insecure_services.exists():
-        if device_pk is not None:
-            action_header = 'Insecure services found'
-            services_str = ' '.join(device.insecure_services.values_list('name', flat=True))
-            action_text = '<p>We found insecure services installed on this node. Because these services are ' \
+        devices = devices.filter(pk=device_pk)
+    if devices.exists():
+        action_header = 'Insecure services found'
+        for dev in devices:
+            services_str = ' '.join(dev.insecure_services.values_list('name', flat=True))
+            full_string = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">{dev.get_name()}</a>'
+            action_text = '<p>We found insecure services installed on %s. Because these services are ' \
                           'considered insecure, it is recommended that you uninstall them.' \
                           '</p><p>Run <code>sudo apt-get purge %s</code> to disable all insecure ' \
-                          'services.</p>' % services_str
-            action = Action(4, action_header, action_text, [])
+                          'services.</p>' % ('this node' if device_name else full_string, services_str)
+            action = Action(action_header, action_text, [RecommendedActions.insecure_services.value, [dev.pk]])
             actions.append(action)
-        else:
-            device_ids = devices_with_insecure_services.values_list('pk', flat=True)
-            service_packages = DebPackage.objects.filter(
-                device__in=device_ids, name__in=Device.INSECURE_SERVICES).distinct()
-            for package in service_packages:
-                action_header = 'Insecure service <strong>%s</strong> found' % package.name
-                text_blocks = []
-                for dev in devices_with_insecure_services:
-                    if dev.deb_packages.filter(pk=package.pk).exists():
-                        device_text_block = f'<a href="{reverse("device-detail", kwargs={"pk": dev.pk})}">' \
-                                            f'{dev.get_name()}</a>'
-                        text_blocks.append(device_text_block)
-                full_string = ', '.join(text_blocks)
-                action_text = '<p>We found insecure service <strong>%s</strong> installed on %s. Because this ' \
-                              'service is considered insecure, it is recommended that you uninstall it.</p>' \
-                              '<p>Run <code>sudo apt-get purge %s</code> to disable the ' \
-                              'service.</p>' % (package.name, full_string, package.name)
-                action = Action(actions[-1].id + 1, action_header, action_text, [])
-                actions.append(action)
 
     # Configuration issue found action.
-    devices = request.user.devices.exclude(audit_files__in=('', []))
+    devices = request.user.devices.exclude(audit_files__in=('', [])).exclude(
+        snoozed_actions__contains=RecommendedActions.sshd_config_issues.value)
     if device_pk is not None:
         devices = devices.filter(pk=device_pk)
     if devices.exists():
         action_header = 'Insecure configuration for <strong>OpenSSH</strong> found'
         for dev in devices:
-            sshd_issues = dev.sshd_issues()
+            sshd_issues = dev.sshd_issues
             if sshd_issues:
                 recommendations = ''
                 for issue in sshd_issues:
@@ -589,11 +584,12 @@ def actions_view(request, device_pk=None):
                 action_text = '<p>We found insecure configuration issues with OpenSSH on %s. To improve the ' \
                               'security posture of your node, please consider making the following ' \
                               'changes:%s</p>' % ('this node' if device_name else full_string, recommendations)
-                action = Action(actions[-1].id + 1, action_header, action_text, [])
+                action = Action(action_header, action_text, [RecommendedActions.sshd_config_issues.value, [dev.pk]])
                 actions.append(action)
 
     # Automatic security update disabled action.
-    devices = request.user.devices.filter(auto_upgrades=False)
+    devices = request.user.devices.filter(auto_upgrades=False).exclude(
+        snoozed_actions__contains=RecommendedActions.auto_updates.value)
     if device_pk is not None:
         devices = devices.filter(pk=device_pk)
     if devices.exists():
@@ -617,7 +613,8 @@ def actions_view(request, device_pk=None):
                       'enabling this feature.</p>' \
                       '<p>Details for how to do this can be found <a href="%s" target="_blank">here</a>.</p>' % \
                       ('this node is' if device_name else full_string, doc_url)
-        action = Action(actions[-1].id + 1, action_header, action_text, [])
+        action = Action(action_header, action_text,
+                        [RecommendedActions.auto_updates.value, list(devices.values_list('pk', flat=True))])
         actions.append(action)
 
     return render(request, 'actions.html', {
