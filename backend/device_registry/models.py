@@ -32,6 +32,7 @@ class RecommendedActions(Enum):
     mongod = 8
     mysqld = 9
     mariadbd = 10
+    mysql_root_access = 11
 
 
 def get_bootstrap_color(val):
@@ -119,6 +120,7 @@ class Device(models.Model):
     audit_files = JSONField(blank=True, default=list)
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
+    mysql_root_access = models.BooleanField(null=True, blank=True)
     snoozed_actions = JSONField(blank=True, default=list)
 
     def snooze_action(self, action_id):
@@ -280,8 +282,10 @@ class Device(models.Model):
                                                                     RecommendedActions.mysqld,
                                                                     RecommendedActions.mariadbd)
                                                         if a.value in self.snoozed_actions]),
-                        self.is_ftp_public and
-                        RecommendedActions.ftp.value not in self.snoozed_actions))
+                        self.is_ftp_public is True and
+                        RecommendedActions.ftp.value not in self.snoozed_actions,
+                        self.mysql_root_access is True and
+                        RecommendedActions.mysql_root_access.value not in self.snoozed_actions))
 
     IPV4_ANY = '0.0.0.0'
     IPV6_ANY = '::'

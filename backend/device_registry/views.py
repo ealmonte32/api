@@ -583,9 +583,9 @@ def actions_view(request, device_pk=None):
                 action_header = f'Your {service_full_name} instance may be publicly accessible'
                 full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
                 action_text = f'''
-                <p>We have detected that a {service_full_name} instance on {'this node' if device_name else full_string}
+                We have detected that a {service_full_name} instance on {'this node' if device_name else full_string}
                 may be accessible remotely. Consider either blocking port {service_port} through the WoTT firewall
-                management tool, or re-configure {service_full_name} to only listen on localhost.</p>'''
+                management tool, or re-configure {service_full_name} to only listen on localhost.'''
                 action = Action(action_header, action_text, [
                     SERVICE_ACTIONS[s].value, list(devices.values_list('pk', flat=True))
                 ])
@@ -598,9 +598,9 @@ def actions_view(request, device_pk=None):
                 full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
                 action_header = 'Consider moving to SFTP'
                 action_text = f'''
-                    <p>There appears to be an FTP server running on {'this node' if device_name else full_string}.
+                    There appears to be an FTP server running on {'this node' if device_name else full_string}.
                     FTP is generally considered insecure as the credentials are sent unencrypted over the internet. 
-                    Consider switching to an encrypted service, such as SFTP (https://www.ssh.com/ssh/sftp/)</p>'''
+                    Consider switching to an encrypted service, such as SFTP (https://www.ssh.com/ssh/sftp/)'''
                 action = Action(action_header, action_text, [
                     RecommendedActions.ftp.value, list(devices.values_list('pk', flat=True))
                 ])
@@ -657,6 +657,32 @@ def actions_view(request, device_pk=None):
         action = Action(action_header, action_text,
                         [RecommendedActions.auto_updates.value, list(devices.values_list('pk', flat=True))])
         actions.append(action)
+
+    # MySQL root default password action.
+    devices = request.user.devices.filter(mysql_root_access=True).exclude(
+        snoozed_actions__contains=RecommendedActions.mysql_root_access.value)
+    if device_pk is not None:
+        devices = devices.filter(pk=device_pk)
+    if devices.exists():
+        for device in devices:
+            action_header = 'No root password set for the MySQL/MariaDB server'
+            full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
+            action_text = f'''
+            We have detected that there is no root password set for MySQL/MariaDB 
+            on {'this node' if device_name else full_string}.
+            Not having a root password set makes it easy for anyone with access to the
+            service to copy all information from the database. It is recommended that 
+            you change the password as soon as possible. There are multiple ways to do
+            this, including using mysqladmin as follows:
+            
+            <pre>mysqladmin -u root password NEWPASSWORD</pre>
+            
+            Tip: If you are using mysqladmin as per above, make sure to add a space 
+            before the command to avoid it being stored in your shell's history.
+            '''
+            action = Action(action_header, action_text,
+                            [RecommendedActions.mysql_root_access.value, list(devices.values_list('pk', flat=True))])
+            actions.append(action)
 
     return render(request, 'actions.html', {
         'actions': actions,

@@ -333,7 +333,7 @@ class ActionsViewTests(TestCase):
                                                                      'AllowAgentForwarding': 'yes',
                                                                      'PasswordAuthentication': 'yes'},
                           'sha256': 'abcd', 'last_modified': 1554718384.0}], auto_upgrades=False,
-            os_release={'distro': 'debian'})
+            os_release={'distro': 'debian'}, mysql_root_access=True)
         self.firewall = FirewallState.objects.create(device=self.device)
         self.portscan = PortScan.objects.create(device=self.device, scan_info=[
             {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 27017, 'pid': 12345},
@@ -357,7 +357,7 @@ class ActionsViewTests(TestCase):
         self.device.deb_packages.add(deb_package)
         self.url = reverse('actions')
         self.client.login(username='test', password='123')
-        self.actions_number = 7
+        self.actions_number = 8
 
     def test_get_one(self):
         url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
@@ -367,6 +367,10 @@ class ActionsViewTests(TestCase):
         self.assertContains(
             response,
             f'We have detected that a MongoDB instance on this node'
+        )
+        self.assertContains(
+            response,
+            "We have detected that there is no root password set for MySQL/MariaDB"
         )
 
         self.portscan.scan_info[0]['host'] = '127.0.0.1'
