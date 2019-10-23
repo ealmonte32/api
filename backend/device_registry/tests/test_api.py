@@ -17,6 +17,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
 from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
+from device_registry.models import RECOMMENDED_ACTION_IDS
 from device_registry.serializers import DeviceListSerializer
 
 from device_registry.models import GlobalPolicy
@@ -1294,3 +1295,39 @@ class PolicyDeviceNumberViewTests(APITestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(reverse('ajax_policy_device_nr', kwargs={'pk': gp2.pk}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class SnoozeActionViewTest(APITestCase):
+
+    def setUp(self):
+        self.url = reverse('snooze_action')
+        User = get_user_model()
+        self.user = User.objects.create_user('test', password='123')
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.client.login(username='test', password='123')
+
+    def test_post(self):
+        self.assertListEqual(self.device.snoozed_actions, [])
+        response = self.client.post(self.url, {'device_ids': [self.device.pk], 'action_id': RECOMMENDED_ACTION_IDS[0]})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.device.refresh_from_db()
+        self.assertListEqual(self.device.snoozed_actions, [RECOMMENDED_ACTION_IDS[0]])
+
+    def test_wrong_action_id(self):
+        self.assertListEqual(self.device.snoozed_actions, [])
+        response = self.client.post(self.url, {'device_ids': [self.device.pk], 'action_id': 'no_such_action'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertDictEqual(response.data, {'action_id': [ErrorDetail(string='Invalid recommended action id',
+                                                                       code='invalid')]})
+        self.device.refresh_from_db()
+        self.assertListEqual(self.device.snoozed_actions, [])
+
+    def test_wrong_device_id(self):
+        self.assertListEqual(self.device.snoozed_actions, [])
+        response = self.client.post(self.url, {'device_ids': [self.device.pk + 1],
+                                               'action_id': RECOMMENDED_ACTION_IDS[0]})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertDictEqual(response.data, {'device_ids': [ErrorDetail(string='Invalid device id(s) provided',
+                                                                        code='invalid')]})
+        self.device.refresh_from_db()
+        self.assertListEqual(self.device.snoozed_actions, [])

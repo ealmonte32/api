@@ -95,7 +95,7 @@ class MtlsPingView(APIView):
             device.deb_packages_hash = deb_packages['hash']
             device.set_deb_packages(deb_packages['packages'], os_release)
         device.os_release = os_release
-        device.snoozed_actions = []
+        device.snoozed_actions = []  # Cleanup snoozed actions list.
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = data.get('device_operating_system_version')
