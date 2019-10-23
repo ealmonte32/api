@@ -566,6 +566,11 @@ def actions_view(request, device_pk=None):
             actions.append(action)
 
     # Insecure MongoDB, MySQL, MariaDB
+    SERVICE_ACTIONS = {
+        'mongod': RecommendedActions.mongod,
+        'mysqld': RecommendedActions.mysqld,
+        'mariadbd': RecommendedActions.mariadbd
+    }
     if device_pk is not None:
         devices = request.user.devices.filter(pk=device_pk)
     else:
@@ -581,7 +586,9 @@ def actions_view(request, device_pk=None):
                 <p>We have detected that a {service_full_name} instance on {'this node' if device_name else full_string}
                 may be accessible remotely. Consider either blocking port {service_port} through the WoTT firewall
                 management tool, or re-configure {service_full_name} to only listen on localhost.</p>'''
-                action = Action(actions[-1].id + 1, action_header, action_text, [])
+                action = Action(action_header, action_text, [
+                    SERVICE_ACTIONS[s].value, list(devices.values_list('pk', flat=True))
+                ])
                 actions.append(action)
 
     # FTP listening on port 21
@@ -594,7 +601,9 @@ def actions_view(request, device_pk=None):
                     <p>There appears to be an FTP server running on {'this node' if device_name else full_string}.
                     FTP is generally considered insecure as the credentials are sent unencrypted over the internet. 
                     Consider switching to an encrypted service, such as SFTP (https://www.ssh.com/ssh/sftp/)</p>'''
-                action = Action(actions[-1].id + 1, action_header, action_text, [])
+                action = Action(action_header, action_text, [
+                    RecommendedActions.ftp.value, list(devices.values_list('pk', flat=True))
+                ])
                 actions.append(action)
 
     # Configuration issue found action.

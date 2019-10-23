@@ -356,6 +356,8 @@ class ActionsViewTests(TestCase):
         deb_package.vulnerabilities.add(vulnerability)
         self.device.deb_packages.add(deb_package)
         self.url = reverse('actions')
+        self.client.login(username='test', password='123')
+        self.actions_number = 7
 
     def test_get_one(self):
         url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
@@ -423,7 +425,6 @@ class ActionsViewTests(TestCase):
 
     def test_get(self):
         self.client.login(username='test', password='123')
-        self.actions_number = 6
         self.assertEqual(self.device.actions_count, self.actions_number)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)

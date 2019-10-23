@@ -28,6 +28,10 @@ class RecommendedActions(Enum):
     insecure_services = 4
     sshd_config_issues = 5
     auto_updates = 6
+    ftp = 7
+    mongod = 8
+    mysqld = 9
+    mariadbd = 10
 
 
 def get_bootstrap_color(val):
@@ -272,8 +276,12 @@ class Device(models.Model):
                         RecommendedActions.sshd_config_issues.value not in self.snoozed_actions,
                         self.auto_upgrades_enabled is False and
                         RecommendedActions.auto_updates.value not in self.snoozed_actions,
-                        len(self.public_services),
-                        self.is_ftp_public))
+                        len(self.public_services) - len([a for a in (RecommendedActions.mongod,
+                                                                    RecommendedActions.mysqld,
+                                                                    RecommendedActions.mariadbd)
+                                                        if a.value in self.snoozed_actions]),
+                        self.is_ftp_public and
+                        RecommendedActions.ftp.value not in self.snoozed_actions))
 
     IPV4_ANY = '0.0.0.0'
     IPV6_ANY = '::'
