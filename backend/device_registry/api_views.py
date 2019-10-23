@@ -109,7 +109,8 @@ class MtlsPingView(APIView):
         processes = data.get('processes')
         if processes:
             # Convert from list to dict.
-            device_info_object.processes = {e['pid']: (e['name'], e['username'], e['cmdline'], e.get('container')) for e in processes}
+            device_info_object.processes = {e['pid']: (e['name'], e['username'], e['cmdline'], e.get('container'))
+                                            for e in processes}
         else:
             device_info_object.processes = {}
         device_info_object.default_password = data.get('default_password')
