@@ -20,7 +20,14 @@ apt_pkg.init()
 
 DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
 
-RECOMMENDED_ACTION_IDS = ('def_cred', 'perm_pol', 'vuln_pack', 'insec_serv', 'sshd_iss', 'auto_upgr')
+
+class RecommendedActions(Enum):
+    default_credentials = 1
+    permissive_policy = 2
+    vulnerable_packages = 3
+    insecure_services = 4
+    sshd_config_issues = 5
+    auto_updates = 6
 
 
 def get_bootstrap_color(val):
@@ -111,10 +118,9 @@ class Device(models.Model):
     snoozed_actions = JSONField(blank=True, default=list)
 
     def snooze_action(self, action_id):
-        snoozed_actions = set(self.snoozed_actions)
-        snoozed_actions.add(action_id)
-        self.snoozed_actions = list(snoozed_actions)
-        self.save(update_fields=['snoozed_actions'])
+        if action_id not in self.snoozed_actions:
+            self.snoozed_actions.append(action_id)
+            self.save(update_fields=['snoozed_actions'])
 
     @property
     def auto_upgrades_enabled(self):
@@ -255,15 +261,17 @@ class Device(models.Model):
     def actions_count(self):
         if hasattr(self, 'firewallstate') and hasattr(self, 'portscan'):
             return sum((self.deviceinfo.default_password is True and
-                        RECOMMENDED_ACTION_IDS[0] not in self.snoozed_actions,
+                        RecommendedActions.default_credentials.value not in self.snoozed_actions,
                         self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK and
-                        RECOMMENDED_ACTION_IDS[1] not in self.snoozed_actions,
+                        RecommendedActions.permissive_policy.value not in self.snoozed_actions,
                         self.vulnerable_packages is not None and self.vulnerable_packages.exists() and
-                        RECOMMENDED_ACTION_IDS[2] not in self.snoozed_actions,
+                        RecommendedActions.vulnerable_packages.value not in self.snoozed_actions,
                         self.insecure_services is not None and self.insecure_services.exists() and
-                        RECOMMENDED_ACTION_IDS[3] not in self.snoozed_actions,
-                        bool(self.sshd_issues) and RECOMMENDED_ACTION_IDS[4] not in self.snoozed_actions,
-                        self.auto_upgrades_enabled is False and RECOMMENDED_ACTION_IDS[5] not in self.snoozed_actions))
+                        RecommendedActions.insecure_services.value not in self.snoozed_actions,
+                        bool(self.sshd_issues) and
+                        RecommendedActions.sshd_config_issues.value not in self.snoozed_actions,
+                        self.auto_upgrades_enabled is False and
+                        RecommendedActions.auto_updates.value not in self.snoozed_actions))
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,
@@ -588,18 +596,17 @@ class Credential(models.Model):
 
 # Temporary POJO to showcase recommended actions template.
 class Action:
-    def __init__(self, action_id, title, description, info):
+    def __init__(self, title, description, snoozing_info):
         """
         Args:
-            action_id: Action Id.
             title: Actions title.
             description: Action description.
-            actions (str[]): List of available actions.
+            snoozing_info: a 2-elements list with an action id as a 1st element
+             and the list of affected device ids as a 2nd element.
         """
-        self.id = action_id
         self.title = title
         self.description = description
-        self.info = info
+        self.snoozing_info = snoozing_info
 
 
 def average_trust_score(user):

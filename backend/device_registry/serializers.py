@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
 
-from .models import Device, DeviceInfo, Credential, Tag, PairingKey, RECOMMENDED_ACTION_IDS
+from .models import Device, DeviceInfo, Credential, Tag, PairingKey, RecommendedActions
 
 
 class RequiredValidator(object):
@@ -232,10 +232,10 @@ class DeviceListSerializer(serializers.ModelSerializer):
 
 class SnoozeActionSerializer(serializers.Serializer):
     device_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
-    action_id = serializers.CharField()
+    action_id = serializers.IntegerField()
 
     def validate_action_id(self, value):
-        if value not in RECOMMENDED_ACTION_IDS:
+        if value not in RecommendedActions._value2member_map_:
             raise serializers.ValidationError('Invalid recommended action id')
         return value
 

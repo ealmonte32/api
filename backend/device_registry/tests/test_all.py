@@ -17,7 +17,7 @@ from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, GlobalPolicy
-from device_registry.models import PairingKey, DebPackage, Vulnerability, RECOMMENDED_ACTION_IDS
+from device_registry.models import PairingKey, DebPackage, Vulnerability, RecommendedActions
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 
@@ -391,7 +391,7 @@ class ActionsViewTests(TestCase):
             f'We found default credentials present on '
             f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
-        self.device.snooze_action(RECOMMENDED_ACTION_IDS[0])
+        self.device.snooze_action(RecommendedActions.default_credentials.value)
         self.assertEqual(self.device.actions_count, self.actions_number - 1)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -410,7 +410,7 @@ class ActionsViewTests(TestCase):
             f'We found permissive firewall policy present on <a href="/devices/{self.device.pk}/">'
             f'{self.device.get_name()}</a>'
         )
-        self.device.snooze_action(RECOMMENDED_ACTION_IDS[1])
+        self.device.snooze_action(RecommendedActions.permissive_policy.value)
         self.assertEqual(self.device.actions_count, self.actions_number - 1)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -429,7 +429,7 @@ class ActionsViewTests(TestCase):
             f'We found vulnerable packages on <a href="/devices/{self.device.pk}/">'
             f'{self.device.get_name()}</a>(1 packages)'
         )
-        self.device.snooze_action(RECOMMENDED_ACTION_IDS[2])
+        self.device.snooze_action(RecommendedActions.vulnerable_packages.value)
         self.assertEqual(self.device.actions_count, self.actions_number - 1)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -448,7 +448,7 @@ class ActionsViewTests(TestCase):
             f'We found insecure services installed on <a href="/devices/{self.device.pk}/">'
             f'{self.device.get_name()}</a>'
         )
-        self.device.snooze_action(RECOMMENDED_ACTION_IDS[3])
+        self.device.snooze_action(RecommendedActions.insecure_services.value)
         self.assertEqual(self.device.actions_count, self.actions_number - 1)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -467,7 +467,7 @@ class ActionsViewTests(TestCase):
             f'We found insecure configuration issues with OpenSSH on <a href="/devices/{self.device.pk}/">'
             f'{self.device.get_name()}</a>'
         )
-        self.device.snooze_action(RECOMMENDED_ACTION_IDS[4])
+        self.device.snooze_action(RecommendedActions.sshd_config_issues.value)
         self.assertEqual(self.device.actions_count, self.actions_number - 1)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -486,7 +486,7 @@ class ActionsViewTests(TestCase):
             f'We found that your node <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a> is not '
             f'configured to automatically install security updates'
         )
-        self.device.snooze_action(RECOMMENDED_ACTION_IDS[5])
+        self.device.snooze_action(RecommendedActions.auto_updates.value)
         self.assertEqual(self.device.actions_count, self.actions_number - 1)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
