@@ -19,6 +19,14 @@ from . import validators
 apt_pkg.init()
 
 DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
+IPV4_ANY = '0.0.0.0'
+IPV6_ANY = '::'
+PUBLIC_SERVICE_PORTS = {
+    'mongod': (27017, 'MongoDB'),
+    'mysqld': (3306, 'MySQL'),
+    'mariadbd': (3306, 'MariaDB')
+}
+FTP_PORT = 21
 
 
 class RecommendedActions(Enum):
@@ -287,35 +295,30 @@ class Device(models.Model):
                         self.mysql_root_access is True and
                         RecommendedActions.mysql_root_access.value not in self.snoozed_actions))
 
-    IPV4_ANY = '0.0.0.0'
-    IPV6_ANY = '::'
-    PUBLIC_SERVICE_PORTS = {
-        'mongod': (27017, 'MongoDB'),
-        'mysqld': (3306, 'MySQL'),
-        'mariadbd': (3306, 'MariaDB')
-    }
-    FTP_PORT = 21
-
     def _get_listening_sockets(self, port):
         return [r for r in self.portscan.scan_info if
          int(r['port']) == port and r['proto'] == 'tcp' and
-         ((int(r['ip_version']) == 4 and r['host'] == self.IPV4_ANY) or
-          (int(r['ip_version']) == 6 and r['host'] == self.IPV6_ANY))]
+         ((int(r['ip_version']) == 4 and r['host'] == IPV4_ANY) or
+          (int(r['ip_version']) == 6 and r['host'] == IPV6_ANY))]
 
     @property
     def is_ftp_public(self):
-        return bool(self._get_listening_sockets(self.FTP_PORT))
+        return bool(self._get_listening_sockets(FTP_PORT))
 
     @property
     def public_services(self):
+        """
+        Looks for open ports and known services (declared in PUBLIC_SERVICE_PORTS) listening on them.
+        :return: a set of service names (keys from PUBLIC_SERVICE_PORTS) which are listening.
+        """
         processes = self.deviceinfo.processes
         found = set()
         for p in processes.values():
-            if len(found) == len(self.PUBLIC_SERVICE_PORTS):
+            if len(found) == len(PUBLIC_SERVICE_PORTS):
                 break
             service = p[0]
-            if service not in found and service in self.PUBLIC_SERVICE_PORTS:
-                port = self.PUBLIC_SERVICE_PORTS[service][0]
+            if service not in found and service in PUBLIC_SERVICE_PORTS:
+                port = PUBLIC_SERVICE_PORTS[service][0]
 
                 # Get all sockerts listening to port
                 listening = self._get_listening_sockets(port)

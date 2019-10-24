@@ -138,7 +138,8 @@ class MtlsPingView(APIView):
 
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
-                                   'update_trust_score', 'os_release', 'auto_upgrades', 'snoozed_actions'])
+                                   'update_trust_score', 'os_release', 'auto_upgrades', 'snoozed_actions',
+                                   'mysql_root_access'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')

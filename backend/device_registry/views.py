@@ -13,7 +13,8 @@ from django.db.models import Q
 
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
-from .models import Action, Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey
+from .models import Action, Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey,\
+    PUBLIC_SERVICE_PORTS
 from .models import GlobalPolicy, RecommendedActions
 from device_registry.api_views import DeviceListFilterMixin
 
@@ -579,7 +580,7 @@ def actions_view(request, device_pk=None):
     if devices.exists():
         for device in devices:
             for s in device.public_services:
-                service_port, service_full_name = Device.PUBLIC_SERVICE_PORTS[s]
+                service_port, service_full_name = PUBLIC_SERVICE_PORTS[s]
                 action_header = f'Your {service_full_name} instance may be publicly accessible'
                 full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
                 action_text = f'''

@@ -361,7 +361,6 @@ class ActionsViewTests(TestCase):
 
     def test_get_one(self):
         url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
-        self.client.login(username='test', password='123')
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(
@@ -426,9 +425,7 @@ class ActionsViewTests(TestCase):
             f'There appears to be an FTP server running'
         )
 
-
     def test_get(self):
-        self.client.login(username='test', password='123')
         self.assertEqual(self.device.actions_count, self.actions_number)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -468,7 +465,15 @@ class ActionsViewTests(TestCase):
         )
         self.assertContains(
             response,
+            f'We have detected that a MySQL instance on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.assertContains(
+            response,
             f'There appears to be an FTP server running on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.assertContains(
+            response,
+            "We have detected that there is no root password set for MySQL/MariaDB"
         )
 
     def test_snooze_default_credentials_action(self):
