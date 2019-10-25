@@ -105,8 +105,8 @@ if settings.IS_DASH:
         path('ajax-credentials/create/', api_views.CreateCredentialView.as_view(), name='ajax-credentials-create'),
         path('ajax-policies/<int:pk>/device-nr/', api_views.PolicyDeviceNumberView.as_view(),
              name='ajax_policy_device_nr'),
-        path('actions/', views.actions_view, name='actions'),
-        path('devices/<int:device_pk>/actions/', views.actions_view, name='device_actions'),
+        path('actions/', views.RecommendedActionsView.as_view(), name='actions'),
+        path('devices/<int:device_pk>/actions/', views.RecommendedActionsView.as_view(), name='device_actions'),
         path(
             'ajax/tags/autocomplete/',
             api_views.autocomplete_tags,

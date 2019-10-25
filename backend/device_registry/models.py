@@ -14,7 +14,8 @@ import yaml
 import tagulous.models
 import apt_pkg
 
-from . import validators
+from .validators import UnicodeNameValidator, LinuxUserNameValidator
+from .recommended_actions import action_classes
 
 apt_pkg.init()
 
@@ -26,19 +27,6 @@ PUBLIC_SERVICE_PORTS = {
     'mysqld': (3306, 'MySQL/MariaDB')
 }
 FTP_PORT = 21
-
-
-class RecommendedActions(Enum):
-    default_credentials = 1
-    permissive_policy = 2
-    vulnerable_packages = 3
-    insecure_services = 4
-    sshd_config_issues = 5
-    auto_updates = 6
-    ftp = 7
-    mongod = 8
-    mysqld = 9
-    mysql_root_access = 10
 
 
 def get_bootstrap_color(val):
@@ -272,31 +260,15 @@ class Device(models.Model):
     @property
     def actions_count(self):
         if hasattr(self, 'firewallstate') and hasattr(self, 'portscan'):
-            return sum((self.deviceinfo.default_password is True and
-                        RecommendedActions.default_credentials.value not in self.snoozed_actions,
-                        self.firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK and
-                        RecommendedActions.permissive_policy.value not in self.snoozed_actions,
-                        self.vulnerable_packages is not None and self.vulnerable_packages.exists() and
-                        RecommendedActions.vulnerable_packages.value not in self.snoozed_actions,
-                        self.insecure_services is not None and self.insecure_services.exists() and
-                        RecommendedActions.insecure_services.value not in self.snoozed_actions,
-                        bool(self.sshd_issues) and
-                        RecommendedActions.sshd_config_issues.value not in self.snoozed_actions,
-                        self.auto_upgrades_enabled is False and
-                        RecommendedActions.auto_updates.value not in self.snoozed_actions,
-                        len(self.public_services) - len([a for a in (RecommendedActions.mongod,
-                                                                    RecommendedActions.mysqld)
-                                                        if a.value in self.snoozed_actions]),
-                        self.is_ftp_public is True and
-                        RecommendedActions.ftp.value not in self.snoozed_actions,
-                        self.mysql_root_access is True and
-                        RecommendedActions.mysql_root_access.value not in self.snoozed_actions))
+            return sum(
+                [action_class.affected_devices(self.owner, self.pk).exists() for action_class in action_classes]
+            )
 
     def _get_listening_sockets(self, port):
         return [r for r in self.portscan.scan_info if
-         int(r['port']) == port and r['proto'] == 'tcp' and
-         ((int(r['ip_version']) == 4 and r['host'] == IPV4_ANY) or
-          (int(r['ip_version']) == 6 and r['host'] == IPV6_ANY))]
+                int(r['port']) == port and r['proto'] == 'tcp' and
+                ((int(r['ip_version']) == 4 and r['host'] == IPV4_ANY) or
+                 (int(r['ip_version']) == 6 and r['host'] == IPV6_ANY))]
 
     @property
     def is_ftp_public(self):
@@ -633,16 +605,12 @@ class Credential(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='credentials', on_delete=models.CASCADE)
     name = models.CharField(
         max_length=64,
-        validators=[
-            validators.UnicodeNameValidator()
-        ])
+        validators=[UnicodeNameValidator()])
     tags = tagulous.models.TagField(to=Tag, blank=True)
     linux_user = models.CharField(
         max_length=32,
         blank=True,
-        validators=[
-            validators.LinuxUserNameValidator()
-        ])
+        validators=[LinuxUserNameValidator()])
     data = JSONField(blank=True, default=dict)
 
     class Meta:
@@ -660,21 +628,6 @@ class Credential(models.Model):
         self.full_clean()
         self.name = self.name.lower()
         super(Credential, self).save(*args, **kwargs)
-
-
-# Temporary POJO to showcase recommended actions template.
-class Action:
-    def __init__(self, title, description, snoozing_info):
-        """
-        Args:
-            title: Actions title.
-            description: Action description.
-            snoozing_info: a 2-elements list with an action id as a 1st element
-             and the list of affected device ids as a 2nd element.
-        """
-        self.title = title
-        self.description = description
-        self.snoozing_info = snoozing_info
 
 
 def average_trust_score(user):
