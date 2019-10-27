@@ -23,8 +23,7 @@ IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
 PUBLIC_SERVICE_PORTS = {
     'mongod': (27017, 'MongoDB'),
-    'mysqld': (3306, 'MySQL'),
-    'mariadbd': (3306, 'MariaDB')
+    'mysqld': (3306, 'MySQL/MariaDB')
 }
 FTP_PORT = 21
 

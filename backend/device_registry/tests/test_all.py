@@ -389,7 +389,7 @@ class ActionsViewTests(TestCase):
         )
         self.assertContains(
             response,
-            f'We have detected that a MySQL instance on this node'
+            f'We have detected that a MySQL/MariaDB instance on this node'
         )
 
         self.portscan.scan_info[3]['host'] = '127.0.0.1'
@@ -401,7 +401,7 @@ class ActionsViewTests(TestCase):
         )
         self.assertContains(
             response,
-            f'We have detected that a MySQL instance on this node'
+            f'We have detected that a MySQL/MariaDB instance on this node'
         )
         self.assertContains(
             response,
@@ -418,7 +418,7 @@ class ActionsViewTests(TestCase):
         )
         self.assertNotContains(
             response,
-            f'We have detected that a MySQL instance on this node'
+            f'We have detected that a MySQL/MariaDB instance on this node'
         )
         self.assertNotContains(
             response,
@@ -466,7 +466,7 @@ class ActionsViewTests(TestCase):
         )
         self.assertContains(
             response,
-            f'We have detected that a MySQL instance on '
+            f'We have detected that a MySQL/MariaDB instance on '
             f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
         self.assertContains(

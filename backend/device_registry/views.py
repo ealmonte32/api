@@ -569,8 +569,7 @@ def actions_view(request, device_pk=None):
     # Insecure MongoDB, MySQL, MariaDB
     SERVICE_ACTIONS = {
         'mongod': RecommendedActions.mongod,
-        'mysqld': RecommendedActions.mysqld,
-        'mariadbd': RecommendedActions.mariadbd
+        'mysqld': RecommendedActions.mysqld
     }
     devices = request.user.devices.exclude(
         # FIXME: optimize to only include those which have SERVICE_PORTS in portscan
