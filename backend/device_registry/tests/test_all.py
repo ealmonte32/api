@@ -461,15 +461,18 @@ class ActionsViewTests(TestCase):
         )
         self.assertContains(
             response,
-            f'We have detected that a MongoDB instance on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            f'We have detected that a MongoDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
         self.assertContains(
             response,
-            f'We have detected that a MySQL instance on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            f'We have detected that a MySQL instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
         self.assertContains(
             response,
-            f'There appears to be an FTP server running on <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+            f'There appears to be an FTP server running on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
         )
         self.assertContains(
             response,
@@ -589,6 +592,62 @@ class ActionsViewTests(TestCase):
             f'We found that your node <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a> is not '
             f'configured to automatically install security updates'
         )
+
+    def test_snooze_ftp_action(self):
+        self.assertEqual(self.device.actions_count, self.actions_number)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'There appears to be an FTP server running on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.device.snooze_action(RecommendedActions.ftp.value)
+        self.assertEqual(self.device.actions_count, self.actions_number - 1)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            f'There appears to be an FTP server running on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+
+    def test_snooze_mongod_action(self):
+        self.assertEqual(self.device.actions_count, self.actions_number)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'We have detected that a MongoDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.device.snooze_action(RecommendedActions.mongod.value)
+        self.assertEqual(self.device.actions_count, self.actions_number - 1)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            f'We have detected that a MongoDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+
+    def test_snooze_mysql_root_access_action(self):
+        self.assertEqual(self.device.actions_count, self.actions_number)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'We have detected that there is no root password set for MySQL/MariaDB'
+        )
+        self.device.snooze_action(RecommendedActions.mysql_root_access.value)
+        self.assertEqual(self.device.actions_count, self.actions_number - 1)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            f'We have detected that there is no root password set for MySQL/MariaDB'
+        )
+
 
 
 class DeviceDetailViewTests(TestCase):

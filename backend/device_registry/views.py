@@ -572,13 +572,15 @@ def actions_view(request, device_pk=None):
         'mysqld': RecommendedActions.mysqld,
         'mariadbd': RecommendedActions.mariadbd
     }
-    if device_pk is not None:
-        devices = request.user.devices.filter(pk=device_pk)
-    else:
+    devices = request.user.devices.exclude(
         # FIXME: optimize to only include those which have SERVICE_PORTS in portscan
-        devices = request.user.devices.all()
+        snoozed_actions=[v.value for v in SERVICE_ACTIONS.values()]).distinct()
+    if device_pk is not None:
+        devices = devices.filter(pk=device_pk)
     for device in devices:
         for s in device.public_services:
+            if SERVICE_ACTIONS[s].value in device.snoozed_actions:
+                continue
             service_port, service_full_name = PUBLIC_SERVICE_PORTS[s]
             action_header = f'Your {service_full_name} instance may be publicly accessible'
             full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
@@ -592,6 +594,10 @@ def actions_view(request, device_pk=None):
             actions.append(action)
 
     # FTP listening on port 21
+    devices = request.user.devices.exclude(
+        snoozed_actions__contains=RecommendedActions.ftp.value).distinct()
+    if device_pk is not None:
+        devices = devices.filter(pk=device_pk)
     for device in devices:
         if device.is_ftp_public:
             full_string = f'<a href="{reverse("device-detail", kwargs={"pk": device.pk})}">{device.get_name()}</a>'
