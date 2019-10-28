@@ -588,7 +588,7 @@ def actions_view(request, device_pk=None):
             may be accessible remotely. Consider either blocking port {service_port} through the WoTT firewall
             management tool, or re-configure {service_full_name} to only listen on localhost.'''
             action = Action(action_header, action_text, [
-                SERVICE_ACTIONS[s].value, list(devices.values_list('pk', flat=True))
+                SERVICE_ACTIONS[s].value, [device.pk]
             ])
             actions.append(action)
 
@@ -606,7 +606,7 @@ def actions_view(request, device_pk=None):
                 FTP is generally considered insecure as the credentials are sent unencrypted over the internet. 
                 Consider switching to an encrypted service, such as SFTP (https://www.ssh.com/ssh/sftp/)'''
             action = Action(action_header, action_text, [
-                RecommendedActions.ftp.value, list(devices.values_list('pk', flat=True))
+                RecommendedActions.ftp.value, [device.pk]
             ])
             actions.append(action)
 
@@ -684,7 +684,7 @@ def actions_view(request, device_pk=None):
         before the command to avoid it being stored in your shell's history.
         '''
         action = Action(action_header, action_text,
-                        [RecommendedActions.mysql_root_access.value, list(devices.values_list('pk', flat=True))])
+                        [RecommendedActions.mysql_root_access.value, [device.pk]])
         actions.append(action)
 
     return render(request, 'actions.html', {
