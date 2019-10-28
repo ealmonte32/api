@@ -38,7 +38,7 @@ class RecommendedActions(Enum):
     ftp = 7
     mongod = 8
     mysqld = 9
-    mysql_root_access = 11
+    mysql_root_access = 10
 
 
 def get_bootstrap_color(val):

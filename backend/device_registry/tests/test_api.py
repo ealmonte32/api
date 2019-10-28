@@ -1316,8 +1316,10 @@ class SnoozeActionViewTest(APITestCase):
 
     def test_wrong_action_id(self):
         self.assertListEqual(self.device.snoozed_actions, [])
+        invalid_action_id = 1234
+        self.assertNotIn(invalid_action_id, (v.value for v in RecommendedActions))
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
-                                               'action_id': len(RecommendedActions) + 1})
+                                               'action_id': invalid_action_id})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'action_id': [ErrorDetail(string='Invalid recommended action id',
                                                                        code='invalid')]})
