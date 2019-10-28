@@ -19,6 +19,13 @@ from . import validators
 apt_pkg.init()
 
 DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
+IPV4_ANY = '0.0.0.0'
+IPV6_ANY = '::'
+PUBLIC_SERVICE_PORTS = {
+    'mongod': (27017, 'MongoDB'),
+    'mysqld': (3306, 'MySQL/MariaDB')
+}
+FTP_PORT = 21
 
 
 class RecommendedActions(Enum):
@@ -28,6 +35,10 @@ class RecommendedActions(Enum):
     insecure_services = 4
     sshd_config_issues = 5
     auto_updates = 6
+    ftp = 7
+    mongod = 8
+    mysqld = 9
+    mysql_root_access = 10
 
 
 def get_bootstrap_color(val):
@@ -115,6 +126,7 @@ class Device(models.Model):
     audit_files = JSONField(blank=True, default=list)
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
+    mysql_root_access = models.BooleanField(null=True, blank=True)
     snoozed_actions = JSONField(blank=True, default=list)
 
     def snooze_action(self, action_id):
@@ -271,7 +283,63 @@ class Device(models.Model):
                         bool(self.sshd_issues) and
                         RecommendedActions.sshd_config_issues.value not in self.snoozed_actions,
                         self.auto_upgrades_enabled is False and
-                        RecommendedActions.auto_updates.value not in self.snoozed_actions))
+                        RecommendedActions.auto_updates.value not in self.snoozed_actions,
+                        len(self.public_services) - len([a for a in (RecommendedActions.mongod,
+                                                                    RecommendedActions.mysqld)
+                                                        if a.value in self.snoozed_actions]),
+                        self.is_ftp_public is True and
+                        RecommendedActions.ftp.value not in self.snoozed_actions,
+                        self.mysql_root_access is True and
+                        RecommendedActions.mysql_root_access.value not in self.snoozed_actions))
+
+    def _get_listening_sockets(self, port):
+        return [r for r in self.portscan.scan_info if
+         int(r['port']) == port and r['proto'] == 'tcp' and
+         ((int(r['ip_version']) == 4 and r['host'] == IPV4_ANY) or
+          (int(r['ip_version']) == 6 and r['host'] == IPV6_ANY))]
+
+    @property
+    def is_ftp_public(self):
+        return bool(self._get_listening_sockets(FTP_PORT))
+
+    @property
+    def public_services(self):
+        """
+        Looks for open ports and known services (declared in PUBLIC_SERVICE_PORTS) listening on them.
+        :return: a set of service names (keys from PUBLIC_SERVICE_PORTS) which are listening.
+        """
+        processes = self.deviceinfo.processes
+        found = set()
+        for p in processes.values():
+            if len(found) == len(PUBLIC_SERVICE_PORTS):
+                break
+            service = p[0]
+            if service not in found and service in PUBLIC_SERVICE_PORTS:
+                port = PUBLIC_SERVICE_PORTS[service][0]
+
+                # Get all sockerts listening to port
+                listening = self._get_listening_sockets(port)
+
+                # See which processes are listening. We need to find either the service or 'docker-proxy'
+                found_service = found_docker = False
+                for sock in listening:
+                    listening_process = processes.get(str(sock.get('pid')))
+                    if not listening_process:
+                        continue
+                    name = listening_process[0]
+                    if name == service:
+                        found_service = listening_process
+                        break
+                    elif name == 'docker-proxy':
+                        found_docker = listening_process
+
+                # If it is docker-proxy listening on the port and the service is running in container,
+                # or it is the service listening on the port - recommend an action.
+                if (found_docker
+                    and any(len(p) > 3 and p[3] == 'docker' and p[0] == service for p in processes.values())) \
+                        or found_service:
+                    found.add(service)
+        return found
 
     COEFFICIENTS = {
         'app_armor_enabled': .5,

@@ -333,10 +333,22 @@ class ActionsViewTests(TestCase):
                                                                      'AllowAgentForwarding': 'yes',
                                                                      'PasswordAuthentication': 'yes'},
                           'sha256': 'abcd', 'last_modified': 1554718384.0}], auto_upgrades=False,
-            os_release={'distro': 'debian'})
-        FirewallState.objects.create(device=self.device)
-        PortScan.objects.create(device=self.device)
-        self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True)
+            os_release={'distro': 'debian'}, mysql_root_access=True)
+        self.firewall = FirewallState.objects.create(device=self.device)
+        self.portscan = PortScan.objects.create(device=self.device, scan_info=[
+            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 27017, 'pid': 12345},
+            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 34567, 'pid': 12346},
+            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 27017, 'pid': 23456},
+            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 3306, 'pid': 34567},
+            {'ip_version': 6, 'proto': 'tcp', 'state': '???', 'host': '::', 'port': 3306, 'pid': 34567},
+            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 21, 'pid': 45678}
+        ])
+        self.device_info = DeviceInfo.objects.create(device=self.device, default_password=True, processes={
+            12345: ('mongod', '', 'mongo', None),
+            12346: ('mongod', '', 'mongo', 'docker'),
+            23456: ('docker-proxy', '', 'docker', None),
+            34567: ('mysqld', '', 'mysql', None)
+        })
         deb_package = DebPackage.objects.create(name='fingerd', version='version1', source_name='fingerd',
                                                 source_version='sversion1', arch='amd64', os_release_codename='jessie')
         vulnerability = Vulnerability.objects.create(name='name', package='package', is_binary=True, other_versions=[],
@@ -345,7 +357,73 @@ class ActionsViewTests(TestCase):
         self.device.deb_packages.add(deb_package)
         self.url = reverse('actions')
         self.client.login(username='test', password='123')
-        self.actions_number = 6
+        self.actions_number = 8
+
+    def test_get_one(self):
+        url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'We have detected that a MongoDB instance on this node'
+        )
+        self.assertContains(
+            response,
+            "We have detected that there is no root password set for MySQL/MariaDB"
+        )
+
+        self.portscan.scan_info[0]['host'] = '127.0.0.1'
+        self.portscan.save()
+        response = self.client.get(url)
+        self.assertContains(
+            response,
+            f'We have detected that a MongoDB instance on this node'
+        )
+
+        self.portscan.scan_info[2]['host'] = '127.0.0.1'
+        self.portscan.save()
+        response = self.client.get(url)
+        self.assertNotContains(
+            response,
+            f'We have detected that a MongoDB instance on this node'
+        )
+        self.assertContains(
+            response,
+            f'We have detected that a MySQL/MariaDB instance on this node'
+        )
+
+        self.portscan.scan_info[3]['host'] = '127.0.0.1'
+        self.portscan.save()
+        response = self.client.get(url)
+        self.assertNotContains(
+            response,
+            f'We have detected that a MongoDB instance on this node'
+        )
+        self.assertContains(
+            response,
+            f'We have detected that a MySQL/MariaDB instance on this node'
+        )
+        self.assertContains(
+            response,
+            f'There appears to be an FTP server running'
+        )
+
+        self.portscan.scan_info[4]['host'] = '::1'
+        self.portscan.scan_info[5]['host'] = '127.0.0.1'
+        self.portscan.save()
+        response = self.client.get(url)
+        self.assertNotContains(
+            response,
+            f'We have detected that a MongoDB instance on this node'
+        )
+        self.assertNotContains(
+            response,
+            f'We have detected that a MySQL/MariaDB instance on this node'
+        )
+        self.assertNotContains(
+            response,
+            f'There appears to be an FTP server running'
+        )
 
     def test_get(self):
         self.assertEqual(self.device.actions_count, self.actions_number)
@@ -380,6 +458,25 @@ class ActionsViewTests(TestCase):
             response,
             f'We found that your node <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a> is not '
             f'configured to automatically install security updates'
+        )
+        self.assertContains(
+            response,
+            f'We have detected that a MongoDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.assertContains(
+            response,
+            f'We have detected that a MySQL/MariaDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.assertContains(
+            response,
+            f'There appears to be an FTP server running on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.assertContains(
+            response,
+            "We have detected that there is no root password set for MySQL/MariaDB"
         )
 
     def test_snooze_default_credentials_action(self):
@@ -495,6 +592,81 @@ class ActionsViewTests(TestCase):
             f'We found that your node <a href="/devices/{self.device.pk}/">{self.device.get_name()}</a> is not '
             f'configured to automatically install security updates'
         )
+
+    def test_snooze_ftp_action(self):
+        self.assertEqual(self.device.actions_count, self.actions_number)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'There appears to be an FTP server running on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.device.snooze_action(RecommendedActions.ftp.value)
+        self.assertEqual(self.device.actions_count, self.actions_number - 1)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            f'There appears to be an FTP server running on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+
+    def test_snooze_mongod_action(self):
+        self.assertEqual(self.device.actions_count, self.actions_number)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'We have detected that a MongoDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.device.snooze_action(RecommendedActions.mongod.value)
+        self.assertEqual(self.device.actions_count, self.actions_number - 1)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            f'We have detected that a MongoDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+
+    def test_snooze_mysqld_action(self):
+        self.assertEqual(self.device.actions_count, self.actions_number)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'We have detected that a MySQL/MariaDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+        self.device.snooze_action(RecommendedActions.mysqld.value)
+        self.assertEqual(self.device.actions_count, self.actions_number - 1)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            f'We have detected that a MySQL/MariaDB instance on '
+            f'<a href="/devices/{self.device.pk}/">{self.device.get_name()}</a>'
+        )
+
+    def test_snooze_mysql_root_access_action(self):
+        self.assertEqual(self.device.actions_count, self.actions_number)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'We have detected that there is no root password set for MySQL/MariaDB'
+        )
+        self.device.snooze_action(RecommendedActions.mysql_root_access.value)
+        self.assertEqual(self.device.actions_count, self.actions_number - 1)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            f'We have detected that there is no root password set for MySQL/MariaDB'
+        )
+
 
 
 class DeviceDetailViewTests(TestCase):

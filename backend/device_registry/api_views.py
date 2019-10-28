@@ -95,6 +95,7 @@ class MtlsPingView(APIView):
             device.deb_packages_hash = deb_packages['hash']
             device.set_deb_packages(deb_packages['packages'], os_release)
         device.os_release = os_release
+        device.mysql_root_access = data.get('mysql_root_access')
         device.snoozed_actions = []  # Cleanup snoozed actions list.
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
@@ -109,7 +110,8 @@ class MtlsPingView(APIView):
         processes = data.get('processes')
         if processes:
             # Convert from list to dict.
-            device_info_object.processes = {e['pid']: (e['name'], e['username'], e['cmdline']) for e in processes}
+            device_info_object.processes = {e['pid']: (e['name'], e['username'], e['cmdline'], e.get('container'))
+                                            for e in processes}
         else:
             device_info_object.processes = {}
         device_info_object.default_password = data.get('default_password')
@@ -136,7 +138,8 @@ class MtlsPingView(APIView):
 
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
-                                   'update_trust_score', 'os_release', 'auto_upgrades', 'snoozed_actions'])
+                                   'update_trust_score', 'os_release', 'auto_upgrades', 'snoozed_actions',
+                                   'mysql_root_access'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
