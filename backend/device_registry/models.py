@@ -38,7 +38,6 @@ class RecommendedActions(Enum):
     ftp = 7
     mongod = 8
     mysqld = 9
-    mariadbd = 10
     mysql_root_access = 11
 
 
@@ -286,8 +285,7 @@ class Device(models.Model):
                         self.auto_upgrades_enabled is False and
                         RecommendedActions.auto_updates.value not in self.snoozed_actions,
                         len(self.public_services) - len([a for a in (RecommendedActions.mongod,
-                                                                    RecommendedActions.mysqld,
-                                                                    RecommendedActions.mariadbd)
+                                                                    RecommendedActions.mysqld)
                                                         if a.value in self.snoozed_actions]),
                         self.is_ftp_public is True and
                         RecommendedActions.ftp.value not in self.snoozed_actions,
