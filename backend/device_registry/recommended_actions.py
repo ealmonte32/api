@@ -128,71 +128,6 @@ class VulnerablePackagesAction(ActionMultiDevice):
 action_classes.append(VulnerablePackagesAction)
 
 
-# Automatic security update disabled action.
-class AutoUpdatesAction(ActionMultiDevice):
-    action_id = 6
-    action_title = 'Consider enable automatic security updates'
-    action_description = '<p>We found that %s not configured to automatically install security updates. Consider ' \
-                         'enabling this feature.</p>' \
-                         '<p>Details for how to do this can be found <a href="%s" target="_blank">here</a>.</p>'
-
-    @classmethod
-    def get_doc_url(cls, devices):
-        debian_url = 'https://wiki.debian.org/UnattendedUpgrades'
-        ubuntu_url = 'https://help.ubuntu.com/lts/serverguide/automatic-updates.html'
-        if devices.count() > 1:
-            # Provide Debian's link if more than 1 device.
-            return debian_url
-        else:
-            if devices.first().os_release.get('distro') == 'ubuntu':
-                return ubuntu_url
-            else:  # Everything besides Ubuntu is Debian.
-                return debian_url
-
-    @classmethod
-    def get_action_description_context(cls, devices, device_pk):
-        if device_pk is None:
-            dev_list = [device_link(dev) for dev in devices]
-            full_string = ', '.join(dev_list)
-            if len(dev_list) > 1:
-                dev_str = f'your nodes {full_string} are'
-            else:
-                dev_str = f'your node {full_string} is'
-        else:
-            dev_str = 'this node is'
-        return dev_str, cls.get_doc_url(devices)
-
-    @classmethod
-    def affected_devices(cls, user, device_pk=None):
-        return super().affected_devices(user, device_pk).filter(auto_upgrades=False)
-
-
-action_classes.append(AutoUpdatesAction)
-
-
-# MySQL root default password action.
-class MySQLDefaultRootPasswordAction(ActionPerDevice):
-    action_id = 10
-    action_title = 'No root password set for the MySQL/MariaDB server'
-    action_description = """We detected that there is no root password set for MySQL/MariaDB on %s.
-            Not having a root password set makes it easy for anyone with access to the
-            service to copy all information from the database. It is recommended that 
-            you change the password as soon as possible. There are multiple ways to do
-            this, including using mysqladmin as follows:
-
-            <pre>mysqladmin -u root password NEWPASSWORD</pre>
-
-            Tip: If you are using mysqladmin as per above, make sure to add a space 
-            before the command to avoid it being stored in your shell's history."""
-
-    @classmethod
-    def affected_devices(cls, user, device_pk=None):
-        return super().affected_devices(user, device_pk).filter(mysql_root_access=True)
-
-
-action_classes.append(MySQLDefaultRootPasswordAction)
-
-
 # Insecure services found action.
 class InsecureServicesAction(ActionPerDevice):
     action_id = 4
@@ -252,6 +187,48 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
 
 
 action_classes.append(OpensshConfigurationIssuesAction)
+
+
+# Automatic security update disabled action.
+class AutoUpdatesAction(ActionMultiDevice):
+    action_id = 6
+    action_title = 'Consider enable automatic security updates'
+    action_description = '<p>We found that %s not configured to automatically install security updates. Consider ' \
+                         'enabling this feature.</p>' \
+                         '<p>Details for how to do this can be found <a href="%s" target="_blank">here</a>.</p>'
+
+    @classmethod
+    def get_doc_url(cls, devices):
+        debian_url = 'https://wiki.debian.org/UnattendedUpgrades'
+        ubuntu_url = 'https://help.ubuntu.com/lts/serverguide/automatic-updates.html'
+        if devices.count() > 1:
+            # Provide Debian's link if more than 1 device.
+            return debian_url
+        else:
+            if devices.first().os_release.get('distro') == 'ubuntu':
+                return ubuntu_url
+            else:  # Everything besides Ubuntu is Debian.
+                return debian_url
+
+    @classmethod
+    def get_action_description_context(cls, devices, device_pk):
+        if device_pk is None:
+            dev_list = [device_link(dev) for dev in devices]
+            full_string = ', '.join(dev_list)
+            if len(dev_list) > 1:
+                dev_str = f'your nodes {full_string} are'
+            else:
+                dev_str = f'your node {full_string} is'
+        else:
+            dev_str = 'this node is'
+        return dev_str, cls.get_doc_url(devices)
+
+    @classmethod
+    def affected_devices(cls, user, device_pk=None):
+        return super().affected_devices(user, device_pk).filter(auto_upgrades=False)
+
+
+action_classes.append(AutoUpdatesAction)
 
 
 # FTP listening on port 21 action.
@@ -315,3 +292,30 @@ class MysqlAction(ActionPerDevice):
 
 
 action_classes.append(MysqlAction)
+
+
+# MySQL root default password action.
+class MySQLDefaultRootPasswordAction(ActionPerDevice):
+    action_id = 10
+    action_title = 'No root password set for the MySQL/MariaDB server'
+    action_description = """We detected that there is no root password set for MySQL/MariaDB on %s.
+            Not having a root password set makes it easy for anyone with access to the
+            service to copy all information from the database. It is recommended that 
+            you change the password as soon as possible. There are multiple ways to do
+            this, including using mysqladmin as follows:
+
+            <pre>mysqladmin -u root password NEWPASSWORD</pre>
+
+            Tip: If you are using mysqladmin as per above, make sure to add a space 
+            before the command to avoid it being stored in your shell's history."""
+
+    @classmethod
+    def affected_devices(cls, user, device_pk=None):
+        return super().affected_devices(user, device_pk).filter(mysql_root_access=True)
+
+
+action_classes.append(MySQLDefaultRootPasswordAction)
+
+# Check for `action_id` property uniqueness among all action classes.
+if len({action_class.action_id for action_class in action_classes}) < len(action_classes):
+    raise ValueError('`action_classes` contains class(es) with non-unique `action_id` property.')
