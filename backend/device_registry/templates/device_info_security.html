@@ -41,6 +41,26 @@
                     {% endwith %}
                   </td>
                 </tr>
+                {% if object.cpu.vendor == 'GenuineIntel' %}
+                <tr>
+                  <th scope="row">
+                    Patched against Meltdown/Spectre
+                  </th>
+                  <td>
+                    {% with object.cpu_vulnerable as cpu_vulnerable %}
+                    {% if cpu_vulnerable is False %}
+                        {% include "badge.html" with icon="check" color="success" %}
+                        No
+                    {% elif cpu_vulnerable is True %}
+                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                        Yes
+                    {% else %}
+                        N/A
+                    {% endif %}
+                    {% endwith %}
+                  </td>
+                </tr>
+                {% endif %}
                 <tr>
                   <th scope="row">
                     Default Credentials
