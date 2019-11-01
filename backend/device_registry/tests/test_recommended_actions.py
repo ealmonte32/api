@@ -9,6 +9,38 @@ from device_registry.recommended_actions import InsecureServicesAction, OpensshC
 from device_registry.recommended_actions import FtpServerAction, MongodbAction, MysqlAction
 
 
+class NoDevicesActionTest(TestCase):
+    def test_get(self):
+        User = get_user_model()
+        user = User.objects.create_user('test')
+        user.set_password('123')
+        user.save()
+        self.client.login(username='test', password='123')
+        common_actions_url = reverse('actions')
+        search_string = 'In order to receive recommended actions'
+
+        # No devices.
+        response = self.client.get(common_actions_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, search_string)
+
+        # Create a device.
+        device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=user)
+        FirewallState.objects.create(device=device)
+        PortScan.objects.create(device=device)
+        DeviceInfo.objects.create(device=device)
+        response = self.client.get(common_actions_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, search_string)
+
+        # Revoke the device.
+        device.owner = None
+        device.save(update_fields=['owner'])
+        response = self.client.get(common_actions_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, search_string)
+
+
 class TestsMixin:
     def test_get(self):
         search_string_common_page = self.get_search_string()

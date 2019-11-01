@@ -16,7 +16,7 @@ from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey
 from .models import GlobalPolicy
 from .api_views import DeviceListFilterMixin
-from .recommended_actions import action_classes, FirewallDisabledAction
+from .recommended_actions import action_classes, FirewallDisabledAction, Action
 
 
 class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
@@ -480,16 +480,27 @@ class RecommendedActionsView(LoginRequiredMixin, TemplateView):
     template_name = 'actions.html'
 
     def get_context_data(self, **kwargs):
-        device_pk = kwargs.get('device_pk')
-        if device_pk is not None:
-            dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
-            device_name = dev.get_name()
-        else:
-            device_name = None
-
         actions = []
-        for action_class in action_classes:
-            actions.extend(action_class.actions(self.request.user, device_pk))
+
+        if self.request.user.devices.exists():
+            device_pk = kwargs.get('device_pk')
+            if device_pk is not None:
+                dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
+                device_name = dev.get_name()
+            else:
+                device_name = None
+
+            for action_class in action_classes:
+                actions.extend(action_class.actions(self.request.user, device_pk))
+        else:  # User has no devices - display the special action.
+            device_name = None
+            action = Action(
+                'Enroll your node(s) to unlock this feature',
+                'In order to receive recommended actions, click "Add Node" under "Dashboard" to receive instructions '
+                'on how to enroll your nodes.',
+                [0, []]
+            )
+            actions.append(action)
 
         context = super().get_context_data(**kwargs)
         context['actions'] = actions
