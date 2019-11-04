@@ -5,8 +5,9 @@ from pathlib import Path
 from celery import shared_task
 import redis
 
+from device_registry.models import Vulnerability
 
-UBUNTU_CVE_TRACKER_PATH = Path('/tmp/ubuntu-cve-tracker')
+
 supported_releases = ['xenial', 'bionic']
 
 # All EOL, ppa overlays, and ESM releases
@@ -36,7 +37,6 @@ def get_cve_url(filepath):
 # Taken from ubuntu-cve-tracker/scripts/generate-oval.py
 def parse_cve_file(filepath):
     """ parse CVE data file into a dictionary """
-    sys.path.append(str(UBUNTU_CVE_TRACKER_PATH / 'scripts'))
     from cve_lib import (meta_kernels, kernel_srcs, kernel_package_abi, kernel_package_version)
     debug_level = 0
 
@@ -276,8 +276,34 @@ def clone_cve_repo(repo_dir: Path):
 
 @shared_task(soft_time_limit=60 * 30, time_limit=60 * 30 + 5)  # Should live 30m max.
 def fetch_vulnerabilities():
+    ubuntu_cve_tracker_path = Path('/tmp/ubuntu-cve-tracker')
+    sys.path.append(str(ubuntu_cve_tracker_path / 'scripts'))
     print('CLONING')
-    clone_cve_repo(UBUNTU_CVE_TRACKER_PATH)
+    clone_cve_repo(ubuntu_cve_tracker_path)
     print('PARSING')
-    o1 = parse_cve_directory(UBUNTU_CVE_TRACKER_PATH)
-    print('DONE')
+    Vulnerability.objects.filter(os_release_codename__in=['bionic', 'xenial']).delete()
+    vulnerabilities = []
+    parsed = parse_cve_directory(ubuntu_cve_tracker_path)
+    for vuln in parsed:
+        header, codenames = vuln['header'], vuln['packages']
+        name = header['Candidate']
+        for package, releases in codenames.items():
+            for codename, info in releases.items():
+                status, fix_version = info['status'], info.get('fix-version', '')
+                v = Vulnerability(
+                    name=name,
+                    package=package,
+                    unstable_version=fix_version,
+                    other_versions=[],
+                    is_binary=False,
+                    urgency={
+                        'low': Vulnerability.Urgency.LOW,
+                        'medium': Vulnerability.Urgency.MEDIUM,
+                        'high': Vulnerability.Urgency.HIGH,
+                    }.get(header['Priority'], Vulnerability.Urgency.NONE),
+                    remote=None,
+                    fix_available=(status == 'fixed'),
+                    os_release_codename=codename
+                )
+                vulnerabilities.append(v)
+    Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
