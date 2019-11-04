@@ -243,9 +243,13 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'device_registry.tasks.update_trust_score',
         'schedule': crontab(minute=f'*/{TRUST_SCORE_UPDATE_INTERVAL}')  # Execute once in every 5 minutes.
     },
-    'fetch_vulnerabilities': {
-        'task': 'device_registry.tasks.fetch_vulnerabilities',
+    'fetch_vulnerabilities_debian': {
+        'task': 'device_registry.tasks.debian_cve.fetch_vulnerabilities',
         'schedule': crontab(hour=1)  # Execute once in a day at 1AM.
+    },
+    'fetch_vulnerabilities_ubuntu': {
+        'task': 'device_registry.tasks.ubuntu_cve.fetch_vulnerabilities',
+        'schedule': crontab(hour=2)  # Execute once in a day at 2AM.
     },
     'update_packages_vulnerabilities': {
         'task': 'device_registry.tasks.update_packages_vulnerabilities',
