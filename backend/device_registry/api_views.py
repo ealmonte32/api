@@ -94,15 +94,17 @@ class MtlsPingView(APIView):
             deb_packages = data['deb_packages']
             device.deb_packages_hash = deb_packages['hash']
             device.set_deb_packages(deb_packages['packages'], os_release)
-        if 'kernel_package' in data:
-            d = data['kernel_package']
-            device.kernel_deb_package = DebPackage.objects.get(name=d['name'],
-                                                               version=d['version'],
-                                                               source_name=d['source_name'],
-                                                               source_version=d['source_version'],
-                                                               arch=d['arch'])
-        if 'cpu' in data:
-            device.cpu = data['cpu']
+        package = data.get('kernel_package')
+        if package:
+            device.kernel_deb_package = DebPackage.objects.get(name=package['name'],
+                                                               version=package['version'],
+                                                               source_name=package['source_name'],
+                                                               source_version=package['source_version'],
+                                                               arch=package['arch'],
+                                                               os_release_codename=os_release['codename'])
+        else:
+            device.kernel_deb_package = None
+        device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
         device.snoozed_actions = []  # Cleanup snoozed actions list.

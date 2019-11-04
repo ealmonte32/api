@@ -278,7 +278,7 @@ class DeviceModelTest(TestCase):
         self.assertEqual(score, ((self.device0.trust_score + self.device1.trust_score) / 2.0))
 
     def test_cpu_vulnerable(self):
-        assert self.device0.cpu_vulnerable is None
+        self.assertIsNone(self.device0.cpu_vulnerable)
 
         pkg = DebPackage.objects.create(os_release_codename='buster', name='linux', version='5.0.0',
                                         source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
@@ -287,15 +287,15 @@ class DeviceModelTest(TestCase):
 
         self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': True}
         self.device0.save()
-        assert self.device0.cpu_vulnerable is True
+        self.assertTrue(self.device0.cpu_vulnerable)
 
         self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': False}
         self.device0.save()
-        assert self.device0.cpu_vulnerable is False
+        self.assertFalse(self.device0.cpu_vulnerable)
 
         self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': None, 'mitigations_disabled': True}
         self.device0.save()
-        assert self.device0.cpu_vulnerable is True
+        self.assertTrue(self.device0.cpu_vulnerable)
 
         vuln = Vulnerability.objects.create(os_release_codename='buster', name='CVE-2017-5753', package='linux',
                                             other_versions=[], is_binary=False, urgency=Vulnerability.Urgency.HIGH,
@@ -304,11 +304,11 @@ class DeviceModelTest(TestCase):
         pkg.save()
         self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': None, 'mitigations_disabled': False}
         self.device0.save()
-        assert self.device0.cpu_vulnerable is True
+        self.assertTrue(self.device0.cpu_vulnerable)
 
         self.device0.cpu = {'vendor': 'AuthenticAMD'}
         self.device0.save()
-        assert self.device0.cpu_vulnerable is False
+        self.assertFalse(self.device0.cpu_vulnerable)
 
 
 class FormsTests(TestCase):

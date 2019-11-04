@@ -50,10 +50,10 @@
                     {% with object.cpu_vulnerable as cpu_vulnerable %}
                     {% if cpu_vulnerable is False %}
                         {% include "badge.html" with icon="check" color="success" %}
-                        No
+                        Yes
                     {% elif cpu_vulnerable is True %}
                         {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                        Yes
+                        No
                     {% else %}
                         N/A
                     {% endif %}
