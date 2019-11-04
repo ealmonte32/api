@@ -24,8 +24,8 @@ def update_trust_score():
 # Should live 4m max and throw and exception to Sentry when killed.
 @shared_task(soft_time_limit=60 * 4, time_limit=60 * 4 + 5)  # Should live 4m max.
 def update_packages_vulnerabilities():
-    #redis_conn = redis.Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', '6379')),
-    #                         password=os.getenv('REDIS_PASSWORD'))
+    redis_conn = redis.Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', '6379')),
+                             password=os.getenv('REDIS_PASSWORD'))
     try:
         # Try to acquire the lock.
         # Spend trying 3s.
