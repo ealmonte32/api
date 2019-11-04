@@ -6,7 +6,7 @@ from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, 
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction
 from device_registry.recommended_actions import VulnerablePackagesAction, MySQLDefaultRootPasswordAction
 from device_registry.recommended_actions import InsecureServicesAction, OpensshConfigurationIssuesAction
-from device_registry.recommended_actions import FtpServerAction, MongodbAction, MysqlAction
+from device_registry.recommended_actions import FtpServerAction, MongodbAction, MysqlAction, MemcachedAction
 
 
 class NoDevicesActionTest(TestCase):
@@ -234,5 +234,20 @@ class MysqlActionTest(BaseActionTest, TestsMixin):
         self.device.deviceinfo.save(update_fields=['processes'])
         self.device.portscan.scan_info = [
             {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 3306, 'pid': 34567}
+        ]
+        self.device.portscan.save(update_fields=['scan_info'])
+
+
+class MemcachedActionTest(BaseActionTest, TestsMixin):
+    search_pattern_common_page = 'We detected that a Memcached instance on <a href="%s">%s</a> may be accessible ' \
+                                 'remotely'
+    search_pattern_device_page = 'We detected that a Memcached instance on this node may be accessible remotely'
+    action_class = MemcachedAction
+
+    def enable_action(self):
+        self.device.deviceinfo.processes = {34568: ('memcached', '', 'memcache', None)}
+        self.device.deviceinfo.save(update_fields=['processes'])
+        self.device.portscan.scan_info = [
+            {'ip_version': 4, 'proto': 'tcp', 'state': 'LISTEN', 'host': '0.0.0.0', 'port': 11211, 'pid': 34568}
         ]
         self.device.portscan.save(update_fields=['scan_info'])

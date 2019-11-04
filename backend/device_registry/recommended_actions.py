@@ -356,6 +356,27 @@ class MySQLDefaultRootPasswordAction(ActionPerDevice):
 
 action_classes.append(MySQLDefaultRootPasswordAction)
 
+
+# Insecure Memcached action.
+class MemcachedAction(ActionPerDevice):
+    action_id = 11
+    action_title = 'Your Memcached instance may be publicly accessible'
+    action_description = 'We detected that a Memcached instance on %s may be accessible remotely. ' \
+                         'Consider either blocking port 11211 through the WoTT firewall management tool, or ' \
+                         're-configure Memcached to only listen on localhost.'
+
+    @classmethod
+    def affected_devices(cls, user, device_pk=None):
+        from .models import Device
+        dev_ids = []
+        for dev in super().affected_devices(user, device_pk):
+            if 'memcached' in dev.public_services:
+                dev_ids.append(dev.pk)
+        return Device.objects.filter(pk__in=dev_ids)
+
+
+action_classes.append(MemcachedAction)
+
 # Check for `action_id` property uniqueness among all action classes.
 if len({action_class.action_id for action_class in action_classes}) < len(action_classes):
     raise ValueError('`action_classes` contains class(es) with non-unique `action_id` property.')
