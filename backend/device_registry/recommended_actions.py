@@ -49,6 +49,17 @@ class BaseAction:
             devices = devices.filter(pk=device_pk)
         return devices
 
+    @classmethod
+    def get_action_description_context(cls, devices, device_pk):
+        """
+        Method for producing a tuple of values used (as string formatting parameters)
+         for action description text rendering.
+        :param devices: queryset for Device model instances affected by the action;
+        :param device_pk: int/None - single affected device id;
+        :return: iterable (tuple/list);
+        """
+        raise NotImplementedError
+
 
 class ActionMultiDevice(BaseAction):
     """
