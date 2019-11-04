@@ -477,6 +477,10 @@ class PairingKeySaveFileView(LoginRequiredMixin, View):
 
 
 class RecommendedActionsView(LoginRequiredMixin, TemplateView):
+    """
+    Display all available to the user (or to the device) recommended actions.
+    Handle 2 different url patterns: one for all user's devices, another of particular device.
+    """
     template_name = 'actions.html'
 
     def get_context_data(self, **kwargs):

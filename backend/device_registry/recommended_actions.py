@@ -2,6 +2,13 @@ from django.urls import reverse
 
 
 class Action:
+    """
+    Action class.
+
+    It's only purpose is to store particular actions info and be passed from a
+     view to a template.
+    """
+
     def __init__(self, title, description, snoozing_info):
         """
         Args:
@@ -16,14 +23,24 @@ class Action:
 
 
 def device_link(device):
+    """Create a device's page html link code"""
     url = reverse('device-detail', kwargs={'pk': device.pk})
     return f'<a href="{url}">{device.get_name()}</a>'
 
 
+# A list for storing all available recommended actions classes for further usage.
+# All newly added classes should be appended to it explicitly after the declaration.
+# Otherwise they'll be inaccessible for the system.
 action_classes = []
 
 
 class BaseAction:
+    """
+    Common base action class.
+
+    It's a parent for all specific base action classes.
+    Contains the code supposed to fit *all* actions.
+    """
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -34,12 +51,16 @@ class BaseAction:
 
 
 class ActionMultiDevice(BaseAction):
+    """
+    Specific base action class for actions able to store info for *multiple* devices.
+    """
+
     @classmethod
     def get_action_description_context(cls, devices, device_pk):
         if device_pk is None:
-            return ', '.join([device_link(dev) for dev in devices])
+            return (', '.join([device_link(dev) for dev in devices]),)
         else:
-            return 'this node'
+            return ('this node',)
 
     @classmethod
     def actions(cls, user, device_pk=None):
@@ -56,12 +77,16 @@ class ActionMultiDevice(BaseAction):
 
 
 class ActionPerDevice(BaseAction):
+    """
+        Specific base action class for actions able to store info for only *single* device.
+    """
+
     @classmethod
     def get_action_description_context(cls, device, device_pk):
         if device_pk is None:
-            return device_link(device)
+            return (device_link(device),)
         else:
-            return 'this node'
+            return ('this node',)
 
     @classmethod
     def actions(cls, user, device_pk=None):
@@ -76,6 +101,10 @@ class ActionPerDevice(BaseAction):
             actions_list.append(action)
         return actions_list
 
+
+# Below is the code for real actions classes.
+# Don't forget to explicitly append a newly created action class to `action_classes` list
+# right after its declaration.
 
 # Default username/password used action.
 class DefaultCredentialsAction(ActionMultiDevice):

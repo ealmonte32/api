@@ -10,6 +10,14 @@ from device_registry.recommended_actions import FtpServerAction, MongodbAction, 
 
 
 class TestsMixin:
+    """
+    A mixin with actual unified tests code.
+
+    The reason of putting them in a separate mixin out of the base test class -
+     is that otherwise the Django test runner considers the base test class as
+     a regular test class and run its tests which isn't what we want from it.
+    """
+
     def test_get(self):
         search_string_common_page = self.get_search_string()
 
@@ -44,6 +52,13 @@ class TestsMixin:
 
 
 class BaseActionTest(TestCase):
+    """
+    Base action test class.
+
+    Doesn't supposed to be exectuted by the Django test runner because it
+     doesn't contain real tests code.
+    """
+
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test')
