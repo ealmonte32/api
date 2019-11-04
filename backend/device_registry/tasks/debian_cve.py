@@ -70,4 +70,4 @@ def fetch_vulnerabilities():
         # with transaction.atomic():
         Vulnerability.objects.all().delete()
         Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
-        DebPackage.objects.update(processed=False)
+        DebPackage.objects.filter(os_release_codename__in=DEBIAN_SUITES).update(processed=False)

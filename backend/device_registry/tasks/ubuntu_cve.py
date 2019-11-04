@@ -5,10 +5,10 @@ from pathlib import Path
 from celery import shared_task
 import redis
 
-from device_registry.models import Vulnerability
+from device_registry.models import Vulnerability, DebPackage, UBUNTU_SUITES
 
 
-supported_releases = ['xenial', 'bionic']
+supported_releases = list(UBUNTU_SUITES)
 
 # All EOL, ppa overlays, and ESM releases
 ignored_releases = [
@@ -197,30 +197,10 @@ def parse_package_status(release, package, status_text, filepath):
 
     if code == 'dne':
         status = 'not-applicable'
-    elif code == 'ignored':
+    elif code in ['ignored', 'pending', 'deferred', 'needed', 'needs-triage']:
         status = 'vulnerable'
     elif code == 'not-affected':
-        # check if there is a release version and if so, test for
-        # package existence with that version
-        if detail and detail[0].isdigit():
-            status = 'fixed'
-            fix_version = detail
-        else:
-            status = 'not-vulnerable'
-    elif code == 'needed':
-        status = 'vulnerable'
-    elif code == 'pending':
-        # pending means that packages have been prepared and are in
-        # -proposed or in a ppa somewhere, and should have a version
-        # attached. If there is a version, test for package existence
-        # with that version, otherwise mark as vulnerable
-        if detail and detail[0].isdigit():
-            status = 'fixed'
-            fix_version = detail
-        else:
-            status = 'vulnerable'
-    elif code == 'deferred':
-        status = 'vulnerable'
+        status = 'not-vulnerable'
     elif code in ['released', 'released-esm']:
         # if there isn't a release version, then just mark
         # as vulnerable to test for package existence
@@ -229,8 +209,6 @@ def parse_package_status(release, package, status_text, filepath):
         else:
             status = 'fixed'
             fix_version = detail
-    elif code == 'needs-triage':
-        status = 'vulnerable'
     else:
         print('Unsupported status "{0}" in {1}_{2} in "{3}". Setting to "unknown".'
               .format(code, release, package, filepath))
@@ -307,3 +285,4 @@ def fetch_vulnerabilities():
                 )
                 vulnerabilities.append(v)
     Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
+    DebPackage.objects.filter(os_release_codename__in=UBUNTU_SUITES).update(processed=False)

@@ -4,7 +4,7 @@ import os
 from celery import shared_task
 import redis
 
-from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES
+from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
 
 logger = logging.getLogger('django')
 
@@ -24,14 +24,14 @@ def update_trust_score():
 # Should live 4m max and throw and exception to Sentry when killed.
 @shared_task(soft_time_limit=60 * 4, time_limit=60 * 4 + 5)  # Should live 4m max.
 def update_packages_vulnerabilities():
-    redis_conn = redis.Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', '6379')),
-                             password=os.getenv('REDIS_PASSWORD'))
+    #redis_conn = redis.Redis(host=os.getenv('REDIS_HOST', 'redis'), port=int(os.getenv('REDIS_PORT', '6379')),
+    #                         password=os.getenv('REDIS_PASSWORD'))
     try:
         # Try to acquire the lock.
         # Spend trying 3s.
         # In case of success set the lock's timeout to 5m.
         with redis_conn.lock('vulns_lock', timeout=60 * 5, blocking_timeout=3):
-            packages = DebPackage.objects.filter(processed=False, os_release_codename__in=DEBIAN_SUITES)
+            packages = DebPackage.objects.filter(processed=False, os_release_codename__in=DEBIAN_SUITES+UBUNTU_SUITES)
             for package in packages:
                 actionable_valns = []
                 vulns = Vulnerability.objects.filter(package=package.source_name,
