@@ -11,10 +11,12 @@
     <div class="mb-3 mt-3 w-100" id="alert-container">
       {% for action in actions %}
         <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close"
-                  onclick="snoozeAction('{{ action.snoozing_info.0 }}', {{ action.snoozing_info.1 }})">
-            <span aria-hidden="true">×</span>
-          </button>
+          {% ifnotequal action.snoozing_info.0 0 %}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"
+                    onclick="snoozeAction('{{ action.snoozing_info.0 }}', {{ action.snoozing_info.1 }})">
+              <span aria-hidden="true">×</span>
+            </button>
+          {% endifnotequal %}
           <div class="alert-message">
             <h3 class="alert-heading">{{ action.title|safe }}</h3>
             <p>{{ action.description|safe }}</p>
