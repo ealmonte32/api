@@ -17,8 +17,8 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
 from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
-from device_registry.models import RecommendedActions
 from device_registry.serializers import DeviceListSerializer
+from device_registry.recommended_actions import action_classes
 
 from device_registry.models import GlobalPolicy
 
@@ -1305,21 +1305,20 @@ class SnoozeActionViewTest(APITestCase):
         self.user = User.objects.create_user('test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.client.login(username='test', password='123')
+        self.action_class = action_classes[0]
 
     def test_post(self):
         self.assertListEqual(self.device.snoozed_actions, [])
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
-                                               'action_id': RecommendedActions.default_credentials.value})
+                                               'action_id': self.action_class.action_id})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.device.refresh_from_db()
-        self.assertListEqual(self.device.snoozed_actions, [RecommendedActions.default_credentials.value])
+        self.assertListEqual(self.device.snoozed_actions, [self.action_class.action_id])
 
     def test_wrong_action_id(self):
         self.assertListEqual(self.device.snoozed_actions, [])
-        invalid_action_id = 1234
-        self.assertNotIn(invalid_action_id, (v.value for v in RecommendedActions))
-        response = self.client.post(self.url, {'device_ids': [self.device.pk],
-                                               'action_id': invalid_action_id})
+        action_id = max([action_class.action_id for action_class in action_classes]) + 1
+        response = self.client.post(self.url, {'device_ids': [self.device.pk], 'action_id': action_id})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'action_id': [ErrorDetail(string='Invalid recommended action id',
                                                                        code='invalid')]})
@@ -1329,7 +1328,7 @@ class SnoozeActionViewTest(APITestCase):
     def test_wrong_device_id(self):
         self.assertListEqual(self.device.snoozed_actions, [])
         response = self.client.post(self.url, {'device_ids': [self.device.pk + 1],
-                                               'action_id': RecommendedActions.default_credentials.value})
+                                               'action_id': self.action_class.action_id})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'device_ids': [ErrorDetail(string='Invalid device id(s) provided',
                                                                         code='invalid')]})
