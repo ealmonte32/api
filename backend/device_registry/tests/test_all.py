@@ -1,5 +1,5 @@
-import datetime
 import json
+from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -142,8 +142,8 @@ class DeviceModelTest(TestCase):
         User = get_user_model()
         self.user0 = User.objects.create_user('test')
         self.user1 = User.objects.create_user('test-no-device')
-        week_ago = timezone.now() - datetime.timedelta(days=7)
-        hour_ago = timezone.now() - datetime.timedelta(hours=1)
+        week_ago = timezone.now() - timezone.timedelta(days=7)
+        hour_ago = timezone.now() - timezone.timedelta(hours=1)
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
             last_ping=week_ago,
@@ -376,11 +376,6 @@ class DeviceDetailViewTests(TestCase):
         url = reverse('device-detail', kwargs={'pk': self.device.pk})
         response = self.client.get(url)
         self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/')
-
-    def test_device_detail_software_not_logged_in(self):
-        url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
-        response = self.client.get(url)
-        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/software/')
 
     def test_device_detail_security_not_logged_in(self):
         response = self.client.get(self.url2)
@@ -652,6 +647,40 @@ class DeviceDetailViewTests(TestCase):
         # Other user's global policy is not available as an option.
         self.assertNotContains(response, '<option value="%d">%s</option>' % (gp2.pk, gp2.name))
 
+    def test_device_detail_software_not_logged_in(self):
+        url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
+        response = self.client.get(url)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/software/')
+
+    @patch('django.utils.timezone.now')
+    def test_get_device_detail_software(self, mock_timezone):
+        mock_timezone.return_value = timezone.datetime(2019, 11, 5, tzinfo=timezone.utc)
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
+        # Unknown distro.
+        response = self.client.get(url)
+        self.assertContains(response, '<td id="eol_info">\n                  \n                    \n                 '
+                                      '   N/A\n                  \n                </td>\n              </tr>\n       '
+                                      '       <tr>\n                <th scope="row">Agent Version</th>\n              '
+                                      '  <td>N/A</td>')
+        # Supported distro version.
+        self.device.os_release = {'distro': 'raspbian', 'version': '10', 'codename': 'buster',
+                                  'distro_root': 'debian', 'full_version': '10 (buster)'}
+        self.device.save(update_fields=['os_release'])
+        response = self.client.get(url)
+        # print(response.content)
+        self.assertContains(response, '<td id="eol_info">\n                  \n                    \n                 '
+                                      '   July 1, 2022\n                  \n                </td>')
+        # Outdated distro version.
+        self.device.os_release = {'distro': 'debian', 'version': '7', 'codename': 'wheezy',
+                                  'distro_root': 'debian', 'full_version': '7 (wheezy)'}
+        self.device.save(update_fields=['os_release'])
+        response = self.client.get(url)
+        self.assertContains(response, '<td id="eol_info">\n                  \n                    \n                 '
+                                      '     <span class="p-1 text-danger">\n    <i class="fas fa-exclamation-circle" >'
+                                      '</i>\n</span>\n\n                    \n                    May 31, 2018\n      '
+                                      '            \n                </td>')
+
 
 class PairingKeysView(TestCase):
     def setUp(self):
@@ -691,7 +720,7 @@ class RootViewTests(TestCase):
             owner=self.user,
             certificate=TEST_CERT,
             name='First',
-            last_ping=timezone.now() - datetime.timedelta(days=1, hours=1)
+            last_ping=timezone.now() - timezone.timedelta(days=1, hours=1)
         )
         self.deviceinfo0 = DeviceInfo.objects.create(
             device=self.device0,
@@ -704,7 +733,7 @@ class RootViewTests(TestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user,
             certificate=TEST_CERT,
-            last_ping=timezone.now() - datetime.timedelta(days=2, hours=23)
+            last_ping=timezone.now() - timezone.timedelta(days=2, hours=23)
         )
         self.deviceinfo1 = DeviceInfo.objects.create(
             device=self.device1,

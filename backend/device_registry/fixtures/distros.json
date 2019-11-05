@@ -1,0 +1,258 @@
+[
+{
+  "model": "device_registry.distro",
+  "pk": 1,
+  "fields": {
+    "os_release_codename": "eoan",
+    "end_of_life": "2020-07-01"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 2,
+  "fields": {
+    "os_release_codename": "disco",
+    "end_of_life": "2020-01-01"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 3,
+  "fields": {
+    "os_release_codename": "bionic",
+    "end_of_life": "2023-04-01"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 4,
+  "fields": {
+    "os_release_codename": "xenial",
+    "end_of_life": "2021-04-01"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 5,
+  "fields": {
+    "os_release_codename": "trusty",
+    "end_of_life": "2019-04-01"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 6,
+  "fields": {
+    "os_release_codename": "focal",
+    "end_of_life": "2025-04-01"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 7,
+  "fields": {
+    "os_release_codename": "cosmic",
+    "end_of_life": "2019-07-18"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 39,
+  "fields": {
+    "os_release_codename": "artful",
+    "end_of_life": "2018-07-19"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 40,
+  "fields": {
+    "os_release_codename": "zesty",
+    "end_of_life": "2018-01-13"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 41,
+  "fields": {
+    "os_release_codename": "yakkety",
+    "end_of_life": "2017-07-20"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 42,
+  "fields": {
+    "os_release_codename": "wily",
+    "end_of_life": "2016-07-28"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 43,
+  "fields": {
+    "os_release_codename": "vivid",
+    "end_of_life": "2016-02-04"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 44,
+  "fields": {
+    "os_release_codename": "utopic",
+    "end_of_life": "2015-07-23"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 45,
+  "fields": {
+    "os_release_codename": "saucy",
+    "end_of_life": "2014-07-17"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 46,
+  "fields": {
+    "os_release_codename": "raring",
+    "end_of_life": "2014-01-27"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 47,
+  "fields": {
+    "os_release_codename": "quantal",
+    "end_of_life": "2014-05-16"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 48,
+  "fields": {
+    "os_release_codename": "precise",
+    "end_of_life": "2017-04-28"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 49,
+  "fields": {
+    "os_release_codename": "oneiric",
+    "end_of_life": "2013-05-09"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 50,
+  "fields": {
+    "os_release_codename": "natty",
+    "end_of_life": "2012-10-28"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 51,
+  "fields": {
+    "os_release_codename": "maverick",
+    "end_of_life": "2012-04-10"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 52,
+  "fields": {
+    "os_release_codename": "lucid",
+    "end_of_life": "2015-04-30"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 53,
+  "fields": {
+    "os_release_codename": "karmic",
+    "end_of_life": "2011-04-30"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 54,
+  "fields": {
+    "os_release_codename": "jaunty",
+    "end_of_life": "2010-10-23"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 55,
+  "fields": {
+    "os_release_codename": "intrepid",
+    "end_of_life": "2010-04-30"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 56,
+  "fields": {
+    "os_release_codename": "hardy",
+    "end_of_life": "2013-05-09"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 57,
+  "fields": {
+    "os_release_codename": "dapper",
+    "end_of_life": "2011-06-01"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 58,
+  "fields": {
+    "os_release_codename": "squeeze",
+    "end_of_life": "2016-02-29"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 59,
+  "fields": {
+    "os_release_codename": "wheezy",
+    "end_of_life": "2018-05-31"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 60,
+  "fields": {
+    "os_release_codename": "jessie",
+    "end_of_life": "2020-06-30"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 61,
+  "fields": {
+    "os_release_codename": "stretch",
+    "end_of_life": "2022-06-01"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 62,
+  "fields": {
+    "os_release_codename": "lenny",
+    "end_of_life": "2012-02-06"
+  }
+},
+{
+  "model": "device_registry.distro",
+  "pk": 63,
+  "fields": {
+    "os_release_codename": "buster",
+    "end_of_life": "2022-07-01"
+  }
+}
+]
