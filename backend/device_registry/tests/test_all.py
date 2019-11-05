@@ -278,6 +278,24 @@ class DeviceModelTest(TestCase):
         score = average_trust_score(self.user1)
         self.assertEqual(score, ((self.device0.trust_score + self.device1.trust_score) / 2.0))
 
+    def test_heartbleed(self):
+        self.assertIsNone(self.device0.heartbleed_protected)
+
+        self.device0.set_deb_packages([{
+            'name': 'libssl',
+            'version': '1.0.0',
+            'source_name': 'openssl',
+            'source_version': '1.0.0',
+            'arch': 'i386'
+        }], {'codename': 'stretch'})
+        self.assertTrue(self.device0.heartbleed_protected)
+
+        v = Vulnerability.objects.create(name='CVE-2014-0160', package='openssl', unstable_version='',
+                                         other_versions=[], is_binary=False, urgency=Vulnerability.Urgency.NONE,
+                                         remote=None, fix_available=True, os_release_codename='stretch')
+        self.device0.deb_packages.first().vulnerabilities.add(v)
+        self.assertFalse(self.device0.heartbleed_protected)
+
     def test_cpu_vulnerable(self):
         self.assertIsNone(self.device0.cpu_vulnerable)
 
