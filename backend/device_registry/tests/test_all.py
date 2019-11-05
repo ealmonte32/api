@@ -16,8 +16,8 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, GlobalPolicy
-from device_registry.models import PairingKey, Vulnerability
+from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, average_trust_score, \
+                                   GlobalPolicy, PairingKey, Vulnerability
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 

@@ -3,10 +3,11 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability
-from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction
-from device_registry.recommended_actions import VulnerablePackagesAction, MySQLDefaultRootPasswordAction
-from device_registry.recommended_actions import InsecureServicesAction, OpensshConfigurationIssuesAction
-from device_registry.recommended_actions import FtpServerAction, MongodbAction, MysqlAction, MemcachedAction
+from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction,\
+                                                VulnerablePackagesAction, MySQLDefaultRootPasswordAction,\
+                                                InsecureServicesAction, OpensshConfigurationIssuesAction,\
+                                                FtpServerAction, MongodbAction, MysqlAction, MemcachedAction,\
+                                                CpuVulnerableAction
 
 
 class NoDevicesActionTest(TestCase):
@@ -251,3 +252,16 @@ class MemcachedActionTest(BaseActionTest, TestsMixin):
             {'ip_version': 4, 'proto': 'tcp', 'state': 'LISTEN', 'host': '0.0.0.0', 'port': 11211, 'pid': 34568}
         ]
         self.device.portscan.save(update_fields=['scan_info'])
+
+
+class CpuVulnerableActionTest(BaseActionTest, TestsMixin):
+    search_pattern_common_page = 'Intel CPU sucks on <a href="%s">%s</a>'
+    search_pattern_device_page = 'Intel CPU sucks on this node'
+    action_class = CpuVulnerableAction
+
+    def enable_action(self):
+        pkg = DebPackage.objects.create(os_release_codename='buster', name='linux', version='5.0.0',
+                                        source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
+        self.device.kernel_deb_package = pkg
+        self.device.cpu = {'vendor': 'GenuineIntel', 'vulnerable': True}
+        self.device.save()
