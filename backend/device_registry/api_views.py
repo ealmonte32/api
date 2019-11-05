@@ -94,13 +94,11 @@ class MtlsPingView(APIView):
             deb_packages = data['deb_packages']
             device.deb_packages_hash = deb_packages['hash']
             device.set_deb_packages(deb_packages['packages'], os_release)
-        package = data.get('kernel_package')
-        if package:
-            device.kernel_deb_package = DebPackage.objects.get(name=package['name'],
-                                                               version=package['version'],
-                                                               source_name=package['source_name'],
-                                                               source_version=package['source_version'],
-                                                               arch=package['arch'],
+        kernel_deb_package = data.get('kernel_package')
+        if kernel_deb_package:
+            device.kernel_deb_package = DebPackage.objects.get(name=kernel_deb_package['name'],
+                                                               version=kernel_deb_package['version'],
+                                                               arch=kernel_deb_package['arch'],
                                                                os_release_codename=os_release['codename'])
         else:
             device.kernel_deb_package = None
