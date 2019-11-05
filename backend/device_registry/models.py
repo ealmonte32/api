@@ -178,11 +178,11 @@ class Device(models.Model):
             return is_vulnerable
 
     @property
-    def heartbleed_protected(self):
+    def heartbleed_vulnerable(self):
         openssl_packages = self.deb_packages.filter(source_name='openssl')
         if not openssl_packages.exists():
             return None
-        return not openssl_packages.filter(vulnerabilities__name='CVE-2014-0160').exists()
+        return openssl_packages.filter(vulnerabilities__name='CVE-2014-0160').exists()
 
     @property
     def auto_upgrades_enabled(self):

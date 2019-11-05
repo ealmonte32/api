@@ -279,7 +279,7 @@ class DeviceModelTest(TestCase):
         self.assertEqual(score, ((self.device0.trust_score + self.device1.trust_score) / 2.0))
 
     def test_heartbleed(self):
-        self.assertIsNone(self.device0.heartbleed_protected)
+        self.assertIsNone(self.device0.heartbleed_vulnerable)
 
         self.device0.set_deb_packages([{
             'name': 'libssl',
@@ -288,13 +288,13 @@ class DeviceModelTest(TestCase):
             'source_version': '1.0.0',
             'arch': 'i386'
         }], {'codename': 'stretch'})
-        self.assertTrue(self.device0.heartbleed_protected)
+        self.assertFalse(self.device0.heartbleed_vulnerable)
 
         v = Vulnerability.objects.create(name='CVE-2014-0160', package='openssl', unstable_version='',
                                          other_versions=[], is_binary=False, urgency=Vulnerability.Urgency.NONE,
                                          remote=None, fix_available=True, os_release_codename='stretch')
         self.device0.deb_packages.first().vulnerabilities.add(v)
-        self.assertFalse(self.device0.heartbleed_protected)
+        self.assertTrue(self.device0.heartbleed_vulnerable)
 
     def test_cpu_vulnerable(self):
         self.assertIsNone(self.device0.cpu_vulnerable)
@@ -688,6 +688,42 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'python2')
         self.assertContains(response, 'CVE-123')
+
+    def test_heartbleed_render(self):
+        self.device.deb_packages_hash = 'aabbccdd'
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+
+        response = self.client.get(url)
+        self.assertNotContains(response, 'Patched against Heartbleed')
+
+        self.device.set_deb_packages([{
+            'name': 'libssl',
+            'version': '1.0.0',
+            'source_name': 'openssl',
+            'source_version': '1.0.0',
+            'arch': 'i386'
+        }], {'codename': 'stretch'})
+        self.device.save()
+
+        response = self.client.get(url)
+        self.assertInHTML("""<th scope="row">Patched against Heartbleed</th>
+                             <td>
+                               <span class="p-1 text-success"><i class="fas fa-check" ></i></span>
+                               Yes
+                             </td>""", response.rendered_content)
+
+        v = Vulnerability.objects.create(name='CVE-2014-0160', package='openssl', unstable_version='',
+                                         other_versions=[], is_binary=False, urgency=Vulnerability.Urgency.NONE,
+                                         remote=None, fix_available=True, os_release_codename='stretch')
+        self.device.deb_packages.first().vulnerabilities.add(v)
+
+        response = self.client.get(url)
+        self.assertInHTML("""<th scope="row">Patched against Heartbleed</th>
+                             <td>
+                               <span class="p-1 text-danger"><i class="fas fa-exclamation-circle" ></i></span>
+                               No
+                             </td>""", response.rendered_content)
 
     def test_cpu_vulnerable_render(self):
         self.client.login(username='test', password='123')
