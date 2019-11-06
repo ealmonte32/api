@@ -121,6 +121,20 @@ class Device(models.Model):
     mysql_root_access = models.BooleanField(null=True, blank=True)
     snoozed_actions = JSONField(blank=True, default=list)
 
+    @property
+    def eol_info(self):
+        """
+        Return a dict with an info about current device distro's EOL.
+        """
+        eol_info_dict = {'eol': None, 'passed': None}
+        codename = self.os_release.get('codename')
+        if codename:
+            distro = Distro.objects.filter(os_release_codename=codename).first()
+            if distro is not None:
+                eol_info_dict['eol'] = distro.end_of_life
+                eol_info_dict['passed'] = distro.end_of_life <= timezone.now().date()
+        return eol_info_dict
+
     def snooze_action(self, action_id):
         if action_id not in self.snoozed_actions:
             self.snoozed_actions.append(action_id)
@@ -784,3 +798,8 @@ class Vulnerability(models.Model):
             return src_ver < unstable_version and src_ver not in other_versions
         else:
             return src_ver not in other_versions
+
+
+class Distro(models.Model):
+    os_release_codename = models.CharField(max_length=64, unique=True)
+    end_of_life = models.DateField()

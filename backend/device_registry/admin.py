@@ -2,7 +2,7 @@ from django.contrib import admin
 from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.postgres.fields import JSONField
 
-from .models import Device, DeviceInfo, PortScan, FirewallState, Credential, GlobalPolicy
+from .models import Device, DeviceInfo, PortScan, FirewallState, Credential, GlobalPolicy, Distro
 
 
 @admin.register(Device)
@@ -78,3 +78,10 @@ class GlobalPolicyAdmin(admin.ModelAdmin):
     list_display = ['__str__', 'owner', 'name', 'policy', 'created']
     list_filter = ['owner']
     readonly_fields = ['created']
+
+
+@admin.register(Distro)
+class DistroAdmin(admin.ModelAdmin):
+    list_display = ['os_release_codename', 'end_of_life']
+    search_fields = ['os_release_codename']
+    list_filter = ['end_of_life']
