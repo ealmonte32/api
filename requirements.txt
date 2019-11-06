@@ -21,6 +21,7 @@ django-tagulous==0.14.1
 djangorestframework==3.10.3
 dockerignore-generate==1.0.7
 freezegun==0.3.11
+gitpython==3.0.4
 google-api-core==1.14.0
 google-auth==1.6.3
 google-cloud-bigquery==1.15.0

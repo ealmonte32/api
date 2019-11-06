@@ -20,6 +20,7 @@ from .recommended_actions import action_classes
 apt_pkg.init()
 
 DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
+UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite names.
 IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
 PUBLIC_SERVICE_PORTS = {
