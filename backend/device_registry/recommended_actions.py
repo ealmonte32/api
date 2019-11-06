@@ -377,6 +377,23 @@ class MemcachedAction(ActionPerDevice):
 
 action_classes.append(MemcachedAction)
 
+
+class CpuVulnerableAction(ActionPerDevice):
+    action_id = 12
+    action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
+    action_description = 'Intel CPU sucks on %s'
+
+    @classmethod
+    def affected_devices(cls, user, device_pk=None):
+        from .models import Device
+        return Device.objects.filter(pk__in=[
+            dev.pk for dev in super().affected_devices(user, device_pk) if dev.cpu_vulnerable
+        ])
+
+
+action_classes.append(CpuVulnerableAction)
+
+
 # Check for `action_id` property uniqueness among all action classes.
 if len({action_class.action_id for action_class in action_classes}) < len(action_classes):
     raise ValueError('`action_classes` contains class(es) with non-unique `action_id` property.')

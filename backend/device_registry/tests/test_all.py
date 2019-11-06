@@ -16,8 +16,8 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
-from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, average_trust_score, GlobalPolicy
-from device_registry.models import PairingKey, Vulnerability
+from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, average_trust_score, \
+                                   GlobalPolicy, PairingKey, Vulnerability
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 
@@ -277,6 +277,39 @@ class DeviceModelTest(TestCase):
         score = average_trust_score(self.user1)
         self.assertEqual(score, ((self.device0.trust_score + self.device1.trust_score) / 2.0))
 
+    def test_cpu_vulnerable(self):
+        self.assertIsNone(self.device0.cpu_vulnerable)
+
+        pkg = DebPackage.objects.create(os_release_codename='buster', name='linux', version='5.0.0',
+                                        source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
+        pkg.save()
+        self.device0.kernel_deb_package = pkg
+
+        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': True}
+        self.device0.save()
+        self.assertTrue(self.device0.cpu_vulnerable)
+
+        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': False}
+        self.device0.save()
+        self.assertFalse(self.device0.cpu_vulnerable)
+
+        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': None, 'mitigations_disabled': True}
+        self.device0.save()
+        self.assertTrue(self.device0.cpu_vulnerable)
+
+        vuln = Vulnerability.objects.create(os_release_codename='buster', name='CVE-2017-5753', package='linux',
+                                            other_versions=[], is_binary=False, urgency=Vulnerability.Urgency.HIGH,
+                                            fix_available=True)
+        pkg.vulnerabilities.add(vuln)
+        pkg.save()
+        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': None, 'mitigations_disabled': False}
+        self.device0.save()
+        self.assertTrue(self.device0.cpu_vulnerable)
+
+        self.device0.cpu = {'vendor': 'AuthenticAMD'}
+        self.device0.save()
+        self.assertFalse(self.device0.cpu_vulnerable)
+
 
 class FormsTests(TestCase):
     def setUp(self):
@@ -330,6 +363,7 @@ class DeviceDetailViewTests(TestCase):
         self.user2 = User.objects.create_user('user')
         self.device = Device.objects.create(
             device_id='device0.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
+            cpu={'vulnerable': True, 'vendor': 'GenuineIntel'},
             certificate_expires=timezone.datetime(2019, 7, 4, 13, 55, tzinfo=timezone.utc))
         self.deviceinfo = DeviceInfo.objects.create(
             device=self.device,
@@ -640,6 +674,18 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'python2')
         self.assertContains(response, 'CVE-123')
+
+    def test_cpu_vulnerable_render(self):
+        self.client.login(username='test', password='123')
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+
+        response = self.client.get(url)
+        self.assertContains(response, 'Patched against Meltdown/Spectre')
+
+        self.device.cpu['vendor'] = 'AuthenticAMD'
+        self.device.save()
+        response = self.client.get(url)
+        self.assertNotContains(response, 'Patched against Meltdown/Spectre')
 
     def test_global_policies_list(self):
         gp2 = GlobalPolicy.objects.create(name='gp2', owner=self.user2, policy=GlobalPolicy.POLICY_ALLOW)

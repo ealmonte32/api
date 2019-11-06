@@ -112,6 +112,8 @@ class Device(models.Model):
     update_trust_score = models.BooleanField(default=False, db_index=True)
     deb_packages = models.ManyToManyField(DebPackage)
     deb_packages_hash = models.CharField(max_length=32, blank=True)
+    cpu = JSONField(blank=True, default=dict)
+    kernel_deb_package = models.ForeignKey(DebPackage, null=True, on_delete=models.SET_NULL, related_name='+')
     audit_files = JSONField(blank=True, default=list)
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
@@ -122,6 +124,43 @@ class Device(models.Model):
         if action_id not in self.snoozed_actions:
             self.snoozed_actions.append(action_id)
             self.save(update_fields=['snoozed_actions'])
+
+    KERNEL_CPU_CVES = [
+        'CVE-2017-5753',
+        'CVE-2017-5715',
+        'CVE-2017-5754',
+        'CVE-2018-3615',  # (intel-microcode only)
+        'CVE-2018-3620',
+        'CVE-2018-3639',
+        'CVE-2018-3640',  # (intel-microcode only)
+        'CVE-2018-3646',
+        'CVE-2018-12126',
+        'CVE-2018-12130',
+        'CVE-2018-12127',
+        'CVE-2019-11091',
+        'CVE-2019-1125'
+    ]
+
+    @property
+    def cpu_vulnerable(self):
+        if not self.cpu or not self.kernel_deb_package:
+            # Either no data or the running kernel wasn't installed as a deb package.
+            return None
+        if self.cpu['vendor'] != 'GenuineIntel':
+            # AMD and ARM CPUs, being theoretically vulnerable, were not shown to be vulnerable in practice.
+            return False
+
+        is_vulnerable = self.cpu.get('vulnerable')
+        if is_vulnerable is None:
+            # Agent couldn't confidently tell whether the kernel has mitigations compiled in -
+            # meaning we need additional checks. If the kernel package is affected by any of the listed CVEs
+            # then it's vulnerable. If the kernel is not affected by any of these CVEs - this means it has
+            # mitigations compiled in. But if any of them are disabled at boot time (in kernel cmdline) then
+            # the kernel is again vulnerable.
+            return self.kernel_deb_package.vulnerabilities.filter(name__in=self.KERNEL_CPU_CVES).exists() or \
+                   self.cpu.get('mitigations_disabled')
+        else:
+            return is_vulnerable
 
     @property
     def auto_upgrades_enabled(self):

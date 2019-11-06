@@ -34,7 +34,7 @@ from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from device_registry.serializers import SnoozeActionSerializer
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +94,15 @@ class MtlsPingView(APIView):
             deb_packages = data['deb_packages']
             device.deb_packages_hash = deb_packages['hash']
             device.set_deb_packages(deb_packages['packages'], os_release)
+        kernel_deb_package = data.get('kernel_package')
+        if kernel_deb_package:
+            device.kernel_deb_package = DebPackage.objects.get(name=kernel_deb_package['name'],
+                                                               version=kernel_deb_package['version'],
+                                                               arch=kernel_deb_package['arch'],
+                                                               os_release_codename=os_release['codename'])
+        else:
+            device.kernel_deb_package = None
+        device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
         device.snoozed_actions = []  # Cleanup snoozed actions list.
@@ -139,7 +148,7 @@ class MtlsPingView(APIView):
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
                                    'update_trust_score', 'os_release', 'auto_upgrades', 'snoozed_actions',
-                                   'mysql_root_access'])
+                                   'mysql_root_access', 'cpu', 'kernel_deb_package'])
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
