@@ -20,6 +20,7 @@ from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState
                                    GlobalPolicy, PairingKey, Vulnerability
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
+from profile_page.models import Profile
 
 
 def generate_cert(common_name=None, subject_alt_name=None):
@@ -731,6 +732,7 @@ class RootViewTests(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
+        Profile.objects.create(user=self.user)
 
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
@@ -758,6 +760,8 @@ class RootViewTests(TestCase):
             default_password=True,
             detected_mirai=True,
         )
+        PortScan.objects.create(device=self.device0)
+        PortScan.objects.create(device=self.device1)
 
     def test_wizard(self):
         self.client.login(username='test', password='123')
@@ -856,6 +860,13 @@ class RootViewTests(TestCase):
         })
         response = self.client.get(url)
         self.assertListEqual(list(response.context['object_list']), [self.device1])
+
+    def test_recommended_actions_count(self):
+        self.client.login(username='test', password='123')
+        response = self.client.get(reverse('root'))
+        self.assertEqual(response.status_code, 200)
+        self.assertInHTML('<a class="sidebar-link" id="sidebar-actions" href="/actions/">Recommended Actions<span '
+                          'class="badge badge-pill badge-danger ml-2">2</span></a>', response.rendered_content)
 
 
 class SaveDeviceSettingsAsPolicyViewTests(TestCase):

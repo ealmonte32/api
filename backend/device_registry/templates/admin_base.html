@@ -19,20 +19,21 @@
         </a>
 
         {% with url_name=request.resolver_match.url_name %}
-            <ul class="sidebar-nav">
-                <li class="sidebar-item {% if url_name|is_menu_highlight_id:'root' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-root" href="{% url 'root' %}">Dashboard </a>
-                </li>
-                <li class="sidebar-item {% if url_name|is_menu_highlight_id:'global_policies' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-policies" href="{% url 'global_policies' %}">Global Policies</a>
-                </li>
-                <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-claim-device" href="{% url 'claim-device' %}">Claim Node</a>
-                </li>
-                <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-actions" href="{% url 'actions' %}">Recommended Actions</a>
-                </li>
-            </ul>
+          <ul class="sidebar-nav">
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'root' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-root" href="{% url 'root' %}">Dashboard </a>
+            </li>
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'global_policies' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-policies" href="{% url 'global_policies' %}">Global Policies</a>
+            </li>
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-claim-device" href="{% url 'claim-device' %}">Claim Node</a>
+            </li>
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-actions" href="{% url 'actions' %}">Recommended Actions
+                <span class="badge badge-pill badge-danger ml-2">{{ user.profile.actions_count }}</span></a>
+            </li>
+          </ul>
         {% endwith %}
 
       </div>
@@ -97,18 +98,18 @@
       $(() => {
           feather.replace();
       });
-    {% if MIXPANEL_TOKEN %}
-      $('.sidebar-link').click((e) => {
-          mixpanel.track("Sidebar", {element: e.target.id});
-      });
-      $('#logout').click(() => {
-          mixpanel.reset();
-      });
+      {% if MIXPANEL_TOKEN %}
+          $('.sidebar-link').click((e) => {
+              mixpanel.track("Sidebar", {element: e.target.id});
+          });
+          $('#logout').click(() => {
+              mixpanel.reset();
+          });
 
-      {% if first_signin %}
-      mixpanel.alias("{{ user.email }}");
+          {% if first_signin %}
+              mixpanel.alias("{{ user.email }}");
+          {% endif %}
+          mixpanel.identify("{{ user.email }}");
       {% endif %}
-      mixpanel.identify("{{ user.email }}");
-    {% endif %}
   </script>
 {% endblock %}
