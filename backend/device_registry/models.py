@@ -120,12 +120,17 @@ class Device(models.Model):
 
     @property
     def eol_info(self):
+        """
+        Return a dict with an info about current device distro's EOL.
+        """
+        eol_info_dict = {'eol': None, 'passed': None}
         codename = self.os_release.get('codename')
         if codename:
             distro = Distro.objects.filter(os_release_codename=codename).first()
             if distro is not None:
-                return distro.end_of_life, distro.end_of_life < timezone.now().date()
-        return None, None
+                eol_info_dict['eol'] = distro.end_of_life
+                eol_info_dict['passed'] = distro.end_of_life <= timezone.now().date()
+        return eol_info_dict
 
     def snooze_action(self, action_id):
         if action_id not in self.snoozed_actions:

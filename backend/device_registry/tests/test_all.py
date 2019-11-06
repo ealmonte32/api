@@ -659,27 +659,21 @@ class DeviceDetailViewTests(TestCase):
         url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
         # Unknown distro.
         response = self.client.get(url)
-        self.assertContains(response, '<td id="eol_info">\n                  \n                    \n                 '
-                                      '   N/A\n                  \n                </td>\n              </tr>\n       '
-                                      '       <tr>\n                <th scope="row">Agent Version</th>\n              '
-                                      '  <td>N/A</td>')
+        self.assertInHTML('<td id="eol_info">N/A</td>', response.rendered_content)
         # Supported distro version.
         self.device.os_release = {'distro': 'raspbian', 'version': '10', 'codename': 'buster',
                                   'distro_root': 'debian', 'full_version': '10 (buster)'}
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
         # print(response.content)
-        self.assertContains(response, '<td id="eol_info">\n                  \n                    \n                 '
-                                      '   July 1, 2022\n                  \n                </td>')
+        self.assertInHTML('<td id="eol_info">July 1, 2022</td>', response.rendered_content)
         # Outdated distro version.
         self.device.os_release = {'distro': 'debian', 'version': '7', 'codename': 'wheezy',
                                   'distro_root': 'debian', 'full_version': '7 (wheezy)'}
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
-        self.assertContains(response, '<td id="eol_info">\n                  \n                    \n                 '
-                                      '     <span class="p-1 text-danger">\n    <i class="fas fa-exclamation-circle" >'
-                                      '</i>\n</span>\n\n                    \n                    May 31, 2018\n      '
-                                      '            \n                </td>')
+        self.assertInHTML('<td id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
+                          '</i></span>May 31, 2018</td>', response.rendered_content)
 
 
 class PairingKeysView(TestCase):

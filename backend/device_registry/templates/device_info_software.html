@@ -34,10 +34,10 @@
                 <th scope="row">End of Life</th>
                 <td id="eol_info">
                   {% with object.eol_info as eol_info %}
-                    {% if eol_info.1 %}
+                    {% if eol_info.passed %}
                       {% include "badge.html" with icon="exclamation-circle" color="danger" %}
                     {% endif %}
-                    {{ eol_info.0|default_if_none:'N/A' }}
+                    {{ eol_info.eol|default_if_none:'N/A' }}
                   {% endwith %}
                 </td>
               </tr>
