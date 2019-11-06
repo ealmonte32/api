@@ -5,7 +5,7 @@ from django.core.management import call_command
 
 
 def load_fixture(apps, schema_editor):
-    call_command('loaddata', 'distros.json', app_label='device_registry')
+    call_command('loaddata', 'distros.yaml', app_label='device_registry')
 
 
 class Migration(migrations.Migration):
