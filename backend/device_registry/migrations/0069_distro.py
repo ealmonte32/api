@@ -10,7 +10,7 @@ def load_fixture(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('device_registry', '0067_device_mysql_root_access'),
+        ('device_registry', '0068_auto_20191101_1017'),
     ]
 
     operations = [
