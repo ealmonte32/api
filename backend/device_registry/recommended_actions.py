@@ -86,10 +86,14 @@ class ActionMultiDevice(BaseAction):
             actions_list.append(action)
         return actions_list
 
+    @classmethod
+    def action_blocks_count(cls, user):
+        return int(cls.affected_devices(user).exists())
+
 
 class ActionPerDevice(BaseAction):
     """
-        Specific base action class for actions able to store info for only *single* device.
+    Specific base action class for actions able to store info for only *single* device.
     """
 
     @classmethod
@@ -111,6 +115,10 @@ class ActionPerDevice(BaseAction):
             )
             actions_list.append(action)
         return actions_list
+
+    @classmethod
+    def action_blocks_count(cls, user):
+        return cls.affected_devices(user).count()
 
 
 # Below is the code for real actions classes.
