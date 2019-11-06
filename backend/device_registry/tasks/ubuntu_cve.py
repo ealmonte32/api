@@ -1,11 +1,17 @@
+import logging
 import os
 import sys
 from pathlib import Path
 
-from celery import shared_task
 import redis
+from celery import shared_task
+from django.conf import settings
+from git import Repo
+from itertools import chain
 
 from device_registry.models import Vulnerability, DebPackage, UBUNTU_SUITES
+
+logger = logging.getLogger('django')
 
 
 supported_releases = list(UBUNTU_SUITES)
@@ -235,37 +241,36 @@ def duplicate_package_status(original_status, override_version=None):
     return copied_status
 
 
-def parse_cve_directory(p: Path):
-    from itertools import chain
-
-    return [parse_cve_file(f) for f in chain(p.glob('active/CVE-*'), p.glob('retired/CVE-*'))]
+def parse_cve_directory(repo_path: Path):
+    return [parse_cve_file(f) for f in chain(repo_path.glob('active/CVE-*'), repo_path.glob('retired/CVE-*'))]
 
 
-def clone_cve_repo(repo_dir: Path):
-    from git import Repo
-    if repo_dir.exists():
-        repo = Repo(repo_dir)
+def clone_cve_repo(repo_path: Path):
+    if repo_path.exists():
+        repo = Repo(repo_path)
         if repo.head.ref.name != 'master':
             raise RuntimeError('ubuntu-cve-tracker repo is not on master branch')
     else:
-        Repo.clone_from('https://git.launchpad.net/ubuntu-cve-tracker', repo_dir,
+        Repo.clone_from('https://git.launchpad.net/ubuntu-cve-tracker', repo_path,
                         branch='master', multi_options=['--depth=1'])
 
 
 @shared_task(soft_time_limit=60 * 30, time_limit=60 * 30 + 5)  # Should live 30m max.
 def fetch_vulnerabilities():
+    redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
+
     ubuntu_cve_tracker_path = Path('/tmp/ubuntu-cve-tracker')
-    sys.path.append(str(ubuntu_cve_tracker_path / 'scripts'))
-    print('CLONING')
+    sys.path.append(str(ubuntu_cve_tracker_path / 'scripts'))  # Needed by parse_cve_directory for importing cve_lib.
+
+    logger.info('cloning ubuntu-cve-tracker...')
     clone_cve_repo(ubuntu_cve_tracker_path)
-    print('PARSING')
-    Vulnerability.objects.filter(os_release_codename__in=['bionic', 'xenial']).delete()
+    logger.info('parsing ubuntu-cve-tracker...')
     vulnerabilities = []
     parsed = parse_cve_directory(ubuntu_cve_tracker_path)
     for vuln in parsed:
-        header, codenames = vuln['header'], vuln['packages']
+        header, details = vuln['header'], vuln['packages']
         name = header['Candidate']
-        for package, releases in codenames.items():
+        for package, releases in details.items():
             for codename, info in releases.items():
                 status, fix_version = info['status'], info.get('fix-version', '')
                 v = Vulnerability(
@@ -284,5 +289,12 @@ def fetch_vulnerabilities():
                     os_release_codename=codename
                 )
                 vulnerabilities.append(v)
-    Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
-    DebPackage.objects.filter(os_release_codename__in=UBUNTU_SUITES).update(processed=False)
+
+    logger.info('saving data...')
+    # Try to acquire the lock.
+    # Spend trying 6m max.
+    # In case of success set the lock's timeout to 5m.
+    with redis_conn.lock('vulns_lock', timeout=60 * 5, blocking_timeout=60 * 6):
+        Vulnerability.objects.filter(os_release_codename__in=UBUNTU_SUITES).delete()
+        Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
+        DebPackage.objects.filter(os_release_codename__in=UBUNTU_SUITES).update(processed=False)

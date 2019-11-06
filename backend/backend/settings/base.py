@@ -240,7 +240,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab()  # Execute once a minute.
     },
     'update_trust_score': {
-        'task': 'device_registry.tasks.update_trust_score',
+        'task': 'device_registry.tasks.common.update_trust_score',
         'schedule': crontab(minute=f'*/{TRUST_SCORE_UPDATE_INTERVAL}')  # Execute once in every 5 minutes.
     },
     'fetch_vulnerabilities_debian': {
@@ -252,10 +252,15 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=2)  # Execute once in a day at 2AM.
     },
     'update_packages_vulnerabilities': {
-        'task': 'device_registry.tasks.update_packages_vulnerabilities',
+        'task': 'device_registry.tasks.common.update_packages_vulnerabilities',
         'schedule': crontab(minute=f'*/1')  # Execute once a minute.
     }
 }
 
 # Mixpanel token
 MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN', '')
+
+# Redis connection settings
+REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
+REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
