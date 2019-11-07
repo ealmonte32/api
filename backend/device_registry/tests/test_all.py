@@ -17,7 +17,7 @@ from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
 from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, average_trust_score, \
-                                   GlobalPolicy, PairingKey, Vulnerability
+    GlobalPolicy, PairingKey, Vulnerability
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 from profile_page.models import Profile
@@ -627,17 +627,10 @@ class DeviceDetailViewTests(TestCase):
     def test_vulnerable_packages_render(self):
         self.client.login(username='test', password='123')
         url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-
         # No packages - should render N/A
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('''
-            <th scope="row">
-                Vulnerable Packages
-            </th>
-            <td>
-                N/A
-            </td>''', response.rendered_content)
+        self.assertInHTML('<th scope="row">Vulnerable Packages</th><td>N/A</td>', response.rendered_content)
 
         self.device.deb_packages_hash = 'aabbccdd'
         self.device.save()
@@ -648,18 +641,13 @@ class DeviceDetailViewTests(TestCase):
              'arch': 'i386'}
         ], os_info={'codename': 'stretch'})
         # No vulnerable packages - green check mark
+        self.device.os_release = {'distro': 'debian', 'version': '9', 'codename': 'stretch', 'distro_root': 'debian',
+                                  'full_version': '9 (stretch)'}
+        self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('''
-            <th scope="row">
-                Vulnerable Packages
-            </th>
-            <td>
-                <span class="p-1 text-success">
-                    <i class="fas fa-check" ></i>
-                </span>
-            </td>
-                ''', response.rendered_content)
+        self.assertInHTML('<th scope="row">Vulnerable Packages</th><td><span class="p-1 text-success"><i class="fas '
+                          'fa-check" ></i></span></td>', response.rendered_content)
 
         v = Vulnerability.objects.create(name='CVE-123', package='python2', is_binary=False, other_versions=[],
                                          urgency=Vulnerability.Urgency.NONE, fix_available=True)

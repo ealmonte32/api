@@ -442,9 +442,8 @@ class Device(models.Model):
 
     @property
     def vulnerable_packages(self):
-        if self.deb_packages_hash and self.deb_packages.exists() and \
-                self.deb_packages.first().os_release_codename in DEBIAN_SUITES:
-            # FIXME: should use self.os_release_codename instead of a first deb package
+        if self.deb_packages_hash and self.deb_packages.exists() and self.os_release and \
+                self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
     class Meta:
