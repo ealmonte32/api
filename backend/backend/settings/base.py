@@ -245,7 +245,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     'fetch_vulnerabilities_debian': {
         'task': 'device_registry.tasks.fetch_vulnerabilities_debian',
-        'schedule': crontab(minute=f'*/1')  # Execute once in a day at 1AM.
+        'schedule': crontab(hour=1)  # Execute once in a day at 1AM.
     },
     'fetch_vulnerabilities_ubuntu': {
         'task': 'device_registry.tasks.fetch_vulnerabilities_ubuntu',

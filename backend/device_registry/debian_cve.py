@@ -12,8 +12,6 @@ from device_registry.models import Vulnerability, DebPackage, DEBIAN_SUITES
 logger = logging.getLogger('django')
 
 
-# Should live 10m max and throw and exception to Sentry when killed.
-@shared_task(soft_time_limit=60 * 10, time_limit=60 * 10 + 5)  # Should live 10m max.
 def fetch_vulnerabilities():
     """
     Download vulnerability index from Debian Security Tracker, parse it and store in db.

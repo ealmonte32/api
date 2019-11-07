@@ -255,7 +255,6 @@ def clone_cve_repo(repo_path: Path):
                         branch='master', multi_options=['--depth=1'])
 
 
-@shared_task(soft_time_limit=60 * 30, time_limit=60 * 30 + 5)  # Should live 30m max.
 def fetch_vulnerabilities():
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
 
