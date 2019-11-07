@@ -240,19 +240,19 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab()  # Execute once a minute.
     },
     'update_trust_score': {
-        'task': 'device_registry.tasks.common.update_trust_score',
+        'task': 'device_registry.celery.tasks.update_trust_score',
         'schedule': crontab(minute=f'*/{TRUST_SCORE_UPDATE_INTERVAL}')  # Execute once in every 5 minutes.
     },
     'fetch_vulnerabilities_debian': {
-        'task': 'device_registry.tasks.debian_cve.fetch_vulnerabilities',
+        'task': 'device_registry.celery.debian_cve.fetch_vulnerabilities',
         'schedule': crontab(hour=1)  # Execute once in a day at 1AM.
     },
     'fetch_vulnerabilities_ubuntu': {
-        'task': 'device_registry.tasks.ubuntu_cve.fetch_vulnerabilities',
+        'task': 'device_registry.celery.ubuntu_cve.fetch_vulnerabilities',
         'schedule': crontab(hour=2)  # Execute once in a day at 2AM.
     },
     'update_packages_vulnerabilities': {
-        'task': 'device_registry.tasks.common.update_packages_vulnerabilities',
+        'task': 'device_registry.celery.tasks.update_packages_vulnerabilities',
         'schedule': crontab(minute=f'*/1')  # Execute once a minute.
     }
 }
