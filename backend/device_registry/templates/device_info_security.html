@@ -41,6 +41,24 @@
                     {% endwith %}
                   </td>
                 </tr>
+                {% with object.heartbleed_vulnerable as heartbleed_vulnerable %}
+                {% if heartbleed_vulnerable is not None %}
+                 <tr>
+                   <th scope="row">
+                     Patched against Heartbleed
+                   </th>
+                   <td>
+                     {% if not heartbleed_vulnerable %}
+                         {% include "badge.html" with icon="check" color="success" %}
+                         Yes
+                     {% else %}
+                         {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                         No
+                     {% endif %}
+                   </td>
+                 </tr>
+                 {% endif %}
+                 {% endwith %}
                 {% if object.cpu.vendor == 'GenuineIntel' %}
                 <tr>
                   <th scope="row">

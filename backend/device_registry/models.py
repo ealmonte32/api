@@ -178,6 +178,13 @@ class Device(models.Model):
             return is_vulnerable
 
     @property
+    def heartbleed_vulnerable(self):
+        openssl_packages = self.deb_packages.filter(source_name='openssl')
+        if not openssl_packages.exists():
+            return None
+        return openssl_packages.filter(vulnerabilities__name='CVE-2014-0160').exists()
+
+    @property
     def auto_upgrades_enabled(self):
         if self.os_release.get('distro') == 'ubuntu-core':
             return True
