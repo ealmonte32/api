@@ -630,7 +630,13 @@ class DeviceDetailViewTests(TestCase):
         # No packages - should render N/A
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<th scope="row">Vulnerable Packages</th><td>N/A</td>', response.rendered_content)
+        self.assertInHTML('''
+            <th scope="row">
+                Vulnerable Packages
+            </th>
+            <td>
+                N/A
+            </td>''', response.rendered_content)
 
         self.device.deb_packages_hash = 'aabbccdd'
         self.device.save()
@@ -646,8 +652,16 @@ class DeviceDetailViewTests(TestCase):
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<th scope="row">Vulnerable Packages</th><td><span class="p-1 text-success"><i class="fas '
-                          'fa-check" ></i></span></td>', response.rendered_content)
+        self.assertInHTML('''
+            <th scope="row">
+                Vulnerable Packages
+            </th>
+            <td>
+                <span class="p-1 text-success">
+                    <i class="fas fa-check" ></i>
+                </span>
+            </td>
+                ''', response.rendered_content)
 
         v = Vulnerability.objects.create(name='CVE-123', package='python2', is_binary=False, other_versions=[],
                                          urgency=Vulnerability.Urgency.NONE, fix_available=True)
