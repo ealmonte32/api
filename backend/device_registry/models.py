@@ -410,9 +410,9 @@ class Device(models.Model):
             (vulns_medium, self.CVE_MED_POINTS),
             (vulns_high, self.CVE_HIGH_POINTS)
         )
-        for vuln_query, vuln_score in score_table:
-            total = vuln_query.count()
-            remote = vuln_query.filter(remote=True).count()
+        for vuln_qs, vuln_score in score_table:
+            total = vuln_qs.count()
+            remote = vuln_qs.filter(remote=True).count()
             non_remote = total - remote
             cve_score -= (remote * vuln_score * 2) + (non_remote * vuln_score)
         if cve_score < 0:
