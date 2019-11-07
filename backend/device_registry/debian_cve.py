@@ -3,11 +3,10 @@ import zlib
 from itertools import groupby
 from urllib.request import urlopen, Request
 
-from celery import shared_task
 from django.conf import settings
 import redis
 
-from device_registry.models import Vulnerability, DebPackage, DEBIAN_SUITES
+from .models import Vulnerability, DebPackage, DEBIAN_SUITES
 
 logger = logging.getLogger('django')
 

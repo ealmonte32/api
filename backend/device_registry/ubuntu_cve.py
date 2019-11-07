@@ -4,12 +4,11 @@ import sys
 from pathlib import Path
 
 import redis
-from celery import shared_task
 from django.conf import settings
 from git import Repo
 from itertools import chain
 
-from device_registry.models import Vulnerability, DebPackage, UBUNTU_SUITES
+from .models import Vulnerability, DebPackage, UBUNTU_SUITES
 
 logger = logging.getLogger('django')
 
