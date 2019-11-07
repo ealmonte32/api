@@ -1,11 +1,11 @@
 import logging
-import os
 
 import redis
 from celery import shared_task
 from django.conf import settings
 
-from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
+from . import debian_cve, ubuntu_cve
+from .models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
 
 logger = logging.getLogger('django')
 
@@ -49,3 +49,13 @@ def update_packages_vulnerabilities():
         # another instance of the same job or by the `fetch_vulnerabilities` job.
         # In both cases this job instance shouldn't do anything.
         pass
+
+
+@shared_task(soft_time_limit=60 * 30, time_limit=60 * 30 + 5)  # Should live 30m max.
+def fetch_vulnerabilities_ubuntu():
+    ubuntu_cve.fetch_vulnerabilities()
+
+
+@shared_task(soft_time_limit=60 * 10, time_limit=60 * 10 + 5)  # Should live 10m max.
+def fetch_vulnerabilities_debian():
+    debian_cve.fetch_vulnerabilities()
