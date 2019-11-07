@@ -2,7 +2,7 @@ from django.contrib import admin
 from django_json_widget.widgets import JSONEditorWidget
 from django.contrib.postgres.fields import JSONField
 
-from .models import Device, DeviceInfo, PortScan, FirewallState, Credential, GlobalPolicy, Distro
+from .models import Device, DeviceInfo, PortScan, FirewallState, Credential, GlobalPolicy, Distro, Vulnerability
 
 
 @admin.register(Device)
@@ -85,3 +85,9 @@ class DistroAdmin(admin.ModelAdmin):
     list_display = ['os_release_codename', 'end_of_life']
     search_fields = ['os_release_codename']
     list_filter = ['end_of_life']
+
+
+@admin.register(Vulnerability)
+class VulnerabilityAdmin(admin.ModelAdmin):
+    list_display = ['os_release_codename', 'name', 'package', 'unstable_version', 'other_versions', 'urgency']
+    list_filter = ['os_release_codename']
