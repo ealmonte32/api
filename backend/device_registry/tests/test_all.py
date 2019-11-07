@@ -1,4 +1,5 @@
 import json
+import sys
 from unittest.mock import patch
 
 from django.conf import settings
@@ -250,7 +251,7 @@ class DeviceModelTest(TestCase):
 
     def test_bad_ports_score(self):
         ps = self.device0.portscan
-        assert ps
+        self.assertIsNotNone(ps)
         score0 = self.portscan0.get_score()
         score1 = self.portscan1.get_score()
         self.assertEqual(score0, 0.6)
@@ -272,11 +273,46 @@ class DeviceModelTest(TestCase):
                          (all_good_except_port_score + 0.7 * Device.COEFFICIENTS['port_score']) /
                          sum(Device.COEFFICIENTS.values()))
 
+    def test_cve_trust_score(self):
+        # Reset port_score to 1,0 for simplicity.
+        self.portscan0.scan_info = []
+        self.portscan0.save()
+
+        cve_score_coef = Device.COEFFICIENTS['cve_score']
+        all_good_except_cve_score = sum(Device.COEFFICIENTS.values()) - cve_score_coef
+
+        self.device0.update_trust_score_now()
+        # All good, cve_score is 1.0 because no packages and no CVEs
+        self.assertEqual(self.device0.trust_score,
+                         (all_good_except_cve_score + 1.0 * cve_score_coef) /
+                         sum(Device.COEFFICIENTS.values()))
+
+        pkg1 = DebPackage.objects.create(os_release_codename='buster', name='linux', version='5.0.0',
+                                         source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
+        pkg2 = DebPackage.objects.create(os_release_codename='buster', name='linux', version='5.0.1',
+                                         source_name='linux', source_version='5.0.1', arch=DebPackage.Arch.i386)
+        self.device0.deb_packages.add(pkg1)
+        self.device0.deb_packages.add(pkg2)
+        # Two deb packages have 10 high priority remotely exploitable CVEs.
+        # This should max out cve_score and test for distinct filter.
+        for i in range(10):
+            vuln = Vulnerability.objects.create(os_release_codename='buster', name=f'CVE-{i}', package='linux',
+                                                other_versions=[], is_binary=False, urgency=Vulnerability.Urgency.HIGH,
+                                                fix_available=True, remote=True)
+            pkg1.vulnerabilities.add(vuln)
+
+        self.device0.update_trust_score_now()
+        # Now cve_score is 0.0.
+        self.assertEqual(self.device0.trust_score,
+                         (all_good_except_cve_score + 0.0 * cve_score_coef) /
+                         sum(Device.COEFFICIENTS.values()))
+
     def test_average_trust_score(self):
         self.device0.update_trust_score_now()
         self.device1.update_trust_score_now()
-        score = average_trust_score(self.user1)
-        self.assertEqual(score, ((self.device0.trust_score + self.device1.trust_score) / 2.0))
+        average_score = average_trust_score(self.user1)
+        real_average_score = ((self.device0.trust_score + self.device1.trust_score) / 2.0)
+        self.assertTrue(abs(average_score - real_average_score) <= sys.float_info.epsilon)   # because IEEE float
 
     def test_heartbleed(self):
         self.assertIsNone(self.device0.heartbleed_vulnerable)
@@ -301,7 +337,6 @@ class DeviceModelTest(TestCase):
 
         pkg = DebPackage.objects.create(os_release_codename='buster', name='linux', version='5.0.0',
                                         source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
-        pkg.save()
         self.device0.kernel_deb_package = pkg
 
         self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': True}

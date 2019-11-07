@@ -383,9 +383,14 @@ class Device(models.Model):
         'default_password': 1.0,
         'failed_logins': 1.0,
         'port_score': .3,
+        'cve_score': 1.0
     }
     MAX_FAILED_LOGINS = 10
     MIN_FAILED_LOGINS = 1
+    CVE_POINTS = 40
+    CVE_LOW_POINTS = 1
+    CVE_MED_POINTS = 2
+    CVE_HIGH_POINTS = 3
 
     def get_trust_score(self):
         if not hasattr(self, 'deviceinfo') or not hasattr(self, 'firewallstate') or not hasattr(self, 'portscan'):
@@ -402,6 +407,25 @@ class Device(models.Model):
             failed_logins = 1.0 - ((failed_logins - self.MIN_FAILED_LOGINS) /
                                    (self.MAX_FAILED_LOGINS - self.MIN_FAILED_LOGINS + 1))
 
+        vulns = Vulnerability.objects.filter(debpackage__device__owner=self.owner).distinct()
+        vulns_low = vulns.filter(urgency__in=[Vulnerability.Urgency.NONE, Vulnerability.Urgency.LOW])
+        vulns_medium = vulns.filter(urgency=Vulnerability.Urgency.MEDIUM)
+        vulns_high = vulns.filter(urgency=Vulnerability.Urgency.HIGH)
+        cve_score = self.CVE_POINTS
+        score_table = (
+            (vulns_low, self.CVE_LOW_POINTS),
+            (vulns_medium, self.CVE_MED_POINTS),
+            (vulns_high, self.CVE_HIGH_POINTS)
+        )
+        for vuln_qs, vuln_score in score_table:
+            total = vuln_qs.count()
+            remote = vuln_qs.filter(remote=True).count()
+            non_remote = total - remote
+            cve_score -= (remote * vuln_score * 2) + (non_remote * vuln_score)
+        if cve_score < 0:
+            cve_score = 0
+        cve_score = cve_score / float(self.CVE_POINTS)
+
         def zero_if_none(x):
             return 0 if x is None else x
 
@@ -412,7 +436,8 @@ class Device(models.Model):
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
             port_score=self.portscan.get_score(),
-            default_password=not self.deviceinfo.default_password
+            default_password=not self.deviceinfo.default_password,
+            cve_score=cve_score
         )
 
     @classmethod
