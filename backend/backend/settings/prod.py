@@ -53,4 +53,4 @@ DATABASES = {
 COMMON_NAME_PREFIX = 'd.wott.local'
 STATIC_URL = 'https://static.wott.io/'
 
-TRUST_SCORE_UPDATE_INTERVAL = 1  # minutes.
+TRUST_SCORE_UPDATE_INTERVAL = 3  # minutes.
