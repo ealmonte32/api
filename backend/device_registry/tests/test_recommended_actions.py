@@ -255,8 +255,8 @@ class MemcachedActionTest(BaseActionTest, TestsMixin):
 
 
 class CpuVulnerableActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'Intel CPU sucks on <a href="%s">%s</a>'
-    search_pattern_device_page = 'Intel CPU sucks on this node'
+    search_pattern_common_page = 'We detected that <a href="%s">%s</a> is vulnerable to Meltdown/Spectre'
+    search_pattern_device_page = 'We detected that this node is vulnerable to Meltdown/Spectre'
     action_class = CpuVulnerableAction
 
     def enable_action(self):
