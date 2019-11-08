@@ -1,3 +1,5 @@
+import time
+
 import redis
 from django.conf import settings
 
@@ -9,11 +11,14 @@ def update_trust_score():
     Update trust score of devices marked as needing such update.
     """
     target_devices = Device.objects.filter(update_trust_score=True).only('pk')
+    device_nr = target_devices.count()
+    ts_begin = time.time()
     for device in target_devices:
         device.trust_score = device.get_trust_score()
         device.update_trust_score = False
         device.save(update_fields=['trust_score', 'update_trust_score'])
-    return target_devices.count()
+    ts_end = time.time()
+    print(f'update_trust_score: updated {device_nr} devices in {ts_end - ts_begin:.2f} seconds')
 
 
 def update_packages_vulnerabilities():

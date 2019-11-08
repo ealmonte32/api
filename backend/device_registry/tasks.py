@@ -3,7 +3,8 @@ from celery import shared_task
 from .celery_tasks import common, ubuntu_cve, debian_cve
 
 
-@shared_task
+# Should live 2.5m max and throw an exception to Sentry when killed.
+@shared_task(soft_time_limit=60 * 2.5, time_limit=60 * 2.9)  # Should live 2.5m max.
 def update_trust_score():
     return common.update_trust_score()
 
