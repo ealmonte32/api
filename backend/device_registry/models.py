@@ -334,7 +334,8 @@ class Device(models.Model):
 
     @property
     def is_ftp_public(self):
-        return bool(self._get_listening_sockets(FTP_PORT))
+        if hasattr(self, 'portscan'):
+            return bool(self._get_listening_sockets(FTP_PORT))
 
     @property
     def public_services(self):

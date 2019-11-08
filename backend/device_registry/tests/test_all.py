@@ -222,6 +222,9 @@ class DeviceModelTest(TestCase):
         ])
         self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
 
+    def test_ftp_public_no_portscan(self):
+        self.assertIsNone(self.device3.is_ftp_public)
+
     def test_fixed_issues(self):
         self.device4.update_trust_score_now()
         # initial state: firewall disabled, default password found - trust score low
