@@ -8,7 +8,7 @@ from django.conf import settings
 from git import Repo
 from itertools import chain
 
-from .models import Vulnerability, DebPackage, UBUNTU_SUITES
+from device_registry.models import Vulnerability, DebPackage, UBUNTU_SUITES
 
 logger = logging.getLogger('django')
 
@@ -296,3 +296,4 @@ def fetch_vulnerabilities():
         Vulnerability.objects.filter(os_release_codename__in=UBUNTU_SUITES).delete()
         Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
         DebPackage.objects.filter(os_release_codename__in=UBUNTU_SUITES).update(processed=False)
+        return len(vulnerabilities)

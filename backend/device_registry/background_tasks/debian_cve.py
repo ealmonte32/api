@@ -6,7 +6,7 @@ from urllib.request import urlopen, Request
 from django.conf import settings
 import redis
 
-from .models import Vulnerability, DebPackage, DEBIAN_SUITES
+from device_registry.models import Vulnerability, DebPackage, DEBIAN_SUITES
 
 logger = logging.getLogger('django')
 
@@ -67,3 +67,4 @@ def fetch_vulnerabilities():
             Vulnerability.objects.filter(os_release_codename__in=DEBIAN_SUITES).delete()
             Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
             DebPackage.objects.filter(os_release_codename__in=DEBIAN_SUITES).update(processed=False)
+            return len(vulnerabilities)
