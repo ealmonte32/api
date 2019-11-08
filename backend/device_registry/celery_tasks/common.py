@@ -1,16 +1,9 @@
-import logging
-import os
-
 import redis
-from celery import shared_task
 from django.conf import settings
 
 from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
 
-logger = logging.getLogger('django')
 
-
-@shared_task
 def update_trust_score():
     """
     Update trust score of devices marked as needing such update.
@@ -20,10 +13,9 @@ def update_trust_score():
         device.trust_score = device.get_trust_score()
         device.update_trust_score = False
         device.save(update_fields=['trust_score', 'update_trust_score'])
+    return target_devices.count()
 
 
-# Should live 4m max and throw and exception to Sentry when killed.
-@shared_task(soft_time_limit=60 * 4, time_limit=60 * 4 + 5)  # Should live 4m max.
 def update_packages_vulnerabilities():
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT,
                              password=settings.REDIS_PASSWORD)
@@ -44,8 +36,9 @@ def update_packages_vulnerabilities():
                 package.vulnerabilities.set(actionable_valns)
                 package.processed = True
                 package.save(update_fields=['processed'])
+            return len(packages)
     except redis.exceptions.LockError:
         # Did not managed to acquire the lock within 3s - that means it's acquired by
         # another instance of the same job or by the `fetch_vulnerabilities` job.
         # In both cases this job instance shouldn't do anything.
-        pass
+        return -1

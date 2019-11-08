@@ -3,7 +3,6 @@ import zlib
 from itertools import groupby
 from urllib.request import urlopen, Request
 
-from celery import shared_task
 from django.conf import settings
 import redis
 
@@ -12,8 +11,6 @@ from device_registry.models import Vulnerability, DebPackage, DEBIAN_SUITES
 logger = logging.getLogger('django')
 
 
-# Should live 10m max and throw and exception to Sentry when killed.
-@shared_task(soft_time_limit=60 * 10, time_limit=60 * 10 + 5)  # Should live 10m max.
 def fetch_vulnerabilities():
     """
     Download vulnerability index from Debian Security Tracker, parse it and store in db.
@@ -70,3 +67,4 @@ def fetch_vulnerabilities():
             Vulnerability.objects.filter(os_release_codename__in=DEBIAN_SUITES).delete()
             Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
             DebPackage.objects.filter(os_release_codename__in=DEBIAN_SUITES).update(processed=False)
+            return len(vulnerabilities)
