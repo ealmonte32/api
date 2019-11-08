@@ -1,6 +1,6 @@
 from celery import shared_task
 
-from .background_tasks import common, ubuntu_cve, debian_cve
+from .celery_tasks import common, ubuntu_cve, debian_cve
 
 
 @shared_task
