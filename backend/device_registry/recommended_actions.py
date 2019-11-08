@@ -389,7 +389,9 @@ action_classes.append(MemcachedAction)
 class CpuVulnerableAction(ActionPerDevice):
     action_id = 12
     action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
-    action_description = 'Intel CPU sucks on %s'
+    action_description = 'We detected that %s is vulnerable to Meltdown/Spectre. You can learn more about these ' \
+                         'issues <a href="https://meltdownattack.com/">here</a>. To fix the issue, please run ' \
+                         '<pre>apt-get update && apt-get upgrade</pre>'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
