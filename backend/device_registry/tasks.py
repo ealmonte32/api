@@ -3,19 +3,22 @@ from celery import shared_task
 from .celery_tasks import common, ubuntu_cve, debian_cve
 
 
-# Should live 2.5m max and throw an exception to Sentry when killed.
 @shared_task(soft_time_limit=60 * 2.5, time_limit=60 * 2.9)  # Should live 2.5m max.
 def update_trust_score():
     return common.update_trust_score()
 
 
-# Should live 4m max and throw and exception to Sentry when killed.
-@shared_task(soft_time_limit=60 * 4, time_limit=60 * 4 + 5)  # Should live 4m max.
-def update_packages_vulnerabilities():
-    return common.update_packages_vulnerabilities()
+@shared_task(soft_time_limit=60, time_limit=60 + 5)  # Should live 1m max.
+def update_packages_vulnerabilities(batch):
+    return common.update_packages_vulnerabilities(batch)
 
 
-@shared_task(soft_time_limit=60 * 30, time_limit=60 * 30 + 5)  # Should live 30m max.
+@shared_task(soft_time_limit=60 * 2.5, time_limit=60 * 2.5 + 5)  # Should live 2.5m max.
+def send_packages_to_vulns_update():
+    return common.send_packages_to_vulns_update(update_packages_vulnerabilities)
+
+
+@shared_task(soft_time_limit=60 * 15, time_limit=60 * 15 + 5)  # Should live 15m max.
 def fetch_vulnerabilities_ubuntu():
     return ubuntu_cve.fetch_vulnerabilities()
 

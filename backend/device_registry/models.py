@@ -62,7 +62,7 @@ class DebPackage(models.Model):
         ARMHF = 'armhf'
         ALL = 'all'
 
-    os_release_codename = models.CharField(max_length=64)
+    os_release_codename = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
     source_name = models.CharField(max_length=128)
