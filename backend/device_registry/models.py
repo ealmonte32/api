@@ -408,7 +408,7 @@ class Device(models.Model):
             failed_logins = 1.0 - ((failed_logins - self.MIN_FAILED_LOGINS) /
                                    (self.MAX_FAILED_LOGINS - self.MIN_FAILED_LOGINS + 1))
 
-        vulns = Vulnerability.objects.filter(debpackage__device__owner=self.owner).distinct()
+        vulns = Vulnerability.objects.filter(debpackage__device=self).distinct()
         vulns_low = vulns.filter(urgency__in=[Vulnerability.Urgency.NONE, Vulnerability.Urgency.LOW])
         vulns_medium = vulns.filter(urgency=Vulnerability.Urgency.MEDIUM)
         vulns_high = vulns.filter(urgency=Vulnerability.Urgency.HIGH)
