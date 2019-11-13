@@ -161,11 +161,11 @@ action_classes.append(FirewallDisabledAction)
 class VulnerablePackagesAction(ActionMultiDevice):
     action_id = 3
     action_title = 'Vulnerable packages found'
-    action_description = """<p>We found vulnerable packages on %s. These packages could be used by an attacker to 
-    either gain access to your node, or escalate permission. It is recommended that you address this at your earliest 
+    action_description = """<p>We found vulnerable packages on %s. These packages could be used by an attacker to
+    either gain access to your node, or escalate permission. It is recommended that you address this at your earliest
     convenience.</p>
     <p>Run <code>sudo apt-get update && sudo apt-get upgrade</code> to bring your system up to date.</p>
-    <p>Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system 
+    <p>Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system
     vendor.</p>"""
 
     @classmethod
@@ -285,7 +285,7 @@ class FtpServerAction(ActionPerDevice):
     action_title = 'Consider moving to SFTP'
     action_description = 'There appears to be an FTP server running on %s. FTP is generally considered insecure as ' \
                          'the credentials are sent unencrypted over the internet. Consider switching to an ' \
-                         'encrypted service, such as SFTP (https://www.ssh.com/ssh/sftp/)'
+                         'encrypted service, such as <a href="https://www.ssh.com/ssh/sftp">SFTP</a>.)'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -348,13 +348,13 @@ class MySQLDefaultRootPasswordAction(ActionPerDevice):
     action_title = 'No root password set for the MySQL/MariaDB server'
     action_description = """We detected that there is no root password set for MySQL/MariaDB on %s.
             Not having a root password set makes it easy for anyone with access to the
-            service to copy all information from the database. It is recommended that 
+            service to copy all information from the database. It is recommended that
             you change the password as soon as possible. There are multiple ways to do
             this, including using mysqladmin as follows:
 
             <pre>mysqladmin -u root password NEWPASSWORD</pre>
 
-            Tip: If you are using mysqladmin as per above, make sure to add a space 
+            Tip: If you are using mysqladmin as per above, make sure to add a space
             before the command to avoid it being stored in your shell's history."""
 
     @classmethod
