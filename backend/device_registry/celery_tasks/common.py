@@ -47,7 +47,7 @@ def send_packages_to_vulns_update(task):
     try:
         # Try to acquire the lock.
         # Spend trying 3s.
-        # In case of success set the lock's timeout to 60s.
+        # In case of success set the lock's timeout to 2.5m.
         with redis_conn.lock('vulns_lock', timeout=60 * 2.5, blocking_timeout=3):
             distro_suites = DEBIAN_SUITES + UBUNTU_SUITES
             package_ids = list(DebPackage.objects.filter(
