@@ -21,7 +21,10 @@ def update_trust_score(batch):
 
 
 def send_devices_to_trust_score_update(task):
-    device_ids = list(Device.objects.filter(update_trust_score=True).values_list('id', flat=True))
+    # 1st process the devices with trust_score=Null.
+    device_ids = list(Device.objects.exclude(owner=None).filter(update_trust_score=True).extra(
+        select={'trust_score_is_null': 'trust_score IS NULL'}).order_by('-trust_score_is_null').values_list(
+        'id', flat=True))
     batch_size = 50
     position = 0
     # Create batch jobs for multiple workers.
