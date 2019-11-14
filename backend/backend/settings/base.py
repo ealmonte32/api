@@ -232,16 +232,14 @@ CELERY_BROKER_URL = 'redis://%s%s:%i/0' % (
     int(os.getenv('REDIS_PORT', '6379'))
 )
 
-TRUST_SCORE_UPDATE_INTERVAL = 5  # minutes.
-
 CELERY_BEAT_SCHEDULE = {
     'update_celery_pulse_timestamp': {
         'task': 'monitoring.tasks.update_celery_pulse_timestamp',
         'schedule': crontab()  # Execute once a minute.
     },
-    'update_trust_score': {
-        'task': 'device_registry.tasks.update_trust_score',
-        'schedule': crontab(minute=f'*/{TRUST_SCORE_UPDATE_INTERVAL}')  # Execute once in every 5 minutes.
+    'send_devices_to_trust_score_update': {
+        'task': 'device_registry.tasks.send_devices_to_trust_score_update',
+        'schedule': crontab(minute='*/3')  # Execute every 3 minutes.
     },
     'fetch_vulnerabilities_debian': {
         'task': 'device_registry.tasks.fetch_vulnerabilities_debian',
@@ -253,7 +251,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     'send_packages_to_vulns_update': {
         'task': 'device_registry.tasks.send_packages_to_vulns_update',
-        'schedule': crontab(minute=f'*/3')  # Execute every 3 minutes.
+        'schedule': crontab(minute='*/3')  # Execute every 3 minutes.
     }
 }
 

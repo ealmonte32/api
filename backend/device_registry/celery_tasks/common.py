@@ -9,19 +9,32 @@ import redis
 from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
 
 
-def update_trust_score():
-    """
-    Update trust score of devices marked as needing such update.
-    """
-    target_devices = Device.objects.filter(update_trust_score=True).only('pk')
-    device_nr = target_devices.count()
-    ts_begin = time.time()
-    for device in target_devices:
+def update_trust_score(batch):
+    devices = Device.objects.filter(id__in=batch, update_trust_score=True)
+    counter = 0
+    for device in devices:
         device.trust_score = device.get_trust_score()
         device.update_trust_score = False
         device.save(update_fields=['trust_score', 'update_trust_score'])
-    ts_end = time.time()
-    print(f'update_trust_score: updated {device_nr} devices in {ts_end - ts_begin:.2f} seconds')
+        counter += 1
+    return counter
+
+
+def send_devices_to_trust_score_update(task):
+    # 1st process the devices with trust_score=Null.
+    device_ids = list(Device.objects.exclude(owner=None).filter(update_trust_score=True).extra(
+        select={'trust_score_is_null': 'trust_score IS NULL'}).order_by('-trust_score_is_null').values_list(
+        'id', flat=True))
+    batch_size = 50
+    position = 0
+    # Create batch jobs for multiple workers.
+    while True:
+        batch = device_ids[position: position + batch_size]
+        if not batch:
+            break
+        task.delay(batch)
+        position += batch_size
+    return len(device_ids)
 
 
 def update_packages_vulnerabilities(batch):
