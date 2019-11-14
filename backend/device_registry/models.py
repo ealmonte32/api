@@ -65,7 +65,7 @@ class DebPackage(models.Model):
     os_release_codename = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
-    source_name = models.CharField(max_length=128)
+    source_name = models.CharField(max_length=128, db_index=True)
     source_version = models.CharField(max_length=128)
     arch = models.CharField(max_length=16, choices=[(tag, tag.value) for tag in Arch])
     processed = models.BooleanField(default=False, db_index=True)

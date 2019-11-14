@@ -66,7 +66,8 @@ def send_packages_to_vulns_update(task):
         with redis_conn.lock('vulns_lock', timeout=60 * 2.5, blocking_timeout=3):
             distro_suites = DEBIAN_SUITES + UBUNTU_SUITES
             package_ids = list(DebPackage.objects.filter(
-                processed=False, os_release_codename__in=distro_suites).values_list('id', flat=True))
+                processed=False, os_release_codename__in=distro_suites).order_by(
+                'os_release_codename', 'source_name').values_list('id', flat=True))
             batch_size = 500
             position = 0
             # Create batch jobs for multiple workers.
