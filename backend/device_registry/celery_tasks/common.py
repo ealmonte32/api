@@ -1,6 +1,8 @@
 import time
+from collections import defaultdict
 
 from django.conf import settings
+from django.db.models import Q
 
 import redis
 
@@ -23,17 +25,28 @@ def update_trust_score():
 
 
 def update_packages_vulnerabilities(batch):
+    # We store packages as a list in order to prevent its content update during the function run.
     packages = list(DebPackage.objects.filter(id__in=batch, processed=False))
+
+    # Get only vulns we really need and put them to the dict.
+    q_objects = Q()
+    for package in packages:
+        q_objects.add(Q(package=package.source_name, os_release_codename=package.os_release_codename), Q.OR)
+    vulns_list = list(Vulnerability.objects.filter(q_objects))
+    vulns_dict = defaultdict(list)
+    for vuln in vulns_list:
+        vulns_dict[(vuln.package, vuln.os_release_codename)].append(vuln)
+
     # Marking the package as processed BEFORE the actual processing allows us correctly handle
     # the situation when the vulns DB was updated during the package processing.
     package_ids = [package.id for package in packages]
     DebPackage.objects.filter(id__in=package_ids).update(processed=True)
+
     Relation = DebPackage.vulnerabilities.through
     relations = []
     counter = 0
     for package in packages:
-        vulns = Vulnerability.objects.filter(package=package.source_name,
-                                             os_release_codename=package.os_release_codename)
+        vulns = vulns_dict[(package.source_name, package.os_release_codename)]
         for vuln in vulns:
             if vuln.is_vulnerable(package.source_version) and vuln.fix_available:
                 relations.append(Relation(debpackage_id=package.id, vulnerability_id=vuln.id))
