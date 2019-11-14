@@ -29,9 +29,10 @@ def update_packages_vulnerabilities(batch):
     packages = list(DebPackage.objects.filter(id__in=batch, processed=False))
 
     # Get only vulns we really need and put them to the dict.
+    package_info_pairs = {(package.source_name, package.os_release_codename) for package in packages}
     q_objects = Q()
-    for package in packages:
-        q_objects.add(Q(package=package.source_name, os_release_codename=package.os_release_codename), Q.OR)
+    for package_info in package_info_pairs:
+        q_objects.add(Q(package=package_info[0], os_release_codename=package_info[1]), Q.OR)
     vulns_list = list(Vulnerability.objects.filter(q_objects))
     vulns_dict = defaultdict(list)
     for vuln in vulns_list:
