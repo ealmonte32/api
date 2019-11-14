@@ -982,7 +982,7 @@ class RootViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-actions" href="/actions/">Recommended Actions<span '
+        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">Recommended Actions<span '
                           'class="badge badge-pill badge-danger ml-2">2</span></a>', response.rendered_content)
 
 
