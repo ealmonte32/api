@@ -4,6 +4,7 @@ from itertools import groupby
 from urllib.request import urlopen, Request
 
 from django.conf import settings
+
 import redis
 
 from device_registry.models import Vulnerability, DebPackage, DEBIAN_SUITES
@@ -15,8 +16,6 @@ def fetch_vulnerabilities():
     """
     Download vulnerability index from Debian Security Tracker, parse it and store in db.
     """
-    redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
-
     vulnerabilities = []
     for suite in DEBIAN_SUITES:  # Only Debian actual suites currently supported.
         logger.info('fetching data for "%s".' % suite)
@@ -63,6 +62,7 @@ def fetch_vulnerabilities():
         # Try to acquire the lock.
         # Spend trying 6m max.
         # In case of success set the lock's timeout to 5m.
+        redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
         with redis_conn.lock('vulns_lock', timeout=60 * 5, blocking_timeout=60 * 6):
             Vulnerability.objects.filter(os_release_codename__in=DEBIAN_SUITES).delete()
             Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)

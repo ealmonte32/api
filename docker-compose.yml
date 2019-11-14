@@ -131,7 +131,7 @@ services:
       - DB_USER=postgres
     build:
       context: .
-    command: celery beat -A backend -l error --pidfile="/tmp/celery.pid" -s "/tmp/celerybeat-schedule"
+    command: celery beat -A backend -l error --pidfile="/tmp/celerybeat.pid" -s "/tmp/celerybeat-schedule"
     volumes:
       - ./backend:/usr/src/app
     depends_on:

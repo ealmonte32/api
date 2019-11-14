@@ -251,9 +251,9 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'device_registry.tasks.fetch_vulnerabilities_ubuntu',
         'schedule': crontab(hour=2)  # Execute once in a day at 2AM.
     },
-    'update_packages_vulnerabilities': {
-        'task': 'device_registry.tasks.update_packages_vulnerabilities',
-        'schedule': crontab(minute=f'*/1')  # Execute once a minute.
+    'send_packages_to_vulns_update': {
+        'task': 'device_registry.tasks.send_packages_to_vulns_update',
+        'schedule': crontab(minute=f'*/3')  # Execute every 3 minutes.
     }
 }
 

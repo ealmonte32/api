@@ -2,16 +2,16 @@ import logging
 import os
 import sys
 from pathlib import Path
+from itertools import chain
+
+from django.conf import settings
 
 import redis
-from django.conf import settings
 from git import Repo
-from itertools import chain
 
 from device_registry.models import Vulnerability, DebPackage, UBUNTU_SUITES
 
 logger = logging.getLogger('django')
-
 
 supported_releases = list(UBUNTU_SUITES)
 
@@ -87,7 +87,7 @@ def parse_cve_file(filepath):
                             isinstance(cve_header_data[key], str):
                         if cve_header_data[key]:
                             cve_header_data[key] = cve_header_data[key] + ' ' + \
-                                ' '.join(values)
+                                                   ' '.join(values)
                         else:
                             cve_header_data[key] = ' '.join(values)
                     elif key and key in cve_header_data and \
@@ -255,8 +255,6 @@ def clone_cve_repo(repo_path: Path):
 
 
 def fetch_vulnerabilities():
-    redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
-
     ubuntu_cve_tracker_path = Path('/tmp/ubuntu-cve-tracker')
     sys.path.append(str(ubuntu_cve_tracker_path / 'scripts'))  # Needed by parse_cve_directory for importing cve_lib.
 
@@ -292,6 +290,7 @@ def fetch_vulnerabilities():
     # Try to acquire the lock.
     # Spend trying 6m max.
     # In case of success set the lock's timeout to 5m.
+    redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
     with redis_conn.lock('vulns_lock', timeout=60 * 5, blocking_timeout=60 * 6):
         Vulnerability.objects.filter(os_release_codename__in=UBUNTU_SUITES).delete()
         Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
