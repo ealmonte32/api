@@ -24,11 +24,11 @@ def send_packages_to_vulns_update():
     return common.send_packages_to_vulns_update(update_packages_vulnerabilities)
 
 
-@shared_task(soft_time_limit=60 * 15, time_limit=60 * 15 + 5)  # Should live 15m max.
+@shared_task(soft_time_limit=60 * 20, time_limit=60 * 20 + 5)  # Should live 20m max.
 def fetch_vulnerabilities_ubuntu():
     return ubuntu_cve.fetch_vulnerabilities()
 
 
-@shared_task(soft_time_limit=60 * 10, time_limit=60 * 10 + 5)  # Should live 10m max.
+@shared_task(soft_time_limit=60 * 15, time_limit=60 * 15 + 5)  # Should live 15m max.
 def fetch_vulnerabilities_debian():
     return debian_cve.fetch_vulnerabilities()
