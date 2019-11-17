@@ -3,6 +3,7 @@ import os
 import sys
 from pathlib import Path
 from itertools import chain
+import time
 
 from django.conf import settings
 
@@ -255,43 +256,44 @@ def clone_cve_repo(repo_path: Path):
 
 
 def fetch_vulnerabilities():
-    ubuntu_cve_tracker_path = Path('/tmp/ubuntu-cve-tracker')
-    sys.path.append(str(ubuntu_cve_tracker_path / 'scripts'))  # Needed by parse_cve_directory for importing cve_lib.
-
-    logger.info('cloning ubuntu-cve-tracker...')
-    clone_cve_repo(ubuntu_cve_tracker_path)
-    logger.info('parsing ubuntu-cve-tracker...')
-    vulnerabilities = []
-    parsed = parse_cve_directory(ubuntu_cve_tracker_path)
-    for vuln in parsed:
-        header, details = vuln['header'], vuln['packages']
-        name = header['Candidate']
-        for package, releases in details.items():
-            for codename, info in releases.items():
-                status, fix_version = info['status'], info.get('fix-version', '')
-                v = Vulnerability(
-                    name=name,
-                    package=package,
-                    unstable_version=fix_version,
-                    other_versions=[],
-                    is_binary=False,
-                    urgency={
-                        'low': Vulnerability.Urgency.LOW,
-                        'medium': Vulnerability.Urgency.MEDIUM,
-                        'high': Vulnerability.Urgency.HIGH,
-                    }.get(header['Priority'], Vulnerability.Urgency.NONE),
-                    remote=None,
-                    fix_available=(status == 'fixed'),
-                    os_release_codename=codename
-                )
-                vulnerabilities.append(v)
-
-    logger.info('saving data...')
     # Try to acquire the lock.
-    # Spend trying 6m max.
-    # In case of success set the lock's timeout to 5m.
+    # Spend trying 5m max.
+    # In case of success set the lock's timeout to 15m.
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
-    with redis_conn.lock('vulns_lock', timeout=60 * 5, blocking_timeout=60 * 6):
+    with redis_conn.lock('vulns_lock', timeout=60 * 15, blocking_timeout=60 * 5):
+        time.sleep(60 * 3)  # Sleep 3m to allow all running `update_packages_vulnerabilities` tasks finish.
+        ubuntu_cve_tracker_path = Path('/tmp/ubuntu-cve-tracker')
+        sys.path.append(str(ubuntu_cve_tracker_path / 'scripts'))  # Needed by parse_cve_directory for importing cve_lib.
+
+        logger.info('cloning ubuntu-cve-tracker...')
+        clone_cve_repo(ubuntu_cve_tracker_path)
+        logger.info('parsing ubuntu-cve-tracker...')
+        vulnerabilities = []
+        parsed = parse_cve_directory(ubuntu_cve_tracker_path)
+        for vuln in parsed:
+            header, details = vuln['header'], vuln['packages']
+            name = header['Candidate']
+            for package, releases in details.items():
+                for codename, info in releases.items():
+                    status, fix_version = info['status'], info.get('fix-version', '')
+                    v = Vulnerability(
+                        name=name,
+                        package=package,
+                        unstable_version=fix_version,
+                        other_versions=[],
+                        is_binary=False,
+                        urgency={
+                            'low': Vulnerability.Urgency.LOW,
+                            'medium': Vulnerability.Urgency.MEDIUM,
+                            'high': Vulnerability.Urgency.HIGH,
+                        }.get(header['Priority'], Vulnerability.Urgency.NONE),
+                        remote=None,
+                        fix_available=(status == 'fixed'),
+                        os_release_codename=codename
+                    )
+                    vulnerabilities.append(v)
+
+        logger.info('saving data...')
         Vulnerability.objects.filter(os_release_codename__in=UBUNTU_SUITES).delete()
         Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
         DebPackage.objects.filter(os_release_codename__in=UBUNTU_SUITES).update(processed=False)
