@@ -17,15 +17,19 @@ def fetch_vulnerabilities():
     """
     Download vulnerability index from Debian Security Tracker, parse it and store in db.
     """
+    logger.info('`fetch_vulnerabilities_debian`: started.')
     # Try to acquire the lock.
     # Spend trying 5m max.
     # In case of success set the lock's timeout to 10m.
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
-    with redis_conn.lock('vulns_lock', timeout=60 * 10, blocking_timeout=60 * 5):
+    # with redis_conn.lock('vulns_lock', timeout=60 * 10, blocking_timeout=60 * 5):
+    with redis_conn.lock('vulns_lock', timeout=60 * 10, blocking_timeout=60 * 10):  # TEMP!
+        logger.info('`fetch_vulnerabilities_debian`: lock acquired.')
         time.sleep(60 * 3)  # Sleep 3m to allow all running `update_packages_vulnerabilities` tasks finish.
+        logger.info('`fetch_vulnerabilities_debian`: sleep ended.')
         vulnerabilities = []
         for suite in DEBIAN_SUITES:  # Only Debian actual suites currently supported.
-            logger.info('fetching data for "%s".' % suite)
+            logger.info('`fetch_vulnerabilities_debian`: fetching data for "%s".' % suite)
             url = "https://security-tracker.debian.org/tracker/debsecan/release/1/" + suite
             response = urlopen(Request(url))
             compressed_data = response.read()
@@ -37,10 +41,10 @@ def fetch_vulnerabilities():
 
             vuln_name_list, packages_list = lists[:2]
             if vuln_name_list.pop(0) != 'VERSION 1':
-                logger.error('ERROR')
+                logger.error('`fetch_vulnerabilities_debian`: ERROR')
             vuln_names = [(name, desc) for (name, flags, desc) in map(lambda x: x.split(',', 2), vuln_name_list)]
 
-            logger.info('parsing data..')
+            logger.info('`fetch_vulnerabilities_debian`: parsing data..')
             for package_desc in packages_list:
                 package, vnum, flags, unstable_version, other_versions = package_desc.split(',', 4)
 
@@ -65,8 +69,9 @@ def fetch_vulnerabilities():
                                   os_release_codename=suite)
                 vulnerabilities.append(v)
 
-            logger.info('saving data...')
-            Vulnerability.objects.filter(os_release_codename__in=DEBIAN_SUITES).delete()
-            Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
-            DebPackage.objects.filter(os_release_codename__in=DEBIAN_SUITES).update(processed=False)
-            return len(vulnerabilities)
+        logger.info('`fetch_vulnerabilities_debian`: saving data...')
+        Vulnerability.objects.filter(os_release_codename__in=DEBIAN_SUITES).delete()
+        Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
+        DebPackage.objects.filter(os_release_codename__in=DEBIAN_SUITES).update(processed=False)
+        logger.info('`fetch_vulnerabilities_debian`: finished.')
+        return len(vulnerabilities)
