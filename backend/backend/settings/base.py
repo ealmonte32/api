@@ -177,9 +177,16 @@ STATICFILES_DIRS = (
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'default': {
+            'format': '{asctime} {module} {funcName} {process:d} {thread:d} {message}',
+            'style': '{',
+        }
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'default'
         },
     },
     'loggers': {
@@ -243,11 +250,11 @@ CELERY_BEAT_SCHEDULE = {
     },
     'fetch_vulnerabilities_debian': {
         'task': 'device_registry.tasks.fetch_vulnerabilities_debian',
-        'schedule': crontab(hour=1)  # Execute once in a day at 1AM.
+        'schedule': crontab(hour=15, minute=0)  # Execute once in a day at 3PM.
     },
     'fetch_vulnerabilities_ubuntu': {
         'task': 'device_registry.tasks.fetch_vulnerabilities_ubuntu',
-        'schedule': crontab(hour=2)  # Execute once in a day at 2AM.
+        'schedule': crontab(hour=16, minute=0)  # Execute once in a day at 4PM.
     },
     'send_packages_to_vulns_update': {
         'task': 'device_registry.tasks.send_packages_to_vulns_update',

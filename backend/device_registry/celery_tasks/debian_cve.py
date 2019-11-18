@@ -17,12 +17,15 @@ def fetch_vulnerabilities():
     """
     Download vulnerability index from Debian Security Tracker, parse it and store in db.
     """
+    logger.info('started.')
     # Try to acquire the lock.
     # Spend trying 5m max.
     # In case of success set the lock's timeout to 10m.
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
     with redis_conn.lock('vulns_lock', timeout=60 * 10, blocking_timeout=60 * 5):
+        logger.info('lock acquired.')
         time.sleep(60 * 3)  # Sleep 3m to allow all running `update_packages_vulnerabilities` tasks finish.
+        logger.info('sleep ended.')
         vulnerabilities = []
         for suite in DEBIAN_SUITES:  # Only Debian actual suites currently supported.
             logger.info('fetching data for "%s".' % suite)
@@ -65,8 +68,9 @@ def fetch_vulnerabilities():
                                   os_release_codename=suite)
                 vulnerabilities.append(v)
 
-            logger.info('saving data...')
-            Vulnerability.objects.filter(os_release_codename__in=DEBIAN_SUITES).delete()
-            Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
-            DebPackage.objects.filter(os_release_codename__in=DEBIAN_SUITES).update(processed=False)
-            return len(vulnerabilities)
+        logger.info('saving data...')
+        Vulnerability.objects.filter(os_release_codename__in=DEBIAN_SUITES).delete()
+        Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
+        DebPackage.objects.filter(os_release_codename__in=DEBIAN_SUITES).update(processed=False)
+        logger.info('finished.')
+        return len(vulnerabilities)
