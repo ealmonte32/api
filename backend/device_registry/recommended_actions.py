@@ -285,7 +285,7 @@ class FtpServerAction(ActionPerDevice):
     action_title = 'Consider moving to SFTP'
     action_description = 'There appears to be an FTP server running on %s. FTP is generally considered insecure as ' \
                          'the credentials are sent unencrypted over the internet. Consider switching to an ' \
-                         'encrypted service, such as <a href="https://www.ssh.com/ssh/sftp">SFTP</a>.)'
+                         'encrypted service, such as <a href="https://www.ssh.com/ssh/sftp">SFTP</a>.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
