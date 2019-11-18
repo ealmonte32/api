@@ -256,21 +256,22 @@ def clone_cve_repo(repo_path: Path):
 
 
 def fetch_vulnerabilities():
-    logger.info('`fetch_vulnerabilities_ubuntu`: started.')
+    logger.info('started.')
     # Try to acquire the lock.
     # Spend trying 5m max.
     # In case of success set the lock's timeout to 15m.
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
     with redis_conn.lock('vulns_lock', timeout=60 * 15, blocking_timeout=60 * 5):
-        logger.info('`fetch_vulnerabilities_ubuntu`: lock acquired.')
+        logger.info('lock acquired.')
         time.sleep(60 * 3)  # Sleep 3m to allow all running `update_packages_vulnerabilities` tasks finish.
-        logger.info('`fetch_vulnerabilities_ubuntu`: sleep ended.')
+        logger.info('sleep ended.')
         ubuntu_cve_tracker_path = Path('/tmp/ubuntu-cve-tracker')
-        sys.path.append(str(ubuntu_cve_tracker_path / 'scripts'))  # Needed by parse_cve_directory for importing cve_lib.
+        # Needed by parse_cve_directory for importing cve_lib.
+        sys.path.append(str(ubuntu_cve_tracker_path / 'scripts'))
 
-        logger.info('`fetch_vulnerabilities_ubuntu`: cloning ubuntu-cve-tracker...')
+        logger.info('cloning ubuntu-cve-tracker...')
         clone_cve_repo(ubuntu_cve_tracker_path)
-        logger.info('`fetch_vulnerabilities_ubuntu`: parsing ubuntu-cve-tracker...')
+        logger.info('parsing ubuntu-cve-tracker...')
         vulnerabilities = []
         parsed = parse_cve_directory(ubuntu_cve_tracker_path)
         for vuln in parsed:
@@ -296,9 +297,9 @@ def fetch_vulnerabilities():
                     )
                     vulnerabilities.append(v)
 
-        logger.info('`fetch_vulnerabilities_ubuntu`: saving data...')
+        logger.info('saving data...')
         Vulnerability.objects.filter(os_release_codename__in=UBUNTU_SUITES).delete()
         Vulnerability.objects.bulk_create(vulnerabilities, batch_size=10000)
         DebPackage.objects.filter(os_release_codename__in=UBUNTU_SUITES).update(processed=False)
-        logger.info('`fetch_vulnerabilities_ubuntu`: finished.')
+        logger.info('finished.')
         return len(vulnerabilities)

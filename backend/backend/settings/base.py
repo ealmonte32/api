@@ -177,9 +177,16 @@ STATICFILES_DIRS = (
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'default': {
+            'format': '{asctime} {module} {funcName} {process:d} {thread:d} {message}',
+            'style': '{',
+        }
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'default'
         },
     },
     'loggers': {

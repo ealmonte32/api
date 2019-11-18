@@ -40,10 +40,10 @@ def send_devices_to_trust_score_update(task):
 
 
 def update_packages_vulnerabilities(batch):
-    logger.info('`update_packages_vulnerabilities`: started. batch size: %d' % len(batch))
+    logger.info('started. batch size: %d' % len(batch))
     # We store packages as a list in order to prevent its content update during the function run.
     packages = list(DebPackage.objects.filter(id__in=batch, processed=False))
-    logger.info('`update_packages_vulnerabilities`: %d packages really need to be processed' % len(packages))
+    logger.info('%d packages really need to be processed' % len(packages))
     if not packages:
         return 0
 
@@ -73,24 +73,24 @@ def update_packages_vulnerabilities(batch):
         counter += 1
     Relation.objects.filter(debpackage_id__in=package_ids).delete()
     Relation.objects.bulk_create(relations, batch_size=10000, ignore_conflicts=True)
-    logger.info('`update_packages_vulnerabilities`: finished')
+    logger.info('finished')
     return counter, len(relations)
 
 
 def send_packages_to_vulns_update(task):
-    logger.info('`send_packages_to_vulns_update`: started.')
+    logger.info('started.')
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
     try:
         # Try to acquire the lock.
         # Spend trying 3s.
         # In case of success set the lock's timeout to 2.5m.
         with redis_conn.lock('vulns_lock', timeout=60 * 2.5, blocking_timeout=3):
-            logger.info('`send_packages_to_vulns_update`: lock acquired.')
+            logger.info('lock acquired.')
             distro_suites = DEBIAN_SUITES + UBUNTU_SUITES
             package_ids = list(DebPackage.objects.filter(
                 processed=False, os_release_codename__in=distro_suites).order_by(
                 'os_release_codename', 'source_name').values_list('id', flat=True))
-            logger.info('`send_packages_to_vulns_update`: %d packages to process found.' % len(package_ids))
+            logger.info('%d packages to process found.' % len(package_ids))
             batch_size = 500
             position = 0
             # Create batch jobs for multiple workers.
@@ -99,12 +99,12 @@ def send_packages_to_vulns_update(task):
                 if not batch:
                     break
                 task.delay(batch)
-                logger.info('`send_packages_to_vulns_update`: %d packages batch sent to the queue.' % len(batch))
+                logger.info('%d packages batch sent to the queue.' % len(batch))
                 position += batch_size
-            logger.info('`send_packages_to_vulns_update`: finished.')
+            logger.info('finished.')
             return len(package_ids)
     except redis.exceptions.LockError:
-        logger.info('`send_packages_to_vulns_update`: lock NOT acquired.')
+        logger.info('lock NOT acquired.')
         # Did not managed to acquire the lock within 3s - that means it's acquired by
         # another instance of the same job or by the `fetch_vulnerabilities` job.
         # In both cases this job instance shouldn't do anything.
