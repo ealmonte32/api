@@ -24,60 +24,60 @@
                   <th scope="row">Vulnerable Packages</th>
                   <td>
                     {% with object.vulnerable_packages as vulnerable_packages %}
-                      {% if vulnerable_packages is None %}
-                        N/A
-                      {% elif vulnerable_packages.exists %}
-                        <ul>
-                          {% for package in vulnerable_packages %}
-                            <li>{{ package.name }} / {{ package.version }}
+                    {% if vulnerable_packages is None %}
+                      N/A
+                    {% elif vulnerable_packages.exists %}
+                      <ul>
+                        {% for package in vulnerable_packages %}
+                          <li>{{ package.name }} / {{ package.version }}
                             ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
-                                   target="_blank">{{ v.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %})
-                            </li>
-                          {% endfor %}
-                        </ul>
-                      {% else %}
-                        {% include "badge.html" with icon="check" color="success" %}
-                      {% endif %}
+                               target="_blank">{{ v.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %})
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                     {% include "badge.html" with icon="check" color="success" %}
+                    {% endif %}
                     {% endwith %}
                   </td>
                 </tr>
                 {% with object.heartbleed_vulnerable as heartbleed_vulnerable %}
-                  {% if heartbleed_vulnerable is not None %}
-                    <tr>
-                      <th scope="row">
-                        Patched against Heartbleed
-                      </th>
-                      <td>
-                        {% if not heartbleed_vulnerable %}
-                          {% include "badge.html" with icon="check" color="success" %}
-                          Yes
-                        {% else %}
-                          {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                          No
-                        {% endif %}
-                      </td>
-                    </tr>
-                  {% endif %}
-                {% endwith %}
+                {% if heartbleed_vulnerable is not None %}
+                 <tr>
+                   <th scope="row">
+                     Patched against Heartbleed
+                   </th>
+                   <td>
+                     {% if not heartbleed_vulnerable %}
+                         {% include "badge.html" with icon="check" color="success" %}
+                         Yes
+                     {% else %}
+                         {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                         No
+                     {% endif %}
+                   </td>
+                 </tr>
+                 {% endif %}
+                 {% endwith %}
                 {% if object.cpu.vendor == 'GenuineIntel' %}
-                  <tr>
-                    <th scope="row">
-                      Patched against Meltdown/Spectre
-                    </th>
-                    <td>
-                      {% with object.cpu_vulnerable as cpu_vulnerable %}
-                        {% if cpu_vulnerable is False %}
-                          {% include "badge.html" with icon="check" color="success" %}
-                          Yes
-                        {% elif cpu_vulnerable is True %}
-                          {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                          No
-                        {% else %}
-                          N/A
-                        {% endif %}
-                      {% endwith %}
-                    </td>
-                  </tr>
+                <tr>
+                  <th scope="row">
+                    Patched against Meltdown/Spectre
+                  </th>
+                  <td>
+                    {% with object.cpu_vulnerable as cpu_vulnerable %}
+                    {% if cpu_vulnerable is False %}
+                        {% include "badge.html" with icon="check" color="success" %}
+                        Yes
+                    {% elif cpu_vulnerable is True %}
+                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                        No
+                    {% else %}
+                        N/A
+                    {% endif %}
+                    {% endwith %}
+                  </td>
+                </tr>
                 {% endif %}
                 <tr>
                   <th scope="row">
@@ -175,7 +175,7 @@
                       {% include "badge.html" with icon="check" color="success" %}
                     {% elif object.auto_upgrades_enabled is False %}
                       {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                      Automatic security update disabled!
+                        Automatic security update disabled!
                     {% else %}
                       N/A
                     {% endif %}
@@ -322,14 +322,14 @@
                         <div class="form-group">
                           {% if ports_choices %}
                             <div class="table-responsive" id="ports-table">
-                              <table id="firewall-ports-table" class="table table-borderless table-sm">
+                              <table  id="firewall-ports-table" class="table table-borderless table-sm">
                                 <thead class="thead-light">
                                 <tr>
                                   <th scope="col" width="5%" nowrap>
-                                    <input type="checkbox" value="0" id="ports-check-all">
-                                    <span
-                                        id="ports-table-column-1">{% if firewall.policy == 1 %}
-                                      Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
+                                  <input type="checkbox" value="0"  id="ports-check-all">
+                                      <span
+                                      id="ports-table-column-1">{% if firewall.policy == 1 %}
+                                    Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
                                   <th scope="col">IP</th>
                                   <th scope="col">Address</th>
                                   <th scope="col">Port</th>
@@ -409,7 +409,7 @@
                                 <thead class="thead-light">
                                 <tr>
                                   <th scope="col" width="5%" nowrap>
-                                    <input type="checkbox" value="0" id="connections-check-all">
+                                      <input type="checkbox" value="0"  id="connections-check-all">
                                       Blocked</th>
                                   <th scope="col">IP</th>
                                   <th scope="col">Rem addr</th>
@@ -494,47 +494,46 @@
 {% block scripts %}
   {{ block.super }}
   <script>
-      $(() => {
-          $('[data-toggle="popover"]').popover({
-              html: true
-          });
-
-          $('#id_policy').on('change', function () {
-              $('#ports-table :checkbox').each(function () {
-                  this.checked = !this.checked;
-              });
-              if (this.value === '1') {
-                  $('#ports-table-column-1').text('Blocked');
-              } else if (this.value === '2') {
-                  $('#ports-table-column-1').text('Allowed');
-              }
-              updateCheckAll('#ports-check-all', '#ports-table');
-          });
-
-          function updateCheckAll(checkbox, table) {
-              let value = $(checkbox).prop('checked');
-              if (value && $(table + ' .list-unstyled:checkbox:unchecked').length > 0)
-                  value = false;
-              else if (!value && $(table + ' .list-unstyled:checkbox:unchecked').length == 0)
-                  value = true;
-              $(checkbox).prop('checked', value);
-          }
-
-          function setupCheckAll(checkbox, table) {
-              $(checkbox).change((e) => {
-                  $(table + ' :checkbox').each((i, el) => {
-                      el.checked = e.target.checked;
-                  });
-              });
-              $(table + ' :checkbox').change(() => updateCheckAll(checkbox, table));
-
-              updateCheckAll(checkbox, table);
-          }
-
-          setupCheckAll('#ports-check-all', '#ports-table');
-          setupCheckAll('#connections-check-all', '#connections-table');
-
+    $(() => {
+      $('[data-toggle="popover"]').popover({
+          html: true
       });
+
+      $('#id_policy').on('change', function () {
+          $('#ports-table :checkbox').each(function () {
+              this.checked = !this.checked;
+          });
+          if (this.value === '1') {
+              $('#ports-table-column-1').text('Blocked');
+          } else if (this.value === '2') {
+              $('#ports-table-column-1').text('Allowed');
+          }
+          updateCheckAll('#ports-check-all', '#ports-table');
+      });
+
+      function updateCheckAll(checkbox, table) {
+          let value = $(checkbox).prop('checked');
+          if(value && $(table + ' .list-unstyled:checkbox:unchecked').length > 0)
+              value = false;
+          else if(!value && $(table + ' .list-unstyled:checkbox:unchecked').length==0)
+              value = true;
+          $(checkbox).prop('checked', value);
+      }
+
+      function setupCheckAll(checkbox, table) {
+          $(checkbox).change((e) => {
+              $(table + ' :checkbox').each((i,el) => {
+                  el.checked = e.target.checked;
+              });
+          });
+          $(table + ' :checkbox').change(() => updateCheckAll(checkbox, table));
+
+          updateCheckAll(checkbox, table);
+      }
+      setupCheckAll('#ports-check-all', '#ports-table');
+      setupCheckAll('#connections-check-all', '#connections-table');
+
+    });
 
   </script>
 {% endblock %}
