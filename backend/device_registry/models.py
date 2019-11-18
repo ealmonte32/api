@@ -75,12 +75,12 @@ class DebPackage(models.Model):
         unique_together = ['name', 'version', 'arch', 'os_release_codename']
 
 
-SSHD_CONFIG_PARAMS_SAFE_VALUES = {
-    'PermitEmptyPasswords': 'no',
-    'PermitRootLogin': 'no',
-    'PasswordAuthentication': 'no',
-    'AllowAgentForwarding': 'no',
-    'Protocol': '2'
+SSHD_CONFIG_PARAMS_INFO = {
+    'PermitEmptyPasswords': ('no', None),
+    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin'),
+    'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication'),
+    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-allowagentforwarding'),
+    'Protocol': ('2', None)
 }
 
 
@@ -209,7 +209,7 @@ class Device(models.Model):
                 if 'sshd' in file_info['name']:
                     issues = []
                     for k, v in file_info['issues'].items():
-                        issues.append((k, v, SSHD_CONFIG_PARAMS_SAFE_VALUES[k]))
+                        issues.append((k, v, SSHD_CONFIG_PARAMS_INFO[k]))
                     return issues
 
     @property

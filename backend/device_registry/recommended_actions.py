@@ -218,8 +218,11 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
             dev_str = 'this node'
         recommendations = ''
         for issue in device.sshd_issues:
-            recommendations += f'<li>Change "<strong>{issue[0]}</strong>" from "<strong>{issue[1]}</strong>" to "' \
-                               f'<strong>{issue[2]}</strong>"</li>'
+            recommendation_text = f'Change <strong>"{issue[0]}"</strong> from <strong>"{issue[1]}"</strong> to ' \
+                                  f'<strong>"{issue[2][0]}"</strong>.'
+            if issue[2][1]:  # Documentation link available.
+                recommendation_text += f' Learn more <a href="{issue[2][1]}" target="_blank">here</a>.'
+            recommendations += f'<li>{recommendation_text}</li>'
         recommendations = '<ul>%s</ul>' % recommendations
         return dev_str, recommendations
 
@@ -402,7 +405,6 @@ class CpuVulnerableAction(ActionPerDevice):
 
 
 action_classes.append(CpuVulnerableAction)
-
 
 # Check for `action_id` property uniqueness among all action classes.
 if len({action_class.action_id for action_class in action_classes}) < len(action_classes):
