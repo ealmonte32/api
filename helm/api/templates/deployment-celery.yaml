@@ -30,7 +30,7 @@ spec:
           args:
             - "worker"
             - "--app=backend"
-            - "--loglevel=error"
+            - "--loglevel=info"
             - "--time-limit=90"
             - "--soft-time-limit=60"
             - "--pidfile=/tmp/celery.pid"
