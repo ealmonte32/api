@@ -22,8 +22,7 @@ def fetch_vulnerabilities():
     # Spend trying 5m max.
     # In case of success set the lock's timeout to 10m.
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
-    # with redis_conn.lock('vulns_lock', timeout=60 * 10, blocking_timeout=60 * 5):
-    with redis_conn.lock('vulns_lock', timeout=60 * 10, blocking_timeout=60 * 10):  # TEMP!
+    with redis_conn.lock('vulns_lock', timeout=60 * 10, blocking_timeout=60 * 5):
         logger.info('`fetch_vulnerabilities_debian`: lock acquired.')
         time.sleep(60 * 3)  # Sleep 3m to allow all running `update_packages_vulnerabilities` tasks finish.
         logger.info('`fetch_vulnerabilities_debian`: sleep ended.')
