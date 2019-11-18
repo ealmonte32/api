@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -6,7 +7,7 @@ from django.dispatch import receiver
 from phonenumber_field.modelfields import PhoneNumberField
 
 from device_registry.recommended_actions import action_classes
-
+from device_registry.celery_tasks import github_issues
 
 @receiver(pre_save, sender=User, dispatch_uid="user_save_lower")
 def user_save_lower(sender, instance, *args, **kwargs):
@@ -30,7 +31,21 @@ class Profile(models.Model):
     payment_plan = models.PositiveSmallIntegerField(choices=PAYMENT_PLAN_CHOICES, default=PAYMENT_PLAN_FREE)
     wizard_shown = models.BooleanField(default=False)
     phone = PhoneNumberField(blank=True)
+    github_auth_code = models.CharField(blank=True, max_length=32)
+    github_repo_id = models.PositiveIntegerField(null=True)
+    github_random_state = models.CharField(blank=True, max_length=32)
+    github_oauth_token = models.CharField(blank=True, max_length=64)
+    github_issues = JSONField(blank=True, default=dict)
 
     @property
     def actions_count(self):
         return sum([action_class.action_blocks_count(self.user) for action_class in action_classes])
+
+    @property
+    def github_repos(self):
+        if self.github_oauth_token:
+            return github_issues.list_repos(self.github_oauth_token)
+
+    def fetch_oauth_token(self, code):
+        self.github_oauth_token = github_issues.get_token_from_code(code)
+        self.save(update_fields=['github_oauth_token'])

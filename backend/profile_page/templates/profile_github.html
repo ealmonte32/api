@@ -22,7 +22,7 @@
           </div>
 
           <div class="list-group list-group-flush" role="tablist">
-            <a class="list-group-item list-group-item-action active" href="{% url 'profile' %}" role="tab">
+            <a class="list-group-item list-group-item-action" href="{% url 'profile' %}" role="tab">
               Account
             </a>
             <a class="list-group-item list-group-item-action" href="{% url 'profile_password' %}" role="tab">
@@ -31,7 +31,7 @@
             <a class="list-group-item list-group-item-action" href="{% url 'profile_token' %}" role="tab">
               API token
             </a>
-            <a class="list-group-item list-group-item-action" href="{% url 'github_integration' %}" role="tab">
+            <a class="list-group-item list-group-item-action active" href="{% url 'github_integration' %}" role="tab">
               Github integration
             </a>
           </div>
@@ -44,16 +44,21 @@
 
             <div class="card">
               <div class="card-header">
-                <h5 class="card-title mb-0">Public info</h5>
+                <h5 class="card-title mb-0">Github Repository</h5>
               </div>
               <div class="card-body">
+                {% if github_authorized %}
                 <form method="POST" action="">
                   {% csrf_token %}
                   {% bootstrap_form form %}
                   {% buttons %}
                     <button type="submit" class="btn btn-primary">Save changes</button>
+                    <button onclick="installGithub()">Install App</button>
                   {% endbuttons %}
                 </form>
+                {% else %}
+                  <button onclick="authorizeGithub()">Authorize Github</button>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -61,4 +66,17 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script>
+  function authorizeGithub() {
+    w=window.open({{ github_auth_url }}, '_blank', 'location=yes,height=570,width=520,scrollbars=yes,status=yes');
+  }
+
+  function installGithub() {
+    w=window.open({{ github_inst_url }}, '_blank', 'location=yes,height=570,width=520,scrollbars=yes,status=yes');
+  }
+  </script>
 {% endblock %}

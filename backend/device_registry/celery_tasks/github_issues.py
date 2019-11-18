@@ -10,7 +10,9 @@ from agithub.GitHub import GitHub
 # The following data can be obtained at https://github.com/settings/apps/wott-bot
 GITHUB_APP_PEM = os.getenv('GITHUB_APP_PEM')  # Base64 encoded Github app private key: `cat key.pem | base64`
 GITHUB_APP_ID = os.getenv('GITHUB_APP_ID')    # Github App ID
-GITHUB_APP_SECRET = os.getenv('GITHUB_APP_SECRET')    # Github App Secret
+GITHUB_APP_NAME = os.getenv('GITHUB_APP_NAME')
+GITHUB_APP_CLIENT_ID = os.getenv('GITHUB_APP_CLIENT_ID')
+GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')    # Github App Secret
 GITHUB_APP_REDIR_URL = os.getenv('GITHUB_APP_REDIR_URL')    # Github App Redirect URL
 USER_TOKEN = 'fa6e702403bac10f7bf2e33b5e3c19897daf80d1' # REMOVE
 HEADERS = {'Accept': 'application/vnd.github.machine-man-preview+json'}
@@ -25,11 +27,10 @@ def get_token_from_code(code):
     :return: access token (string)
     :raises RuntimeError
     """
-    url = 'http://wott.io'
     state = 'RANDOM'
 
     g = GitHub(paginate=True, sleep_on_ratelimit=False, api_url='github.com')
-    status, body = g.login.oauth.access_token.post(client_id=GITHUB_APP_ID, client_secret=GITHUB_APP_SECRET,
+    status, body = g.login.oauth.access_token.post(client_id=GITHUB_APP_CLIENT_ID, client_secret=GITHUB_APP_CLIENT_SECRET,
                                                    redirect_uri=GITHUB_APP_REDIR_URL, state=state, code=code,
                                                    headers={'Accept': 'application/json'})
     if status == 200 and 'access_token' in body:
@@ -38,13 +39,14 @@ def get_token_from_code(code):
         raise RuntimeError(body)
 
 
-def list_repos():
+def list_repos(user_token):
     """
     Enumerate authenticated user's repositories where the app is installed.
+    :param user_token: a user-to-server token.
     :return: a dict {id: {owner: ..., name: ..., installation: ..., full_name: ...}}
     :raises RuntimeError
     """
-    g = GitHub(paginate=True, sleep_on_ratelimit=False, token=USER_TOKEN)
+    g = GitHub(paginate=True, sleep_on_ratelimit=False, token=user_token)
     print('getting installations...')
     status, body = g.user.installations.get(headers=HEADERS)
     repos = {}
@@ -117,98 +119,92 @@ def get_access_token(inst_id):
         raise RuntimeError(body)
 
 
-def list_issues(repo):
-    g = GitHub(paginate=True, sleep_on_ratelimit=False, token=get_access_token(repo['installation']))
-    # FIXME: "GitHub's REST API v3 considers every pull request an issue, but not every issue is a pull request."
-    # https://developer.github.com/v3/issues/#list-issues-for-a-repository what does it mean?
-    return g.repos[repo['owner']][repo['name']].issues.get(state='all', headers=HEADERS)
+class GithubRepo:
+    token_cache = {}
 
+    def __init__(self, repo):
+        self.repo = repo
+        inst_id = repo['installation']
+        if inst_id in self.token_cache:
+            token = self.token_cache[inst_id]
+        else:
+            token = get_access_token(inst_id)
+            self.token_cache[inst_id] = token
+        self.github = GitHub(paginate=True, sleep_on_ratelimit=False, token=token)
 
-def open_issue(repo, issue_number=None, title_text='', body_text=''):
-    """
-    Open Github issue specified by issue_number or create new issue with the specified body text.
-    If the issue exists its body text will not be changed.
-    If the specified issue_number does not exist new issue will also be created.
-    :param issue_number: number; may be None in which case new issue will be created
-    :param body_text: body text for the newly created issue.
-    :return: github.Issue object
-    """
-    g = GitHub(paginate=True, sleep_on_ratelimit=False, token=get_access_token(repo['installation']))
-
-    def issues():
+    def _issues(self, issue_number = None):
         # Because agithub.IncompleteRequest gets "complete" after performing an actual request,
         # we need to create a new one for every new request.
-        return g.repos[repo['owner']][repo['name']].issues
+        res = self.github.repos[self.repo['owner']][self.repo['name']].issues
+        if issue_number is not None:
+            return res[issue_number]
+        return res
 
-    if issue_number is not None:
-        status, body = issues()[issue_number].get()
-        if status == 200 and 'id' in body:
-            if body['state'] == 'open':
-                print('issue already open')
-                return
-            print('reopening the issue')
-            status, body = issues()[issue_number].patch(body={
-                'state': 'open'
-            })
-            if status == 200:
-                print('issue reopened')
-                return
-            else:
-                raise RuntimeError(body)
-        elif status == 404:
-            print('issue not found')
-            pass
+    def list_issues(self):
+        return self._issues().get(state='all', headers=HEADERS)
+
+    def add_comment(self, issue_number, comment):
+        status, body = self._issues(issue_number).comments.post(body={
+            'body': comment
+        })
+        if status == 201:
+            return
         else:
             raise RuntimeError(body)
-    print('creating new issue')
-    status, body = issues().post(body={
-        'title': title_text,
-        'body': body_text
-    })
-    if status == 201:
-        print('created issue #{}'.format(body['number']))
-        return body['number']
-    else:
-        raise RuntimeError(body)
 
+    def close_issue(self, issue_number):
+        print('closing issue')
+        status, body = self._issues(issue_number).patch(body={
+            'state': 'closed'
+        })
+        if status == 200:
+            print('issue closed')
+            return
+        elif status == 404:
+            print('issue not found')
+        else:
+            raise RuntimeError(body)
 
-def close_issue(repo, issue_number):
-    g = GitHub(paginate=True, sleep_on_ratelimit=False, token=get_access_token(repo['installation']))
+    def open_issue(self, issue_number=None, title_text='', body_text=''):
+        """
+        Open Github issue specified by issue_number or create new issue with the specified body text.
+        If the issue exists its body text will not be changed.
+        If the specified issue_number does not exist new issue will also be created.
+        :param issue_number: number; may be None in which case new issue will be created
+        :param body_text: body text for the newly created issue.
+        :return: github.Issue object
+        """
+        if issue_number is not None:
+            status, body = self._issues(issue_number).get()
+            if status == 200 and 'id' in body:
+                if body['state'] == 'open':
+                    print('issue already open')
+                    return
+                print('reopening the issue')
+                status, body = self._issues(issue_number).patch(body={
+                    'state': 'open'
+                })
+                if status == 200:
+                    print('issue reopened')
+                    return
+                else:
+                    raise RuntimeError(body)
+            elif status == 404:
+                print('issue not found')
+                pass
+            else:
+                raise RuntimeError(body)
+        print('creating new issue')
+        status, body = self._issues().post(body={
+            'title': title_text,
+            'body': body_text
+        })
+        if status == 201:
+            print('created issue #{}'.format(body['number']))
+            return body['number']
+        else:
+            raise RuntimeError(body)
 
-    def issues():
-        # Because agithub.IncompleteRequest gets "complete" after performing an actual request,
-        # we need to create a new one for every new request.
-        return g.repos[repo['owner']][repo['name']].issues
+r=list_repos(USER_TOKEN)
+repo=list(r.values())[2]
 
-    print('closing issue')
-    status, body = issues()[issue_number].patch(body={
-        'state': 'closed'
-    })
-    if status == 200:
-        print('issue closed')
-        return
-    elif status == 404:
-        print('issue not found')
-    else:
-        raise RuntimeError(body)
-
-
-def add_comment(repo, issue_number, comment):
-    g = GitHub(paginate=True, sleep_on_ratelimit=False, token=get_access_token(repo['installation']))
-
-    def issues():
-        # Because agithub.IncompleteRequest gets "complete" after performing an actual request,
-        # we need to create a new one for every new request.
-        return g.repos[repo['owner']][repo['name']].issues
-
-    status, body = issues()[issue_number].comments.post(body={
-        'body': comment
-    })
-    if status == 201:
-        return
-    else:
-        raise RuntimeError(body)
-
-
-# r=list_repos()
-# repo=list(r.values())[2]
