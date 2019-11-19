@@ -77,9 +77,9 @@ class DebPackage(models.Model):
 
 SSHD_CONFIG_PARAMS_INFO = {
     'PermitEmptyPasswords': ('no', None),
-    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-permit-root-login'),
+    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin'),
     'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-password-authentication'),
-    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-allow-agent-forwarding'),
+    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication'),
     'Protocol': ('2', None)
 }
 
