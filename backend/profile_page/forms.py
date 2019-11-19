@@ -49,4 +49,9 @@ class AuthenticationForm(DjangoAuthenticationForm):
 
 
 class GithubForm(forms.Form):
-    repo = forms.ChoiceField(choices=[])
+    repo = forms.ChoiceField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        repo_choices = kwargs.pop('repo_choices')
+        super().__init__(*args, **kwargs)
+        self.fields['repo'].choices = repo_choices

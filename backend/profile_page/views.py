@@ -147,33 +147,33 @@ class GithubIntegrationView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         profile = request.user.profile
         repos = profile.github_repos
-        form = GithubForm({'repo': profile.github_repo_id})
+        context = {}
         if repos is None:
             profile.github_random_state = 'RANDOM'
             profile.save(update_fields=['github_random_state'])
-            github_authorized = False
-            # TODO: "authorize" button
+            context = {
+                'github_authorized': False,
+                'github_auth_url': f'https://github.com/login/oauth/authorize?'
+                                   f'client_id={github_issues.GITHUB_APP_CLIENT_ID}&'
+                                   f'redirect_uri={github_issues.GITHUB_APP_REDIR_URL}&'
+                                   f'state={profile.github_random_state}'
+            }
         else:
-            # TODO: show repo list, "Install" and "Save" button
-            github_authorized = True
-            form.fields['repo'].choices = [(id, repo['full_name']) for id, repo in repos.items()]
-        return render(request, 'profile_github.html', {
-            'form': form,
-            'github_authorized': github_authorized,
-            'github_auth_url': 'https://github.com/login/oauth/authorize?client_id={}&redirect_uri={}&state={}'.format(
-                github_issues.GITHUB_APP_CLIENT_ID, github_issues.GITHUB_APP_REDIR_URL, profile.github_random_state
-            ),
-            'github_inst_url': 'https://github.com/apps/{}/installations/new'.format(
-                github_issues.GITHUB_APP_NAME
-            )
-        })
+            form = GithubForm({'repo': profile.github_repo_id},
+                              repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
+            context = {
+                'form': form,
+                'github_authorized': True,
+                'github_inst_url': f'https://github.com/apps/{github_issues.GITHUB_APP_NAME}/installations/new'
+            }
+        return render(request, 'profile_github.html', context)
 
     def post(self, request, *args, **kwargs):
         # TODO: save currently selected repo id to profile.github_repo_id
         profile = request.user.profile
-        form = GithubForm(request.POST)
         repos = profile.github_repos
-        form.fields['repo'].choices = [(id, repo['full_name']) for id, repo in repos.items()]
+        form = GithubForm({'repo': profile.github_repo_id},
+                          repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
         profile = request.user.profile
         if form.is_valid():
             if profile.github_repo_id != form.cleaned_data['repo']:
