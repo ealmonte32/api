@@ -54,4 +54,4 @@ class GithubForm(forms.Form):
     def __init__(self, *args, **kwargs):
         repo_choices = kwargs.pop('repo_choices')
         super().__init__(*args, **kwargs)
-        self.fields['repo'].choices = repo_choices
+        self.fields['repo'].choices = [(None, '')] + repo_choices

@@ -72,12 +72,20 @@
   {{ block.super }}
   <script>
   function authorizeGithub() {
-    w=window.open("{{ github_auth_url }}", '_blank', 'location=yes,height=570,width=520,scrollbars=yes,status=yes');
+    let w = window.open("{{ github_auth_url }}", '_blank', 'location=yes,height=570,width=520,scrollbars=yes,status=yes');
   }
 
+  let popupCheckInterval = null;
   function installGithub() {
-    w=window.open("{{ github_inst_url }}", '_blank', 'location=yes,height=570,width=520,scrollbars=yes,status=yes');
-    w.onunload = () => {location.reload();}
+    if(popupCheckInterval)
+        return;
+    let w = window.open("{{ github_inst_url }}", '_blank', 'location=yes,status=yes');
+    popupCheckInterval = setInterval(() => {
+        if(w.closed) {
+            clearInterval(popupCheckInterval);
+            location.reload();
+        }
+    }, 100);
   }
   </script>
 {% endblock %}

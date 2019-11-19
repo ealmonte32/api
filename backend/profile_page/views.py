@@ -159,6 +159,8 @@ class GithubIntegrationView(LoginRequiredMixin, View):
                                    f'state={profile.github_random_state}'
             }
         else:
+            if profile.github_repo_id not in repos:
+                profile.github_repo_id = None  # Not saving because this is a GET
             form = GithubForm({'repo': profile.github_repo_id},
                               repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
             context = {
@@ -169,16 +171,16 @@ class GithubIntegrationView(LoginRequiredMixin, View):
         return render(request, 'profile_github.html', context)
 
     def post(self, request, *args, **kwargs):
-        # TODO: save currently selected repo id to profile.github_repo_id
         profile = request.user.profile
         repos = profile.github_repos
-        form = GithubForm({'repo': profile.github_repo_id},
+        form = GithubForm(request.POST,
                           repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
         profile = request.user.profile
         if form.is_valid():
-            if profile.github_repo_id != form.cleaned_data['repo']:
-                # TODO: reset github_issues if repo id has changed
-                profile.github_repo_id = form.cleaned_data['repo']
+            repo = form.cleaned_data['repo']
+            repo = int(repo) if repo else None
+            if profile.github_repo_id != repo:
+                profile.github_repo_id = repo
                 profile.github_issues = {}
                 profile.save(update_fields=['github_repo_id', 'github_issues'])
             return HttpResponseRedirect(reverse('github_integration'))
@@ -188,8 +190,7 @@ class GithubIntegrationView(LoginRequiredMixin, View):
 class GithubCallbackView(LoginRequiredMixin, View):
     # TODO: <script>window.opener.location.reload(); window.close();</script>
     def get(self, request, *args, **kwargs):
-        # TODO: check "state", get "code", retrieve oath token
         if request.user.profile.github_random_state != request.GET.get('state'):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         request.user.profile.fetch_oauth_token(request.GET.get('code'))
-        return render(request, 'github_callback.html');
+        return render(request, 'github_callback.html')
