@@ -147,15 +147,16 @@ class GithubIntegrationView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         profile = request.user.profile
         repos = profile.github_repos
+        form = GithubForm({'repo': profile.github_repo_id})
         if repos is None:
             profile.github_random_state = 'RANDOM'
+            profile.save(update_fields=['github_random_state'])
             github_authorized = False
             # TODO: "authorize" button
         else:
             # TODO: show repo list, "Install" and "Save" button
             github_authorized = True
-            form = GithubForm(initial=profile.github_repo_id)
-            form.fields['repo'].choices = [(repo['id'], repo['full_name']) for repo in repos]
+            form.fields['repo'].choices = [(id, repo['full_name']) for id, repo in repos.items()]
         return render(request, 'profile_github.html', {
             'form': form,
             'github_authorized': github_authorized,
@@ -169,13 +170,18 @@ class GithubIntegrationView(LoginRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         # TODO: save currently selected repo id to profile.github_repo_id
-        form = ProfileForm(request.POST)
         profile = request.user.profile
-        if profile.github_repo_id != form.cleaned_data['repo']:
-            # TODO: reset github_issues if repo id has changed
-            profile.github_repo_id = form.cleaned_data['repo']
-            profile.github_issues = {}
-            profile.save(update_fields=['github_repo_id', 'github_issues'])
+        form = GithubForm(request.POST)
+        repos = profile.github_repos
+        form.fields['repo'].choices = [(id, repo['full_name']) for id, repo in repos.items()]
+        profile = request.user.profile
+        if form.is_valid():
+            if profile.github_repo_id != form.cleaned_data['repo']:
+                # TODO: reset github_issues if repo id has changed
+                profile.github_repo_id = form.cleaned_data['repo']
+                profile.github_issues = {}
+                profile.save(update_fields=['github_repo_id', 'github_issues'])
+            return HttpResponseRedirect(reverse('github_integration'))
         return render(request, 'profile_github.html', {'form': form})
 
 
@@ -186,3 +192,4 @@ class GithubCallbackView(LoginRequiredMixin, View):
         if request.user.profile.github_random_state != request.GET.get('state'):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         request.user.profile.fetch_oauth_token(request.GET.get('code'))
+        return render(request, 'github_callback.html');

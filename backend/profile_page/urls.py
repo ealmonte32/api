@@ -14,5 +14,5 @@ urlpatterns = [
     path('generate-api-token/', GenerateAPITokenView.as_view(), name='generate_api_token'),
     path('revoke-api-token/', RevokeAPITokenView.as_view(), name='revoke_api_token'),
     path('profile/github/', GithubIntegrationView.as_view(), name='github_integration'),
-    path('github/callback', GithubCallbackView.as_view(), name='github_callback')
+    path('github-callback/', GithubCallbackView.as_view(), name='github_callback')
 ]
