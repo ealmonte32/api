@@ -135,7 +135,11 @@
                         <ul style="list-style-type:none; padding: 0;">
                           {% for issue in sshd_issues %}
                             <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider
-                              changing "{{ issue.0 }}" from "{{ issue.1 }}" to "{{ issue.2 }}"
+                              changing "{{ issue.0 }}" from "{{ issue.1 }}" to "{{ issue.2.0 }}"
+                              {% if issue.2.1 %}
+                                <a href="{{ issue.2.1 }}"
+                                   target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                              {% endif %}
                             </li>
                           {% endfor %}
                         </ul>
