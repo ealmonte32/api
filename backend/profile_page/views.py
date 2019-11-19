@@ -147,7 +147,6 @@ class GithubIntegrationView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         profile = request.user.profile
         repos = profile.github_repos
-        context = {}
         if repos is None:
             profile.github_random_state = 'RANDOM'
             profile.save(update_fields=['github_random_state'])

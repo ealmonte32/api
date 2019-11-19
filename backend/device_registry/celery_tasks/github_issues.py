@@ -5,6 +5,9 @@ import time
 from base64 import b64decode
 
 from agithub.GitHub import GitHub
+from django.urls import reverse
+
+from device_registry import recommended_actions
 
 
 # The following data can be obtained at https://github.com/settings/apps/wott-bot
@@ -204,6 +207,26 @@ class GithubRepo:
             return body['number']
         else:
             raise RuntimeError(body)
+
+
+def main():
+    from profile_page.models import Profile
+
+    for p in Profile.objects.filter(github_repo_id__isnull=False, github_oauth_token__isnull=False):
+        repos = list_repos(p.github_oauth_token)
+        if p.github_repo_id not in repos:
+            print('repo not found: app not installed or no access')
+            continue
+        gr = GithubRepo(repos[p.github_repo_id])
+        gr.list_issues()
+
+        actions = []
+        if p.user.devices.exists():
+            for action_class in recommended_actions.action_classes:
+                actions.extend(action_class.actions(p.user, None))
+
+        # TODO: replace <a href=...>, <pre>, <p>, <strong>, <code>
+        return actions
 
 # r=list_repos(USER_TOKEN)
 # repo=list(r.values())[2]
