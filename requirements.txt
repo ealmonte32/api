@@ -47,7 +47,6 @@ psycopg2==2.8.3
 pyasn1==0.4.5
 pyasn1-modules==0.2.5
 pycparser==2.19
-pygithub==1.44.1
 python-dateutil==2.8.0
 pytz==2018.9
 PyYAML==5.1
