@@ -3,9 +3,11 @@ import logging
 import os
 import time
 from base64 import b64decode
+from datetime import timedelta
 
 from agithub.GitHub import GitHub
 from django.urls import reverse
+from django.utils import timezone
 
 from device_registry import recommended_actions
 
@@ -212,6 +214,7 @@ class GithubRepo:
 def main():
     from profile_page.models import Profile
 
+    day_ago = timezone.now() - timedelta(hours=24)
     for p in Profile.objects.filter(github_repo_id__isnull=False, github_oauth_token__isnull=False):
         repos = list_repos(p.github_oauth_token)
         if p.github_repo_id not in repos:
@@ -220,13 +223,36 @@ def main():
         gr = GithubRepo(repos[p.github_repo_id])
         gr.list_issues()
 
-        actions = []
+        counter = 0
         if p.user.devices.exists():
             for action_class in recommended_actions.action_classes:
-                actions.extend(action_class.actions(p.user, None))
+                affected_devices = action_class.affected_devices(p.user).filter(last_ping__gte=day_ago)
+                issue_info = p.github_issues.get(action_class.action_id, {})
+                if affected_devices.exists():
+                    if 'issue_number' in issue_info:
+                        comment = 'devices affected: ' + ', '.join(
+                            [recommended_actions.device_link(dev) for dev in affected_devices])
+                        issue_number = issue_info['issue_number']
+                        gr.open_issue(issue_number=p.github_issues)
+                        gr.add_comment(issue_number, comment)
+                        counter += 1
+                    else:
+                        # TODO: get_action_description_context
+                        context = action_class.get_action_description_context(affected_devices, None)
+                        action_text = action_class.action_description.fomat()
+                        action_text += '\n\ndevices affected: ' + ', '.join(
+                            [recommended_actions.device_link(dev) for dev in affected_devices])
+                        issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)
+                        issue_info['issue_number'] = issue_number
+                        counter += 1
+                else:
+                    if 'issue_number' in issue_info:
+                        gr.close_issue(issue_info['issue_number'])
+                    counter += 1
+                p.github_issues[action_class.action_id] = issue_info
+                p.save(update_fields=['github_issues'])
 
-        # TODO: replace <a href=...>, <pre>, <p>, <strong>, <code>
-        return actions
+        return counter
 
 # r=list_repos(USER_TOKEN)
 # repo=list(r.values())[2]
