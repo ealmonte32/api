@@ -361,7 +361,7 @@
             selector: 'td:first-child'
         },
         language: {
-          emptyTable: `Looks like you got no nodes added. Press the <a href="#">Add Node</a> button to enroll your first
+          emptyTable: `Looks like you got no nodes added. Press the <a id="inst-btn-link" href="#" onclick="show_install_msg()">Add Node</a> button to enroll your first
                        node and get a security audit.`
         }
       });
@@ -536,7 +536,7 @@
           return s.replace('<!-- text -->', text).replace('&lt;!-- copy --&gt;', copy_text);
       }
 
-      function show_install_msg(a){
+      function show_install_msg(){
         $.ajax({
             url: '/ajax-pairing-keys/add_dev/',
             type: "POST",
