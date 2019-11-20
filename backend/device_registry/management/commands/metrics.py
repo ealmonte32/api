@@ -33,6 +33,7 @@ class Command(BaseCommand):
         now = timezone.now()
         today = now.date()
         month_ago_date = today - timezone.timedelta(days=30)
+        week_ago_date = today - timezone.timedelta(days=7)
         day_ago_date = today - timezone.timedelta(days=1)
         week_ago = now - timezone.timedelta(days=7)
 
@@ -40,6 +41,7 @@ class Command(BaseCommand):
         all_devices = Device.objects.count()
         claimed_devices = Device.objects.exclude(owner__isnull=True).count()
         active_users_monthly = User.objects.filter(profile__last_active__gte=month_ago_date).count()
+        active_users_weekly = User.objects.filter(profile__last_active__gte=week_ago_date).count()
         active_users_daily = User.objects.filter(profile__last_active__gte=day_ago_date).count()
         active_devices = Device.objects.filter(last_ping__gte=week_ago)
         inactive_devices = Device.objects.filter(last_ping__lt=week_ago)
@@ -49,6 +51,7 @@ class Command(BaseCommand):
             'claimed_devices': claimed_devices,
             'all_users': all_users,
             'active_users_monthly': active_users_monthly,
+            'active_users_weekly': active_users_weekly,
             'active_users_daily': active_users_daily,
             'active_devices': active_devices.count(),
             'avg_score_active': average_trust_score(active_devices),
@@ -77,7 +80,9 @@ class Command(BaseCommand):
                                  description='Average Trust Score of active devices'),
             bigquery.SchemaField("avg_score_inactive", "FLOAT", mode="REQUIRED",
                                  description='Average Trust Score of inactive devices'),
-            bigquery.SchemaField("claimed_devices", "INTEGER", description='Claimed devices')
+            bigquery.SchemaField("claimed_devices", "INTEGER", description='Claimed devices'),
+            bigquery.SchemaField("active_users_weekly", "INTEGER",
+                                 description='Users who have been signed in in the last 7 days')
         ]
         print(f'{google_cloud_helper.project}.{DATASET}.{TABLE}')
 
