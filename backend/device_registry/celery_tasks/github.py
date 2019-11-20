@@ -21,16 +21,15 @@ class GithubError(Exception):
     pass
 
 
-def get_token_from_code(code):
+def get_token_from_code(code, state):
     """
     Get user-to-server token to be used with list_repos().
     The user should open https://github.com/login/oauth/authorize?client_id=<...>&redirect_uri=<...>&state=<...>
     :param code: Code obtained from /login/oauth/authorize redirect.
+    :param state: Random state obtained from /login/oauth/authorize redirect.
     :return: access token (string)
     :raises GithubError
     """
-    state = 'RANDOM'
-
     g = GitHub(paginate=True, sleep_on_ratelimit=False, api_url='github.com')
     status, body = g.login.oauth.access_token.post(client_id=settings.GITHUB_APP_CLIENT_ID, client_secret=settings.GITHUB_APP_CLIENT_SECRET,
                                                    redirect_uri=settings.GITHUB_APP_REDIR_URL, state=state, code=code,
@@ -78,9 +77,10 @@ def create_jwt(app_id, private_key, expiration=60):
     """
     Creates a signed JWT, valid for 60 seconds by default.
     The expiration can be extended beyond this, to a maximum of 600 seconds.
+    :param app_id: Github App ID
+    :param private_key: Github App Private Key in PEM format (Unicode string with newlines)
     :param expiration: int
     :return: an encoded JWT
-    :raises GithubError
     """
     now = int(time.time())
     payload = {
@@ -105,6 +105,7 @@ def get_access_token(inst_id):
     Get application access token for the provided installation.
     :param inst_id: installation id
     :return: access token (string)
+    :raises GithubError
     """
     if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PEM:
         logger.error('Github credentials not specified')
@@ -124,6 +125,10 @@ def get_access_token(inst_id):
 class GithubRepo:
 
     def __init__(self, repo):
+        """
+        Constructor.
+        :param repo: a dict obtained from list_repos().
+        """
         self.repo = repo
         inst_id = repo['installation']
         token = get_access_token(inst_id)
@@ -138,12 +143,24 @@ class GithubRepo:
         return res
 
     def list_issues(self):
+        """
+        Get all issues in the repo, except for locked ones, organized by state.
+        :return: {'open': [#, #, #], 'closed': [#, #, #]
+        :raises GithubError
+        """
         status, body = self._issues().get(state='all', headers=HEADERS)
         if status != 200:
             raise GithubError(body)
         return {state: [i['number'] for i in body if i['state']==state and not i['locked']] for state in ['open', 'closed']}
 
     def add_comment(self, issue_number, comment):
+        """
+        Post a comment in the issue specified by issue_number.
+        :param issue_number:
+        :param comment:
+        :return:
+        :raises GithubError
+        """
         status, body = self._issues(issue_number).comments.post(body={
             'body': comment
         })
@@ -153,6 +170,12 @@ class GithubRepo:
             raise GithubError(body)
 
     def close_issue(self, issue_number):
+        """
+        Close Github issue specified by issue_number. Will not fail if the issue does not exist.
+        :param issue_number:
+        :return:
+        :raises GithubError
+        """
         logger.info('closing issue')
         status, body = self._issues(issue_number).patch(body={
             'state': 'closed'

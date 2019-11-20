@@ -1,10 +1,10 @@
-from django.shortcuts import render
+from uuid import uuid4
+
+from django.conf import settings
 from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
 from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib import messages
 from django.views.generic import View, TemplateView
 from django.http import HttpResponseRedirect
@@ -147,7 +147,7 @@ class GithubIntegrationView(LoginRequiredMixin, View):
         profile = request.user.profile
         repos = profile.github_repos
         if repos is None:
-            profile.github_random_state = 'RANDOM'
+            profile.github_random_state = str(uuid4())
             profile.save(update_fields=['github_random_state'])
             context = {
                 'github_authorized': False,
@@ -186,9 +186,9 @@ class GithubIntegrationView(LoginRequiredMixin, View):
 
 
 class GithubCallbackView(LoginRequiredMixin, View):
-    # TODO: <script>window.opener.location.reload(); window.close();</script>
     def get(self, request, *args, **kwargs):
-        if request.user.profile.github_random_state != request.GET.get('state'):
+        profile = request.user.profile
+        if profile.github_random_state != request.GET.get('state'):
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        request.user.profile.fetch_oauth_token(request.GET.get('code'))
+        request.user.profile.fetch_oauth_token(request.GET.get('code'), profile.github_random_state)
         return render(request, 'github_callback.html')
