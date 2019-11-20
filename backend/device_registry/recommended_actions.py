@@ -199,7 +199,7 @@ action_classes.append(InsecureServicesAction)
 # OpenSSH configuration issues found action.
 class OpensshConfigurationIssuesAction(ActionPerDevice):
     action_id = 5
-    action_title = 'Insecure configuration for **OpenSSH** found'
+    action_title = 'Insecure configuration for OpenSSH found'
     action_description = 'We found insecure configuration issues with OpenSSH on {devices}. To improve the security ' \
                          'posture of your node, please consider making the following changes:\n\n{changes}'
 
@@ -210,13 +210,13 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
             for device in devices_qs:
                 for issue in device.sshd_issues:
                     recommendations += f'- Change "**{issue[0]}**" from "**{issue[1]}**" to "' \
-                                       f'**{issue[2][0]}**" on {device_link(device)}\n'
+                                       f'**{issue[2][0]}**" on {device_link(device)}.\n'
                     if issue[2][1]:  # Documentation link available.
                         recommendations += f' Learn more [here]({issue[2][1]})\n'
         else:
             for issue in device.sshd_issues:
                 recommendations += f'- Change "**{issue[0]}**" from "**{issue[1]}**" to "' \
-                                   f'**{issue[2]}**"\n'
+                                   f'**{issue[2][0]}**".\n'
                 if issue[2][1]:  # Documentation link available.
                     recommendations += f' Learn more [here]({issue[2][1]})\n'
         return {'changes': recommendations}
@@ -285,7 +285,7 @@ class FtpServerAction(ActionPerDevice):
     action_title = 'Consider moving to SFTP'
     action_description = 'There appears to be an FTP server running on {devices}. FTP is generally considered insecure as ' \
                          'the credentials are sent unencrypted over the internet. Consider switching to an ' \
-                         'encrypted service, such as <a href="https://www.ssh.com/ssh/sftp">SFTP</a>.'
+                         'encrypted service, such as [SFTP](https://www.ssh.com/ssh/sftp).'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):

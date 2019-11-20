@@ -241,7 +241,7 @@ def file_issues():
         if p.user.devices.exists():
             for action_class in recommended_actions.action_classes:
                 logger.debug(f'action class {action_class.action_id}')
-                affected_devices = action_class.affected_devices(p.user) #.filter(last_ping__gte=day_ago)
+                affected_devices = action_class.affected_devices(p.user).filter(last_ping__gte=day_ago)
                 logger.debug(f'affected {affected_devices.count()} devices')
 
                 # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
@@ -251,7 +251,7 @@ def file_issues():
                 try:
                     if affected_devices.exists():
                         if 'issue_number' in issue_info:
-                            comment = 'devices affected: ' + ', '.join(
+                            comment = 'Affected nodes: ' + ', '.join(
                                 [recommended_actions.device_link(dev) for dev in affected_devices])
                             issue_number = issue_info['issue_number']
                             if issue_number in issues['closed']:
@@ -263,10 +263,10 @@ def file_issues():
                             context = action_class.get_action_description_context(devices_qs=affected_devices)
 
                             # AutoUpdatesAction will have empty "devices" because it sets "your nodes" as subject.
-                            context['devices'] = 'affected nodes' if 'subject' not in context else ''
+                            context['devices'] = 'your nodes' if 'subject' not in context else ''
 
                             action_text = action_class.action_description.format(**context)
-                            action_text += '\n\ndevices affected: ' + ', '.join(
+                            action_text += '\n\nAffected nodes: ' + ', '.join(
                                 [recommended_actions.device_link(dev) for dev in affected_devices])
                             issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)
                             issue_info['issue_number'] = issue_number
