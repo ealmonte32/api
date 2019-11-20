@@ -3,6 +3,8 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
+from phonenumber_field.modelfields import PhoneNumberField
+
 from device_registry.recommended_actions import action_classes
 
 
@@ -28,6 +30,7 @@ class Profile(models.Model):
     payment_plan = models.PositiveSmallIntegerField(choices=PAYMENT_PLAN_CHOICES, default=PAYMENT_PLAN_FREE)
     wizard_shown = models.BooleanField(default=False)
     first_signin = models.BooleanField(default=False)
+    phone = PhoneNumberField(blank=True)
 
     @property
     def actions_count(self):

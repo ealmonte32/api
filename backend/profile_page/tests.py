@@ -22,7 +22,7 @@ class ProfileViewsTest(TestCase):
 
     def test_post(self):
         form_data = {'email': 'user@gmail.com', 'first_name': 'John', 'last_name': 'Doe',
-                     'company': 'Acme Corporation'}
+                     'company': 'Acme Corporation', 'phone': '+79100000000'}
         response = self.client.post(reverse('profile'), form_data)
         self.assertEqual(response.status_code, 302)
         # Load page for checking its content.
@@ -32,6 +32,7 @@ class ProfileViewsTest(TestCase):
         self.assertContains(response, 'John')
         self.assertContains(response, 'Doe')
         self.assertContains(response, 'Acme Corporation')
+        self.assertContains(response, '+79100000000')
 
     def test_password_change_fail(self):
         form_data = {'old_password': '123', 'new_password1': '321', 'new_password2': '321'}
@@ -68,12 +69,14 @@ class RegistrationViewTest(TestCase):
 
     def test_registration_form_success(self):
         form_data = {'email': 'user1@gmail.com', 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',
-                     'payment_plan': '1'}
+                     'payment_plan': '1', 'first_name': 'John', 'last_name': 'Doe', 'company': 'Acme Corporation',
+                     'phone': '+79100000000'}
         form = RegistrationForm(data=form_data)
         self.assertTrue(form.is_valid())
 
     def test_registration_form_week_pass(self):
-        form_data = {'email': 'user1@gmail.com', 'password1': '123', 'password2': '123', 'payment_plan': '1'}
+        form_data = {'email': 'user1@gmail.com', 'password1': '123', 'password2': '123', 'payment_plan': '1',
+                     'first_name': 'John', 'last_name': 'Doe', 'company': 'Acme Corporation', 'phone': '+79100000000'}
         form = RegistrationForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertDictEqual(form.errors, {
@@ -82,7 +85,8 @@ class RegistrationViewTest(TestCase):
 
     def test_registration_form_email_exists(self):
         form_data = {'email': 'user@gmail.com', 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',
-                     'payment_plan': '1'}
+                     'payment_plan': '1', 'first_name': 'John', 'last_name': 'Doe', 'company': 'Acme Corporation',
+                     'phone': '+79100000000'}
         form = RegistrationForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertDictEqual(form.errors, {'email': ['This email address is already in use. Please supply a different '
@@ -90,14 +94,23 @@ class RegistrationViewTest(TestCase):
 
     def test_post(self):
         data = {'email': 'user1@gmail.com', 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',
-                'payment_plan': '2'}
+                'payment_plan': '2', 'first_name': 'John', 'last_name': 'Doe', 'company': 'Acme Corporation',
+                'phone': '+79100000000'}
         response = self.client.post(reverse('registration_register'), data)
         self.assertEqual(response.status_code, 302)
-        # Load page for checking its content.
+        # Load the main page for checking its content.
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user1@gmail.com')
         self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
+        # Load the profile page for checking its content.
+        response = self.client.get(reverse('profile'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'user1@gmail.com')
+        self.assertContains(response, 'John')
+        self.assertContains(response, 'Doe')
+        self.assertContains(response, 'Acme Corporation')
+        self.assertContains(response, '+79100000000')
 
     def test_email_with_uppercase_letters(self):
         data = {'email': 'uSeR2@gmail.com', 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',

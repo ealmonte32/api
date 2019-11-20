@@ -3,6 +3,8 @@ from django.contrib.auth.forms import AuthenticationForm as DjangoAuthentication
 
 from registration.forms import RegistrationFormUniqueEmail, User
 
+from phonenumber_field.formfields import PhoneNumberField
+
 from .models import Profile
 
 
@@ -13,12 +15,17 @@ class ProfileForm(forms.Form):
     first_name = forms.CharField(max_length=30, required=False)
     last_name = forms.CharField(max_length=150, required=False)
     company = forms.CharField(max_length=128, required=False)
+    phone = PhoneNumberField(required=False)
 
 
 class RegistrationForm(RegistrationFormUniqueEmail):
-    """Registration form extended with a new `payment_plan` field
-    and with disabled `username` field.
+    """Registration form extended with few optional extra fields
+    and with the `username` field disabled.
     """
+    first_name = forms.CharField(max_length=30, required=False, label='First name (optional)')
+    last_name = forms.CharField(max_length=150, required=False, label='Last name (optional)')
+    company = forms.CharField(max_length=128, required=False, label='Company (optional)')
+    phone = PhoneNumberField(required=False, label='Phone (optional)')
     payment_plan = forms.ChoiceField(choices=Profile.PAYMENT_PLAN_CHOICES)
 
     class Meta:
