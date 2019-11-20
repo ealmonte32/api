@@ -30,6 +30,7 @@ class ProfileAccountView(LoginRequiredMixin, View):
         self.initial_form_data = {'username': self.user.username, 'email': self.user.email,
                                   'first_name': self.user.first_name, 'last_name': self.user.last_name,
                                   'company': self.profile.company_name,
+                                  'phone': self.profile.phone,
                                   'payment_plan': self.profile.get_payment_plan_display()}
         return super().dispatch(request, *args, **kwargs)
 
@@ -44,8 +45,9 @@ class ProfileAccountView(LoginRequiredMixin, View):
             self.user.first_name = form.cleaned_data['first_name']
             self.user.last_name = form.cleaned_data['last_name']
             self.profile.company_name = form.cleaned_data['company']
+            self.profile.phone = form.cleaned_data['phone']
             self.user.save(update_fields=['email', 'first_name', 'last_name'])
-            self.profile.save(update_fields=['company_name'])
+            self.profile.save(update_fields=['company_name', 'phone'])
             return HttpResponseRedirect(reverse('profile'))
         return render(request, 'profile_account.html', {'form': form})
 
@@ -97,6 +99,8 @@ class RegistrationView(BaseRegistrationView):
         username_field = getattr(new_user, 'USERNAME_FIELD', 'username')
         # Save lowercased email as username.
         setattr(new_user, username_field, form.cleaned_data['email'].lower())
+        new_user.first_name = form.cleaned_data['first_name']
+        new_user.last_name = form.cleaned_data['last_name']
         new_user.save()
         new_user = authenticate(username=getattr(new_user, username_field), password=form.cleaned_data['password1'])
         login(self.request, new_user)
@@ -104,7 +108,9 @@ class RegistrationView(BaseRegistrationView):
         profile, _ = Profile.objects.get_or_create(user=new_user)
         profile.first_signin = True
         profile.payment_plan = int(form.cleaned_data['payment_plan'])
-        profile.save(update_fields=['payment_plan', 'first_signin'])
+        profile.company_name = form.cleaned_data['company']
+        profile.phone = form.cleaned_data['phone']
+        profile.save(update_fields=['payment_plan', 'first_signin', 'company_name', 'phone'])
         if profile.payment_plan != Profile.PAYMENT_PLAN_FREE:
             messages.add_message(self.request, messages.INFO,
                                  'Congratulations! We won\'t charge you for this plan for now.')

@@ -69,7 +69,8 @@ INSTALLED_APPS = [
     'device_registry.apps.DeviceRegistryConfig',
     'profile_page.apps.ProfilePageConfig',
     'monitoring.apps.MonitoringConfig',
-    'bootstrap4'
+    'bootstrap4',
+    'phonenumber_field'
 ]
 
 MIDDLEWARE = [
