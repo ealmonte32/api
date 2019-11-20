@@ -147,7 +147,7 @@ class GithubIntegrationView(LoginRequiredMixin, View):
         profile = request.user.profile
         repos = profile.github_repos
         if repos is None:
-            profile.github_random_state = str(uuid4())
+            profile.github_random_state = uuid4().hex
             profile.save(update_fields=['github_random_state'])
             context = {
                 'github_authorized': False,

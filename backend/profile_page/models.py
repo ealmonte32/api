@@ -44,8 +44,12 @@ class Profile(models.Model):
     @property
     def github_repos(self):
         if self.github_oauth_token:
-            return github.list_repos(self.github_oauth_token)
+            try:
+                return github.list_repos(self.github_oauth_token)
+            except github.GithubError:
+                self.github_oauth_token = ''
+                self.save(update_fields=['github_oauth_token'])
 
-    def fetch_oauth_token(self, code):
-        self.github_oauth_token = github.get_token_from_code(code)
+    def fetch_oauth_token(self, code, state):
+        self.github_oauth_token = github.get_token_from_code(code, state)
         self.save(update_fields=['github_oauth_token'])
