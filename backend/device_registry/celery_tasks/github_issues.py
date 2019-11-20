@@ -237,9 +237,12 @@ def main():
                         gr.add_comment(issue_number, comment)
                         counter += 1
                     else:
-                        # TODO: get_action_description_context
-                        context = action_class.get_action_description_context(affected_devices, None)
-                        action_text = action_class.action_description.fomat()
+                        context = action_class.get_action_description_context(devices_qs=affected_devices)
+
+                        # AutoUpdatesAction will have empty "devices" because it sets "your nodes" as subject.
+                        context['devices'] = 'affected nodes' if 'subject' not in context else ''
+
+                        action_text = action_class.action_description.fomat(**context)
                         action_text += '\n\ndevices affected: ' + ', '.join(
                             [recommended_actions.device_link(dev) for dev in affected_devices])
                         issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)

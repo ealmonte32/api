@@ -1,4 +1,5 @@
 from django.urls import reverse
+import markdown
 
 
 class Action:
@@ -18,14 +19,14 @@ class Action:
              and the list of affected device ids as a 2nd element.
         """
         self.title = title
-        self.description = description
+        self.description = markdown.markdown(description)
         self.snoozing_info = snoozing_info
 
 
 def device_link(device):
     """Create a device's page html link code"""
     url = reverse('device-detail', kwargs={'pk': device.pk})
-    return f'<a href="{url}">{device.get_name()}</a>'
+    return f'[{device.get_name()}]({url})'
 
 
 # A list for storing all available recommended actions classes for further usage.
@@ -50,7 +51,7 @@ class BaseAction:
         return devices
 
     @classmethod
-    def get_action_description_context(cls, devices, device_pk):
+    def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
         """
         Method for producing a tuple of values used (as string formatting parameters)
          for action description text rendering.
@@ -71,7 +72,7 @@ class ActionMultiDevice(BaseAction):
         actions_list = []
         devices = cls.affected_devices(user, device_pk)
         if devices.exists():
-            context = cls.get_action_description_context(devices, device_pk)
+            context = cls.get_action_description_context(devices_qs=devices, device_pk=device_pk)
             context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
             action = Action(
                 cls.action_title,
@@ -96,7 +97,7 @@ class ActionPerDevice(BaseAction):
         actions_list = []
         devices = cls.affected_devices(user, device_pk)
         for dev in devices:
-            context = cls.get_action_description_context(dev, device_pk)
+            context = cls.get_action_description_context(device=dev, device_pk=device_pk)
             context['devices'] = device_link(dev) if device_pk is None else 'this node'
             action = Action(
                 cls.action_title,
@@ -119,8 +120,8 @@ class ActionPerDevice(BaseAction):
 class DefaultCredentialsAction(ActionMultiDevice):
     action_id = 1
     action_title = 'Default credentials detected'
-    action_description = '<p>We found default credentials present on {devices}. Please consider changing them as soon as ' \
-                         'possible.</p>'
+    action_description = 'We found default credentials present on {devices}. Please consider changing them as soon as ' \
+                         'possible.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -134,8 +135,8 @@ action_classes.append(DefaultCredentialsAction)
 class FirewallDisabledAction(ActionMultiDevice):
     action_id = 2
     action_title = 'Permissive firewall policy detected'
-    action_description = '<p>We found permissive firewall policy present on {devices}. Please consider change it to more ' \
-                         'restrictive one.</p>'
+    action_description = 'We found permissive firewall policy present on {devices}. Please consider change it to more ' \
+                         'restrictive one.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -151,12 +152,14 @@ action_classes.append(FirewallDisabledAction)
 class VulnerablePackagesAction(ActionMultiDevice):
     action_id = 3
     action_title = 'Vulnerable packages found'
-    action_description = """<p>We found vulnerable packages on {devices}. These packages could be used by an attacker to 
+    action_description = """We found vulnerable packages on {devices}. These packages could be used by an attacker to 
     either gain access to your node, or escalate permission. It is recommended that you address this at your earliest 
-    convenience.</p>
-    <p>Run <code>sudo apt-get update && sudo apt-get upgrade</code> to bring your system up to date.</p>
-    <p>Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system
-    vendor.</p>"""
+    convenience.
+    
+    Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.
+    
+    Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system 
+    vendor."""
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -171,12 +174,18 @@ class InsecureServicesAction(ActionPerDevice):
     action_id = 4
     action_title = 'Insecure services found'
     action_description = 'We found insecure services installed on {devices}. Because these services are considered ' \
-                         'insecure, it is recommended that you uninstall them.</p><p>Run <code>sudo apt-get purge {services}' \
-                         '</code> to disable all insecure services.</p>'
+                         'insecure, it is recommended that you uninstall them.\n' \
+                         'Run `sudo apt-get purge {services}`' \
+                         'to disable all insecure services.'
 
     @classmethod
-    def get_action_description_context(cls, device, device_pk):
-        services_str = ' '.join(device.insecure_services.values_list('name', flat=True))
+    def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
+        from device_registry.models import Device
+        if devices_qs is not None:
+            services = devices_qs.filter(deb_packages__name__in=Device.INSECURE_SERVICES)
+        else:
+            services = device.insecure_services
+        services_str = ' '.join(services.values_list('name', flat=True))
         return {'services': services_str}
 
     @classmethod
@@ -192,20 +201,26 @@ action_classes.append(InsecureServicesAction)
 # OpenSSH configuration issues found action.
 class OpensshConfigurationIssuesAction(ActionPerDevice):
     action_id = 5
-    action_title = 'Insecure configuration for <strong>OpenSSH</strong> found'
-    action_description = '<p>We found insecure configuration issues with OpenSSH on {devices}. To improve the security ' \
-                         'posture of your node, please consider making the following changes:{changes}</p>'
+    action_title = 'Insecure configuration for **OpenSSH** found'
+    action_description = 'We found insecure configuration issues with OpenSSH on {devices}. To improve the security ' \
+                         'posture of your node, please consider making the following changes:\n{changes}'
 
     @classmethod
-    def get_action_description_context(cls, device, device_pk):
+    def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
         recommendations = ''
-        for issue in device.sshd_issues:
-            recommendation_text = f'Change <strong>"{issue[0]}"</strong> from <strong>"{issue[1]}"</strong> to ' \
-                                  f'<strong>"{issue[2][0]}"</strong>.'
-            if issue[2][1]:  # Documentation link available.
-                recommendation_text += f' Learn more <a href="{issue[2][1]}" target="_blank">here</a>.'
-            recommendations += f'<li>{recommendation_text}</li>'
-        recommendations = '<ul>%s</ul>' % recommendations
+        if devices_qs is not None:
+            for device in devices_qs:
+                for issue in device.sshd_issues:
+                    recommendations += f'- Change "**{issue[0]}**" from "**{issue[1]}**" to "' \
+                                       f'**{issue[2][0]}**" on {device_link(device)}\n'
+                    if issue[2][1]:  # Documentation link available.
+                        recommendations += f' Learn more [here]({issue[2][1]})\n'
+        else:
+            for issue in device.sshd_issues:
+                recommendations += f'- Change "**{issue[0]}**" from "**{issue[1]}**" to "' \
+                                   f'**{issue[2]}**"\n'
+                if issue[2][1]:  # Documentation link available.
+                    recommendations += f' Learn more [here]({issue[2][1]})\n'
         return {'changes': recommendations}
 
     @classmethod
@@ -226,9 +241,9 @@ action_classes.append(OpensshConfigurationIssuesAction)
 class AutoUpdatesAction(ActionMultiDevice):
     action_id = 6
     action_title = 'Consider enable automatic security updates'
-    action_description = '<p>We found that {subject}{devices} {verb} not configured to automatically install security updates. Consider ' \
-                         'enabling this feature.</p>' \
-                         '<p>Details for how to do this can be found <a href="{doc_url}" target="_blank">here</a>.</p>'
+    action_description = 'We found that {subject}{devices} {verb} not configured to automatically install security updates. Consider ' \
+                         'enabling this feature.\n\n' \
+                         'Details for how to do this can be found [here]({doc_url})'
 
     @classmethod
     def get_doc_url(cls, devices):
@@ -244,9 +259,9 @@ class AutoUpdatesAction(ActionMultiDevice):
                 return debian_url
 
     @classmethod
-    def get_action_description_context(cls, devices, device_pk):
+    def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
         if device_pk is None:
-            if devices.count() > 1:
+            if devices_qs.count() > 1:
                 subject, verb = 'your nodes ', 'are'
             else:
                 subject, verb = 'your node ', 'is'
@@ -255,7 +270,7 @@ class AutoUpdatesAction(ActionMultiDevice):
         return {
             'subject': subject,
             'verb': verb,
-            'doc_url': cls.get_doc_url(devices)
+            'doc_url': cls.get_doc_url(devices_qs)
         }
 
     @classmethod
@@ -339,7 +354,7 @@ class MySQLDefaultRootPasswordAction(ActionPerDevice):
             you change the password as soon as possible. There are multiple ways to do
             this, including using mysqladmin as follows:
 
-            <pre>mysqladmin -u root password NEWPASSWORD</pre>
+            `mysqladmin -u root password NEWPASSWORD`
 
             Tip: If you are using mysqladmin as per above, make sure to add a space
             before the command to avoid it being stored in your shell's history."""
@@ -377,8 +392,8 @@ class CpuVulnerableAction(ActionPerDevice):
     action_id = 12
     action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
     action_description = 'We detected that {devices} is vulnerable to Meltdown/Spectre. You can learn more about these ' \
-                         'issues <a href="https://meltdownattack.com/">here</a>. To fix the issue, please run ' \
-                         '<pre>apt-get update && apt-get upgrade</pre>'
+                         'issues [here](https://meltdownattack.com/). To fix the issue, please run ' \
+                         '`apt-get update && apt-get upgrade`'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
