@@ -8,14 +8,13 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib import messages
 from django.views.generic import View, TemplateView
 from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from django.urls import reverse
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from registration.views import RegistrationView as BaseRegistrationView
-from registration.signals import user_registered
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -153,8 +152,8 @@ class GithubIntegrationView(LoginRequiredMixin, View):
             context = {
                 'github_authorized': False,
                 'github_auth_url': f'https://github.com/login/oauth/authorize?'
-                                   f'client_id={github_issues.GITHUB_APP_CLIENT_ID}&'
-                                   f'redirect_uri={github_issues.GITHUB_APP_REDIR_URL}&'
+                                   f'client_id={settings.GITHUB_APP_CLIENT_ID}&'
+                                   f'redirect_uri={settings.GITHUB_APP_REDIR_URL}&'
                                    f'state={profile.github_random_state}'
             }
         else:
@@ -165,7 +164,7 @@ class GithubIntegrationView(LoginRequiredMixin, View):
             context = {
                 'form': form,
                 'github_authorized': True,
-                'github_inst_url': f'https://github.com/apps/{github_issues.GITHUB_APP_NAME}/installations/new'
+                'github_inst_url': f'https://github.com/apps/{settings.GITHUB_APP_NAME}/installations/new'
             }
         return render(request, 'profile_github.html', context)
 

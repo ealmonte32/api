@@ -152,14 +152,12 @@ action_classes.append(FirewallDisabledAction)
 class VulnerablePackagesAction(ActionMultiDevice):
     action_id = 3
     action_title = 'Vulnerable packages found'
-    action_description = """We found vulnerable packages on {devices}. These packages could be used by an attacker to 
-    either gain access to your node, or escalate permission. It is recommended that you address this at your earliest 
-    convenience.
-    
-    Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.
-    
-    Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system 
-    vendor."""
+    action_description = 'We found vulnerable packages on {devices}. These packages could be used by an attacker to '\
+    'either gain access to your node, or escalate permission. It is recommended that you address this at your earliest '\
+    'convenience.\n\n'\
+    'Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.\n\n'\
+    'Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system '\
+    'vendor.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -174,7 +172,7 @@ class InsecureServicesAction(ActionPerDevice):
     action_id = 4
     action_title = 'Insecure services found'
     action_description = 'We found insecure services installed on {devices}. Because these services are considered ' \
-                         'insecure, it is recommended that you uninstall them.\n' \
+                         'insecure, it is recommended that you uninstall them.\n\n' \
                          'Run `sudo apt-get purge {services}`' \
                          'to disable all insecure services.'
 
@@ -203,7 +201,7 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
     action_id = 5
     action_title = 'Insecure configuration for **OpenSSH** found'
     action_description = 'We found insecure configuration issues with OpenSSH on {devices}. To improve the security ' \
-                         'posture of your node, please consider making the following changes:\n{changes}'
+                         'posture of your node, please consider making the following changes:\n\n{changes}'
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
@@ -348,16 +346,14 @@ action_classes.append(MysqlAction)
 class MySQLDefaultRootPasswordAction(ActionPerDevice):
     action_id = 10
     action_title = 'No root password set for the MySQL/MariaDB server'
-    action_description = """We detected that there is no root password set for MySQL/MariaDB on {devices}.
-            Not having a root password set makes it easy for anyone with access to the
-            service to copy all information from the database. It is recommended that
-            you change the password as soon as possible. There are multiple ways to do
-            this, including using mysqladmin as follows:
-
-            `mysqladmin -u root password NEWPASSWORD`
-
-            Tip: If you are using mysqladmin as per above, make sure to add a space
-            before the command to avoid it being stored in your shell's history."""
+    action_description = 'We detected that there is no root password set for MySQL/MariaDB on {devices}.'\
+            'Not having a root password set makes it easy for anyone with access to the '\
+            'service to copy all information from the database. It is recommended that '\
+            'you change the password as soon as possible. There are multiple ways to do '\
+            'this, including using mysqladmin as follows:\n\n'\
+            '`mysqladmin -u root password NEWPASSWORD`\n\n'\
+            'Tip: If you are using mysqladmin as per above, make sure to add a space '\
+            'before the command to avoid it being stored in your shell\'s history.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):

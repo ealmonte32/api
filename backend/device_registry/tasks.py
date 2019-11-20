@@ -1,6 +1,6 @@
 from celery import shared_task
 
-from .celery_tasks import common, ubuntu_cve, debian_cve
+from .celery_tasks import common, ubuntu_cve, debian_cve, github
 
 # We allow process 50 devices for 10m because currently this operation
 # is VERY slow and requires optimization.
@@ -32,3 +32,8 @@ def fetch_vulnerabilities_ubuntu():
 @shared_task(soft_time_limit=60 * 15, time_limit=60 * 15 + 5)  # Should live 15m max.
 def fetch_vulnerabilities_debian():
     return debian_cve.fetch_vulnerabilities()
+
+
+@shared_task(soft_time_limit=60 * 60, time_limit=60 * 60 + 5)  # Should live 60m max.
+def github_file_issues():
+    return github.file_issues()

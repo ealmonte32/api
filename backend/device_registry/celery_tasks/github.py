@@ -6,22 +6,19 @@ from base64 import b64decode
 from datetime import timedelta
 
 from agithub.GitHub import GitHub
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
 from device_registry import recommended_actions
 
 
-# The following data can be obtained at https://github.com/settings/apps/wott-bot
-GITHUB_APP_PEM = os.getenv('GITHUB_APP_PEM')  # Base64 encoded Github app private key: `cat key.pem | base64`
-GITHUB_APP_ID = os.getenv('GITHUB_APP_ID')    # Github App ID
-GITHUB_APP_NAME = os.getenv('GITHUB_APP_NAME')
-GITHUB_APP_CLIENT_ID = os.getenv('GITHUB_APP_CLIENT_ID')
-GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')    # Github App Secret
-GITHUB_APP_REDIR_URL = os.getenv('GITHUB_APP_REDIR_URL')    # Github App Redirect URL
-USER_TOKEN = 'fa6e702403bac10f7bf2e33b5e3c19897daf80d1' # REMOVE
 HEADERS = {'Accept': 'application/vnd.github.machine-man-preview+json'}
 logger = logging.getLogger('django')
+
+
+class GithubError(Exception):
+    pass
 
 
 def get_token_from_code(code):
@@ -30,18 +27,18 @@ def get_token_from_code(code):
     The user should open https://github.com/login/oauth/authorize?client_id=<...>&redirect_uri=<...>&state=<...>
     :param code: Code obtained from /login/oauth/authorize redirect.
     :return: access token (string)
-    :raises RuntimeError
+    :raises GithubError
     """
     state = 'RANDOM'
 
     g = GitHub(paginate=True, sleep_on_ratelimit=False, api_url='github.com')
-    status, body = g.login.oauth.access_token.post(client_id=GITHUB_APP_CLIENT_ID, client_secret=GITHUB_APP_CLIENT_SECRET,
-                                                   redirect_uri=GITHUB_APP_REDIR_URL, state=state, code=code,
+    status, body = g.login.oauth.access_token.post(client_id=settings.GITHUB_APP_CLIENT_ID, client_secret=settings.GITHUB_APP_CLIENT_SECRET,
+                                                   redirect_uri=settings.GITHUB_APP_REDIR_URL, state=state, code=code,
                                                    headers={'Accept': 'application/json'})
     if status == 200 and 'access_token' in body:
         return body['access_token']
     else:
-        raise RuntimeError(body)
+        raise GithubError(body)
 
 
 def list_repos(user_token):
@@ -49,19 +46,19 @@ def list_repos(user_token):
     Enumerate authenticated user's repositories where the app is installed.
     :param user_token: a user-to-server token.
     :return: a dict {id: {owner: ..., name: ..., installation: ..., full_name: ...}}
-    :raises RuntimeError
+    :raises GithubError
     """
     g = GitHub(paginate=True, sleep_on_ratelimit=False, token=user_token)
-    print('getting installations...')
+    logger.info('getting installations...')
     status, body = g.user.installations.get(headers=HEADERS)
     repos = {}
     if 'installations' in body:
         installations = body['installations']
         for inst in installations:
             inst_id = inst['id']
-            print('getting repos for {}...'.format(inst_id))
+            logger.info(f'getting repos for {inst_id}...')
             status, body = g.user.installations[inst['id']].repositories.get(headers=HEADERS)
-            print('parsing...')
+            logger.info('parsing...')
             if 'repositories' in body:
                 repos.update({repo['id']: {
                     'full_name': repo['full_name'],
@@ -70,11 +67,11 @@ def list_repos(user_token):
                     'installation': inst_id
                  } for repo in body['repositories']})
             else:
-                raise RuntimeError(body)
-            print(g.getheaders())
+                raise GithubError(body)
+            logger.info(g.getheaders())
         return repos
     else:
-        raise RuntimeError(body)
+        raise GithubError(body)
 
 
 def create_jwt(app_id, private_key, expiration=60):
@@ -83,7 +80,7 @@ def create_jwt(app_id, private_key, expiration=60):
     The expiration can be extended beyond this, to a maximum of 600 seconds.
     :param expiration: int
     :return: an encoded JWT
-    :raises RuntimeError
+    :raises GithubError
     """
     now = int(time.time())
     payload = {
@@ -109,44 +106,42 @@ def get_access_token(inst_id):
     :param inst_id: installation id
     :return: access token (string)
     """
-    if not GITHUB_APP_ID or not GITHUB_APP_PEM:
+    if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PEM:
         logger.error('Github credentials not specified')
         return
-    pem = b64decode(GITHUB_APP_PEM).decode()
+    pem = b64decode(settings.GITHUB_APP_PEM).decode()
 
     headers = HEADERS.copy()
-    headers['Authorization'] = "Bearer {}".format(create_jwt(GITHUB_APP_ID, pem))
+    headers['Authorization'] = f"Bearer {create_jwt(settings.GITHUB_APP_ID, pem)}"
     g = GitHub(paginate=True, sleep_on_ratelimit=False)
     status, body = g.app.installations[inst_id].access_tokens.post(headers=headers)
     if status == 201 and 'token' in body:
         return body['token']
     else:
-        raise RuntimeError(body)
+        raise GithubError(body)
 
 
 class GithubRepo:
-    token_cache = {}
 
     def __init__(self, repo):
         self.repo = repo
         inst_id = repo['installation']
-        if inst_id in self.token_cache:
-            token = self.token_cache[inst_id]
-        else:
-            token = get_access_token(inst_id)
-            self.token_cache[inst_id] = token
-        self.github = GitHub(paginate=True, sleep_on_ratelimit=False, token=token)
+        token = get_access_token(inst_id)
+        self._github = GitHub(paginate=True, sleep_on_ratelimit=False, token=token)
 
     def _issues(self, issue_number = None):
         # Because agithub.IncompleteRequest gets "complete" after performing an actual request,
         # we need to create a new one for every new request.
-        res = self.github.repos[self.repo['owner']][self.repo['name']].issues
+        res = self._github.repos[self.repo['owner']][self.repo['name']].issues
         if issue_number is not None:
             return res[issue_number]
         return res
 
     def list_issues(self):
-        return self._issues().get(state='all', headers=HEADERS)
+        status, body = self._issues().get(state='all', headers=HEADERS)
+        if status != 200:
+            raise GithubError(body)
+        return {state: [i['number'] for i in body if i['state']==state and not i['locked']] for state in ['open', 'closed']}
 
     def add_comment(self, issue_number, comment):
         status, body = self._issues(issue_number).comments.post(body={
@@ -155,20 +150,20 @@ class GithubRepo:
         if status == 201:
             return
         else:
-            raise RuntimeError(body)
+            raise GithubError(body)
 
     def close_issue(self, issue_number):
-        print('closing issue')
+        logger.info('closing issue')
         status, body = self._issues(issue_number).patch(body={
             'state': 'closed'
         })
         if status == 200:
-            print('issue closed')
+            logger.info('issue closed')
             return
         elif status == 404:
-            print('issue not found')
+            logger.info('issue not found')
         else:
-            raise RuntimeError(body)
+            raise GithubError(body)
 
     def open_issue(self, issue_number=None, title_text='', body_text=''):
         """
@@ -183,80 +178,107 @@ class GithubRepo:
             status, body = self._issues(issue_number).get()
             if status == 200 and 'id' in body:
                 if body['state'] == 'open':
-                    print('issue already open')
+                    logger.debug('issue already open')
                     return
-                print('reopening the issue')
+                logger.debug('reopening the issue')
                 status, body = self._issues(issue_number).patch(body={
                     'state': 'open'
                 })
                 if status == 200:
-                    print('issue reopened')
+                    logger.debug('issue reopened')
                     return
                 else:
-                    raise RuntimeError(body)
+                    raise GithubError(body)
             elif status == 404:
-                print('issue not found')
+                logger.debug('issue not found')
                 pass
             else:
-                raise RuntimeError(body)
-        print('creating new issue')
+                raise GithubError(body)
+        logger.debug(f'creating new issue: "{title_text}"')
         status, body = self._issues().post(body={
             'title': title_text,
             'body': body_text
         })
         if status == 201:
-            print('created issue #{}'.format(body['number']))
+            logger.debug(f'created issue #{body["number"]}')
             return body['number']
         else:
-            raise RuntimeError(body)
+            raise GithubError(body)
 
 
-def main():
+def device_full_link(device):
+    url = 'https://dash.wott.io' + reverse('device-detail', kwargs={'pk': device.pk})
+    return f'[{device.get_name()}]({url})'
+
+
+def file_issues():
     from profile_page.models import Profile
+    device_link = recommended_actions.device_link
+    recommended_actions.device_link = device_full_link
 
     day_ago = timezone.now() - timedelta(hours=24)
+    counter = 0
+
     for p in Profile.objects.filter(github_repo_id__isnull=False, github_oauth_token__isnull=False):
-        repos = list_repos(p.github_oauth_token)
+        try:
+            repos = list_repos(p.github_oauth_token)
+        except GithubError:
+            logger.exception('failed to get repo list: user may have deauthorized the app')
+            # TODO: check if token is valid and erase it if not
+            continue
+
         if p.github_repo_id not in repos:
             print('repo not found: app not installed or no access')
             continue
-        gr = GithubRepo(repos[p.github_repo_id])
-        gr.list_issues()
 
-        counter = 0
+        try:
+            gr = GithubRepo(repos[p.github_repo_id])
+            issues = gr.list_issues()
+        except GithubError:
+            logger.exception('failed to get installation token or list issues')
+            continue
+
         if p.user.devices.exists():
             for action_class in recommended_actions.action_classes:
-                affected_devices = action_class.affected_devices(p.user).filter(last_ping__gte=day_ago)
-                issue_info = p.github_issues.get(action_class.action_id, {})
-                if affected_devices.exists():
-                    if 'issue_number' in issue_info:
-                        comment = 'devices affected: ' + ', '.join(
-                            [recommended_actions.device_link(dev) for dev in affected_devices])
-                        issue_number = issue_info['issue_number']
-                        gr.open_issue(issue_number=p.github_issues)
-                        gr.add_comment(issue_number, comment)
-                        counter += 1
+                logger.debug(f'action class {action_class.action_id}')
+                affected_devices = action_class.affected_devices(p.user) #.filter(last_ping__gte=day_ago)
+                logger.debug(f'affected {affected_devices.count()} devices')
+
+                # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
+                issue_info = p.github_issues.get(str(action_class.action_id), {})
+
+                logger.debug(f'issue_info: {issue_info}')
+                try:
+                    if affected_devices.exists():
+                        if 'issue_number' in issue_info:
+                            comment = 'devices affected: ' + ', '.join(
+                                [recommended_actions.device_link(dev) for dev in affected_devices])
+                            issue_number = issue_info['issue_number']
+                            if issue_number in issues['closed']:
+                                gr.open_issue(issue_number=issue_number)
+                            if issue_number in issues['open'] + issues['closed']:
+                                gr.add_comment(issue_number, comment)
+                                counter += 1
+                        else:
+                            context = action_class.get_action_description_context(devices_qs=affected_devices)
+
+                            # AutoUpdatesAction will have empty "devices" because it sets "your nodes" as subject.
+                            context['devices'] = 'affected nodes' if 'subject' not in context else ''
+
+                            action_text = action_class.action_description.format(**context)
+                            action_text += '\n\ndevices affected: ' + ', '.join(
+                                [recommended_actions.device_link(dev) for dev in affected_devices])
+                            issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)
+                            issue_info['issue_number'] = issue_number
+                            counter += 1
                     else:
-                        context = action_class.get_action_description_context(devices_qs=affected_devices)
-
-                        # AutoUpdatesAction will have empty "devices" because it sets "your nodes" as subject.
-                        context['devices'] = 'affected nodes' if 'subject' not in context else ''
-
-                        action_text = action_class.action_description.fomat(**context)
-                        action_text += '\n\ndevices affected: ' + ', '.join(
-                            [recommended_actions.device_link(dev) for dev in affected_devices])
-                        issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)
-                        issue_info['issue_number'] = issue_number
-                        counter += 1
-                else:
-                    if 'issue_number' in issue_info:
-                        gr.close_issue(issue_info['issue_number'])
-                    counter += 1
-                p.github_issues[action_class.action_id] = issue_info
-                p.save(update_fields=['github_issues'])
-
-        return counter
-
-# r=list_repos(USER_TOKEN)
-# repo=list(r.values())[2]
-#
+                        if issue_info.get('issue_number') in issues['open']:
+                            gr.close_issue(issue_info['issue_number'])
+                            counter += 1
+                except GithubError:
+                    logger.exception('failed to process the issue')
+                    continue
+                p.github_issues[str(action_class.action_id)] = issue_info
+            p.save(update_fields=['github_issues'])
+    recommended_actions.device_link = device_link
+    return counter
