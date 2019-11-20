@@ -58,7 +58,7 @@ class BaseAction:
         :param device_pk: int/None - single affected device id;
         :return: iterable (tuple/list);
         """
-        raise NotImplementedError
+        return {}
 
 
 class ActionMultiDevice(BaseAction):
@@ -67,20 +67,15 @@ class ActionMultiDevice(BaseAction):
     """
 
     @classmethod
-    def get_action_description_context(cls, devices, device_pk):
-        if device_pk is None:
-            return (', '.join([device_link(dev) for dev in devices]),)
-        else:
-            return ('this node',)
-
-    @classmethod
     def actions(cls, user, device_pk=None):
         actions_list = []
         devices = cls.affected_devices(user, device_pk)
         if devices.exists():
+            context = cls.get_action_description_context(devices, device_pk)
+            context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
             action = Action(
                 cls.action_title,
-                cls.action_description % cls.get_action_description_context(devices, device_pk),
+                cls.action_description.format(**context),
                 [cls.action_id, list(devices.values_list('pk', flat=True))]
             )
             actions_list.append(action)
@@ -97,20 +92,15 @@ class ActionPerDevice(BaseAction):
     """
 
     @classmethod
-    def get_action_description_context(cls, device, device_pk):
-        if device_pk is None:
-            return (device_link(device),)
-        else:
-            return ('this node',)
-
-    @classmethod
     def actions(cls, user, device_pk=None):
         actions_list = []
         devices = cls.affected_devices(user, device_pk)
         for dev in devices:
+            context = cls.get_action_description_context(dev, device_pk)
+            context['devices'] = device_link(dev) if device_pk is None else 'this node'
             action = Action(
                 cls.action_title,
-                cls.action_description % cls.get_action_description_context(dev, device_pk),
+                cls.action_description.format(**context),
                 [cls.action_id, [dev.pk]]
             )
             actions_list.append(action)
@@ -129,7 +119,7 @@ class ActionPerDevice(BaseAction):
 class DefaultCredentialsAction(ActionMultiDevice):
     action_id = 1
     action_title = 'Default credentials detected'
-    action_description = '<p>We found default credentials present on %s. Please consider changing them as soon as ' \
+    action_description = '<p>We found default credentials present on {devices}. Please consider changing them as soon as ' \
                          'possible.</p>'
 
     @classmethod
@@ -144,7 +134,7 @@ action_classes.append(DefaultCredentialsAction)
 class FirewallDisabledAction(ActionMultiDevice):
     action_id = 2
     action_title = 'Permissive firewall policy detected'
-    action_description = '<p>We found permissive firewall policy present on %s. Please consider change it to more ' \
+    action_description = '<p>We found permissive firewall policy present on {devices}. Please consider change it to more ' \
                          'restrictive one.</p>'
 
     @classmethod
@@ -161,8 +151,8 @@ action_classes.append(FirewallDisabledAction)
 class VulnerablePackagesAction(ActionMultiDevice):
     action_id = 3
     action_title = 'Vulnerable packages found'
-    action_description = """<p>We found vulnerable packages on %s. These packages could be used by an attacker to
-    either gain access to your node, or escalate permission. It is recommended that you address this at your earliest
+    action_description = """<p>We found vulnerable packages on {devices}. These packages could be used by an attacker to 
+    either gain access to your node, or escalate permission. It is recommended that you address this at your earliest 
     convenience.</p>
     <p>Run <code>sudo apt-get update && sudo apt-get upgrade</code> to bring your system up to date.</p>
     <p>Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system
@@ -180,18 +170,14 @@ action_classes.append(VulnerablePackagesAction)
 class InsecureServicesAction(ActionPerDevice):
     action_id = 4
     action_title = 'Insecure services found'
-    action_description = '<p>We found insecure services installed on %s. Because these services are considered ' \
-                         'insecure, it is recommended that you uninstall them.</p><p>Run <code>sudo apt-get purge %s' \
+    action_description = 'We found insecure services installed on {devices}. Because these services are considered ' \
+                         'insecure, it is recommended that you uninstall them.</p><p>Run <code>sudo apt-get purge {services}' \
                          '</code> to disable all insecure services.</p>'
 
     @classmethod
     def get_action_description_context(cls, device, device_pk):
-        if device_pk is None:
-            dev_str = device_link(device)
-        else:
-            dev_str = 'this node'
         services_str = ' '.join(device.insecure_services.values_list('name', flat=True))
-        return dev_str, services_str
+        return {'services': services_str}
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -207,15 +193,11 @@ action_classes.append(InsecureServicesAction)
 class OpensshConfigurationIssuesAction(ActionPerDevice):
     action_id = 5
     action_title = 'Insecure configuration for <strong>OpenSSH</strong> found'
-    action_description = '<p>We found insecure configuration issues with OpenSSH on %s. To improve the security ' \
-                         'posture of your node, please consider making the following changes:%s</p>'
+    action_description = '<p>We found insecure configuration issues with OpenSSH on {devices}. To improve the security ' \
+                         'posture of your node, please consider making the following changes:{changes}</p>'
 
     @classmethod
     def get_action_description_context(cls, device, device_pk):
-        if device_pk is None:
-            dev_str = device_link(device)
-        else:
-            dev_str = 'this node'
         recommendations = ''
         for issue in device.sshd_issues:
             recommendation_text = f'Change <strong>"{issue[0]}"</strong> from <strong>"{issue[1]}"</strong> to ' \
@@ -224,7 +206,7 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
                 recommendation_text += f' Learn more <a href="{issue[2][1]}" target="_blank">here</a>.'
             recommendations += f'<li>{recommendation_text}</li>'
         recommendations = '<ul>%s</ul>' % recommendations
-        return dev_str, recommendations
+        return {'changes': recommendations}
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -244,9 +226,9 @@ action_classes.append(OpensshConfigurationIssuesAction)
 class AutoUpdatesAction(ActionMultiDevice):
     action_id = 6
     action_title = 'Consider enable automatic security updates'
-    action_description = '<p>We found that %s not configured to automatically install security updates. Consider ' \
+    action_description = '<p>We found that {subject}{devices} {verb} not configured to automatically install security updates. Consider ' \
                          'enabling this feature.</p>' \
-                         '<p>Details for how to do this can be found <a href="%s" target="_blank">here</a>.</p>'
+                         '<p>Details for how to do this can be found <a href="{doc_url}" target="_blank">here</a>.</p>'
 
     @classmethod
     def get_doc_url(cls, devices):
@@ -264,15 +246,17 @@ class AutoUpdatesAction(ActionMultiDevice):
     @classmethod
     def get_action_description_context(cls, devices, device_pk):
         if device_pk is None:
-            dev_list = [device_link(dev) for dev in devices]
-            full_string = ', '.join(dev_list)
-            if len(dev_list) > 1:
-                dev_str = f'your nodes {full_string} are'
+            if devices.count() > 1:
+                subject, verb = 'your nodes ', 'are'
             else:
-                dev_str = f'your node {full_string} is'
+                subject, verb = 'your node ', 'is'
         else:
-            dev_str = 'this node is'
-        return dev_str, cls.get_doc_url(devices)
+            subject, verb = '', 'is'
+        return {
+            'subject': subject,
+            'verb': verb,
+            'doc_url': cls.get_doc_url(devices)
+        }
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -286,7 +270,7 @@ action_classes.append(AutoUpdatesAction)
 class FtpServerAction(ActionPerDevice):
     action_id = 7
     action_title = 'Consider moving to SFTP'
-    action_description = 'There appears to be an FTP server running on %s. FTP is generally considered insecure as ' \
+    action_description = 'There appears to be an FTP server running on {devices}. FTP is generally considered insecure as ' \
                          'the credentials are sent unencrypted over the internet. Consider switching to an ' \
                          'encrypted service, such as <a href="https://www.ssh.com/ssh/sftp">SFTP</a>.'
 
@@ -307,7 +291,7 @@ action_classes.append(FtpServerAction)
 class MongodbAction(ActionPerDevice):
     action_id = 8
     action_title = 'Your MongoDB instance may be publicly accessible'
-    action_description = 'We detected that a MongoDB instance on %s may be accessible remotely. ' \
+    action_description = 'We detected that a MongoDB instance on {devices} may be accessible remotely. ' \
                          'Consider either blocking port 27017 through the WoTT firewall management tool, or ' \
                          're-configure MongoDB to only listen on localhost.'
 
@@ -328,7 +312,7 @@ action_classes.append(MongodbAction)
 class MysqlAction(ActionPerDevice):
     action_id = 9
     action_title = 'Your MySQL instance may be publicly accessible'
-    action_description = 'We detected that a MySQL instance on %s may be accessible remotely. ' \
+    action_description = 'We detected that a MySQL instance on {devices} may be accessible remotely. ' \
                          'Consider either blocking port 3306 through the WoTT firewall management tool, or ' \
                          're-configure MySQL to only listen on localhost.'
 
@@ -349,7 +333,7 @@ action_classes.append(MysqlAction)
 class MySQLDefaultRootPasswordAction(ActionPerDevice):
     action_id = 10
     action_title = 'No root password set for the MySQL/MariaDB server'
-    action_description = """We detected that there is no root password set for MySQL/MariaDB on %s.
+    action_description = """We detected that there is no root password set for MySQL/MariaDB on {devices}.
             Not having a root password set makes it easy for anyone with access to the
             service to copy all information from the database. It is recommended that
             you change the password as soon as possible. There are multiple ways to do
@@ -372,7 +356,7 @@ action_classes.append(MySQLDefaultRootPasswordAction)
 class MemcachedAction(ActionPerDevice):
     action_id = 11
     action_title = 'Your Memcached instance may be publicly accessible'
-    action_description = 'We detected that a Memcached instance on %s may be accessible remotely. ' \
+    action_description = 'We detected that a Memcached instance on {devices} may be accessible remotely. ' \
                          'Consider either blocking port 11211 through the WoTT firewall management tool, or ' \
                          're-configure Memcached to only listen on localhost.'
 
@@ -392,7 +376,7 @@ action_classes.append(MemcachedAction)
 class CpuVulnerableAction(ActionPerDevice):
     action_id = 12
     action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
-    action_description = 'We detected that %s is vulnerable to Meltdown/Spectre. You can learn more about these ' \
+    action_description = 'We detected that {devices} is vulnerable to Meltdown/Spectre. You can learn more about these ' \
                          'issues <a href="https://meltdownattack.com/">here</a>. To fix the issue, please run ' \
                          '<pre>apt-get update && apt-get upgrade</pre>'
 
