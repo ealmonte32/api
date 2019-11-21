@@ -1,6 +1,4 @@
-import jwt
 import logging
-import os
 import time
 from base64 import b64decode
 from datetime import timedelta
@@ -246,7 +244,8 @@ def file_issues():
     day_ago = timezone.now() - timedelta(hours=24)
     counter = 0
 
-    for p in Profile.objects.exclude(Q(github_repo_id__isnull=True) | Q(github_oauth_token__exact='')):
+    for p in Profile.objects.exclude(
+            Q(github_repo_id__isnull=True) | Q(github_oauth_token__exact='') | Q(devices__isnull=True)):
         try:
             repos = list_repos(p.github_oauth_token)
         except GithubError:
@@ -265,45 +264,44 @@ def file_issues():
             logger.exception('failed to get installation token or list issues')
             continue
 
-        if p.user.devices.exists():
-            for action_class in recommended_actions.action_classes:
-                logger.debug(f'action class {action_class.action_id}')
-                affected_devices = action_class.affected_devices(p.user).filter(last_ping__gte=day_ago)
-                logger.debug(f'affected {affected_devices.count()} devices')
+        for action_class in recommended_actions.action_classes:
+            logger.debug(f'action class {action_class.action_id}')
+            affected_devices = action_class.affected_devices(p.user).filter(last_ping__gte=day_ago)
+            logger.debug(f'affected {affected_devices.count()} devices')
 
-                # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
-                issue_number = p.github_issues.get(str(action_class.action_id))
+            # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
+            issue_number = p.github_issues.get(str(action_class.action_id))
 
-                logger.debug(f'issue #{issue_number}')
-                try:
-                    if affected_devices.exists():
-                        if issue_number:
-                            comment = 'Affected nodes: ' + ', '.join(
-                                [recommended_actions.device_link(dev) for dev in affected_devices])
-                            if issue_number in issues['closed']:
-                                gr.open_issue(issue_number=issue_number)
-                            if issue_number in issues['open'] + issues['closed']:
-                                gr.add_comment(issue_number, comment)
-                                counter += 1
-                        else:
-                            context = action_class.get_action_description_context(devices_qs=affected_devices)
-
-                            # AutoUpdatesAction will have empty "devices" because it sets "your nodes" as subject.
-                            context['devices'] = 'your nodes' if 'subject' not in context else ''
-
-                            action_text = action_class.action_description.format(**context)
-                            action_text += '\n\nAffected nodes: ' + ', '.join(
-                                [recommended_actions.device_link(dev) for dev in affected_devices])
-                            issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)
+            logger.debug(f'issue #{issue_number}')
+            try:
+                if affected_devices.exists():
+                    if issue_number:
+                        comment = 'Affected nodes: ' + ', '.join(
+                            [recommended_actions.device_link(dev) for dev in affected_devices])
+                        if issue_number in issues['closed']:
+                            gr.open_issue(issue_number=issue_number)
+                        if issue_number in issues['open'] + issues['closed']:
+                            gr.add_comment(issue_number, comment)
                             counter += 1
                     else:
-                        if issue_number in issues['open']:
-                            gr.close_issue(issue_number)
-                            counter += 1
-                except GithubError:
-                    logger.exception('failed to process the issue')
-                    continue
+                        context = action_class.get_action_description_context(devices_qs=affected_devices)
+
+                        # AutoUpdatesAction will have empty "devices" because it sets "your nodes" as subject.
+                        context['devices'] = 'your nodes' if 'subject' not in context else ''
+
+                        action_text = action_class.action_description.format(**context)
+                        action_text += '\n\nAffected nodes: ' + ', '.join(
+                            [recommended_actions.device_link(dev) for dev in affected_devices])
+                        issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)
+                        counter += 1
+                else:
+                    if issue_number in issues['open']:
+                        gr.close_issue(issue_number)
+                        counter += 1
+            except GithubError:
+                logger.exception('failed to process the issue')
+            else:
                 p.github_issues[str(action_class.action_id)] = issue_number
-            p.save(update_fields=['github_issues'])
+        p.save(update_fields=['github_issues'])
     recommended_actions.device_link = device_link
     return counter
