@@ -261,9 +261,9 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'device_registry.tasks.send_packages_to_vulns_update',
         'schedule': crontab(minute='*/3')  # Execute every 3 minutes.
     },
-    'github_file_issues': {
-        'task': 'device_registry.tasks.github_file_issues',
-        'schedule': crontab(hour=f'*/6', minute=0)  # Execute every 6 hours.
+    'file_github_issues': {
+        'task': 'device_registry.tasks.file_github_issues',
+        'schedule': crontab(hour='*/6', minute=0)  # Execute every 6 hours.
     }
 }
 
