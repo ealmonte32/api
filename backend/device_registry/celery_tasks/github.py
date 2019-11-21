@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from agithub.GitHub import GitHub
 from django.conf import settings
+from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 from jwt import JWT, jwk_from_pem
@@ -245,7 +246,7 @@ def file_issues():
     day_ago = timezone.now() - timedelta(hours=24)
     counter = 0
 
-    for p in Profile.objects.filter(github_repo_id__isnull=False, github_oauth_token__isnull=False):
+    for p in Profile.objects.exclude(Q(github_repo_id__isnull=True) | Q(github_oauth_token__exact='')):
         try:
             repos = list_repos(p.github_oauth_token)
         except GithubError:
