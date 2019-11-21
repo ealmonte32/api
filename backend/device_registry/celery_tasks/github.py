@@ -9,6 +9,7 @@ from agithub.GitHub import GitHub
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+from jwt import JWT, jwk_from_pem
 
 from device_registry import recommended_actions
 
@@ -61,6 +62,7 @@ def list_repos(user_token):
             if 'repositories' in body:
                 repos.update({repo['id']: {
                     'full_name': repo['full_name'],
+                    'url': repo['html_url'],
                     'name': repo['name'],
                     'owner': repo['owner']['login'],
                     'installation': inst_id
@@ -73,12 +75,12 @@ def list_repos(user_token):
         raise GithubError(body)
 
 
-def create_jwt(app_id, private_key, expiration=60):
+def create_jwt(app_id, private_key: bytes, expiration=60):
     """
     Creates a signed JWT, valid for 60 seconds by default.
     The expiration can be extended beyond this, to a maximum of 600 seconds.
     :param app_id: Github App ID
-    :param private_key: Github App Private Key in PEM format (Unicode string with newlines)
+    :param private_key: Github App Private Key in PEM format
     :param expiration: int
     :return: an encoded JWT
     """
@@ -88,10 +90,11 @@ def create_jwt(app_id, private_key, expiration=60):
         "exp": now + expiration,
         "iss": int(app_id)
     }
+    jwt = JWT()
     encrypted = jwt.encode(
         payload,
-        key=private_key,
-        algorithm="RS256"
+        jwk_from_pem(private_key),
+        "RS256"
     )
 
     if isinstance(encrypted, bytes):
@@ -110,7 +113,7 @@ def get_access_token(inst_id):
     if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PEM:
         logger.error('Github credentials not specified')
         return
-    pem = b64decode(settings.GITHUB_APP_PEM).decode()
+    pem = b64decode(settings.GITHUB_APP_PEM)
 
     headers = HEADERS.copy()
     headers['Authorization'] = f"Bearer {create_jwt(settings.GITHUB_APP_ID, pem)}"
@@ -251,7 +254,7 @@ def file_issues():
             continue
 
         if p.github_repo_id not in repos:
-            print('repo not found: app not installed or no access')
+            logger.error('repo not found: app not installed or no access')
             continue
 
         try:
@@ -268,15 +271,14 @@ def file_issues():
                 logger.debug(f'affected {affected_devices.count()} devices')
 
                 # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
-                issue_info = p.github_issues.get(str(action_class.action_id), {})
+                issue_number = p.github_issues.get(str(action_class.action_id))
 
-                logger.debug(f'issue_info: {issue_info}')
+                logger.debug(f'issue #{issue_number}')
                 try:
                     if affected_devices.exists():
-                        if 'issue_number' in issue_info:
+                        if issue_number:
                             comment = 'Affected nodes: ' + ', '.join(
                                 [recommended_actions.device_link(dev) for dev in affected_devices])
-                            issue_number = issue_info['issue_number']
                             if issue_number in issues['closed']:
                                 gr.open_issue(issue_number=issue_number)
                             if issue_number in issues['open'] + issues['closed']:
@@ -292,16 +294,15 @@ def file_issues():
                             action_text += '\n\nAffected nodes: ' + ', '.join(
                                 [recommended_actions.device_link(dev) for dev in affected_devices])
                             issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)
-                            issue_info['issue_number'] = issue_number
                             counter += 1
                     else:
-                        if issue_info.get('issue_number') in issues['open']:
-                            gr.close_issue(issue_info['issue_number'])
+                        if issue_number in issues['open']:
+                            gr.close_issue(issue_number)
                             counter += 1
                 except GithubError:
                     logger.exception('failed to process the issue')
                     continue
-                p.github_issues[str(action_class.action_id)] = issue_info
+                p.github_issues[str(action_class.action_id)] = issue_number
             p.save(update_fields=['github_issues'])
     recommended_actions.device_link = device_link
     return counter

@@ -18,7 +18,12 @@
             </button>
           {% endifnotequal %}
           <div class="alert-message">
-            <h3 class="alert-heading">{{ action.title|safe }}</h3>
+            <h3 class="alert-heading">
+              {{ action.title|safe }}
+              {% if action.issue_url %}
+                <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
+              {% endif %}
+            </h3>
             <p>{{ action.description|safe }}</p>
           </div>
         </div>

@@ -10,7 +10,7 @@ class Action:
      view to a template.
     """
 
-    def __init__(self, title, description, snoozing_info):
+    def __init__(self, title, description, snoozing_info, issue_url=None):
         """
         Args:
             title: Actions title.
@@ -21,6 +21,7 @@ class Action:
         self.title = title
         self.description = markdown.markdown(description)
         self.snoozing_info = snoozing_info
+        self.issue_url = issue_url
 
 
 def device_link(device):
@@ -61,6 +62,16 @@ class BaseAction:
         """
         return {}
 
+    @classmethod
+    def _create_action(cls, profile, context, devices_list):
+        issue_number = profile.github_issues.get(str(cls.action_id))
+        issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
+        return Action(
+            cls.action_title,
+            cls.action_description.format(**context),
+            [cls.action_id, devices_list],
+            issue_url
+        )
 
 class ActionMultiDevice(BaseAction):
     """
@@ -74,12 +85,7 @@ class ActionMultiDevice(BaseAction):
         if devices.exists():
             context = cls.get_action_description_context(devices_qs=devices, device_pk=device_pk)
             context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
-            action = Action(
-                cls.action_title,
-                cls.action_description.format(**context),
-                [cls.action_id, list(devices.values_list('pk', flat=True))]
-            )
-            actions_list.append(action)
+            actions_list.append(cls._create_action(user.profile, context, list(devices.values_list('pk', flat=True))))
         return actions_list
 
     @classmethod
@@ -99,12 +105,7 @@ class ActionPerDevice(BaseAction):
         for dev in devices:
             context = cls.get_action_description_context(device=dev, device_pk=device_pk)
             context['devices'] = device_link(dev) if device_pk is None else 'this node'
-            action = Action(
-                cls.action_title,
-                cls.action_description.format(**context),
-                [cls.action_id, [dev.pk]]
-            )
-            actions_list.append(action)
+            actions_list.append(cls._create_action(user.profile, context, [dev.pk]))
         return actions_list
 
     @classmethod

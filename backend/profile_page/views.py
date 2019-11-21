@@ -179,8 +179,9 @@ class GithubIntegrationView(LoginRequiredMixin, View):
             repo = int(repo) if repo else None
             if profile.github_repo_id != repo:
                 profile.github_repo_id = repo
+                profile.github_repo_url = repos[repo]['url'] if repo else ''
                 profile.github_issues = {}
-                profile.save(update_fields=['github_repo_id', 'github_issues'])
+                profile.save(update_fields=['github_repo_id', 'github_repo_url', 'github_issues'])
             return HttpResponseRedirect(reverse('github_integration'))
         return render(request, 'profile_github.html', {'form': form})
 
