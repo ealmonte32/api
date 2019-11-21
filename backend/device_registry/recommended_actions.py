@@ -73,6 +73,7 @@ class BaseAction:
             issue_url
         )
 
+
 class ActionMultiDevice(BaseAction):
     """
     Specific base action class for actions able to store info for *multiple* devices.
@@ -154,11 +155,11 @@ class VulnerablePackagesAction(ActionMultiDevice):
     action_id = 3
     action_title = 'Vulnerable packages found'
     action_description = 'We found vulnerable packages on {devices}. These packages could be used by an attacker to '\
-    'either gain access to your node, or escalate permission. It is recommended that you address this at your earliest '\
-    'convenience.\n\n'\
-    'Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.\n\n'\
-    'Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system '\
-    'vendor.'
+        'either gain access to your node, or escalate permission. It is recommended that you address this at your ' \
+        'earliest convenience.\n\n'\
+        'Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.\n\n'\
+        'Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system '\
+        'vendor.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):

@@ -4,6 +4,7 @@ from base64 import b64decode
 from datetime import timedelta
 
 from agithub.GitHub import GitHub
+from agithub.base import IncompleteRequest
 from django.conf import settings
 from django.db.models import Q
 from django.urls import reverse
@@ -31,7 +32,8 @@ def get_token_from_code(code, state):
     :raises GithubError
     """
     g = GitHub(paginate=True, sleep_on_ratelimit=False, api_url='github.com')
-    status, body = g.login.oauth.access_token.post(client_id=settings.GITHUB_APP_CLIENT_ID, client_secret=settings.GITHUB_APP_CLIENT_SECRET,
+    status, body = g.login.oauth.access_token.post(client_id=settings.GITHUB_APP_CLIENT_ID,
+                                                   client_secret=settings.GITHUB_APP_CLIENT_SECRET,
                                                    redirect_uri=settings.GITHUB_APP_REDIR_URL, state=state, code=code,
                                                    headers={'Accept': 'application/json'})
     if status == 200 and 'access_token' in body:
@@ -136,7 +138,7 @@ class GithubRepo:
         token = get_access_token(inst_id)
         self._github = GitHub(paginate=True, sleep_on_ratelimit=False, token=token)
 
-    def _issues(self, issue_number = None):
+    def _issues(self, issue_number=None) -> IncompleteRequest:
         # Because agithub.IncompleteRequest gets "complete" after performing an actual request,
         # we need to create a new one for every new request.
         res = self._github.repos[self.repo['owner']][self.repo['name']].issues
@@ -153,7 +155,8 @@ class GithubRepo:
         status, body = self._issues().get(state='all', headers=HEADERS)
         if status != 200:
             raise GithubError(body)
-        return {state: [i['number'] for i in body if i['state']==state and not i['locked']] for state in ['open', 'closed']}
+        return {state: [issue['number'] for issue in body if issue['state'] == state and not issue['locked']]
+                for state in ['open', 'closed']}
 
     def add_comment(self, issue_number, comment):
         """
@@ -184,41 +187,19 @@ class GithubRepo:
         })
         if status == 200:
             logger.info('issue closed')
-            return
         elif status == 404:
             logger.info('issue not found')
         else:
             raise GithubError(body)
 
-    def open_issue(self, issue_number=None, title_text='', body_text=''):
+    def create_issue(self, title_text, body_text):
         """
-        Open Github issue specified by issue_number or create new issue with the specified body text.
-        If the issue exists its body text will not be changed.
-        If the specified issue_number does not exist new issue will also be created.
-        :param issue_number: number; may be None in which case new issue will be created
-        :param body_text: body text for the newly created issue.
-        :return: github.Issue object
+        Create new Github issue with the specified body text.
+        :param title_text: issue title (plaintext only).
+        :param body_text: body text for the newly created issue (markdown).
+        :return: issue number
+        :raises GithubError
         """
-        if issue_number is not None:
-            status, body = self._issues(issue_number).get()
-            if status == 200 and 'id' in body:
-                if body['state'] == 'open':
-                    logger.debug('issue already open')
-                    return
-                logger.debug('reopening the issue')
-                status, body = self._issues(issue_number).patch(body={
-                    'state': 'open'
-                })
-                if status == 200:
-                    logger.debug('issue reopened')
-                    return
-                else:
-                    raise GithubError(body)
-            elif status == 404:
-                logger.debug('issue not found')
-                pass
-            else:
-                raise GithubError(body)
         logger.debug(f'creating new issue: "{title_text}"')
         status, body = self._issues().post(body={
             'title': title_text,
@@ -227,6 +208,21 @@ class GithubRepo:
         if status == 201:
             logger.debug(f'created issue #{body["number"]}')
             return body['number']
+        else:
+            raise GithubError(body)
+
+    def open_issue(self, issue_number):
+        """
+        Open an existing closed Github issue
+        :param issue_number: issue number
+        :return: None
+        :raises GithubError
+        """
+        status, body = self._issues(issue_number).patch(body={
+            'state': 'open'
+        })
+        if status == 200:
+            logger.debug('issue reopened')
         else:
             raise GithubError(body)
 
@@ -245,7 +241,7 @@ def file_issues():
     counter = 0
 
     for p in Profile.objects.exclude(
-            Q(github_repo_id__isnull=True) | Q(github_oauth_token__exact='') | Q(devices__isnull=True)):
+            Q(github_repo_id__isnull=True) | Q(github_oauth_token__exact='') | Q(user__devices__isnull=True)):
         try:
             repos = list_repos(p.github_oauth_token)
         except GithubError:
@@ -279,7 +275,7 @@ def file_issues():
                         comment = 'Affected nodes: ' + ', '.join(
                             [recommended_actions.device_link(dev) for dev in affected_devices])
                         if issue_number in issues['closed']:
-                            gr.open_issue(issue_number=issue_number)
+                            gr.open_issue(issue_number)
                         if issue_number in issues['open'] + issues['closed']:
                             gr.add_comment(issue_number, comment)
                             counter += 1
@@ -292,7 +288,7 @@ def file_issues():
                         action_text = action_class.action_description.format(**context)
                         action_text += '\n\nAffected nodes: ' + ', '.join(
                             [recommended_actions.device_link(dev) for dev in affected_devices])
-                        issue_number = gr.open_issue(title_text=action_class.action_title, body_text=action_text)
+                        issue_number = gr.create_issue(action_class.action_title, action_text)
                         counter += 1
                 else:
                     if issue_number in issues['open']:

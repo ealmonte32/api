@@ -9,6 +9,7 @@ from phonenumber_field.modelfields import PhoneNumberField
 from device_registry.recommended_actions import action_classes
 from device_registry.celery_tasks import github
 
+
 @receiver(pre_save, sender=User, dispatch_uid="user_save_lower")
 def user_save_lower(sender, instance, *args, **kwargs):
     instance.username = instance.username.lower()
