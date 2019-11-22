@@ -33,7 +33,7 @@ class Profile(models.Model):
     wizard_shown = models.BooleanField(default=False)
     phone = PhoneNumberField(blank=True)
     github_auth_code = models.CharField(blank=True, max_length=32)
-    github_repo_id = models.PositiveIntegerField(null=True)
+    github_repo_id = models.PositiveIntegerField(blank=True, null=True)
     github_repo_url = models.URLField(blank=True)
     github_random_state = models.CharField(blank=True, max_length=32)
     github_oauth_token = models.CharField(blank=True, max_length=64)
