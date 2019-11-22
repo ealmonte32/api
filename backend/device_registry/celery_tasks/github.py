@@ -226,7 +226,7 @@ class GithubRepo:
 
 
 def get_device_link(device):
-    url = 'https://dash.wott.io' + reverse('device-detail', kwargs={'pk': device.pk})
+    url = settings.DASH_URL + reverse('device-detail', kwargs={'pk': device.pk})
     return f'[{device.get_name()}]({url})'
 
 
