@@ -225,7 +225,7 @@ class GithubRepo:
             raise GithubError(body)
 
 
-def device_full_link(device):
+def get_device_link(device):
     url = 'https://dash.wott.io' + reverse('device-detail', kwargs={'pk': device.pk})
     return f'[{device.get_name()}]({url})'
 
@@ -235,7 +235,6 @@ def file_issues():
 
     # Replace device link generation function used by BaseAction.get_action_description_context in order to provide
     # full URLs leading to Dash.
-    recommended_actions.device_link = device_full_link
     device_link = recommended_actions.device_link
 
     day_ago = timezone.now() - timedelta(hours=24)
@@ -277,7 +276,7 @@ def file_issues():
                         # neither in 'open' nor in 'closed' because we can't comment in a locked issue.
 
                         comment = 'Affected nodes: ' + ', '.join(
-                            [recommended_actions.device_link(dev) for dev in affected_devices])
+                            [get_device_link(dev) for dev in affected_devices])
                         if issue_number in issues['closed']:
                             # Issue was opened by us and then closed => reopen
                             github_repo.open_issue(issue_number)
@@ -295,7 +294,7 @@ def file_issues():
 
                         action_text = action_class.action_description.format(**context)
                         action_text += '\n\nAffected nodes: ' + ', '.join(
-                            [recommended_actions.device_link(dev) for dev in affected_devices])
+                            [get_device_link(dev) for dev in affected_devices])
                         issue_number = github_repo.create_issue(action_class.action_title, action_text)
                         counter += 1
                 else:
@@ -307,5 +306,4 @@ def file_issues():
             else:
                 profile.github_issues[str(action_class.action_id)] = issue_number
         profile.save(update_fields=['github_issues'])
-    recommended_actions.device_link = device_link  # Restore original device_link function
     return counter
