@@ -56,8 +56,10 @@
                     <button type="button" class="btn btn-secondary" onclick="installGithub()">Install App</button>
                   {% endbuttons %}
                 </form>
-                {% else %}
+                {% elif github_authorized is False %}
                   <button onclick="authorizeGithub()" class="btn btn-primary">Authorize Github</button>
+                {% else %}
+                  Github Integration is not available.
                 {% endif %}
               </div>
             </div>

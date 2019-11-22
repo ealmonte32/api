@@ -3,12 +3,13 @@ import time
 from base64 import b64decode
 from datetime import timedelta
 
-from agithub.GitHub import GitHub
-from agithub.base import IncompleteRequest
 from django.conf import settings
 from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
+
+from agithub.GitHub import GitHub
+from agithub.base import IncompleteRequest
 from jwt import JWT, jwk_from_pem
 
 from device_registry import recommended_actions
@@ -31,8 +32,11 @@ def get_token_from_code(code, state):
     :return: access token (string)
     :raises GithubError
     """
-    g = GitHub(paginate=True, sleep_on_ratelimit=False, api_url='github.com')
-    status, body = g.login.oauth.access_token.post(client_id=settings.GITHUB_APP_CLIENT_ID,
+    if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PEM:
+        raise GithubError('Github credentials not specified')
+
+    github = GitHub(paginate=True, sleep_on_ratelimit=False, api_url='github.com')
+    status, body = github.login.oauth.access_token.post(client_id=settings.GITHUB_APP_CLIENT_ID,
                                                    client_secret=settings.GITHUB_APP_CLIENT_SECRET,
                                                    redirect_uri=settings.GITHUB_APP_REDIR_URL, state=state, code=code,
                                                    headers={'Accept': 'application/json'})
@@ -49,16 +53,19 @@ def list_repos(user_token):
     :return: a dict {id: {owner: ..., name: ..., installation: ..., full_name: ...}}
     :raises GithubError
     """
-    g = GitHub(paginate=True, sleep_on_ratelimit=False, token=user_token)
+    if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PEM:
+        raise GithubError('Github credentials not specified')
+
+    github = GitHub(paginate=True, sleep_on_ratelimit=False, token=user_token)
     logger.info('getting installations...')
-    status, body = g.user.installations.get(headers=HEADERS)
+    status, body = github.user.installations.get(headers=HEADERS)
     repos = {}
     if 'installations' in body:
         installations = body['installations']
         for inst in installations:
             inst_id = inst['id']
             logger.info(f'getting repos for {inst_id}...')
-            status, body = g.user.installations[inst['id']].repositories.get(headers=HEADERS)
+            status, body = github.user.installations[inst['id']].repositories.get(headers=HEADERS)
             logger.info('parsing...')
             if 'repositories' in body:
                 repos.update({repo['id']: {
@@ -70,7 +77,6 @@ def list_repos(user_token):
                  } for repo in body['repositories']})
             else:
                 raise GithubError(body)
-            logger.info(g.getheaders())
         return repos
     else:
         raise GithubError(body)
@@ -92,16 +98,11 @@ def create_jwt(app_id, private_key: bytes, expiration=60):
         "iss": int(app_id)
     }
     jwt = JWT()
-    encrypted = jwt.encode(
+    return jwt.encode(
         payload,
         jwk_from_pem(private_key),
         "RS256"
     )
-
-    if isinstance(encrypted, bytes):
-        encrypted = encrypted.decode('utf-8')
-
-    return encrypted
 
 
 def get_access_token(inst_id):
@@ -111,9 +112,6 @@ def get_access_token(inst_id):
     :return: access token (string)
     :raises GithubError
     """
-    if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PEM:
-        logger.error('Github credentials not specified')
-        return
     pem = b64decode(settings.GITHUB_APP_PEM)
 
     headers = HEADERS.copy()
@@ -141,10 +139,10 @@ class GithubRepo:
     def _issues(self, issue_number=None) -> IncompleteRequest:
         # Because agithub.IncompleteRequest gets "complete" after performing an actual request,
         # we need to create a new one for every new request.
-        res = self._github.repos[self.repo['owner']][self.repo['name']].issues
+        issues_request = self._github.repos[self.repo['owner']][self.repo['name']].issues
         if issue_number is not None:
-            return res[issue_number]
-        return res
+            return issues_request[issue_number]
+        return issues_request
 
     def list_issues(self):
         """
@@ -234,52 +232,62 @@ def device_full_link(device):
 
 def file_issues():
     from profile_page.models import Profile
-    device_link = recommended_actions.device_link
+
+    # Replace device link generation function used by BaseAction.get_action_description_context in order to provide
+    # full URLs leading to Dash.
     recommended_actions.device_link = device_full_link
+    device_link = recommended_actions.device_link
 
     day_ago = timezone.now() - timedelta(hours=24)
     counter = 0
 
-    for p in Profile.objects.exclude(
-            Q(github_repo_id__isnull=True) | Q(github_oauth_token__exact='') | Q(user__devices__isnull=True)):
+    for profile in Profile.objects.exclude(
+            Q(github_repo_id__isnull=True) | Q(github_oauth_token='') | Q(user__devices__isnull=True)):
         try:
-            repos = list_repos(p.github_oauth_token)
+            repos = list_repos(profile.github_oauth_token)
         except GithubError:
             logger.exception('failed to get repo list: user may have deauthorized the app')
             # TODO: check if token is valid and erase it if not
             continue
 
-        if p.github_repo_id not in repos:
+        if profile.github_repo_id not in repos:
             logger.error('repo not found: app not installed or no access')
             continue
 
         try:
-            gr = GithubRepo(repos[p.github_repo_id])
-            issues = gr.list_issues()
+            github_repo = GithubRepo(repos[profile.github_repo_id])
+            issues = github_repo.list_issues()
         except GithubError:
             logger.exception('failed to get installation token or list issues')
             continue
 
         for action_class in recommended_actions.action_classes:
             logger.debug(f'action class {action_class.action_id}')
-            affected_devices = action_class.affected_devices(p.user).filter(last_ping__gte=day_ago)
+            affected_devices = action_class.affected_devices(profile.user).filter(last_ping__gte=day_ago)
             logger.debug(f'affected {affected_devices.count()} devices')
 
             # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
-            issue_number = p.github_issues.get(str(action_class.action_id))
+            issue_number = profile.github_issues.get(str(action_class.action_id))
 
             logger.debug(f'issue #{issue_number}')
             try:
                 if affected_devices.exists():
                     if issue_number:
+                        # Issue was created and opened/closed by us. Cloud also be locked in which case it will be
+                        # neither in 'open' nor in 'closed' because we can't comment in a locked issue.
+
                         comment = 'Affected nodes: ' + ', '.join(
                             [recommended_actions.device_link(dev) for dev in affected_devices])
                         if issue_number in issues['closed']:
-                            gr.open_issue(issue_number)
+                            # Issue was opened by us and then closed => reopen
+                            github_repo.open_issue(issue_number)
                         if issue_number in issues['open'] + issues['closed']:
-                            gr.add_comment(issue_number, comment)
+                            # Issue was opened or closed (and reopened above) by us and not locked => add comment
+                            github_repo.add_comment(issue_number, comment)
                             counter += 1
                     else:
+                        # We haven't filed an issue yet. File it.
+
                         context = action_class.get_action_description_context(devices_qs=affected_devices)
 
                         # AutoUpdatesAction will have empty "devices" because it sets "your nodes" as subject.
@@ -288,16 +296,16 @@ def file_issues():
                         action_text = action_class.action_description.format(**context)
                         action_text += '\n\nAffected nodes: ' + ', '.join(
                             [recommended_actions.device_link(dev) for dev in affected_devices])
-                        issue_number = gr.create_issue(action_class.action_title, action_text)
+                        issue_number = github_repo.create_issue(action_class.action_title, action_text)
                         counter += 1
                 else:
                     if issue_number in issues['open']:
-                        gr.close_issue(issue_number)
+                        github_repo.close_issue(issue_number)
                         counter += 1
             except GithubError:
                 logger.exception('failed to process the issue')
             else:
-                p.github_issues[str(action_class.action_id)] = issue_number
-        p.save(update_fields=['github_issues'])
-    recommended_actions.device_link = device_link
+                profile.github_issues[str(action_class.action_id)] = issue_number
+        profile.save(update_fields=['github_issues'])
+    recommended_actions.device_link = device_link  # Restore original device_link function
     return counter

@@ -145,27 +145,31 @@ class WizardCompleteView(LoginRequiredMixin, LoginTrackMixin, APIView):
 class GithubIntegrationView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         profile = request.user.profile
-        repos = profile.github_repos
-        if repos is None:
-            profile.github_random_state = uuid4().hex
-            profile.save(update_fields=['github_random_state'])
-            context = {
-                'github_authorized': False,
-                'github_auth_url': f'https://github.com/login/oauth/authorize?'
-                                   f'client_id={settings.GITHUB_APP_CLIENT_ID}&'
-                                   f'redirect_uri={settings.GITHUB_APP_REDIR_URL}&'
-                                   f'state={profile.github_random_state}'
-            }
+        if None in [settings.GITHUB_APP_ID, settings.GITHUB_APP_PEM, settings.GITHUB_APP_CLIENT_ID,
+                    settings.GITHUB_APP_CLIENT_SECRET, settings.GITHUB_APP_REDIR_URL, settings.GITHUB_APP_NAME]:
+            context = {'github_authorized': None}
         else:
-            if profile.github_repo_id not in repos:
-                profile.github_repo_id = None  # Not saving because this is a GET
-            form = GithubForm({'repo': profile.github_repo_id},
-                              repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
-            context = {
-                'form': form,
-                'github_authorized': True,
-                'github_inst_url': f'https://github.com/apps/{settings.GITHUB_APP_NAME}/installations/new'
-            }
+            repos = profile.github_repos
+            if repos is None:
+                profile.github_random_state = uuid4().hex
+                profile.save(update_fields=['github_random_state'])
+                context = {
+                    'github_authorized': False,
+                    'github_auth_url': f'https://github.com/login/oauth/authorize?'
+                                       f'client_id={settings.GITHUB_APP_CLIENT_ID}&'
+                                       f'redirect_uri={settings.GITHUB_APP_REDIR_URL}&'
+                                       f'state={profile.github_random_state}'
+                }
+            else:
+                if profile.github_repo_id not in repos:
+                    profile.github_repo_id = None  # Not saving because this is a GET
+                form = GithubForm({'repo': profile.github_repo_id},
+                                  repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
+                context = {
+                    'form': form,
+                    'github_authorized': True,
+                    'github_inst_url': f'https://github.com/apps/{settings.GITHUB_APP_NAME}/installations/new'
+                }
         return render(request, 'profile_github.html', context)
 
     def post(self, request, *args, **kwargs):
@@ -173,7 +177,6 @@ class GithubIntegrationView(LoginRequiredMixin, View):
         repos = profile.github_repos
         form = GithubForm(request.POST,
                           repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
-        profile = request.user.profile
         if form.is_valid():
             repo = form.cleaned_data['repo']
             repo = int(repo) if repo else None

@@ -1,4 +1,5 @@
 from django.urls import reverse
+
 import markdown
 
 
@@ -63,7 +64,15 @@ class BaseAction:
         return {}
 
     @classmethod
-    def _create_action(cls, profile, context, devices_list):
+    def _create_action(cls, profile, context, devices_list) -> Action:
+        """
+        Create an Action object with title and description supplied by this class (cls), action description context,
+        devices list and profile's github issue info (which can be empty).
+        :param profile: Profile
+        :param context: a format dict for action_description
+        :param devices_list: list of Device ids
+        :return: Action
+        """
         issue_number = profile.github_issues.get(str(cls.action_id))
         issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
         return Action(
@@ -122,8 +131,8 @@ class ActionPerDevice(BaseAction):
 class DefaultCredentialsAction(ActionMultiDevice):
     action_id = 1
     action_title = 'Default credentials detected'
-    action_description = 'We found default credentials present on {devices}. Please consider changing them as soon as ' \
-                         'possible.'
+    action_description = \
+        'We found default credentials present on {devices}. Please consider changing them as soon as possible.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -137,8 +146,8 @@ action_classes.append(DefaultCredentialsAction)
 class FirewallDisabledAction(ActionMultiDevice):
     action_id = 2
     action_title = 'Permissive firewall policy detected'
-    action_description = 'We found permissive firewall policy present on {devices}. Please consider change it to more ' \
-                         'restrictive one.'
+    action_description = \
+        'We found permissive firewall policy present on {devices}. Please consider change it to more restrictive one.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -154,11 +163,12 @@ action_classes.append(FirewallDisabledAction)
 class VulnerablePackagesAction(ActionMultiDevice):
     action_id = 3
     action_title = 'Vulnerable packages found'
-    action_description = 'We found vulnerable packages on {devices}. These packages could be used by an attacker to '\
-        'either gain access to your node, or escalate permission. It is recommended that you address this at your ' \
-        'earliest convenience.\n\n'\
-        'Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.\n\n'\
-        'Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system '\
+    action_description = \
+        'We found vulnerable packages on {devices}. These packages could be used by an attacker to either gain ' \
+        'access to your node, or escalate permission. It is recommended that you address this at your earliest ' \
+        'convenience.\n\n' \
+        'Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.\n\n' \
+        'Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system ' \
         'vendor.'
 
     @classmethod
@@ -173,10 +183,10 @@ action_classes.append(VulnerablePackagesAction)
 class InsecureServicesAction(ActionPerDevice):
     action_id = 4
     action_title = 'Insecure services found'
-    action_description = 'We found insecure services installed on {devices}. Because these services are considered ' \
-                         'insecure, it is recommended that you uninstall them.\n\n' \
-                         'Run `sudo apt-get purge {services}`' \
-                         'to disable all insecure services.'
+    action_description = \
+        'We found insecure services installed on {devices}. Because these services are considered insecure, it is ' \
+        'recommended that you uninstall them.\n\n' \
+        'Run `sudo apt-get purge {services}`to disable all insecure services.'
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
@@ -202,8 +212,9 @@ action_classes.append(InsecureServicesAction)
 class OpensshConfigurationIssuesAction(ActionPerDevice):
     action_id = 5
     action_title = 'Insecure configuration for OpenSSH found'
-    action_description = 'We found insecure configuration issues with OpenSSH on {devices}. To improve the security ' \
-                         'posture of your node, please consider making the following changes:\n\n{changes}'
+    action_description = \
+        'We found insecure configuration issues with OpenSSH on {devices}. To improve the security posture of your ' \
+        'node, please consider making the following changes:\n\n{changes}'
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
@@ -241,9 +252,10 @@ action_classes.append(OpensshConfigurationIssuesAction)
 class AutoUpdatesAction(ActionMultiDevice):
     action_id = 6
     action_title = 'Consider enable automatic security updates'
-    action_description = 'We found that {subject}{devices} {verb} not configured to automatically install security updates. Consider ' \
-                         'enabling this feature.\n\n' \
-                         'Details for how to do this can be found [here]({doc_url})'
+    action_description = \
+        'We found that {subject}{devices} {verb} not configured to automatically install security updates. Consider ' \
+        'enabling this feature.\n\n' \
+        'Details for how to do this can be found [here]({doc_url})'
 
     @classmethod
     def get_doc_url(cls, devices):
@@ -285,9 +297,10 @@ action_classes.append(AutoUpdatesAction)
 class FtpServerAction(ActionPerDevice):
     action_id = 7
     action_title = 'Consider moving to SFTP'
-    action_description = 'There appears to be an FTP server running on {devices}. FTP is generally considered insecure as ' \
-                         'the credentials are sent unencrypted over the internet. Consider switching to an ' \
-                         'encrypted service, such as [SFTP](https://www.ssh.com/ssh/sftp).'
+    action_description = \
+        'There appears to be an FTP server running on {devices}. FTP is generally considered insecure as the ' \
+        'credentials are sent unencrypted over the internet. Consider switching to an encrypted service, such as ' \
+        '[SFTP](https://www.ssh.com/ssh/sftp).'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -306,9 +319,9 @@ action_classes.append(FtpServerAction)
 class MongodbAction(ActionPerDevice):
     action_id = 8
     action_title = 'Your MongoDB instance may be publicly accessible'
-    action_description = 'We detected that a MongoDB instance on {devices} may be accessible remotely. ' \
-                         'Consider either blocking port 27017 through the WoTT firewall management tool, or ' \
-                         're-configure MongoDB to only listen on localhost.'
+    action_description = \
+        'We detected that a MongoDB instance on {devices} may be accessible remotely. Consider either blocking port ' \
+        '27017 through the WoTT firewall management tool, or re-configure MongoDB to only listen on localhost.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -327,9 +340,9 @@ action_classes.append(MongodbAction)
 class MysqlAction(ActionPerDevice):
     action_id = 9
     action_title = 'Your MySQL instance may be publicly accessible'
-    action_description = 'We detected that a MySQL instance on {devices} may be accessible remotely. ' \
-                         'Consider either blocking port 3306 through the WoTT firewall management tool, or ' \
-                         're-configure MySQL to only listen on localhost.'
+    action_description = \
+        'We detected that a MySQL instance on {devices} may be accessible remotely. Consider either blocking port ' \
+        '3306 through the WoTT firewall management tool, or re-configure MySQL to only listen on localhost.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -348,14 +361,14 @@ action_classes.append(MysqlAction)
 class MySQLDefaultRootPasswordAction(ActionPerDevice):
     action_id = 10
     action_title = 'No root password set for the MySQL/MariaDB server'
-    action_description = 'We detected that there is no root password set for MySQL/MariaDB on {devices}.'\
-            'Not having a root password set makes it easy for anyone with access to the '\
-            'service to copy all information from the database. It is recommended that '\
-            'you change the password as soon as possible. There are multiple ways to do '\
-            'this, including using mysqladmin as follows:\n\n'\
-            '`mysqladmin -u root password NEWPASSWORD`\n\n'\
-            'Tip: If you are using mysqladmin as per above, make sure to add a space '\
-            'before the command to avoid it being stored in your shell\'s history.'
+    action_description = \
+        'We detected that there is no root password set for MySQL/MariaDB on {devices}. Not having a root password ' \
+        'set makes it easy for anyone with access to the service to copy all information from the database. It is ' \
+        'recommended that you change the password as soon as possible. There are multiple ways to do this, ' \
+        'including using mysqladmin as follows:\n\n' \
+        '`mysqladmin -u root password NEWPASSWORD`\n\n' \
+        'Tip: If you are using mysqladmin as per above, make sure to add a space before the command to avoid it ' \
+        'being stored in your shell\'s history.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -369,9 +382,9 @@ action_classes.append(MySQLDefaultRootPasswordAction)
 class MemcachedAction(ActionPerDevice):
     action_id = 11
     action_title = 'Your Memcached instance may be publicly accessible'
-    action_description = 'We detected that a Memcached instance on {devices} may be accessible remotely. ' \
-                         'Consider either blocking port 11211 through the WoTT firewall management tool, or ' \
-                         're-configure Memcached to only listen on localhost.'
+    action_description = \
+        'We detected that a Memcached instance on {devices} may be accessible remotely. Consider either blocking ' \
+        'port 11211 through the WoTT firewall management tool, or re-configure Memcached to only listen on localhost.'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -389,9 +402,9 @@ action_classes.append(MemcachedAction)
 class CpuVulnerableAction(ActionPerDevice):
     action_id = 12
     action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
-    action_description = 'We detected that {devices} is vulnerable to Meltdown/Spectre. You can learn more about these ' \
-                         'issues [here](https://meltdownattack.com/). To fix the issue, please run ' \
-                         '`apt-get update && apt-get upgrade`'
+    action_description = \
+        'We detected that {devices} is vulnerable to Meltdown/Spectre. You can learn more about these issues ' \
+        '[here](https://meltdownattack.com/). To fix the issue, please run `apt-get update && apt-get upgrade`'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
