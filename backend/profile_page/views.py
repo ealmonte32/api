@@ -106,11 +106,11 @@ class RegistrationView(BaseRegistrationView):
         login(self.request, new_user)
         user_registered.send(sender=self.__class__, user=new_user, request=self.request)
         profile, _ = Profile.objects.get_or_create(user=new_user)
-        profile.first_signin = True
+        profile.signed_up = True
         profile.payment_plan = int(form.cleaned_data['payment_plan'])
         profile.company_name = form.cleaned_data['company']
         profile.phone = form.cleaned_data['phone']
-        profile.save(update_fields=['payment_plan', 'first_signin', 'company_name', 'phone'])
+        profile.save(update_fields=['payment_plan', 'signed_up', 'company_name', 'phone'])
         if profile.payment_plan != Profile.PAYMENT_PLAN_FREE:
             messages.add_message(self.request, messages.INFO,
                                  'Congratulations! We won\'t charge you for this plan for now.')

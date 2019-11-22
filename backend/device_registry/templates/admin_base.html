@@ -106,8 +106,9 @@
           mixpanel.reset();
       });
 
-      {% if first_signin %}
+      {% if signed_up %}
       mixpanel.alias("{{ user.email }}");
+      mixpanel.track("Signed up");
       {% endif %}
       mixpanel.identify("{{ user.email }}");
       mixpanel.people.set({

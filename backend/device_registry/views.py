@@ -52,10 +52,11 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
 
             # TODO: convert this into a list of dicts for multiple filters
             'filter': self.filter_dict,
-            'first_signin': self.request.user.profile.first_signin
+            'signed_up': self.request.user.profile.signed_up,
+            'signed_in': self.request.user.profile.signed_in
         })
-        self.request.user.profile.first_signin = False
-        self.request.user.profile.save(update_fields=['first_signin'])
+        self.request.user.profile.signed_up = False
+        self.request.user.profile.save(update_fields=['signed_up'])
         return context
 
 

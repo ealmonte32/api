@@ -29,7 +29,8 @@ class Profile(models.Model):
     company_name = models.CharField(blank=True, max_length=128)
     payment_plan = models.PositiveSmallIntegerField(choices=PAYMENT_PLAN_CHOICES, default=PAYMENT_PLAN_FREE)
     wizard_shown = models.BooleanField(default=False)
-    first_signin = models.BooleanField(default=False)
+    signed_up = models.BooleanField(default=False)
+    signed_in = models.BooleanField(default=False)
     phone = PhoneNumberField(blank=True)
 
     @property
