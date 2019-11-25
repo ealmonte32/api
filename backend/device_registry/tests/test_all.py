@@ -315,7 +315,7 @@ class DeviceModelTest(TestCase):
         self.device1.update_trust_score_now()
         average_score = average_trust_score(self.user1)
         real_average_score = ((self.device0.trust_score + self.device1.trust_score) / 2.0)
-        self.assertTrue(abs(average_score - real_average_score) <= sys.float_info.epsilon)   # because IEEE float
+        self.assertTrue(abs(average_score - real_average_score) <= sys.float_info.epsilon)  # because IEEE float
 
     def test_heartbleed(self):
         self.assertIsNone(self.device0.heartbleed_vulnerable)
@@ -858,7 +858,7 @@ class RootViewTests(TestCase):
             name='First',
             last_ping=timezone.now() - timezone.timedelta(days=1, hours=1)
         )
-        self.deviceinfo0 = DeviceInfo.objects.create(
+        DeviceInfo.objects.create(
             device=self.device0,
             fqdn='FirstFqdn',
             default_password=False,
@@ -871,7 +871,7 @@ class RootViewTests(TestCase):
             certificate=TEST_CERT,
             last_ping=timezone.now() - timezone.timedelta(days=2, hours=23)
         )
-        self.deviceinfo1 = DeviceInfo.objects.create(
+        DeviceInfo.objects.create(
             device=self.device1,
             fqdn='SecondFqdn',
             default_password=True,
@@ -879,6 +879,8 @@ class RootViewTests(TestCase):
         )
         PortScan.objects.create(device=self.device0)
         PortScan.objects.create(device=self.device1)
+        FirewallState.objects.create(device=self.device0)
+        FirewallState.objects.create(device=self.device1)
 
     def test_wizard(self):
         self.client.login(username='test', password='123')
@@ -980,10 +982,14 @@ class RootViewTests(TestCase):
 
     def test_recommended_actions_count(self):
         self.client.login(username='test', password='123')
+        self.assertEqual(self.user.profile.actions_count, 2)
+        self.assertEqual(self.device0.actions_count, 1)
+        self.assertEqual(self.device1.actions_count, 2)
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">Recommended Actions<span '
-                          'class="badge badge-pill badge-danger ml-2">2</span></a>', response.rendered_content)
+        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
+                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">2</span></a>',
+                          response.rendered_content)
 
 
 class SaveDeviceSettingsAsPolicyViewTests(TestCase):
