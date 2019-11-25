@@ -1,16 +1,17 @@
 from django.shortcuts import render
-from django.contrib.auth.views import LogoutView as DjangoLogoutView
+from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
 from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib import messages
 from django.views.generic import View, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
-
+from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from registration.views import RegistrationView as BaseRegistrationView
@@ -18,11 +19,12 @@ from registration.signals import user_registered
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import ProfileForm, RegistrationForm
+from .forms import AuthenticationForm, ProfileForm, RegistrationForm
+from .mixins import LoginTrackMixin
 from .models import Profile
 
 
-class ProfileAccountView(LoginRequiredMixin, View):
+class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
 
     def dispatch(self, request, *args, **kwargs):
         self.user = request.user
@@ -52,8 +54,16 @@ class ProfileAccountView(LoginRequiredMixin, View):
         return render(request, 'profile_account.html', {'form': form})
 
 
-class ProfileAPITokenView(LoginRequiredMixin, TemplateView):
+class ProfileAPITokenView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'profile_token.html'
+
+
+class LoginView(DjangoLoginView):
+    form_class = AuthenticationForm
+
+    def form_valid(self, form):
+        self.request.session['signed_in'] = True
+        return super().form_valid(form)
 
 
 class LogoutView(DjangoLogoutView):
@@ -73,14 +83,14 @@ class LogoutView(DjangoLogoutView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class GenerateAPITokenView(LoginRequiredMixin, View):
+class GenerateAPITokenView(LoginRequiredMixin, LoginTrackMixin, View):
     def get(self, request, *args, **kwargs):
         if not hasattr(request.user, 'auth_token'):
             Token.objects.create(user=request.user)
         return HttpResponseRedirect(reverse('profile_token'))
 
 
-class RevokeAPITokenView(LoginRequiredMixin, View):
+class RevokeAPITokenView(LoginRequiredMixin, LoginTrackMixin, View):
     def get(self, request, *args, **kwargs):
         if hasattr(request.user, 'auth_token'):
             Token.objects.filter(user=request.user).delete()
@@ -106,11 +116,11 @@ class RegistrationView(BaseRegistrationView):
         login(self.request, new_user)
         user_registered.send(sender=self.__class__, user=new_user, request=self.request)
         profile, _ = Profile.objects.get_or_create(user=new_user)
-        profile.first_signin = True
+        self.request.session['signed_up'] = True
         profile.payment_plan = int(form.cleaned_data['payment_plan'])
         profile.company_name = form.cleaned_data['company']
         profile.phone = form.cleaned_data['phone']
-        profile.save(update_fields=['payment_plan', 'first_signin', 'company_name', 'phone'])
+        profile.save(update_fields=['payment_plan', 'company_name', 'phone'])
         if profile.payment_plan != Profile.PAYMENT_PLAN_FREE:
             messages.add_message(self.request, messages.INFO,
                                  'Congratulations! We won\'t charge you for this plan for now.')
@@ -125,7 +135,7 @@ class RegistrationView(BaseRegistrationView):
         return {'payment_plan': self.request.GET.get('plan')}
 
 
-class WizardCompleteView(LoginRequiredMixin, APIView):
+class WizardCompleteView(LoginRequiredMixin, LoginTrackMixin, APIView):
     def post(self, request, *args, **kwargs):
         request.user.profile.wizard_shown = True
         request.user.profile.save(update_fields=['wizard_shown'])

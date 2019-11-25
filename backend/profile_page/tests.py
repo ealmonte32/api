@@ -132,3 +132,31 @@ class RegistrationViewTest(TestCase):
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user2@gmail.com')
+
+    def test_tracking(self):
+        data = {'email': 'user1@gmail.com', 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',
+                'payment_plan': '2', 'first_name': 'John', 'last_name': 'Doe', 'company': 'Acme Corporation',
+                'phone': '+79100000000'}
+        response = self.client.post(reverse('registration_register'), data, follow=True)
+        self.assertTrue(response.context['signed_up'])
+        self.assertFalse('signed_in' in response.context)
+
+
+class LoginViewTest(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.credentials = {
+            'username': 'testuser',
+            'password': 'secret'}
+        User.objects.create_user(**self.credentials)
+
+    def test_tracking(self):
+        # Login as user: should have signed_in set once
+        response = self.client.post(reverse('auth_login'), self.credentials, follow=True)
+        self.assertFalse('signed_up' in response.context)
+        self.assertTrue(response.context['signed_in'])
+
+        # should have it reset next time
+        response = self.client.get(reverse('profile'))
+        self.assertFalse('signed_up' in response.context)
+        self.assertFalse('signed_in' in response.context)

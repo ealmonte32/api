@@ -11,6 +11,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
 
+from profile_page.mixins import LoginTrackMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey
@@ -19,7 +20,7 @@ from .api_views import DeviceListFilterMixin
 from .recommended_actions import action_classes, FirewallDisabledAction, Action
 
 
-class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
+class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
     model = Device
     template_name = 'root.html'
     context_object_name = 'mirai_devices'  # device list moved to ajax, so only mirai detected devices still here
@@ -52,14 +53,11 @@ class RootView(LoginRequiredMixin, DeviceListFilterMixin, ListView):
 
             # TODO: convert this into a list of dicts for multiple filters
             'filter': self.filter_dict,
-            'first_signin': self.request.user.profile.first_signin
         })
-        self.request.user.profile.first_signin = False
-        self.request.user.profile.save(update_fields=['first_signin'])
         return context
 
 
-class GlobalPoliciesListView(LoginRequiredMixin, ListView):
+class GlobalPoliciesListView(LoginRequiredMixin, LoginTrackMixin, ListView):
     model = GlobalPolicy
     template_name = 'policies.html'
 
@@ -79,7 +77,7 @@ class ConvertPortsInfoMixin:
         return [{'address': d[0], 'protocol': d[1], 'port': d[2], 'ip_version': d[3]} for d in ports]
 
 
-class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMixin):
+class GlobalPolicyCreateView(LoginRequiredMixin, LoginTrackMixin, CreateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
     form_class = GlobalPolicyForm
     template_name = 'create_policy.html'
@@ -115,7 +113,7 @@ class GlobalPolicyCreateView(LoginRequiredMixin, CreateView, ConvertPortsInfoMix
         return super().get(request, *args, **kwargs)
 
 
-class GlobalPolicyEditView(LoginRequiredMixin, UpdateView, ConvertPortsInfoMixin):
+class GlobalPolicyEditView(LoginRequiredMixin, LoginTrackMixin, UpdateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
     form_class = GlobalPolicyForm
     template_name = 'edit_policy.html'
@@ -151,7 +149,7 @@ class GlobalPolicyEditView(LoginRequiredMixin, UpdateView, ConvertPortsInfoMixin
         return self.render_to_response(self.get_context_data())
 
 
-class GlobalPolicyDeleteView(LoginRequiredMixin, DeleteView):
+class GlobalPolicyDeleteView(LoginRequiredMixin, LoginTrackMixin, DeleteView):
     """
     Global policy delete view.
 
@@ -216,7 +214,7 @@ def claim_device_view(request):
     })
 
 
-class DeviceDetailView(LoginRequiredMixin, DetailView):
+class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_overview.html'
 
@@ -253,7 +251,7 @@ class DeviceDetailView(LoginRequiredMixin, DetailView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class DeviceDetailSoftwareView(LoginRequiredMixin, DetailView):
+class DeviceDetailSoftwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_software.html'
 
@@ -274,7 +272,7 @@ class DeviceDetailSoftwareView(LoginRequiredMixin, DetailView):
         return context
 
 
-class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
+class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_security.html'
 
@@ -362,7 +360,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, DetailView):
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
-class DeviceDetailNetworkView(LoginRequiredMixin, DetailView):
+class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_network.html'
 
@@ -383,7 +381,7 @@ class DeviceDetailNetworkView(LoginRequiredMixin, DetailView):
         return context
 
 
-class DeviceDetailHardwareView(LoginRequiredMixin, DetailView):
+class DeviceDetailHardwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_hardware.html'
 
@@ -404,7 +402,7 @@ class DeviceDetailHardwareView(LoginRequiredMixin, DetailView):
         return context
 
 
-class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
+class DeviceDetailMetadataView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_metadata.html'
 
@@ -444,7 +442,7 @@ class DeviceDetailMetadataView(LoginRequiredMixin, DetailView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class CredentialsView(LoginRequiredMixin, TemplateView):
+class CredentialsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'credentials.html'
 
     def get_context_data(self, **kwargs):
@@ -453,11 +451,11 @@ class CredentialsView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class PairingKeysView(LoginRequiredMixin, TemplateView):
+class PairingKeysView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'pairing_keys.html'
 
 
-class PairingKeySaveFileView(LoginRequiredMixin, View):
+class PairingKeySaveFileView(LoginRequiredMixin, LoginTrackMixin, View):
 
     def get(self, request, *args, **kwargs):
         if 'pk' in request.GET:
@@ -476,7 +474,7 @@ class PairingKeySaveFileView(LoginRequiredMixin, View):
         return response
 
 
-class RecommendedActionsView(LoginRequiredMixin, TemplateView):
+class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     """
     Display all available to the user (or to the device) recommended actions.
     Handle 2 different url patterns: one for all user's devices, another of particular device.
