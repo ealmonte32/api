@@ -107,11 +107,9 @@
       });
 
       {% if signed_up %}
-          alert('signed up!');
       mixpanel.alias("{{ user.email }}");
       mixpanel.track("Signed Up");
       {% elif signed_in %}
-          alert('signed in!');
       mixpanel.track("Signed In");
       {% endif %}
       mixpanel.identify("{{ user.email }}");

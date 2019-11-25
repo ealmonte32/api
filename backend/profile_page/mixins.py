@@ -1,11 +1,12 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
-
-
-class LoginTrackMixin(LoginRequiredMixin):
+class LoginTrackMixin:
+    """
+    Set either signed_in or signed_up in context if the user has just signed in or registered.
+    One of those will be set only once which allows on-page JS code to take proper actions like send tracking events.
+    """
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['signed_in'] = self.request.session.get('signed_in')
-        context['signed_up'] = self.request.session.get('signed_up')
-        self.request.session['signed_in'] = False
-        self.request.session['signed_up'] = False
+        for attr in ('signed_in', 'signed_up'):
+            if attr in self.request.session:
+                context[attr] = self.request.session[attr]
+                del self.request.session[attr]
         return context

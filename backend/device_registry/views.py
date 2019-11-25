@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Q
 
@@ -19,7 +20,7 @@ from .api_views import DeviceListFilterMixin
 from .recommended_actions import action_classes, FirewallDisabledAction, Action
 
 
-class RootView(LoginTrackMixin, DeviceListFilterMixin, ListView):
+class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
     model = Device
     template_name = 'root.html'
     context_object_name = 'mirai_devices'  # device list moved to ajax, so only mirai detected devices still here
@@ -56,7 +57,7 @@ class RootView(LoginTrackMixin, DeviceListFilterMixin, ListView):
         return context
 
 
-class GlobalPoliciesListView(LoginTrackMixin, ListView):
+class GlobalPoliciesListView(LoginRequiredMixin, LoginTrackMixin, ListView):
     model = GlobalPolicy
     template_name = 'policies.html'
 
@@ -76,7 +77,7 @@ class ConvertPortsInfoMixin:
         return [{'address': d[0], 'protocol': d[1], 'port': d[2], 'ip_version': d[3]} for d in ports]
 
 
-class GlobalPolicyCreateView(LoginTrackMixin, CreateView, ConvertPortsInfoMixin):
+class GlobalPolicyCreateView(LoginRequiredMixin, LoginTrackMixin, CreateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
     form_class = GlobalPolicyForm
     template_name = 'create_policy.html'
@@ -112,7 +113,7 @@ class GlobalPolicyCreateView(LoginTrackMixin, CreateView, ConvertPortsInfoMixin)
         return super().get(request, *args, **kwargs)
 
 
-class GlobalPolicyEditView(LoginTrackMixin, UpdateView, ConvertPortsInfoMixin):
+class GlobalPolicyEditView(LoginRequiredMixin, LoginTrackMixin, UpdateView, ConvertPortsInfoMixin):
     model = GlobalPolicy
     form_class = GlobalPolicyForm
     template_name = 'edit_policy.html'
@@ -148,7 +149,7 @@ class GlobalPolicyEditView(LoginTrackMixin, UpdateView, ConvertPortsInfoMixin):
         return self.render_to_response(self.get_context_data())
 
 
-class GlobalPolicyDeleteView(LoginTrackMixin, DeleteView):
+class GlobalPolicyDeleteView(LoginRequiredMixin, LoginTrackMixin, DeleteView):
     """
     Global policy delete view.
 
@@ -213,7 +214,7 @@ def claim_device_view(request):
     })
 
 
-class DeviceDetailView(LoginTrackMixin, DetailView):
+class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_overview.html'
 
@@ -250,7 +251,7 @@ class DeviceDetailView(LoginTrackMixin, DetailView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class DeviceDetailSoftwareView(LoginTrackMixin, DetailView):
+class DeviceDetailSoftwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_software.html'
 
@@ -271,7 +272,7 @@ class DeviceDetailSoftwareView(LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailSecurityView(LoginTrackMixin, DetailView):
+class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_security.html'
 
@@ -359,7 +360,7 @@ class DeviceDetailSecurityView(LoginTrackMixin, DetailView):
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
-class DeviceDetailNetworkView(LoginTrackMixin, DetailView):
+class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_network.html'
 
@@ -380,7 +381,7 @@ class DeviceDetailNetworkView(LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailHardwareView(LoginTrackMixin, DetailView):
+class DeviceDetailHardwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_hardware.html'
 
@@ -401,7 +402,7 @@ class DeviceDetailHardwareView(LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailMetadataView(LoginTrackMixin, DetailView):
+class DeviceDetailMetadataView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_metadata.html'
 
@@ -441,7 +442,7 @@ class DeviceDetailMetadataView(LoginTrackMixin, DetailView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class CredentialsView(LoginTrackMixin, TemplateView):
+class CredentialsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'credentials.html'
 
     def get_context_data(self, **kwargs):
@@ -450,11 +451,11 @@ class CredentialsView(LoginTrackMixin, TemplateView):
         return context
 
 
-class PairingKeysView(LoginTrackMixin, TemplateView):
+class PairingKeysView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'pairing_keys.html'
 
 
-class PairingKeySaveFileView(LoginTrackMixin, View):
+class PairingKeySaveFileView(LoginRequiredMixin, LoginTrackMixin, View):
 
     def get(self, request, *args, **kwargs):
         if 'pk' in request.GET:
@@ -473,7 +474,7 @@ class PairingKeySaveFileView(LoginTrackMixin, View):
         return response
 
 
-class RecommendedActionsView(LoginTrackMixin, TemplateView):
+class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     """
     Display all available to the user (or to the device) recommended actions.
     Handle 2 different url patterns: one for all user's devices, another of particular device.

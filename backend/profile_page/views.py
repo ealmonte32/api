@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
-
+from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from registration.views import RegistrationView as BaseRegistrationView
@@ -19,12 +19,12 @@ from registration.signals import user_registered
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import ProfileForm, RegistrationForm
+from .forms import AuthenticationForm, ProfileForm, RegistrationForm
 from .mixins import LoginTrackMixin
 from .models import Profile
 
 
-class ProfileAccountView(LoginTrackMixin, View):
+class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
 
     def dispatch(self, request, *args, **kwargs):
         self.user = request.user
@@ -54,17 +54,16 @@ class ProfileAccountView(LoginTrackMixin, View):
         return render(request, 'profile_account.html', {'form': form})
 
 
-class ProfileAPITokenView(LoginTrackMixin, TemplateView):
+class ProfileAPITokenView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'profile_token.html'
 
 
 class LoginView(DjangoLoginView):
-    @method_decorator(sensitive_post_parameters())
-    @method_decorator(csrf_protect)
-    @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs):
+    form_class = AuthenticationForm
+
+    def form_valid(self, form):
         self.request.session['signed_in'] = True
-        return super().dispatch(request, *args, **kwargs)
+        return super().form_valid(form)
 
 
 class LogoutView(DjangoLogoutView):
@@ -84,14 +83,14 @@ class LogoutView(DjangoLogoutView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class GenerateAPITokenView(LoginTrackMixin, View):
+class GenerateAPITokenView(LoginRequiredMixin, LoginTrackMixin, View):
     def get(self, request, *args, **kwargs):
         if not hasattr(request.user, 'auth_token'):
             Token.objects.create(user=request.user)
         return HttpResponseRedirect(reverse('profile_token'))
 
 
-class RevokeAPITokenView(LoginTrackMixin, View):
+class RevokeAPITokenView(LoginRequiredMixin, LoginTrackMixin, View):
     def get(self, request, *args, **kwargs):
         if hasattr(request.user, 'auth_token'):
             Token.objects.filter(user=request.user).delete()
@@ -136,7 +135,7 @@ class RegistrationView(BaseRegistrationView):
         return {'payment_plan': self.request.GET.get('plan')}
 
 
-class WizardCompleteView(LoginTrackMixin, APIView):
+class WizardCompleteView(LoginRequiredMixin, LoginTrackMixin, APIView):
     def post(self, request, *args, **kwargs):
         request.user.profile.wizard_shown = True
         request.user.profile.save(update_fields=['wizard_shown'])
