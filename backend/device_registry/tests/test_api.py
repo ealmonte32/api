@@ -18,7 +18,7 @@ from rest_framework.authtoken.models import Token
 
 from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
 from device_registry.serializers import DeviceListSerializer
-from device_registry.recommended_actions import action_classes
+from device_registry.recommended_actions import action_classes, DefaultCredentialsAction
 
 from device_registry.models import GlobalPolicy
 
@@ -1301,19 +1301,24 @@ class SnoozeActionViewTest(APITestCase):
 
     def setUp(self):
         self.url = reverse('snooze_action')
+        self.action_class = DefaultCredentialsAction
         User = get_user_model()
         self.user = User.objects.create_user('test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        DeviceInfo.objects.create(device=self.device, default_password=True)
+        PortScan.objects.create(device=self.device)
+        FirewallState.objects.create(device=self.device)
         self.client.login(username='test', password='123')
-        self.action_class = action_classes[0]
 
     def test_post(self):
         self.assertListEqual(self.device.snoozed_actions, [])
+        self.assertEqual(self.device.actions_count, 2)
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
                                                'action_id': self.action_class.action_id})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.device.refresh_from_db()
         self.assertListEqual(self.device.snoozed_actions, [self.action_class.action_id])
+        self.assertEqual(self.device.actions_count, 1)
 
     def test_wrong_action_id(self):
         self.assertListEqual(self.device.snoozed_actions, [])

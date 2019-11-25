@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
@@ -9,6 +8,7 @@ from profile_page.forms import RegistrationForm
 
 class ProfileViewsTest(TestCase):
     def setUp(self):
+        User = get_user_model()
         self.user0 = User.objects.create_user('user@gmail.com')
         self.user0.set_password('123')
         self.user0.save()
@@ -63,9 +63,6 @@ class ProfileViewsTest(TestCase):
 
 
 class RegistrationViewTest(TestCase):
-    def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user('user@gmail.com', 'user@gmail.com')
 
     def test_registration_form_success(self):
         form_data = {'email': 'user1@gmail.com', 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',
@@ -74,7 +71,7 @@ class RegistrationViewTest(TestCase):
         form = RegistrationForm(data=form_data)
         self.assertTrue(form.is_valid())
 
-    def test_registration_form_week_pass(self):
+    def test_registration_form_weak_pass(self):
         form_data = {'email': 'user1@gmail.com', 'password1': '123', 'password2': '123', 'payment_plan': '1',
                      'first_name': 'John', 'last_name': 'Doe', 'company': 'Acme Corporation', 'phone': '+79100000000'}
         form = RegistrationForm(data=form_data)
@@ -84,7 +81,9 @@ class RegistrationViewTest(TestCase):
                           'This password is too common.', 'This password is entirely numeric.']})
 
     def test_registration_form_email_exists(self):
-        form_data = {'email': 'user@gmail.com', 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',
+        User = get_user_model()
+        user = User.objects.create_user('user@gmail.com', 'user@gmail.com')
+        form_data = {'email': user.email, 'password1': 'SomeStrong56_Pass', 'password2': 'SomeStrong56_Pass',
                      'payment_plan': '1', 'first_name': 'John', 'last_name': 'Doe', 'company': 'Acme Corporation',
                      'phone': '+79100000000'}
         form = RegistrationForm(data=form_data)
@@ -103,6 +102,9 @@ class RegistrationViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user1@gmail.com')
         self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
+        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
+                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">0</span></a>',
+                          response.rendered_content)
         # Load the profile page for checking its content.
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
@@ -122,6 +124,9 @@ class RegistrationViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user2@gmail.com')
         self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
+        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
+                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">0</span></a>',
+                          response.rendered_content)
         self.client.logout()
         self.client.login(username='user2@gmail.com', password='SomeStrong56_Pass')
         response = self.client.get(reverse('root'))
