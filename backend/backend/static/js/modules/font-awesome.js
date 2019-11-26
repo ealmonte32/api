@@ -10,6 +10,7 @@ import {faSquare} from '@fortawesome/free-regular-svg-icons/faSquare'
 import {faCheckSquare} from '@fortawesome/free-regular-svg-icons/faCheckSquare'
 import {faCopy} from '@fortawesome/free-solid-svg-icons/faCopy'
 import {faCheck} from '@fortawesome/free-solid-svg-icons/faCheck'
+import {faGithub} from '@fortawesome/free-brands-svg-icons/faGithub'
 import {faQuestionCircle} from '@fortawesome/free-solid-svg-icons/faQuestionCircle'
 import {faExclamationCircle} from '@fortawesome/free-solid-svg-icons/faExclamationCircle'
 import {faEdit} from '@fortawesome/free-solid-svg-icons/faEdit'
@@ -27,6 +28,7 @@ library.add([
     faEdit,
     faExclamationCircle,
     faEye,
+    faGithub,
     faInfoCircle,
     faQuestionCircle,
     faSave,

@@ -26,4 +26,5 @@ IS_DEV = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+DASH_URL = 'http://localhost:8000'
 ALLOWED_HOSTS = ['*']

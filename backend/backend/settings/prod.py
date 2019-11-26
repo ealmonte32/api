@@ -5,6 +5,8 @@ if DEBUG:
         'localhost'
     ]
 
+DASH_URL = 'https://dash.wott.io'
+
 if IS_DASH or DEBUG:
     ALLOWED_HOSTS += [
         'dash.wott.io'

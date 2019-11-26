@@ -46,3 +46,12 @@ class AuthenticationForm(DjangoAuthenticationForm):
 
     def clean_username(self):
         return self.cleaned_data['username'].lower()
+
+
+class GithubForm(forms.Form):
+    repo = forms.ChoiceField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        repo_choices = kwargs.pop('repo_choices')
+        super().__init__(*args, **kwargs)
+        self.fields['repo'].choices = [(None, '')] + repo_choices

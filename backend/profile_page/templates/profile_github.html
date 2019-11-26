@@ -25,13 +25,13 @@
             <a class="list-group-item list-group-item-action" href="{% url 'profile' %}" role="tab">
               Account
             </a>
-            <a class="list-group-item list-group-item-action active" href="{% url 'profile_password' %}" role="tab">
+            <a class="list-group-item list-group-item-action" href="{% url 'profile_password' %}" role="tab">
               Password
             </a>
             <a class="list-group-item list-group-item-action" href="{% url 'profile_token' %}" role="tab">
               API token
             </a>
-            <a class="list-group-item list-group-item-action" href="{% url 'github_integration' %}" role="tab">
+            <a class="list-group-item list-group-item-action active" href="{% url 'github_integration' %}" role="tab">
               Github integration
             </a>
           </div>
@@ -44,16 +44,23 @@
 
             <div class="card">
               <div class="card-header">
-                <h5 class="card-title mb-0">Password</h5>
+                <h5 class="card-title mb-0">Github Repository</h5>
               </div>
               <div class="card-body">
+                {% if github_authorized %}
                 <form method="POST" action="">
                   {% csrf_token %}
                   {% bootstrap_form form %}
                   {% buttons %}
                     <button type="submit" class="btn btn-primary">Save changes</button>
+                    <button type="button" class="btn btn-secondary" onclick="installGithub()">Install App</button>
                   {% endbuttons %}
                 </form>
+                {% elif github_authorized is False %}
+                  <button onclick="authorizeGithub()" class="btn btn-primary">Authorize Github</button>
+                {% else %}
+                  Github Integration is not available.
+                {% endif %}
               </div>
             </div>
           </div>
@@ -61,4 +68,26 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script>
+  function authorizeGithub() {
+    let w = window.open("{{ github_auth_url }}", '_blank', 'location=yes,height=570,width=520,scrollbars=yes,status=yes');
+  }
+
+  let popupCheckInterval = null;
+  function installGithub() {
+    if(popupCheckInterval)
+        return;
+    let w = window.open("{{ github_inst_url }}", '_blank', 'location=yes,status=yes');
+    popupCheckInterval = setInterval(() => {
+        if(w.closed) {
+            clearInterval(popupCheckInterval);
+            location.reload();
+        }
+    }, 100);
+  }
+  </script>
 {% endblock %}

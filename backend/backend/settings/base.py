@@ -260,6 +260,10 @@ CELERY_BEAT_SCHEDULE = {
     'send_packages_to_vulns_update': {
         'task': 'device_registry.tasks.send_packages_to_vulns_update',
         'schedule': crontab(minute='*/3')  # Execute every 3 minutes.
+    },
+    'file_github_issues': {
+        'task': 'device_registry.tasks.file_github_issues',
+        'schedule': crontab(hour='*/6', minute=0)  # Execute every 6 hours.
     }
 }
 
@@ -270,3 +274,11 @@ MIXPANEL_TOKEN = os.getenv('MIXPANEL_TOKEN', '')
 REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
 REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
+
+# The following data can be obtained at https://github.com/settings/apps/wott-bot
+GITHUB_APP_PEM = os.getenv('GITHUB_APP_PEM')  # Base64 encoded Github app private key: `cat key.pem | base64`
+GITHUB_APP_ID = os.getenv('GITHUB_APP_ID')    # Github App ID
+GITHUB_APP_NAME = os.getenv('GITHUB_APP_NAME')  # Github app name (wott-bot)
+GITHUB_APP_CLIENT_ID = os.getenv('GITHUB_APP_CLIENT_ID')  # Github app Client ID
+GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')    # Github App Client Secret
+GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')    # Github App Redirect URL

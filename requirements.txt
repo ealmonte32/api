@@ -1,3 +1,4 @@
+agithub==2.2.2
 asn1crypto==0.24.0
 cachetools==3.1.1
 celery==4.3.0
@@ -36,6 +37,8 @@ gunicorn==19.9.0
 idna==2.8
 itypes==1.1.0
 Jinja2==2.10.1
+jwt==0.6.1
+markdown==3.1.1
 MarkupSafe==1.1.0
 netaddr==0.7.19
 netifaces==0.10.9

@@ -1,25 +1,26 @@
-from django.shortcuts import render
-from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
-from django.contrib.auth import logout
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.debug import sensitive_post_parameters
+from uuid import uuid4
+
+from django.conf import settings
 from django.contrib import messages
-from django.views.generic import View, TemplateView
-from django.http import HttpResponseRedirect
-from django.urls import reverse
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
+from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+from django.views.generic import View, TemplateView
+from registration.signals import user_registered
+from registration.views import RegistrationView as BaseRegistrationView
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from registration.views import RegistrationView as BaseRegistrationView
-from registration.signals import user_registered
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import AuthenticationForm, ProfileForm, RegistrationForm
+from .forms import AuthenticationForm, GithubForm, ProfileForm, RegistrationForm
 from .mixins import LoginTrackMixin
 from .models import Profile
 
@@ -140,3 +141,59 @@ class WizardCompleteView(LoginRequiredMixin, LoginTrackMixin, APIView):
         request.user.profile.wizard_shown = True
         request.user.profile.save(update_fields=['wizard_shown'])
         return Response(status=status.HTTP_200_OK)
+
+
+class GithubIntegrationView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        profile = request.user.profile
+        if None in [settings.GITHUB_APP_ID, settings.GITHUB_APP_PEM, settings.GITHUB_APP_CLIENT_ID,
+                    settings.GITHUB_APP_CLIENT_SECRET, settings.GITHUB_APP_REDIRECT_URL, settings.GITHUB_APP_NAME]:
+            context = {'github_authorized': None}
+        else:
+            repos = profile.github_repos
+            if repos is None:
+                profile.github_random_state = uuid4().hex
+                profile.save(update_fields=['github_random_state'])
+                context = {
+                    'github_authorized': False,
+                    'github_auth_url': f'https://github.com/login/oauth/authorize?'
+                                       f'client_id={settings.GITHUB_APP_CLIENT_ID}&'
+                                       f'redirect_uri={settings.GITHUB_APP_REDIRECT_URL}&'
+                                       f'state={profile.github_random_state}'
+                }
+            else:
+                if profile.github_repo_id not in repos:
+                    profile.github_repo_id = None  # Not saving because this is a GET
+                form = GithubForm({'repo': profile.github_repo_id},
+                                  repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
+                context = {
+                    'form': form,
+                    'github_authorized': True,
+                    'github_inst_url': f'https://github.com/apps/{settings.GITHUB_APP_NAME}/installations/new'
+                }
+        return render(request, 'profile_github.html', context)
+
+    def post(self, request, *args, **kwargs):
+        profile = request.user.profile
+        repos = profile.github_repos
+        form = GithubForm(request.POST,
+                          repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
+        if form.is_valid():
+            repo = form.cleaned_data['repo']
+            repo = int(repo) if repo else None
+            if profile.github_repo_id != repo:
+                profile.github_repo_id = repo
+                profile.github_repo_url = repos[repo]['url'] if repo else ''
+                profile.github_issues = {}
+                profile.save(update_fields=['github_repo_id', 'github_repo_url', 'github_issues'])
+            return HttpResponseRedirect(reverse('github_integration'))
+        return render(request, 'profile_github.html', {'form': form})
+
+
+class GithubCallbackView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        profile = request.user.profile
+        if profile.github_random_state != request.GET.get('state'):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        request.user.profile.fetch_oauth_token(request.GET.get('code'), profile.github_random_state)
+        return render(request, 'github_callback.html')
