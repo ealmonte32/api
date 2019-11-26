@@ -202,6 +202,7 @@ LOGGING = {
 IS_API = socket.gethostname().startswith('api-')
 IS_MTLS_API = socket.gethostname().startswith('mtls-api-')
 IS_DASH = socket.gethostname().startswith('dash-')
+IS_CELERY = socket.gethostname().startswith('celery')
 
 IS_DEV = False
 

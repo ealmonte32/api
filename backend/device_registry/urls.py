@@ -53,7 +53,7 @@ if settings.IS_MTLS_API:
     ]
 
 # Front-end
-if settings.IS_DASH:
+if settings.IS_DASH or settings.IS_CELERY:
     urlpatterns += [
         path('',
              views.RootView.as_view(),
