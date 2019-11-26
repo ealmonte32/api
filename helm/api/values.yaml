@@ -60,8 +60,8 @@ integrations:
   github:
     appId: "46158"
     appName: "wott-bot"
-    clientId: "Iv1.cd23ce3aa54a61ca"
-    redirectUrl: "https://dash.wott.io/user/github-callback/"
+    appClientId: "Iv1.cd23ce3aa54a61ca"
+    appRedirectUrl: "https://dash.wott.io/user/github-callback/"
 
 resources:
   api:

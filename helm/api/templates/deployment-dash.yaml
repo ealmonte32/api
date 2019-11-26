@@ -73,14 +73,14 @@ spec:
             - name: GITHUB_APP_NAME
               value: "{{ .Values.integrations.github.appName }}"
             - name: GITHUB_APP_CLIENT_ID
-              value: "{{ .Values.integrations.github.clientId }}"
+              value: "{{ .Values.integrations.github.appClientId }}"
             - name: GITHUB_APP_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
-                  key: githubClientSecret
+                  key: githubAppClientSecret
             - name: GITHUB_APP_REDIRECT_URL
-              value: "{{ .Values.integrations.github.redirectUrl }}"
+              value: "{{ .Values.integrations.github.appRedirectUrl }}"
           livenessProbe:
             httpGet:
               path: /healthz
