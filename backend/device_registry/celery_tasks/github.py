@@ -38,7 +38,7 @@ def get_token_from_code(code, state):
     github = GitHub(paginate=True, sleep_on_ratelimit=False, api_url='github.com')
     status, body = github.login.oauth.access_token.post(client_id=settings.GITHUB_APP_CLIENT_ID,
                                                    client_secret=settings.GITHUB_APP_CLIENT_SECRET,
-                                                   redirect_uri=settings.GITHUB_APP_REDIR_URL, state=state, code=code,
+                                                   redirect_uri=settings.GITHUB_APP_REDIRECT_URL, state=state, code=code,
                                                    headers={'Accept': 'application/json'})
     if status == 200 and 'access_token' in body:
         return body['access_token']

@@ -147,7 +147,7 @@ class GithubIntegrationView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         profile = request.user.profile
         if None in [settings.GITHUB_APP_ID, settings.GITHUB_APP_PEM, settings.GITHUB_APP_CLIENT_ID,
-                    settings.GITHUB_APP_CLIENT_SECRET, settings.GITHUB_APP_REDIR_URL, settings.GITHUB_APP_NAME]:
+                    settings.GITHUB_APP_CLIENT_SECRET, settings.GITHUB_APP_REDIRECT_URL, settings.GITHUB_APP_NAME]:
             context = {'github_authorized': None}
         else:
             repos = profile.github_repos
@@ -158,7 +158,7 @@ class GithubIntegrationView(LoginRequiredMixin, View):
                     'github_authorized': False,
                     'github_auth_url': f'https://github.com/login/oauth/authorize?'
                                        f'client_id={settings.GITHUB_APP_CLIENT_ID}&'
-                                       f'redirect_uri={settings.GITHUB_APP_REDIR_URL}&'
+                                       f'redirect_uri={settings.GITHUB_APP_REDIRECT_URL}&'
                                        f'state={profile.github_random_state}'
                 }
             else:
