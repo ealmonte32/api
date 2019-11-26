@@ -58,6 +58,24 @@ spec:
                   key: sentryDsn
             - name: REDIS_HOST
               value: {{ .Values.redisHost }}
+            - name: GITHUB_APP_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: githubAppPem
+            - name: GITHUB_APP_ID
+              value: "{{ .Values.integrations.github.appId }}"
+            - name: GITHUB_APP_NAME
+              value: "{{ .Values.integrations.github.appName }}"
+            - name: GITHUB_APP_CLIENT_ID
+              value: "{{ .Values.integrations.github.appClientId }}"
+            - name: GITHUB_APP_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: githubAppClientSecret
+            - name: GITHUB_APP_REDIRECT_URL
+              value: "{{ .Values.integrations.github.appRedirectUrl }}"
           resources:
 {{ toYaml .Values.resources.celery | indent 12 }}
     {{- with .Values.nodeSelector }}
