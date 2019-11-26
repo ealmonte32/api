@@ -1,24 +1,25 @@
 from uuid import uuid4
 
 from django.conf import settings
-from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
-from django.contrib.auth import logout
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
 from django.contrib import messages
-from django.views.generic import View, TemplateView
+from django.contrib.auth import authenticate
+from django.contrib.auth import login
+from django.contrib.auth import logout
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-from django.contrib.auth import authenticate
-from django.contrib.auth import login
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+from django.views.generic import View, TemplateView
+from registration.signals import user_registered
+from registration.views import RegistrationView as BaseRegistrationView
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from device_registry.celery_tasks import github_issues
 from .forms import AuthenticationForm, GithubForm, ProfileForm, RegistrationForm
 from .mixins import LoginTrackMixin
 from .models import Profile
