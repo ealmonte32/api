@@ -110,7 +110,7 @@ def get_access_token(inst_id):
     """
     if not settings.GITHUB_APP_PEM:
         raise GithubError('Github app private key is empty')
-    pem = settings.GITHUB_APP_PEM.decode('unicode-escape')
+    pem = settings.GITHUB_APP_PEM.decode('unicode-escape').encode()
     headers = HEADERS.copy()
     headers['Authorization'] = f"Bearer {create_jwt(settings.GITHUB_APP_ID, pem)}"
     g = GitHub(paginate=True, sleep_on_ratelimit=False)
