@@ -360,6 +360,10 @@
             style:    'os multi+shift',
             selector: 'td:first-child'
         },
+        language: {
+          emptyTable: `Looks like you got no nodes added. Press the <a id="inst-btn-link" href="#" onclick="show_install_msg()">Add Node</a> button to enroll your first
+                       node and get a security audit.`
+        }
       });
       // apply column selection
       $("div.toolbar").html($('#device-list-toolbar-template').html());
@@ -532,7 +536,7 @@
           return s.replace('<!-- text -->', text).replace('&lt;!-- copy --&gt;', copy_text);
       }
 
-      function show_install_msg(a){
+      function show_install_msg(){
         $.ajax({
             url: '/ajax-pairing-keys/add_dev/',
             type: "POST",

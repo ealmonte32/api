@@ -1,16 +1,17 @@
 from django.shortcuts import render
-from django.contrib.auth.views import LogoutView as DjangoLogoutView
+from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
 from django.contrib.auth import logout
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.debug import sensitive_post_parameters
 from django.contrib import messages
 from django.views.generic import View, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
-
+from django.contrib.auth.mixins import LoginRequiredMixin
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from registration.views import RegistrationView as BaseRegistrationView
@@ -18,11 +19,12 @@ from registration.signals import user_registered
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import ProfileForm, RegistrationForm
+from .forms import AuthenticationForm, ProfileForm, RegistrationForm
+from .mixins import LoginTrackMixin
 from .models import Profile
 
 
-class ProfileAccountView(LoginRequiredMixin, View):
+class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
 
     def dispatch(self, request, *args, **kwargs):
         self.user = request.user
@@ -30,6 +32,7 @@ class ProfileAccountView(LoginRequiredMixin, View):
         self.initial_form_data = {'username': self.user.username, 'email': self.user.email,
                                   'first_name': self.user.first_name, 'last_name': self.user.last_name,
                                   'company': self.profile.company_name,
+                                  'phone': self.profile.phone,
                                   'payment_plan': self.profile.get_payment_plan_display()}
         return super().dispatch(request, *args, **kwargs)
 
@@ -44,14 +47,23 @@ class ProfileAccountView(LoginRequiredMixin, View):
             self.user.first_name = form.cleaned_data['first_name']
             self.user.last_name = form.cleaned_data['last_name']
             self.profile.company_name = form.cleaned_data['company']
+            self.profile.phone = form.cleaned_data['phone']
             self.user.save(update_fields=['email', 'first_name', 'last_name'])
-            self.profile.save(update_fields=['company_name'])
+            self.profile.save(update_fields=['company_name', 'phone'])
             return HttpResponseRedirect(reverse('profile'))
         return render(request, 'profile_account.html', {'form': form})
 
 
-class ProfileAPITokenView(LoginRequiredMixin, TemplateView):
+class ProfileAPITokenView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'profile_token.html'
+
+
+class LoginView(DjangoLoginView):
+    form_class = AuthenticationForm
+
+    def form_valid(self, form):
+        self.request.session['signed_in'] = True
+        return super().form_valid(form)
 
 
 class LogoutView(DjangoLogoutView):
@@ -71,14 +83,14 @@ class LogoutView(DjangoLogoutView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class GenerateAPITokenView(LoginRequiredMixin, View):
+class GenerateAPITokenView(LoginRequiredMixin, LoginTrackMixin, View):
     def get(self, request, *args, **kwargs):
         if not hasattr(request.user, 'auth_token'):
             Token.objects.create(user=request.user)
         return HttpResponseRedirect(reverse('profile_token'))
 
 
-class RevokeAPITokenView(LoginRequiredMixin, View):
+class RevokeAPITokenView(LoginRequiredMixin, LoginTrackMixin, View):
     def get(self, request, *args, **kwargs):
         if hasattr(request.user, 'auth_token'):
             Token.objects.filter(user=request.user).delete()
@@ -97,14 +109,18 @@ class RegistrationView(BaseRegistrationView):
         username_field = getattr(new_user, 'USERNAME_FIELD', 'username')
         # Save lowercased email as username.
         setattr(new_user, username_field, form.cleaned_data['email'].lower())
+        new_user.first_name = form.cleaned_data['first_name']
+        new_user.last_name = form.cleaned_data['last_name']
         new_user.save()
         new_user = authenticate(username=getattr(new_user, username_field), password=form.cleaned_data['password1'])
         login(self.request, new_user)
         user_registered.send(sender=self.__class__, user=new_user, request=self.request)
         profile, _ = Profile.objects.get_or_create(user=new_user)
-        profile.first_signin = True
+        self.request.session['signed_up'] = True
         profile.payment_plan = int(form.cleaned_data['payment_plan'])
-        profile.save(update_fields=['payment_plan', 'first_signin'])
+        profile.company_name = form.cleaned_data['company']
+        profile.phone = form.cleaned_data['phone']
+        profile.save(update_fields=['payment_plan', 'company_name', 'phone'])
         if profile.payment_plan != Profile.PAYMENT_PLAN_FREE:
             messages.add_message(self.request, messages.INFO,
                                  'Congratulations! We won\'t charge you for this plan for now.')
@@ -119,7 +135,7 @@ class RegistrationView(BaseRegistrationView):
         return {'payment_plan': self.request.GET.get('plan')}
 
 
-class WizardCompleteView(LoginRequiredMixin, APIView):
+class WizardCompleteView(LoginRequiredMixin, LoginTrackMixin, APIView):
     def post(self, request, *args, **kwargs):
         request.user.profile.wizard_shown = True
         request.user.profile.save(update_fields=['wizard_shown'])

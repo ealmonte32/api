@@ -106,10 +106,19 @@
           mixpanel.reset();
       });
 
-      {% if first_signin %}
+      {% if signed_up %}
       mixpanel.alias("{{ user.email }}");
+      mixpanel.track("Signed Up");
+      {% elif signed_in %}
+      mixpanel.track("Signed In");
       {% endif %}
       mixpanel.identify("{{ user.email }}");
+      mixpanel.people.set({
+          "$first_name": "{{ user.first_name }}",
+          "$last_name": "{{ user.last_name }}",
+          "$email": "{{ user.email }}",
+          "$phone": "{{ user.profile.phone }}"
+      });
     {% endif %}
   </script>
 {% endblock %}
