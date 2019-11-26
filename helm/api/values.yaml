@@ -56,6 +56,13 @@ ingress:
     certmanager.k8s.io/issuer: "letsencrypt-prod"
     certmanager.k8s.io/acme-challenge-type: http01
 
+integrations:
+  github:
+    appId: "46158"
+    appName: "wott-bot"
+    clientId: "Iv1.cd23ce3aa54a61ca"
+    redirectUrl: "https://dash.wott.io/user/github-callback/"
+
 resources:
   api:
     limits:
