@@ -1,6 +1,5 @@
 import logging
 import time
-from base64 import b64decode
 from datetime import timedelta
 
 from django.conf import settings
@@ -32,14 +31,14 @@ def get_token_from_code(code, state):
     :return: access token (string)
     :raises GithubError
     """
-    if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PEM:
+    if not settings.GITHUB_APP_CLIENT_ID or not settings.GITHUB_APP_CLIENT_SECRET:
         raise GithubError('Github credentials not specified')
 
     github = GitHub(paginate=True, sleep_on_ratelimit=False, api_url='github.com')
     status, body = github.login.oauth.access_token.post(client_id=settings.GITHUB_APP_CLIENT_ID,
-                                                   client_secret=settings.GITHUB_APP_CLIENT_SECRET,
-                                                   redirect_uri=settings.GITHUB_APP_REDIRECT_URL, state=state, code=code,
-                                                   headers={'Accept': 'application/json'})
+                                                        client_secret=settings.GITHUB_APP_CLIENT_SECRET,
+                                                        redirect_uri=settings.GITHUB_APP_REDIRECT_URL, state=state,
+                                                        code=code, headers={'Accept': 'application/json'})
     if status == 200 and 'access_token' in body:
         return body['access_token']
     else:
@@ -53,9 +52,6 @@ def list_repos(user_token):
     :return: a dict {id: {owner: ..., name: ..., installation: ..., full_name: ...}}
     :raises GithubError
     """
-    if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PEM:
-        raise GithubError('Github credentials not specified')
-
     github = GitHub(paginate=True, sleep_on_ratelimit=False, token=user_token)
     logger.info('getting installations...')
     status, body = github.user.installations.get(headers=HEADERS)
@@ -112,8 +108,9 @@ def get_access_token(inst_id):
     :return: access token (string)
     :raises GithubError
     """
-    pem = b64decode(settings.GITHUB_APP_PEM)
-
+    if not settings.GITHUB_APP_PEM:
+        raise GithubError('Github app private key is empty')
+    pem = settings.GITHUB_APP_PEM.decode('unicode-escape').encode()
     headers = HEADERS.copy()
     headers['Authorization'] = f"Bearer {create_jwt(settings.GITHUB_APP_ID, pem)}"
     g = GitHub(paginate=True, sleep_on_ratelimit=False)
@@ -232,10 +229,6 @@ def get_device_link(device):
 
 def file_issues():
     from profile_page.models import Profile
-
-    # Replace device link generation function used by BaseAction.get_action_description_context in order to provide
-    # full URLs leading to Dash.
-    device_link = recommended_actions.device_link
 
     day_ago = timezone.now() - timedelta(hours=24)
     counter = 0

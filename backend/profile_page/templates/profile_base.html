@@ -1,0 +1,63 @@
+{% extends "admin_base.html" %}
+
+{% load bootstrap4 %}
+
+{% block title %}WoTT - Dashboard{% endblock title %}
+
+{% block dashboard_title %}
+  <h1 style="margin-bottom: 0">Dashboard</h1>
+{% endblock dashboard_title %}
+
+{% block admin_content %}
+  <div class="container-fluid p-0">
+
+    <h1 class="h3 mb-3">Settings</h1>
+
+    <div class="row">
+      <div class="col-md-3 col-xl-2">
+
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Profile Settings</h5>
+          </div>
+
+          <div class="list-group list-group-flush" role="tablist">
+            <a class="list-group-item list-group-item-action {{ tab_account }}"
+               href="{% url 'profile' %}" role="tab">
+              Account
+            </a>
+            <a class="list-group-item list-group-item-action {{ tab_password }}"
+               href="{% url 'profile_password' %}" role="tab">
+              Password
+            </a>
+            <a class="list-group-item list-group-item-action {{ tab_api_token }}"
+               href="{% url 'profile_token' %}" role="tab">
+              API token
+            </a>
+            <a class="list-group-item list-group-item-action {{ tab_github_integration }}"
+               href="{% url 'github_integration' %}" role="tab">
+              Github integration
+            </a>
+            <a class="list-group-item list-group-item-action {{ tab_slack_integration }}"
+               href="{% url 'slack_integration' %}" role="tab">
+              Slack integration
+            </a>
+            <a class="list-group-item list-group-item-action {{ tab_payment_plan }}"
+               href="{% url 'payment_plan' %}" role="tab">
+              Payment Plan
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-9 col-xl-10">
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="account" role="tabpanel">
+            {% block profile_content %}
+            {% endblock %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

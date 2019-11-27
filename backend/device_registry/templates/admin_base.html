@@ -30,8 +30,14 @@
                     <a class="sidebar-link" id="sidebar-claim-device" href="{% url 'claim-device' %}">Claim Node</a>
                 </li>
                 <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-recommended-actions" href="{% url 'actions' %}">Recommended Actions
-                      <span class="badge badge-pill badge-danger ml-2">{{ user.profile.actions_count }}</span></a>
+                    <a class="sidebar-link" id="sidebar-recommended-actions" href="{% url 'actions' %}">
+                      Recommended Actions
+                      {% with user.profile.actions_count as actions_count %}
+                      {% if actions_count %}
+                        <span class="badge badge-pill badge-danger ml-2">{{ actions_count }}</span>
+                      {% endif %}
+                      {% endwith %}
+                    </a>
                 </li>
             </ul>
         {% endwith %}

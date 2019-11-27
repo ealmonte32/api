@@ -202,6 +202,7 @@ LOGGING = {
 IS_API = socket.gethostname().startswith('api-')
 IS_MTLS_API = socket.gethostname().startswith('mtls-api-')
 IS_DASH = socket.gethostname().startswith('dash-')
+IS_CELERY = socket.gethostname().startswith('celery')
 
 IS_DEV = False
 
@@ -276,7 +277,7 @@ REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
 
 # The following data can be obtained at https://github.com/settings/apps/wott-bot
-GITHUB_APP_PEM = os.getenv('GITHUB_APP_PEM')  # Base64 encoded Github app private key: `cat key.pem | base64`
+GITHUB_APP_PEM = os.getenvb(b'GITHUB_APP_PEM')  # Github app private key, either raw or escape-encoded
 GITHUB_APP_ID = os.getenv('GITHUB_APP_ID')    # Github App ID
 GITHUB_APP_NAME = os.getenv('GITHUB_APP_NAME')  # Github app name (wott-bot)
 GITHUB_APP_CLIENT_ID = os.getenv('GITHUB_APP_CLIENT_ID')  # Github app Client ID

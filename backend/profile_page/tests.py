@@ -103,7 +103,7 @@ class RegistrationViewTest(TestCase):
         self.assertContains(response, 'user1@gmail.com')
         self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
         self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">0</span></a>',
+                          'Recommended Actions</a>',
                           response.rendered_content)
         # Load the profile page for checking its content.
         response = self.client.get(reverse('profile'))
@@ -125,7 +125,7 @@ class RegistrationViewTest(TestCase):
         self.assertContains(response, 'user2@gmail.com')
         self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
         self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">0</span></a>',
+                          'Recommended Actions</a>',
                           response.rendered_content)
         self.client.logout()
         self.client.login(username='user2@gmail.com', password='SomeStrong56_Pass')

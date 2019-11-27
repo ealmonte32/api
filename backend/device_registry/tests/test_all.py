@@ -991,6 +991,16 @@ class RootViewTests(TestCase):
                           'Recommended Actions<span class="badge badge-pill badge-danger ml-2">2</span></a>',
                           response.rendered_content)
 
+    def test_recommended_actions_zero(self):
+        self.client.login(username='test', password='123')
+        self.user.devices.set([])  # no devices => no actions
+        self.assertEqual(self.user.profile.actions_count, 0)
+        response = self.client.get(reverse('root'))
+        self.assertEqual(response.status_code, 200)
+        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
+                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">0</span></a>',
+                          response.rendered_content, count=0)  # check that there is NO badge
+
 
 class SaveDeviceSettingsAsPolicyViewTests(TestCase):
     def setUp(self):
