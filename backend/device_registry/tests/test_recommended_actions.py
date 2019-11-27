@@ -134,15 +134,16 @@ class FirewallDisabledActionTest(BaseActionTest, TestsMixin):
         self.device.firewallstate.save(update_fields=['policy'])
 
 
-class FirewallPolicyActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found permissive firewall policy present on <a href="%s">%s</a>'
-    search_pattern_device_page = 'We found permissive firewall policy present on this node'
-    action_class = FirewallDisabledAction
+class FirewallPolicyActionTest(FirewallDisabledActionTest):
+    def setUp(self):
+        super().setUp()
+        self.policy = GlobalPolicy.objects.create(name='test policy', owner=self.user, policy=GlobalPolicy.POLICY_BLOCK)
+        self.device.firewallstate.global_policy = self.policy
+        self.device.firewallstate.save()
 
     def enable_action(self):
-        policy = GlobalPolicy.objects.create(name='test policy', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
-        self.device.firewallstate.global_policy = policy
-        self.device.firewallstate.save()
+        self.policy.policy = GlobalPolicy.POLICY_ALLOW
+        self.policy.save()
 
 
 class VulnerablePackagesActionTest(BaseActionTest, TestsMixin):
