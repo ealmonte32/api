@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.urls import reverse
 
 import markdown
@@ -151,9 +152,10 @@ class FirewallDisabledAction(ActionMultiDevice):
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
-        from .models import FirewallState
+        from .models import FirewallState, GlobalPolicy
         return super().affected_devices(user, device_pk).exclude(
-            firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)
+            (Q(firewallstate__global_policy__isnull=True) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
+            Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
 
 
 action_classes.append(FirewallDisabledAction)
