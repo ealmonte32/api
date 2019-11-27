@@ -39,7 +39,7 @@ class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
 
     def get(self, request, *args, **kwargs):
         form = ProfileForm(initial=self.initial_form_data)
-        return render(request, 'profile_account.html', {'form': form})
+        return render(request, 'profile_account.html', {'form': form, 'tab_account': 'active'})
 
     def post(self, request, *args, **kwargs):
         form = ProfileForm(request.POST, initial=self.initial_form_data)
@@ -52,11 +52,12 @@ class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
             self.user.save(update_fields=['email', 'first_name', 'last_name'])
             self.profile.save(update_fields=['company_name', 'phone'])
             return HttpResponseRedirect(reverse('profile'))
-        return render(request, 'profile_account.html', {'form': form})
+        return render(request, 'profile_account.html', {'form': form, 'tab_account': 'active'})
 
 
 class ProfileAPITokenView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'profile_token.html'
+    extra_context = {'tab_api_token': 'active'}
 
 
 class LoginView(DjangoLoginView):
@@ -171,6 +172,7 @@ class GithubIntegrationView(LoginRequiredMixin, View):
                     'github_authorized': True,
                     'github_inst_url': f'https://github.com/apps/{settings.GITHUB_APP_NAME}/installations/new'
                 }
+        context['tab_github_integration'] = 'active'
         return render(request, 'profile_github.html', context)
 
     def post(self, request, *args, **kwargs):
@@ -187,7 +189,17 @@ class GithubIntegrationView(LoginRequiredMixin, View):
                 profile.github_issues = {}
                 profile.save(update_fields=['github_repo_id', 'github_repo_url', 'github_issues'])
             return HttpResponseRedirect(reverse('github_integration'))
-        return render(request, 'profile_github.html', {'form': form})
+        return render(request, 'profile_github.html', {'form': form, 'tab_github_integration': 'active'})
+
+
+class SlackIntegrationView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
+    template_name = 'coming_soon.html'
+    extra_context = {'tab_slack_integration': 'active', 'header': 'Slack Integration'}
+
+
+class PaymentPlanView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
+    template_name = 'coming_soon.html'
+    extra_context = {'tab_payment_plan': 'active', 'header': 'Payment Plan'}
 
 
 class GithubCallbackView(LoginRequiredMixin, View):
