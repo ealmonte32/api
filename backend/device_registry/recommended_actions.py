@@ -154,7 +154,7 @@ class FirewallDisabledAction(ActionMultiDevice):
     def affected_devices(cls, user, device_pk=None):
         from .models import FirewallState, GlobalPolicy
         return super().affected_devices(user, device_pk).exclude(
-            (Q(firewallstate__global_policy__isnull=True) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
+            (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
             Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
 
 
