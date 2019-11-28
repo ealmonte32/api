@@ -2,7 +2,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability
+from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, GlobalPolicy
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction,\
                                                 VulnerablePackagesAction, MySQLDefaultRootPasswordAction,\
                                                 InsecureServicesAction, OpensshConfigurationIssuesAction,\
@@ -132,6 +132,18 @@ class FirewallDisabledActionTest(BaseActionTest, TestsMixin):
     def enable_action(self):
         self.device.firewallstate.policy = FirewallState.POLICY_ENABLED_ALLOW
         self.device.firewallstate.save(update_fields=['policy'])
+
+
+class FirewallPolicyActionTest(FirewallDisabledActionTest):
+    def setUp(self):
+        super().setUp()
+        self.policy = GlobalPolicy.objects.create(name='test policy', owner=self.user, policy=GlobalPolicy.POLICY_BLOCK)
+        self.device.firewallstate.global_policy = self.policy
+        self.device.firewallstate.save()
+
+    def enable_action(self):
+        self.policy.policy = GlobalPolicy.POLICY_ALLOW
+        self.policy.save()
 
 
 class VulnerablePackagesActionTest(BaseActionTest, TestsMixin):
