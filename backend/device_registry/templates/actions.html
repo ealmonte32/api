@@ -11,11 +11,15 @@
     <div class="mb-3 mt-3 w-100" id="alert-container">
       {% for action in actions %}
         <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
+          <div class="close">
+            <span class="badge badge-{{ action.severity.1 }} font-weight-lighter" style="font-size: small">
+              Severity: {{ action.severity.0 }}
+            </span>
+          </div>
           {% ifnotequal action.snoozing_info.0 0 %}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"
-                    onclick="snoozeAction('{{ action.snoozing_info.0 }}', {{ action.snoozing_info.1 }})">
-              <span aria-hidden="true">×</span>
-            </button>
+{#            <button type="button" class="close" data-dismiss="alert" aria-label="Close"#}
+{#                    onclick="snoozeAction('{{ action.snoozing_info.0 }}', {{ action.snoozing_info.1 }})">#}
+{#            </button>#}
           {% endifnotequal %}
           <div class="alert-message">
             <h3 class="alert-heading">
@@ -25,6 +29,12 @@
               {% endif %}
             </h3>
             <p>{{ action.description|safe }}</p>
+
+            <span><a class="mb-0" href="#">Learn More</a></span>
+
+            <button type="button" class="btn btn-success float-right mr-1" style="font-size: small">Resolve</button>
+            <button type="button" class="btn btn-danger float-right mr-1" style="font-size: small">Ignore</button>
+            <button type="button" class="btn btn-secondary float-right mr-1" style="font-size: small">Snooze</button>
           </div>
         </div>
       {% endfor %}

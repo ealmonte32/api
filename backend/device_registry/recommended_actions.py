@@ -11,8 +11,13 @@ class Action:
     It's only purpose is to store particular actions info and be passed from a
      view to a template.
     """
+    severities = {
+        'low': ('Low', 'secondary'),
+        'medium': ('Medium', 'warning'),
+        'high': ('High', 'danger')
+    }
 
-    def __init__(self, title, description, snoozing_info, issue_url=None):
+    def __init__(self, title, description, snoozing_info, severity, issue_url=None):
         """
         Args:
             title: Actions title.
@@ -24,6 +29,7 @@ class Action:
         self.description = markdown.markdown(description)
         self.snoozing_info = snoozing_info
         self.issue_url = issue_url
+        self.severity = self.severities[severity]
 
 
 def device_link(device):
@@ -45,6 +51,7 @@ class BaseAction:
     It's a parent for all specific base action classes.
     Contains the code supposed to fit *all* actions.
     """
+    severity = 'low'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -80,7 +87,8 @@ class BaseAction:
             cls.action_title,
             cls.action_description.format(**context),
             [cls.action_id, devices_list],
-            issue_url
+            cls.severity,
+            issue_url=issue_url
         )
 
 
@@ -149,6 +157,7 @@ class FirewallDisabledAction(ActionMultiDevice):
     action_title = 'Permissive firewall policy detected'
     action_description = \
         'We found permissive firewall policy present on {devices}. Please consider change it to more restrictive one.'
+    severity = 'medium'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -172,6 +181,7 @@ class VulnerablePackagesAction(ActionMultiDevice):
         'Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.\n\n' \
         'Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system ' \
         'vendor.'
+    severity = 'low'
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
@@ -217,6 +227,7 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
     action_description = \
         'We found insecure configuration issues with OpenSSH on {devices}. To improve the security posture of your ' \
         'node, please consider making the following changes:\n\n{changes}'
+    severity = 'high'
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
