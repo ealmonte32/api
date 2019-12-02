@@ -119,7 +119,7 @@ class Device(models.Model):
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
     mysql_root_access = models.BooleanField(null=True, blank=True)
-    snoozed_actions = JSONField(blank=True, default=list)
+    snoozed_actions = JSONField(blank=True, default=dict)
 
     @property
     def eol_info(self):
@@ -135,9 +135,15 @@ class Device(models.Model):
                 eol_info_dict['passed'] = distro.end_of_life <= timezone.now().date()
         return eol_info_dict
 
-    def snooze_action(self, action_id):
-        if action_id not in self.snoozed_actions:
-            self.snoozed_actions.append(action_id)
+    def snooze_action(self, action_id, duration):
+        if isinstance(self.snoozed_actions, list):
+            self.snoozed_actions = {}
+        action_id = str(action_id)
+        if True: #action_id not in self.snoozed_actions:
+            if duration is None or duration == 0:
+                self.snoozed_actions[action_id] = duration
+            elif duration > 0:
+                self.snoozed_actions[action_id] = (timezone.now() + datetime.timedelta(hours=duration)).isoformat()
             self.save(update_fields=['snoozed_actions'])
 
     KERNEL_CPU_CVES = [

@@ -26,23 +26,23 @@
             <p>{{ action.description|safe }}</p>
 
             <span><a class="mb-0" href="#">Learn More</a></span>
-            {% ifnotequal action.snoozing_info.0 0 %}
+{#            {% ifnotequal action.snoozing_info.0 0 %}#}
             {% with action_id=action.snoozing_info.0 action_devices=action.snoozing_info.1 %}
             <div class="btn-group float-right wott-alert-btn-group">
               <button type="button" class="btn btn-success mr-1" data-dismiss="alert"
-                      onclick="snoozeAction('{{ action_id }}', '{{ action_devices }}', null)">Resolve</button>
+                      onclick="snoozeAction({{ action_id }}, {{ action_devices }}, null)">Resolve</button>
               <button type="button" class="btn btn-danger mr-1" data-dismiss="alert"
-                      onclick="snoozeAction('{{ action_id }}', '{{ action_devices }}', 0)">Ignore</button>
+                      onclick="snoozeAction({{ action_id }}, {{ action_devices }}, 0)">Ignore</button>
               <button type="button" class="btn btn-secondary mr-1 dropdown-toggle" data-toggle="dropdown">Snooze</button>
               <div class="dropdown-menu">
                 <a class="dropdown-item" href="#" data-dismiss="alert"
-                   onclick="snoozeAction('{{ action_id }}', '{{ action_devices }}', 24)">24 hours</a>
+                   onclick="snoozeAction({{ action_id }}, {{ action_devices }}, 24)">24 hours</a>
                 <a class="dropdown-item" href="#" data-dismiss="alert"
-                   onclick="snoozeAction('{{ action_id }}', '{{ action_devices }}', 24*7)">7 days</a>
+                   onclick="snoozeAction({{ action_id }}, {{ action_devices }}, 24*7)">7 days</a>
               </div>
             </div>
             {% endwith %}
-            {% endifnotequal %}
+{#            {% endifnotequal %}#}
           </div>
         </div>
       {% endfor %}

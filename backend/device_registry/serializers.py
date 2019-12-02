@@ -234,6 +234,7 @@ class DeviceListSerializer(serializers.ModelSerializer):
 class SnoozeActionSerializer(serializers.Serializer):
     device_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
     action_id = serializers.IntegerField()
+    duration = serializers.IntegerField(allow_null=True)
 
     def validate_action_id(self, value):
         if value not in [action_class.action_id for action_class in action_classes]:

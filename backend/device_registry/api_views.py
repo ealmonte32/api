@@ -1021,5 +1021,7 @@ class SnoozeActionView(APIView):
         serializer.is_valid(raise_exception=True)
         devices = request.user.devices.filter(pk__in=serializer.validated_data['device_ids'])
         for dev in devices:
-            dev.snooze_action(serializer.validated_data['action_id'])
+            action_id = serializer.validated_data['action_id']
+            duration = serializer.validated_data['duration']
+            dev.snooze_action(action_id, duration)
         return Response(status=status.HTTP_200_OK)

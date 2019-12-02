@@ -91,6 +91,10 @@ class BaseAction:
             issue_url=issue_url
         )
 
+    @classmethod
+    def _filter_snoozed(cls, actions, user):
+        pass
+
 
 class ActionMultiDevice(BaseAction):
     """
@@ -105,7 +109,7 @@ class ActionMultiDevice(BaseAction):
             context = cls.get_action_description_context(devices_qs=devices, device_pk=device_pk)
             context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
             actions_list.append(cls._create_action(user.profile, context, list(devices.values_list('pk', flat=True))))
-        return actions_list
+        return cls._filter_snoozed(actions_list)
 
     @classmethod
     def action_blocks_count(cls, user):
@@ -125,7 +129,7 @@ class ActionPerDevice(BaseAction):
             context = cls.get_action_description_context(device=dev, device_pk=device_pk)
             context['devices'] = device_link(dev) if device_pk is None else 'this node'
             actions_list.append(cls._create_action(user.profile, context, [dev.pk]))
-        return actions_list
+        return cls._filter_snoozed(actions_list)
 
     @classmethod
     def action_blocks_count(cls, user):
