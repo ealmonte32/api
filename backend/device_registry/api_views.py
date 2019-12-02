@@ -34,7 +34,8 @@ from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from device_registry.serializers import SnoozeActionSerializer
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage, \
+    RecommendedAction
 
 logger = logging.getLogger(__name__)
 
@@ -1023,5 +1024,11 @@ class SnoozeActionView(APIView):
         for dev in devices:
             action_id = serializer.validated_data['action_id']
             duration = serializer.validated_data['duration']
-            dev.snooze_action(action_id, duration)
+            if duration is None:
+                snoozed = RecommendedAction.Snooze.UNTIL_PING
+            elif duration == 0:
+                snoozed = RecommendedAction.Snooze.FOREVER
+            else:
+                snoozed = RecommendedAction.Snooze.UNTIL_TIME
+            dev.snooze_action(action_id, snoozed, duration)
         return Response(status=status.HTTP_200_OK)

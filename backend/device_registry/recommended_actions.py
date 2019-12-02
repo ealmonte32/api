@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.urls import reverse
 
 import markdown
+from django.utils import timezone
 
 
 class Action:
@@ -55,7 +56,12 @@ class BaseAction:
 
     @classmethod
     def affected_devices(cls, user, device_pk=None):
-        devices = user.devices.exclude(snoozed_actions__contains=cls.action_id)
+        from .models import RecommendedAction
+        devices = user.devices.exclude(Q(recommendedaction__action_id=cls.action_id) &
+                                       (Q(recommendedaction__snoozed__in=[RecommendedAction.Snooze.FOREVER,
+                                                                          RecommendedAction.Snooze.UNTIL_PING]) |
+                                        Q(recommendedaction__snoozed=RecommendedAction.Snooze.UNTIL_TIME,
+                                          recommendedaction__snoozed_until__gte=timezone.now())))
         if device_pk is not None:
             devices = devices.filter(pk=device_pk)
         return devices
