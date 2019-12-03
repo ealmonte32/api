@@ -18,18 +18,23 @@ class Action:
         'high': ('High', 'danger')
     }
 
-    def __init__(self, title, description, action_id, devices, severity, issue_url=None):
+    def __init__(self, title, description, action_id, devices, severity, doc_url="/", issue_url=None):
         """
-        Args:
-            title: Actions title.
-            description: Action description.
-            snoozing_info: a 2-elements list with an action id as a 1st element
-             and the list of affected device ids as a 2nd element.
+
+        :param title: Title text
+        :param description: Body text
+        :param action_id: the value of action_id field of BaseAction subclasses
+        :param devices: list of device ids
+        :param severity: one of 'low', 'medium', 'high'
+        :param doc_url: "Learn more" URL
+        :param issue_url: Github issue URL, optional
         """
         self.title = title
         self.description = markdown.markdown(description)
-        self.snoozing_info = (action_id, devices)
+        self.action_id = action_id
+        self.devices = devices
         self.issue_url = issue_url
+        self.doc_url = doc_url
         self.severity = self.severities[severity]
 
 
@@ -53,15 +58,19 @@ class BaseAction:
     Contains the code supposed to fit *all* actions.
     """
     severity = 'low'
+    doc_url = 'https://wott.io/documentation/faq'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import RecommendedAction
-        devices = user.devices.exclude(Q(recommendedaction__action_id=cls.action_id) &
-                                       (Q(recommendedaction__snoozed__in=[RecommendedAction.Snooze.FOREVER,
-                                                                          RecommendedAction.Snooze.UNTIL_PING]) |
-                                        Q(recommendedaction__snoozed=RecommendedAction.Snooze.UNTIL_TIME,
-                                          recommendedaction__snoozed_until__gte=timezone.now())))
+        if exclude_snoozed:
+            devices = user.devices.exclude(Q(recommendedaction__action_id=cls.action_id) &
+                                           (Q(recommendedaction__snoozed__in=[RecommendedAction.Snooze.FOREVER,
+                                                                              RecommendedAction.Snooze.UNTIL_PING]) |
+                                            Q(recommendedaction__snoozed=RecommendedAction.Snooze.UNTIL_TIME,
+                                              recommendedaction__snoozed_until__gte=timezone.now())))
+        else:
+            devices = user.devices.all()
         if device_pk is not None:
             devices = devices.filter(pk=device_pk)
         return devices
@@ -94,7 +103,8 @@ class BaseAction:
             cls.action_description.format(**context),
             cls.action_id, devices_list,
             cls.severity,
-            issue_url=issue_url
+            issue_url=issue_url,
+            doc_url=cls.doc_url
         )
 
 

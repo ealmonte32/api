@@ -25,20 +25,17 @@
             </h3>
             <p>{{ action.description|safe }}</p>
 
-            <span><a class="mb-0" href="#">Learn More</a></span>
+            <span><a class="mb-0" href="{{ action.doc_url }}">Learn More</a></span>
             {% ifnotequal action.action_id 0 %}
             {% with action_id=action.action_id action_devices=action.devices %}
-            <div class="btn-group float-right wott-alert-btn-group">
-              <button type="button" class="btn btn-success mr-1" data-dismiss="alert"
-                      onclick="snoozeAction({{ action_id }}, {{ action_devices }}, null)">Resolve</button>
-              <button type="button" class="btn btn-danger mr-1" data-dismiss="alert"
-                      onclick="snoozeAction({{ action_id }}, {{ action_devices }}, 0)">Ignore</button>
+            <div class="btn-group float-right wott-alert-btn-group"
+                 wott-action wott-action-id="{{ action_id }}" wott-action-devices="{{ action_devices }}" wott-action-title="{{ action.title }}">
+              <button type="button" class="btn btn-success mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="null">Resolve</button>
+              <button type="button" class="btn btn-danger mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="0">Ignore</button>
               <button type="button" class="btn btn-secondary mr-1 dropdown-toggle" data-toggle="dropdown">Snooze</button>
               <div class="dropdown-menu">
-                <a class="dropdown-item" href="#" data-dismiss="alert"
-                   onclick="snoozeAction({{ action_id }}, {{ action_devices }}, 24)">24 hours</a>
-                <a class="dropdown-item" href="#" data-dismiss="alert"
-                   onclick="snoozeAction({{ action_id }}, {{ action_devices }}, 24*7)">7 days</a>
+                <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24">24 hours</a>
+                <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24*7">7 days</a>
               </div>
             </div>
             {% endwith %}
@@ -93,6 +90,27 @@
           dataType: "json"
       });
     }
+
+    $(() => {
+        $('[wott-snooze]').click((e) => {
+            let button = $(e.target), parent = button.closest('[wott-action]');
+            let id = eval(parent.attr('wott-action-id')),
+                devices = eval(parent.attr('wott-action-devices')),
+                duration = eval(button.attr('wott-snooze-duration')),
+                snooze_type = duration? "Snooze":  button.text(),
+                title = parent.attr('wott-action-title');
+            console.log(id, devices, duration, snooze_type, title);
+            snoozeAction(id, devices, duration);
+          {% if MIXPANEL_TOKEN %}
+            mixpanel.track("Snooze", {
+                type: snooze_type,
+                recommended_action: title,
+                duration: (duration? duration: null),
+                // TODO: affected service
+            });
+          {% endif %}
+        })
+    })
   </script>
   <script>
     // Listen to mutations to the DOM. If there are no alerts then show a message.
