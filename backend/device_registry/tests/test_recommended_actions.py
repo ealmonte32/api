@@ -108,7 +108,7 @@ class SnoozeTest(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        super().setUpClass()
+        super().tearDownClass()
         recommended_actions.action_classes.remove(cls.TestAction)
 
     def setUp(self):

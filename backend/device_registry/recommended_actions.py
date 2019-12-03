@@ -160,8 +160,8 @@ class DefaultCredentialsAction(ActionMultiDevice):
         'We found default credentials present on {devices}. Please consider changing them as soon as possible.'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
-        return super().affected_devices(user, device_pk).filter(deviceinfo__default_password=True)
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+        return super().affected_devices(user, device_pk, exclude_snoozed).filter(deviceinfo__default_password=True)
 
 
 action_classes.append(DefaultCredentialsAction)
@@ -176,9 +176,9 @@ class FirewallDisabledAction(ActionMultiDevice):
     severity = 'medium'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import FirewallState, GlobalPolicy
-        return super().affected_devices(user, device_pk).exclude(
+        return super().affected_devices(user, device_pk, exclude_snoozed).exclude(
             (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
             Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
 
@@ -200,8 +200,8 @@ class VulnerablePackagesAction(ActionMultiDevice):
     severity = 'low'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
-        return super().affected_devices(user, device_pk).filter(deb_packages__vulnerabilities__isnull=False).distinct()
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+        return super().affected_devices(user, device_pk, exclude_snoozed).filter(deb_packages__vulnerabilities__isnull=False).distinct()
 
 
 action_classes.append(VulnerablePackagesAction)
@@ -227,9 +227,9 @@ class InsecureServicesAction(ActionPerDevice):
         return {'services': services_str}
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import Device
-        return super().affected_devices(user, device_pk).exclude(deb_packages_hash='').filter(
+        return super().affected_devices(user, device_pk, exclude_snoozed).exclude(deb_packages_hash='').filter(
             deb_packages__name__in=Device.INSECURE_SERVICES).distinct()
 
 
@@ -264,10 +264,10 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
         return {'changes': recommendations}
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import Device
         dev_ids = []
-        devices = super().affected_devices(user, device_pk).exclude(audit_files__in=('', []))
+        devices = super().affected_devices(user, device_pk, exclude_snoozed).exclude(audit_files__in=('', []))
         for dev in devices:
             if dev.sshd_issues:
                 dev_ids.append(dev.pk)
@@ -315,8 +315,8 @@ class AutoUpdatesAction(ActionMultiDevice):
         }
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
-        return super().affected_devices(user, device_pk).filter(auto_upgrades=False)
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+        return super().affected_devices(user, device_pk, exclude_snoozed).filter(auto_upgrades=False)
 
 
 action_classes.append(AutoUpdatesAction)
@@ -332,10 +332,10 @@ class FtpServerAction(ActionPerDevice):
         '[SFTP](https://www.ssh.com/ssh/sftp).'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import Device
         dev_ids = []
-        for dev in super().affected_devices(user, device_pk):
+        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
             if dev.is_ftp_public:
                 dev_ids.append(dev.pk)
         return Device.objects.filter(pk__in=dev_ids)
@@ -353,10 +353,10 @@ class MongodbAction(ActionPerDevice):
         '27017 through the WoTT firewall management tool, or re-configure MongoDB to only listen on localhost.'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import Device
         dev_ids = []
-        for dev in super().affected_devices(user, device_pk):
+        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
             if 'mongod' in dev.public_services:
                 dev_ids.append(dev.pk)
         return Device.objects.filter(pk__in=dev_ids)
@@ -374,10 +374,10 @@ class MysqlAction(ActionPerDevice):
         '3306 through the WoTT firewall management tool, or re-configure MySQL to only listen on localhost.'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import Device
         dev_ids = []
-        for dev in super().affected_devices(user, device_pk):
+        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
             if 'mysqld' in dev.public_services:
                 dev_ids.append(dev.pk)
         return Device.objects.filter(pk__in=dev_ids)
@@ -400,8 +400,8 @@ class MySQLDefaultRootPasswordAction(ActionPerDevice):
         'being stored in your shell\'s history.'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
-        return super().affected_devices(user, device_pk).filter(mysql_root_access=True)
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+        return super().affected_devices(user, device_pk, exclude_snoozed).filter(mysql_root_access=True)
 
 
 action_classes.append(MySQLDefaultRootPasswordAction)
@@ -416,10 +416,10 @@ class MemcachedAction(ActionPerDevice):
         'port 11211 through the WoTT firewall management tool, or re-configure Memcached to only listen on localhost.'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import Device
         dev_ids = []
-        for dev in super().affected_devices(user, device_pk):
+        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
             if 'memcached' in dev.public_services:
                 dev_ids.append(dev.pk)
         return Device.objects.filter(pk__in=dev_ids)
@@ -436,10 +436,10 @@ class CpuVulnerableAction(ActionPerDevice):
         '[here](https://meltdownattack.com/). To fix the issue, please run `apt-get update && apt-get upgrade`'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import Device
         return Device.objects.filter(pk__in=[
-            dev.pk for dev in super().affected_devices(user, device_pk) if dev.cpu_vulnerable
+            dev.pk for dev in super().affected_devices(user, device_pk, exclude_snoozed) if dev.cpu_vulnerable
         ])
 
 
