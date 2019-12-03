@@ -106,7 +106,8 @@ class MtlsPingView(APIView):
         device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
-        device.snoozed_actions = []  # Cleanup snoozed actions list.
+        device.recommendedaction_set.filter(snoozed=RecommendedAction.Snooze.UNTIL_PING)\
+            .update(snoozed=RecommendedAction.Snooze.NOT_SNOOZED)
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = data.get('device_operating_system_version')
@@ -148,7 +149,7 @@ class MtlsPingView(APIView):
 
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
-                                   'update_trust_score', 'os_release', 'auto_upgrades', 'snoozed_actions',
+                                   'update_trust_score', 'os_release', 'auto_upgrades',
                                    'mysql_root_access', 'cpu', 'kernel_deb_package'])
 
         if datastore_client:

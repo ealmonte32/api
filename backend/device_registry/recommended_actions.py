@@ -18,7 +18,7 @@ class Action:
         'high': ('High', 'danger')
     }
 
-    def __init__(self, title, description, snoozing_info, severity, issue_url=None):
+    def __init__(self, title, description, action_id, devices, severity, issue_url=None):
         """
         Args:
             title: Actions title.
@@ -28,7 +28,7 @@ class Action:
         """
         self.title = title
         self.description = markdown.markdown(description)
-        self.snoozing_info = snoozing_info
+        self.snoozing_info = (action_id, devices)
         self.issue_url = issue_url
         self.severity = self.severities[severity]
 
@@ -92,14 +92,10 @@ class BaseAction:
         return Action(
             cls.action_title,
             cls.action_description.format(**context),
-            [cls.action_id, devices_list],
+            cls.action_id, devices_list,
             cls.severity,
             issue_url=issue_url
         )
-
-    @classmethod
-    def _filter_snoozed(cls, actions, user):
-        pass
 
 
 class ActionMultiDevice(BaseAction):
@@ -115,7 +111,7 @@ class ActionMultiDevice(BaseAction):
             context = cls.get_action_description_context(devices_qs=devices, device_pk=device_pk)
             context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
             actions_list.append(cls._create_action(user.profile, context, list(devices.values_list('pk', flat=True))))
-        return cls._filter_snoozed(actions_list)
+        return actions_list
 
     @classmethod
     def action_blocks_count(cls, user):
@@ -135,7 +131,7 @@ class ActionPerDevice(BaseAction):
             context = cls.get_action_description_context(device=dev, device_pk=device_pk)
             context['devices'] = device_link(dev) if device_pk is None else 'this node'
             actions_list.append(cls._create_action(user.profile, context, [dev.pk]))
-        return cls._filter_snoozed(actions_list)
+        return actions_list
 
     @classmethod
     def action_blocks_count(cls, user):

@@ -2,7 +2,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, GlobalPolicy
+from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
+    GlobalPolicy, RecommendedAction
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction,\
                                                 VulnerablePackagesAction, MySQLDefaultRootPasswordAction,\
                                                 InsecureServicesAction, OpensshConfigurationIssuesAction,\
@@ -111,7 +112,7 @@ class BaseActionTest(TestCase):
         return self.search_pattern_common_page % (self.device_page_url, self.device.get_name())
 
     def snooze_action(self):
-        self.device.snooze_action(self.action_class.action_id)
+        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.FOREVER)
 
 
 class DefaultCredentialsActionTest(BaseActionTest, TestsMixin):

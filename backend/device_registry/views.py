@@ -14,7 +14,8 @@ from django.db.models import Q
 from profile_page.mixins import LoginTrackMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
-from .models import Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey
+from .models import Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
+    RecommendedAction
 from .models import GlobalPolicy
 from .api_views import DeviceListFilterMixin
 from .recommended_actions import action_classes, FirewallDisabledAction, Action
@@ -333,17 +334,13 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 portscan.block_ports = out_data
                 firewallstate.policy = form.cleaned_data['policy']
                 # Stop snoozing 'Permissive firewall policy detected' recommended action.
-                if int(firewallstate.policy) == FirewallState.POLICY_ENABLED_BLOCK and \
-                        FirewallDisabledAction.action_id in self.object.snoozed_actions:
-                    self.object.snoozed_actions.remove(FirewallDisabledAction.action_id)
-                    updated_fields = ['update_trust_score', 'snoozed_actions']
-                else:
-                    updated_fields = ['update_trust_score']
+                if int(firewallstate.policy) == FirewallState.POLICY_ENABLED_BLOCK:
+                    self.object.snooze_action(FirewallDisabledAction.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
                     firewallstate.save(update_fields=['policy'])
                     self.object.update_trust_score = True
-                    self.object.save(update_fields=updated_fields)
+                    self.object.save(update_fields=['update_trust_score'])
 
         elif 'is_connections_form' in request.POST:
             if firewallstate and firewallstate.global_policy:
@@ -500,7 +497,9 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 'Enroll your node(s) to unlock this feature',
                 'In order to receive recommended actions, click "Add Node" under "Dashboard" to receive instructions '
                 'on how to enroll your nodes.',
-                [0, []]
+                action_id=0,
+                devices=[],
+                severity='low'
             )
             actions.append(action)
 

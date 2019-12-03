@@ -4,6 +4,7 @@ from unittest.mock import patch, mock_open
 import json
 import datetime
 
+from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -16,7 +17,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
-from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey
+from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey, \
+    RecommendedAction
 from device_registry.serializers import DeviceListSerializer
 from device_registry.recommended_actions import action_classes, DefaultCredentialsAction
 
@@ -1309,33 +1311,39 @@ class SnoozeActionViewTest(APITestCase):
         PortScan.objects.create(device=self.device)
         FirewallState.objects.create(device=self.device)
         self.client.login(username='test', password='123')
+        self.recommended_actions_query = Q(snoozed=RecommendedAction.Snooze.UNTIL_PING)
 
     def test_post(self):
-        self.assertListEqual(self.device.snoozed_actions, [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
         self.assertEqual(self.device.actions_count, 2)
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
-                                               'action_id': self.action_class.action_id})
+                                               'action_id': self.action_class.action_id,
+                                               'duration': None})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.device.refresh_from_db()
-        self.assertListEqual(self.device.snoozed_actions, [self.action_class.action_id])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query)
+                             .values_list('action_id', flat=True), [str(self.action_class.action_id)])
         self.assertEqual(self.device.actions_count, 1)
 
     def test_wrong_action_id(self):
-        self.assertListEqual(self.device.snoozed_actions, [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
         action_id = max([action_class.action_id for action_class in action_classes]) + 1
-        response = self.client.post(self.url, {'device_ids': [self.device.pk], 'action_id': action_id})
+        response = self.client.post(self.url, {'device_ids': [self.device.pk],
+                                               'action_id': action_id,
+                                               'duration': None})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'action_id': [ErrorDetail(string='Invalid recommended action id',
                                                                        code='invalid')]})
         self.device.refresh_from_db()
-        self.assertListEqual(self.device.snoozed_actions, [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
 
     def test_wrong_device_id(self):
-        self.assertListEqual(self.device.snoozed_actions, [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
         response = self.client.post(self.url, {'device_ids': [self.device.pk + 1],
-                                               'action_id': self.action_class.action_id})
+                                               'action_id': self.action_class.action_id,
+                                               'duration': None})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertDictEqual(response.data, {'device_ids': [ErrorDetail(string='Invalid device id(s) provided',
                                                                         code='invalid')]})
         self.device.refresh_from_db()
-        self.assertListEqual(self.device.snoozed_actions, [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])

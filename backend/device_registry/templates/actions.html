@@ -26,8 +26,8 @@
             <p>{{ action.description|safe }}</p>
 
             <span><a class="mb-0" href="#">Learn More</a></span>
-{#            {% ifnotequal action.snoozing_info.0 0 %}#}
-            {% with action_id=action.snoozing_info.0 action_devices=action.snoozing_info.1 %}
+            {% ifnotequal action.action_id 0 %}
+            {% with action_id=action.action_id action_devices=action.devices %}
             <div class="btn-group float-right wott-alert-btn-group">
               <button type="button" class="btn btn-success mr-1" data-dismiss="alert"
                       onclick="snoozeAction({{ action_id }}, {{ action_devices }}, null)">Resolve</button>
@@ -42,12 +42,13 @@
               </div>
             </div>
             {% endwith %}
-{#            {% endifnotequal %}#}
+            {% endifnotequal %}
           </div>
         </div>
       {% endfor %}
     </div>
   </div>
+
   <div class="row" style="display: none; margin-top: -1rem;" id="success-card">
     <div class="card">
       <div class="card-header">
