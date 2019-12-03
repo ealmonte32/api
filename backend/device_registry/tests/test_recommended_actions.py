@@ -1,14 +1,19 @@
+from datetime import datetime, timedelta
+
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from device_registry import recommended_actions
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
     GlobalPolicy, RecommendedAction
-from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction,\
-                                                VulnerablePackagesAction, MySQLDefaultRootPasswordAction,\
-                                                InsecureServicesAction, OpensshConfigurationIssuesAction,\
-                                                FtpServerAction, MongodbAction, MysqlAction, MemcachedAction,\
-                                                CpuVulnerableAction
+from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
+    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
+    InsecureServicesAction, OpensshConfigurationIssuesAction, \
+    FtpServerAction, MongodbAction, MysqlAction, MemcachedAction, \
+    CpuVulnerableAction, BaseAction
+
+from freezegun import freeze_time
 
 
 class NoDevicesActionTest(TestCase):
@@ -83,6 +88,68 @@ class TestsMixin:
         response = self.client.get(self.device_actions_url)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, self.search_pattern_device_page)
+
+
+class SnoozeTest(TestCase):
+    """
+    Test snoozing functionality implemented in Device and RecommendedAction models only.
+    setUpClass() and tearDownClass() were overloaded to register and unregister TestAction only once.
+    """
+    class TestAction(BaseAction):
+        """
+        A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
+        """
+        action_id = 9999
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        recommended_actions.action_classes.append(cls.TestAction)
+
+    @classmethod
+    def tearDownClass(cls):
+        super().setUpClass()
+        recommended_actions.action_classes.remove(cls.TestAction)
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+
+    def _assertHasAction(self, has_action):
+        if has_action:
+            self.assertQuerysetEqual(self.TestAction.affected_devices(self.user).values_list('pk', flat=True),
+                                     [str(self.device.pk)])
+        else:
+            self.assertQuerysetEqual(self.TestAction.affected_devices(self.user), [])
+
+    def test_snooze_forever(self):
+        self._assertHasAction(True)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.FOREVER)
+        self._assertHasAction(False)
+
+    def test_snooze_until_ping(self):
+        self._assertHasAction(True)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.UNTIL_PING)
+        self._assertHasAction(False)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
+        self._assertHasAction(True)
+
+    def test_snooze_interval(self):
+        self._assertHasAction(True)
+
+        with freeze_time(datetime.now() - timedelta(hours=23)):
+            # 23 hours ago this action had been snoozed for 24 hours
+            self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.UNTIL_TIME, 24)
+
+        # ... which means now it's still snoozed
+        self._assertHasAction(False)
+
+        # ... but in an hour from now it won't be snoozed anymore
+        with freeze_time(datetime.now() + timedelta(hours=1)):
+            self._assertHasAction(True)
 
 
 class BaseActionTest(TestCase):

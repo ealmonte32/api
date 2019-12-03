@@ -245,3 +245,8 @@ class SnoozeActionSerializer(serializers.Serializer):
         if Device.objects.filter(owner=self.context['user'], pk__in=value).count() < len(value):
             raise serializers.ValidationError('Invalid device id(s) provided')
         return value
+
+    def validate_duration(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError('Invalid duration provided')
+        return value

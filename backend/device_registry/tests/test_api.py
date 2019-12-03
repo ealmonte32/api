@@ -1311,22 +1311,57 @@ class SnoozeActionViewTest(APITestCase):
         PortScan.objects.create(device=self.device)
         FirewallState.objects.create(device=self.device)
         self.client.login(username='test', password='123')
-        self.recommended_actions_query = Q(snoozed=RecommendedAction.Snooze.UNTIL_PING)
 
-    def test_post(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
+    def test_snooze_until_ping(self):
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
         self.assertEqual(self.device.actions_count, 2)
+        # 'duration': None means "snooze until ping"
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
                                                'action_id': self.action_class.action_id,
                                                'duration': None})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.device.refresh_from_db()
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query)
-                             .values_list('action_id', flat=True), [str(self.action_class.action_id)])
+        actions = self.device.recommendedaction_set.filter(action_id=self.action_class.action_id)
+        self.assertQuerysetEqual(actions.values_list('action_id', flat=True), [str(self.action_class.action_id)])
+        self.assertEqual(actions[0].snoozed, RecommendedAction.Snooze.UNTIL_PING)
+        self.assertEqual(self.device.actions_count, 1)
+
+    def test_snooze_forever(self):
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertEqual(self.device.actions_count, 2)
+        # 'duration': 0 means "snooze forever"
+        response = self.client.post(self.url, {'device_ids': [self.device.pk],
+                                               'action_id': self.action_class.action_id,
+                                               'duration': 0})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.device.refresh_from_db()
+        actions = self.device.recommendedaction_set.filter(action_id=self.action_class.action_id)
+        self.assertQuerysetEqual(actions.values_list('action_id', flat=True), [str(self.action_class.action_id)])
+        self.assertEqual(actions[0].snoozed, RecommendedAction.Snooze.FOREVER)
+        self.assertEqual(self.device.actions_count, 1)
+
+    def test_snooze_until_time(self):
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertEqual(self.device.actions_count, 2)
+
+        # Snooze for 7 hours
+        response = self.client.post(self.url, {'device_ids': [self.device.pk],
+                                               'action_id': self.action_class.action_id,
+                                               'duration': 7})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.device.refresh_from_db()
+        actions = self.device.recommendedaction_set.filter(action_id=self.action_class.action_id)
+        self.assertQuerysetEqual(actions.values_list('action_id', flat=True), [str(self.action_class.action_id)])
+        self.assertEqual(actions[0].snoozed, RecommendedAction.Snooze.UNTIL_TIME)
+
+        # Should be snoozed for at least 6 hours from now. It's actually 7 hours minus a couple seconds.
+        self.assertGreaterEqual((actions[0].snoozed_until - timezone.now()).total_seconds() // 3600, 6)
+
         self.assertEqual(self.device.actions_count, 1)
 
     def test_wrong_action_id(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
         action_id = max([action_class.action_id for action_class in action_classes]) + 1
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
                                                'action_id': action_id,
@@ -1335,10 +1370,10 @@ class SnoozeActionViewTest(APITestCase):
         self.assertDictEqual(response.data, {'action_id': [ErrorDetail(string='Invalid recommended action id',
                                                                        code='invalid')]})
         self.device.refresh_from_db()
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
 
     def test_wrong_device_id(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
         response = self.client.post(self.url, {'device_ids': [self.device.pk + 1],
                                                'action_id': self.action_class.action_id,
                                                'duration': None})
@@ -1346,4 +1381,15 @@ class SnoozeActionViewTest(APITestCase):
         self.assertDictEqual(response.data, {'device_ids': [ErrorDetail(string='Invalid device id(s) provided',
                                                                         code='invalid')]})
         self.device.refresh_from_db()
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(self.recommended_actions_query), [])
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+
+    def test_wrong_duration(self):
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        response = self.client.post(self.url, {'device_ids': [self.device.pk],
+                                               'action_id': self.action_class.action_id,
+                                               'duration': -1})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertDictEqual(response.data, {'duration': [ErrorDetail(string='Invalid duration provided',
+                                                                        code='invalid')]})
+        self.device.refresh_from_db()
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
