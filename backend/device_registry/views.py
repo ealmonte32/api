@@ -499,7 +499,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 'on how to enroll your nodes.',
                 action_id=0,
                 devices=[],
-                severity='low'
+                severity=Action.Severity.LO
             )
             actions.append(action)
 
