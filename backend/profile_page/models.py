@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
@@ -5,11 +7,13 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from mixpanel import Mixpanel
+from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
 from device_registry.recommended_actions import action_classes
 from device_registry.celery_tasks import github
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(pre_save, sender=User, dispatch_uid="user_save_lower")
@@ -59,5 +63,9 @@ class Profile(models.Model):
 
     def track_first_device(self):
         if self.user.devices.count() == 1 and settings.MIXPANEL_TOKEN:
-            mp = Mixpanel(settings.MIXPANEL_TOKEN)
-            mp.track(self.user.email, 'First Node')
+            try:
+                mp = Mixpanel(settings.MIXPANEL_TOKEN)
+                mp.track(self.user.email, 'First Node')
+            except MixpanelException:
+                logger.exception('Failed to send First Device event')
+
