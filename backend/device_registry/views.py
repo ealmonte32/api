@@ -172,22 +172,23 @@ def claim_device_view(request):
 
         if form.is_valid():
             try:
-                get_device = Device.objects.get(
+                device = Device.objects.get(
                     device_id=form.cleaned_data['device_id']
                 )
-                if get_device.claimed:
+                if device.claimed:
                     text, style = 'Device has already been claimed.', 'warning'
-                elif not get_device.claim_token == form.cleaned_data['claim_token']:
+                elif not device.claim_token == form.cleaned_data['claim_token']:
                     text, style = 'Invalid claim/node id pair.', 'warning'
                 else:
-                    get_device.owner = request.user
-                    get_device.claim_token = ""
-                    get_device.save(update_fields=['owner', 'claim_token'])
-                    text, style = f'You\'ve successfully claimed {get_device.get_name()}. ' \
-                                  f'Learn more about the security state of the device by clicking&nbsp;' \
-                                  f'<a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": get_device.pk})}">' \
-                                  f'here</a>.', \
-                                  'success'
+                    device.owner = request.user
+                    device.claim_token = ""
+                    device.save(update_fields=['owner', 'claim_token'])
+                    text, style = \
+                        f'''You've successfully claimed {device.get_name()}.
+                          Learn more about the security state of the device by clicking&nbsp;
+                          <a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": device.pk})}">
+                          here</a>.''', 'success'
+                    device.owner.profile.track_first_device()
             except Device.DoesNotExist:
                 text, style = 'Invalid claim/node id pair.', 'warning'
 

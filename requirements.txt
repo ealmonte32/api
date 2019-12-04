@@ -40,6 +40,7 @@ Jinja2==2.10.1
 jwt==0.6.1
 markdown==3.1.1
 MarkupSafe==1.1.0
+mixpanel==4.5.0
 netaddr==0.7.19
 netifaces==0.10.9
 prometheus-client==0.7.1

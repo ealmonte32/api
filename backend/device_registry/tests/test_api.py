@@ -886,11 +886,33 @@ class MtlsPingViewTest(APITestCase):
 class DeviceEnrollView(APITestCase):
     def setUp(self):
         User = get_user_model()
-        self.user = User.objects.create_user('test')
+        self.user = User.objects.create_user('test@test.com')
+        self.user.set_password('123')
+        self.user.save()
+
+        # This is to force Profile creation which we need for tracking.
+        self.client.login(username='test@test.com', password='123')
+        self.client.get(reverse('profile'))
+        self.client.logout()
+
         self.claim_token = uuid.uuid4()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', claim_token=self.claim_token)
         self.pairing_key = PairingKey.objects.create(owner=self.user)
         self.url = reverse('enroll_by_key')
+
+    def test_post_track(self):
+        payload = {
+            'key': self.pairing_key.key.hex,
+            'device_id': self.device.device_id,
+            'claim_token': self.device.claim_token
+        }
+        settings.MIXPANEL_TOKEN = 'abcd'
+        with patch('profile_page.models.Mixpanel') as MockMixpanel:
+            mixpanel_instance = MockMixpanel.return_value
+            mixpanel_instance.track.return_value = None
+            response = self.client.post(self.url, data=payload)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            mixpanel_instance.track.assert_called_once_with(self.user.email, 'First Node')
 
     def test_post_success(self):
         payload = {

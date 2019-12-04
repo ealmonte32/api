@@ -1,9 +1,11 @@
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
+from mixpanel import Mixpanel
 from phonenumber_field.modelfields import PhoneNumberField
 
 from device_registry.recommended_actions import action_classes
@@ -54,3 +56,8 @@ class Profile(models.Model):
     def fetch_oauth_token(self, code, state):
         self.github_oauth_token = github.get_token_from_code(code, state)
         self.save(update_fields=['github_oauth_token'])
+
+    def track_first_device(self):
+        if self.user.devices.count() == 1 and settings.MIXPANEL_TOKEN:
+            mp = Mixpanel(settings.MIXPANEL_TOKEN)
+            mp.track(self.user.email, 'First Node')
