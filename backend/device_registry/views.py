@@ -175,6 +175,9 @@ def claim_device_view(request):
                 device = Device.objects.get(
                     device_id=form.cleaned_data['device_id']
                 )
+            except Device.DoesNotExist:
+                text, style = 'Invalid claim/node id pair.', 'warning'
+            else:
                 if device.claimed:
                     text, style = 'Device has already been claimed.', 'warning'
                 elif not device.claim_token == form.cleaned_data['claim_token']:
@@ -189,8 +192,6 @@ def claim_device_view(request):
                           <a class="claim-link" href="{reverse("device-detail-security", kwargs={"pk": device.pk})}">
                           here</a>.''', 'success'
                     device.owner.profile.track_first_device()
-            except Device.DoesNotExist:
-                text, style = 'Invalid claim/node id pair.', 'warning'
 
     # GET with claim_token and device_id set will fill the form.
     # Empty GET or any other request will generate empty form.

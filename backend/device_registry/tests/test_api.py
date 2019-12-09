@@ -21,6 +21,7 @@ from device_registry.serializers import DeviceListSerializer
 from device_registry.recommended_actions import action_classes, DefaultCredentialsAction
 
 from device_registry.models import GlobalPolicy
+from profile_page.models import Profile
 
 TEST_CERT = """-----BEGIN CERTIFICATE-----
 MIIC5TCCAc2gAwIBAgIJAPMjGMrzQcI/MA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNV
@@ -889,16 +890,11 @@ class DeviceEnrollView(APITestCase):
         self.user = User.objects.create_user('test@test.com')
         self.user.set_password('123')
         self.user.save()
-
-        # This is to force Profile creation which we need for tracking.
-        self.client.login(username='test@test.com', password='123')
-        self.client.get(reverse('profile'))
-        self.client.logout()
-
         self.claim_token = uuid.uuid4()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', claim_token=self.claim_token)
         self.pairing_key = PairingKey.objects.create(owner=self.user)
         self.url = reverse('enroll_by_key')
+        Profile.objects.create(user=self.user)
 
     def test_post_track(self):
         payload = {
