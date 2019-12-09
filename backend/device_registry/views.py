@@ -18,7 +18,7 @@ from .models import Device, average_trust_score, PortScan, FirewallState, get_bo
     RecommendedAction
 from .models import GlobalPolicy
 from .api_views import DeviceListFilterMixin
-from .recommended_actions import action_classes, FirewallDisabledAction, Action
+from .recommended_actions import action_classes, FirewallDisabledAction, Action, Severity
 
 
 class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
@@ -499,7 +499,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 'on how to enroll your nodes.',
                 action_id=0,
                 devices=[],
-                severity=Action.Severity.LO
+                severity=Severity.LO
             )
             actions.append(action)
 

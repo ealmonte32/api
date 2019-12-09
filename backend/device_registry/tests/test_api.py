@@ -4,7 +4,6 @@ from unittest.mock import patch, mock_open
 import json
 import datetime
 
-from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -1313,7 +1312,7 @@ class SnoozeActionViewTest(APITestCase):
         self.client.login(username='test', password='123')
 
     def test_snooze_until_ping(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).count(), 0)
         self.assertEqual(self.device.actions_count, 2)
         # 'duration': None means "snooze until ping"
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
@@ -1389,7 +1388,7 @@ class SnoozeActionViewTest(APITestCase):
                                                'action_id': self.action_class.action_id,
                                                'duration': -1})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertDictEqual(response.data, {'duration': [ErrorDetail(string='Invalid duration provided',
-                                                                        code='invalid')]})
+        self.assertDictEqual(response.data, {'duration': [
+            ErrorDetail(string='Ensure this value is greater than or equal to 0.', code='min_value')]})
         self.device.refresh_from_db()
         self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])

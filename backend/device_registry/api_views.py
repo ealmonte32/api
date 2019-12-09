@@ -34,7 +34,7 @@ from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from device_registry.serializers import SnoozeActionSerializer
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage, \
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage,\
     RecommendedAction
 
 logger = logging.getLogger(__name__)
@@ -106,6 +106,7 @@ class MtlsPingView(APIView):
         device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
+        # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
         device.recommendedaction_set.filter(snoozed=RecommendedAction.Snooze.UNTIL_PING)\
             .update(snoozed=RecommendedAction.Snooze.NOT_SNOOZED)
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)

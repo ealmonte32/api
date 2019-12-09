@@ -138,7 +138,7 @@ class Device(models.Model):
         action, _ = RecommendedAction.objects.get_or_create(action_id=action_id, device=self)
         action.snoozed = snoozed
         if snoozed == RecommendedAction.Snooze.UNTIL_TIME:
-            action.snoozed_until = (timezone.now() + datetime.timedelta(hours=duration)).isoformat()
+            action.snoozed_until = timezone.now() + datetime.timedelta(hours=duration)
         else:
             action.snoozed_until = None
         action.save()
@@ -849,5 +849,6 @@ class RecommendedAction(models.Model):
 
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     action_id = models.PositiveSmallIntegerField()
-    snoozed = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Snooze], default=Snooze.NOT_SNOOZED.value)
+    snoozed = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Snooze],
+                                               default=Snooze.NOT_SNOOZED.value)
     snoozed_until = models.DateTimeField(null=True, blank=True)

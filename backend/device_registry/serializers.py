@@ -234,7 +234,7 @@ class DeviceListSerializer(serializers.ModelSerializer):
 class SnoozeActionSerializer(serializers.Serializer):
     device_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
     action_id = serializers.IntegerField()
-    duration = serializers.IntegerField(allow_null=True)
+    duration = serializers.IntegerField(allow_null=True, min_value=0)
 
     def validate_action_id(self, value):
         if value not in [action_class.action_id for action_class in action_classes]:
@@ -244,9 +244,4 @@ class SnoozeActionSerializer(serializers.Serializer):
     def validate_device_ids(self, value):
         if Device.objects.filter(owner=self.context['user'], pk__in=value).count() < len(value):
             raise serializers.ValidationError('Invalid device id(s) provided')
-        return value
-
-    def validate_duration(self, value):
-        if value is not None and value < 0:
-            raise serializers.ValidationError('Invalid duration provided')
         return value

@@ -1,8 +1,16 @@
+from enum import Enum
+
 from django.db.models import Q
 from django.urls import reverse
 
 import markdown
 from django.utils import timezone
+
+
+class Severity(Enum):
+    LO = ('Low', 'secondary')
+    MED = ('Medium', 'warning')
+    HI = ('High', 'danger')
 
 
 class Action:
@@ -12,11 +20,6 @@ class Action:
     Its only purpose is to store particular actions info and be passed from a
      view to a template.
     """
-    class Severity:
-        LO = ('Low', 'secondary')
-        MED = ('Medium', 'warning')
-        HI = ('High', 'danger')
-
     def __init__(self, title, description, action_id, devices, severity: Severity, doc_url="/", issue_url=None):
         """
 
@@ -56,7 +59,7 @@ class BaseAction:
     It's a parent for all specific base action classes.
     Contains the code supposed to fit *all* actions.
     """
-    severity = Action.Severity.LO
+    severity = Severity.LO
     doc_url = 'https://wott.io/documentation/faq'
 
     @classmethod
@@ -157,7 +160,7 @@ class DefaultCredentialsAction(ActionMultiDevice):
     action_title = 'Default credentials detected'
     action_description = \
         'We found default credentials present on {devices}. Please consider changing them as soon as possible.'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -173,7 +176,7 @@ class FirewallDisabledAction(ActionMultiDevice):
     action_title = 'Permissive firewall policy detected'
     action_description = \
         'We found permissive firewall policy present on {devices}. Please consider change it to more restrictive one.'
-    severity = Action.Severity.MED
+    severity = Severity.MED
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -197,7 +200,7 @@ class VulnerablePackagesAction(ActionMultiDevice):
         'Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.\n\n' \
         'Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system ' \
         'vendor.'
-    severity = Action.Severity.LO
+    severity = Severity.MED
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -215,7 +218,7 @@ class InsecureServicesAction(ActionPerDevice):
         'We found insecure services installed on {devices}. Because these services are considered insecure, it is ' \
         'recommended that you uninstall them.\n\n' \
         'Run `sudo apt-get purge {services}`to disable all insecure services.'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
@@ -244,7 +247,7 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
     action_description = \
         'We found insecure configuration issues with OpenSSH on {devices}. To improve the security posture of your ' \
         'node, please consider making the following changes:\n\n{changes}'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
@@ -286,7 +289,7 @@ class AutoUpdatesAction(ActionMultiDevice):
         'We found that {subject}{devices} {verb} not configured to automatically install security updates. Consider ' \
         'enabling this feature.\n\n' \
         'Details for how to do this can be found [here]({doc_url})'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def get_doc_url(cls, devices):
@@ -332,7 +335,7 @@ class FtpServerAction(ActionPerDevice):
         'There appears to be an FTP server running on {devices}. FTP is generally considered insecure as the ' \
         'credentials are sent unencrypted over the internet. Consider switching to an encrypted service, such as ' \
         '[SFTP](https://www.ssh.com/ssh/sftp).'
-    severity = Action.Severity.MED
+    severity = Severity.MED
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -354,7 +357,7 @@ class MongodbAction(ActionPerDevice):
     action_description = \
         'We detected that a MongoDB instance on {devices} may be accessible remotely. Consider either blocking port ' \
         '27017 through the WoTT firewall management tool, or re-configure MongoDB to only listen on localhost.'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -376,7 +379,7 @@ class MysqlAction(ActionPerDevice):
     action_description = \
         'We detected that a MySQL instance on {devices} may be accessible remotely. Consider either blocking port ' \
         '3306 through the WoTT firewall management tool, or re-configure MySQL to only listen on localhost.'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -403,7 +406,7 @@ class MySQLDefaultRootPasswordAction(ActionPerDevice):
         '`mysqladmin -u root password NEWPASSWORD`\n\n' \
         'Tip: If you are using mysqladmin as per above, make sure to add a space before the command to avoid it ' \
         'being stored in your shell\'s history.'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -420,7 +423,7 @@ class MemcachedAction(ActionPerDevice):
     action_description = \
         'We detected that a Memcached instance on {devices} may be accessible remotely. Consider either blocking ' \
         'port 11211 through the WoTT firewall management tool, or re-configure Memcached to only listen on localhost.'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -441,7 +444,7 @@ class CpuVulnerableAction(ActionPerDevice):
     action_description = \
         'We detected that {devices} is vulnerable to Meltdown/Spectre. You can learn more about these issues ' \
         '[here](https://meltdownattack.com/). To fix the issue, please run `apt-get update && apt-get upgrade`'
-    severity = Action.Severity.HI
+    severity = Severity.HI
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
