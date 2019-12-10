@@ -13,6 +13,20 @@ class Severity(Enum):
     HI = ('High', 'danger')
 
 
+INSECURE_SERVICES = [
+    ('fingerd', Severity.MED),
+    ('tftpd', Severity.MED),
+    ('telnetd', Severity.HI),
+    ('snmpd', Severity.MED),
+    ('xinetd', Severity.MED),
+    ('nis', Severity.MED),
+    ('atftpd', Severity.MED),
+    ('tftpd-hpa', Severity.MED),
+    ('rsh-server', Severity.HI),
+    ('rsh-redone-server', Severity.HI)
+]
+
+
 class Action:
     """
     Action class.
@@ -123,6 +137,10 @@ class ActionMeta(type):
         return meta._action_classes.values()
 
     @classmethod
+    def get_class(meta, id):
+        return meta._action_classes[id]
+
+    @classmethod
     def is_action_id(meta, id):
         return id in meta._action_classes
 
@@ -220,10 +238,10 @@ class VulnerablePackagesAction(ActionMultiDevice, metaclass=ActionMeta):
 # Insecure services found action.
 class InsecureServicesAction(ActionPerDevice):
     action_title = 'Insecure service found'
+    action_id_base = 42
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
-        from device_registry.models import Device
         if devices_qs is not None:
             services = devices_qs.filter(deb_packages__name=cls.service_name)
         else:
@@ -233,32 +251,21 @@ class InsecureServicesAction(ActionPerDevice):
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
         return super().affected_devices(user, device_pk, exclude_snoozed).exclude(deb_packages_hash='').filter(
             deb_packages__name=cls.service_name).distinct()
 
 
-class InsecureServicesAction_fingerd(InsecureServicesAction, metaclass=ActionMeta):
-    action_id = 41
-    action_description = \
-        'We found {service} installed on {devices}. Because this service is considered insecure, it is ' \
-        'recommended that you uninstall it.\n\n' \
-        'Run `sudo apt-get purge fingerd` to disable it.'
-    severity = Severity.HI
-    service_name = 'fingerd'
-
-
-InsecureServicesAction_subclass_i = 0
-for sn in ['tftpd', 'telnetd']:
-    class InsecureServicesAction_subclass(InsecureServicesAction, metaclass=ActionMeta):
-        action_id = 42 + InsecureServicesAction_subclass_i
+concrete_action_id = 0
+for name, severity in INSECURE_SERVICES:
+    class ConcreteInsecureServicesAction(InsecureServicesAction, metaclass=ActionMeta):
+        action_id = InsecureServicesAction.action_id_base + concrete_action_id
         action_description = \
             'We found {service} installed on {devices}. Because this service is considered insecure, it is ' \
             'recommended that you uninstall it.\n\n' \
-            'Run `sudo apt-get purge fingerd` to disable it.'
-        severity = Severity.HI
-        service_name = sn
-    InsecureServicesAction_subclass_i += 1
+            'Run `sudo apt-get purge {service}` to disable it.'
+        severity = severity
+        service_name = name
+    concrete_action_id += 1
 
 
 # OpenSSH configuration issues found action.

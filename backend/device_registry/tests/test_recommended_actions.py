@@ -8,7 +8,7 @@ from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, 
     GlobalPolicy, RecommendedAction
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
-    InsecureServicesAction_fingerd, OpensshConfigurationIssuesAction, \
+    InsecureServicesAction, OpensshConfigurationIssuesAction, \
     FtpServerAction, MongodbAction, MysqlAction, MemcachedAction, \
     CpuVulnerableAction, BaseAction, ActionMeta
 
@@ -253,15 +253,17 @@ class MySQLDefaultRootPasswordActionTest(BaseActionTest, TestsMixin):
 
 
 class InsecureServicesActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found fingerd installed on <a href="{url}">{name}</a>'
-    search_pattern_device_page = 'We found fingerd installed on this node'
-    action_class = InsecureServicesAction_fingerd
+    action_class = ActionMeta.get_class(InsecureServicesAction.action_id_base)
+    service_name = action_class.service_name
+    search_pattern_device_page = 'We found '+service_name+' installed on this node'
+    search_pattern_common_page = 'We found '+service_name+' installed on <a href="{url}">{name}</a>'
 
     def enable_action(self):
         self.device.deb_packages_hash = 'abcd'
         self.device.save(update_fields=['deb_packages_hash'])
-        deb_package = DebPackage.objects.create(name='fingerd', version='version1', source_name='fingerd',
-                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        deb_package = DebPackage.objects.create(name=self.service_name, version='version1',
+                                                source_name=self.service_name, source_version='sversion1',
+                                                arch='amd64', os_release_codename='jessie')
         self.device.deb_packages.add(deb_package)
 
 

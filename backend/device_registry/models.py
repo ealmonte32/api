@@ -15,7 +15,7 @@ import tagulous.models
 import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
-from .recommended_actions import ActionMeta
+from .recommended_actions import ActionMeta, INSECURE_SERVICES
 
 apt_pkg.init()
 
@@ -219,19 +219,6 @@ class Device(models.Model):
     def certificate_expired(self):
         return self.certificate_expires < timezone.now()
 
-    INSECURE_SERVICES = [
-        'fingerd',
-        'tftpd',
-        'telnetd',
-        'snmpd',
-        'xinetd',
-        'nis',
-        'atftpd',
-        'tftpd-hpa',
-        'rsh-server',
-        'rsh-redone-server'
-    ]
-
     @property
     def insecure_services(self):
         """
@@ -240,7 +227,7 @@ class Device(models.Model):
         """
         if not self.deb_packages_hash:
             return None
-        return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
+        return self.deb_packages.filter(name__in=[name for name, severity in INSECURE_SERVICES])
 
     def set_deb_packages(self, packages, os_info):
         """
