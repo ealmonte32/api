@@ -464,6 +464,7 @@ class DeviceEnrollView(APIView):
         device.owner = pair_key.owner
         device.claim_token = ''
         device.save(update_fields=['owner', 'claim_token'])
+        device.owner.profile.track_first_device()
         return Response()
 
 

@@ -1249,3 +1249,39 @@ class GlobalPolicyFormTests(TestCase):
         form = GlobalPolicyForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertDictEqual(form.errors, {'ports': ['"2002:c0a8:101::" is wrong IP address format for IPv4.']})
+
+
+class ClaimDeviceViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.claim_token = 'abcd'
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local',
+                                            claim_token=self.claim_token)
+        self.client.login(username='test', password='123')
+
+    def test_post(self):
+        settings.MIXPANEL_TOKEN = ''
+        response = self.client.post(reverse('claim-device'), {
+            'device_id': self.device.device_id,
+            'claim_token': self.claim_token
+        })
+        self.assertEqual(response.status_code, 200)
+        self.device.refresh_from_db()
+        self.assertEqual(self.device.owner, self.user)
+
+    def test_post_track(self):
+        settings.MIXPANEL_TOKEN = 'abcd'
+        with patch('profile_page.models.Mixpanel') as MockMixpanel:
+            mixpanel_instance = MockMixpanel.return_value
+            mixpanel_instance.track.return_value = None
+            response = self.client.post(reverse('claim-device'), {
+                'device_id': self.device.device_id,
+                'claim_token': self.claim_token
+            })
+            self.assertEqual(response.status_code, 200)
+            self.device.refresh_from_db()
+            self.assertEqual(self.device.owner, self.user)
+            mixpanel_instance.track.assert_called_once_with(self.user.email, 'First Node')
