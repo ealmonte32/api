@@ -12,9 +12,11 @@
       {% for action in actions %}
         <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
           <div class="close" style="opacity: initial">
-            <span class="badge badge-{{ action.severity.1 }} font-weight-light wott-alert-severity">
-              Severity: {{ action.severity.0 }}
+            {% with action.severity.value as action_severity %}
+            <span class="badge badge-{{ action_severity.1 }} font-weight-light wott-alert-severity">
+              Severity: {{ action_severity.0 }}
             </span>
+            {% endwith %}
           </div>
           <div class="alert-message">
             <h3 class="alert-heading">

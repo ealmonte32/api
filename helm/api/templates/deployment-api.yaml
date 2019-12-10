@@ -55,6 +55,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
                   key: sentryDsn
+            - name: MIXPANEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.apiSecrets }}
+                  key: mixpanelToken
           livenessProbe:
             httpGet:
               path: /healthz
