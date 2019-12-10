@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 import datetime
 from statistics import mean
 import json
@@ -119,7 +119,6 @@ class Device(models.Model):
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
     mysql_root_access = models.BooleanField(null=True, blank=True)
-    snoozed_actions = JSONField(blank=True, default=list)
 
     @property
     def eol_info(self):
@@ -135,10 +134,14 @@ class Device(models.Model):
                 eol_info_dict['passed'] = distro.end_of_life <= timezone.now().date()
         return eol_info_dict
 
-    def snooze_action(self, action_id):
-        if action_id not in self.snoozed_actions:
-            self.snoozed_actions.append(action_id)
-            self.save(update_fields=['snoozed_actions'])
+    def snooze_action(self, action_id, snoozed, duration=None):
+        action, _ = RecommendedAction.objects.get_or_create(action_id=action_id, device=self)
+        action.snoozed = snoozed
+        if snoozed == RecommendedAction.Snooze.UNTIL_TIME:
+            action.snoozed_until = timezone.now() + datetime.timedelta(hours=duration)
+        else:
+            action.snoozed_until = None
+        action.save()
 
     KERNEL_CPU_CVES = [
         'CVE-2017-5753',
@@ -835,3 +838,17 @@ class Vulnerability(models.Model):
 class Distro(models.Model):
     os_release_codename = models.CharField(max_length=64, unique=True)
     end_of_life = models.DateField()
+
+
+class RecommendedAction(models.Model):
+    class Snooze(IntEnum):
+        NOT_SNOOZED = 0
+        UNTIL_PING = 1
+        UNTIL_TIME = 2
+        FOREVER = 3
+
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    action_id = models.PositiveSmallIntegerField()
+    snoozed = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Snooze],
+                                               default=Snooze.NOT_SNOOZED.value)
+    snoozed_until = models.DateTimeField(null=True, blank=True)

@@ -11,12 +11,11 @@
     <div class="mb-3 mt-3 w-100" id="alert-container">
       {% for action in actions %}
         <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
-          {% ifnotequal action.snoozing_info.0 0 %}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"
-                    onclick="snoozeAction('{{ action.snoozing_info.0 }}', {{ action.snoozing_info.1 }})">
-              <span aria-hidden="true">×</span>
-            </button>
-          {% endifnotequal %}
+          <div class="close" style="opacity: initial">
+            <span class="badge badge-{{ action.severity.1 }} font-weight-light wott-alert-severity">
+              Severity: {{ action.severity.0 }}
+            </span>
+          </div>
           <div class="alert-message">
             <h3 class="alert-heading">
               {{ action.title|safe }}
@@ -25,11 +24,28 @@
               {% endif %}
             </h3>
             <p>{{ action.description|safe }}</p>
+
+            <span><a class="mb-0" href="{{ action.doc_url }}">Learn More</a></span>
+            {% ifnotequal action.action_id 0 %}
+            {% with action_id=action.action_id action_devices=action.devices %}
+            <div class="btn-group float-right wott-alert-btn-group"
+                 wott-action wott-action-id="{{ action_id }}" wott-action-devices="{{ action_devices }}" wott-action-title="{{ action.title }}">
+              <button type="button" class="btn btn-success mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="null">Resolve</button>
+              <button type="button" class="btn btn-danger mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="0">Ignore</button>
+              <button type="button" class="btn btn-secondary mr-1 dropdown-toggle" data-toggle="dropdown">Snooze</button>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24">24 hours</a>
+                <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24*7">7 days</a>
+              </div>
+            </div>
+            {% endwith %}
+            {% endifnotequal %}
           </div>
         </div>
       {% endfor %}
     </div>
   </div>
+
   <div class="row" style="display: none; margin-top: -1rem;" id="success-card">
     <div class="card">
       <div class="card-header">
@@ -44,6 +60,16 @@
 
 {% block scripts %}
   {{ block.super }}
+  <style>
+  .wott-alert-severity {
+    font-size: small;
+    color: black;
+    text-shadow: none;
+  }
+  .wott-alert-btn-group button {
+    font-size: small;
+  }
+  </style>
   <script>
 
     /**
@@ -51,18 +77,40 @@
      * @param id - action id
      * @param devices - list of device ids
      */
-    function snoozeAction(id, devices) {
+    function snoozeAction(id, devices, duration) {
       $.ajax({
           url: '/snooze-action/',
           type:"POST",
           data: JSON.stringify({
               action_id: id,
-              device_ids: devices
+              device_ids: devices,
+              duration: duration
           }),
           contentType: "application/json; charset=utf-8",
           dataType: "json"
       });
     }
+
+    $(() => {
+        $('[wott-snooze]').click((e) => {
+            let button = $(e.target), parent = button.closest('[wott-action]');
+            let id = eval(parent.attr('wott-action-id')),
+                devices = eval(parent.attr('wott-action-devices')),
+                duration = eval(button.attr('wott-snooze-duration')),
+                snooze_type = duration? "Snooze":  button.text(),
+                title = parent.attr('wott-action-title');
+            console.log(id, devices, duration, snooze_type, title);
+            snoozeAction(id, devices, duration);
+          {% if MIXPANEL_TOKEN %}
+            mixpanel.track("Snooze", {
+                type: snooze_type,
+                recommended_action: title,
+                duration: (duration? duration: null),
+                // TODO: affected service
+            });
+          {% endif %}
+        })
+    })
   </script>
   <script>
     // Listen to mutations to the DOM. If there are no alerts then show a message.

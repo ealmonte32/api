@@ -34,7 +34,8 @@ from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from device_registry.serializers import SnoozeActionSerializer
-from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage
+from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage,\
+    RecommendedAction
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,9 @@ class MtlsPingView(APIView):
         device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
-        device.snoozed_actions = []  # Cleanup snoozed actions list.
+        # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
+        device.recommendedaction_set.filter(snoozed=RecommendedAction.Snooze.UNTIL_PING)\
+            .update(snoozed=RecommendedAction.Snooze.NOT_SNOOZED)
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = data.get('device_operating_system_version')
@@ -147,7 +150,7 @@ class MtlsPingView(APIView):
 
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
-                                   'update_trust_score', 'os_release', 'auto_upgrades', 'snoozed_actions',
+                                   'update_trust_score', 'os_release', 'auto_upgrades',
                                    'mysql_root_access', 'cpu', 'kernel_deb_package'])
 
         if datastore_client:
@@ -1021,5 +1024,13 @@ class SnoozeActionView(APIView):
         serializer.is_valid(raise_exception=True)
         devices = request.user.devices.filter(pk__in=serializer.validated_data['device_ids'])
         for dev in devices:
-            dev.snooze_action(serializer.validated_data['action_id'])
+            action_id = serializer.validated_data['action_id']
+            duration = serializer.validated_data['duration']
+            if duration is None:
+                snoozed = RecommendedAction.Snooze.UNTIL_PING
+            elif duration == 0:
+                snoozed = RecommendedAction.Snooze.FOREVER
+            else:
+                snoozed = RecommendedAction.Snooze.UNTIL_TIME
+            dev.snooze_action(action_id, snoozed, duration)
         return Response(status=status.HTTP_200_OK)

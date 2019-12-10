@@ -255,7 +255,8 @@ def file_issues():
 
         for action_class in recommended_actions.action_classes:
             logger.debug(f'action class {action_class.action_id}')
-            affected_devices = action_class.affected_devices(profile.user).filter(last_ping__gte=day_ago)
+            affected_devices = action_class.affected_devices(profile.user, exclude_snoozed=False)\
+                .filter(last_ping__gte=day_ago)
             logger.debug(f'affected {affected_devices.count()} devices')
 
             # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
