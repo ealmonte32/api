@@ -8,7 +8,7 @@ from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, 
     GlobalPolicy, RecommendedAction
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
-    InsecureServicesAction, OpensshConfigurationIssuesAction, \
+    InsecureServicesAction, OpensshIssueAction, \
     FtpServerAction, MongodbAction, MysqlAction, MemcachedAction, \
     CpuVulnerableAction, BaseAction, ActionMeta
 
@@ -181,6 +181,9 @@ class BaseActionTest(TestCase):
     def snooze_action(self):
         self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.FOREVER)
 
+    def unsnooze_action(self):
+        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
+
 
 class DefaultCredentialsActionTest(BaseActionTest, TestsMixin):
     search_pattern_common_page = 'We found default credentials present on <a href="{url}">{name}</a>'
@@ -253,31 +256,61 @@ class MySQLDefaultRootPasswordActionTest(BaseActionTest, TestsMixin):
 
 
 class InsecureServicesActionTest(BaseActionTest, TestsMixin):
-    action_class = ActionMeta.get_class(InsecureServicesAction.action_id_base)
-    service_name = action_class.service_name
-    search_pattern_device_page = 'We found '+service_name+' installed on this node'
-    search_pattern_common_page = 'We found '+service_name+' installed on <a href="{url}">{name}</a>'
-
     def enable_action(self):
         self.device.deb_packages_hash = 'abcd'
         self.device.save(update_fields=['deb_packages_hash'])
-        deb_package = DebPackage.objects.create(name=self.service_name, version='version1',
-                                                source_name=self.service_name, source_version='sversion1',
+        deb_package = DebPackage.objects.create(name=self.action_class.service_name, version='version1',
+                                                source_name=self.action_class.service_name, source_version='sversion1',
                                                 arch='amd64', os_release_codename='jessie')
         self.device.deb_packages.add(deb_package)
 
+    def disable_action(self):
+        self.device.deb_packages.remove(DebPackage.objects.get(name=self.action_class.service_name))
 
-class OpensshConfigurationIssuesActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found insecure configuration issues with OpenSSH on <a href="{url}">{name}</a>'
-    search_pattern_device_page = 'We found insecure configuration issues with OpenSSH on this node'
-    action_class = OpensshConfigurationIssuesAction
+    def test_get(self):
+        for subclass in InsecureServicesAction.subclasses:
+            self.action_class = subclass
+            self.search_pattern_device_page = 'We found ' + self.action_class.service_name + ' installed on this node'
+            self.search_pattern_common_page = 'We found ' + self.action_class.service_name + ' installed on <a href="{url}">{name}</a>'
+            super().test_get()
+            self.unsnooze_action()
+            self.disable_action()
+
+
+class OpensshIssueActionTest(BaseActionTest, TestsMixin):
+    search_pattern_common = 'We found insecure configuration issue with OpenSSH on <a href="{url}">{name}</a>: ' \
+                            'insecure parameter '
+    search_pattern_device = 'We found insecure configuration issue with OpenSSH on this node: ' \
+                            'insecure parameter '
+    bad_config = {'PermitRootLogin': 'prohibit-password',
+                  'AllowAgentForwarding': 'yes',
+                  'PasswordAuthentication': 'yes',
+                  'PermitEmptyPasswords': 'yes',
+                  'Protocol': '1'}
+
+    def setUp(self):
+        super().setUp()
+        self.device.audit_files = [{'name': '/etc/ssh/sshd_config',
+                                    'issues': {},
+                                    'sha256': 'abcd', 'last_modified': 1554718384.0}]
 
     def enable_action(self):
-        self.device.audit_files = [{'name': '/etc/ssh/sshd_config',
-                                    'issues': {'PermitRootLogin': 'prohibit-password', 'AllowAgentForwarding': 'yes',
-                                               'PasswordAuthentication': 'yes'},
-                                    'sha256': 'abcd', 'last_modified': 1554718384.0}]
+        self.device.audit_files[0]['issues'] = \
+            {self.action_class.sshd_param: self.bad_config[self.action_class.sshd_param]}
         self.device.save(update_fields=['audit_files'])
+
+    def disable_action(self):
+        self.device.audit_files[0]['issues'] = {}
+        self.device.save(update_fields=['audit_files'])
+
+    def test_get(self):
+        for subclass in OpensshIssueAction.subclasses:
+            self.action_class = subclass
+            self.search_pattern_common_page = self.search_pattern_common + self.action_class.sshd_param
+            self.search_pattern_device_page = self.search_pattern_device + self.action_class.sshd_param
+            super().test_get()
+            self.unsnooze_action()
+            self.disable_action()
 
 
 class FtpServerActionTest(BaseActionTest, TestsMixin):

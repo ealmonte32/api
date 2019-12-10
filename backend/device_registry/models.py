@@ -15,7 +15,7 @@ import tagulous.models
 import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
-from .recommended_actions import ActionMeta, INSECURE_SERVICES
+from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO
 
 apt_pkg.init()
 
@@ -73,15 +73,6 @@ class DebPackage(models.Model):
 
     class Meta:
         unique_together = ['name', 'version', 'arch', 'os_release_codename']
-
-
-SSHD_CONFIG_PARAMS_INFO = {
-    'PermitEmptyPasswords': ('no', None),
-    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin'),
-    'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-password-authentication'),
-    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication'),
-    'Protocol': ('2', None)
-}
 
 
 class Device(models.Model):

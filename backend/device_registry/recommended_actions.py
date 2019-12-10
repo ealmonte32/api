@@ -27,6 +27,15 @@ INSECURE_SERVICES = [
 ]
 
 
+SSHD_CONFIG_PARAMS_INFO = {
+    'PermitEmptyPasswords': ('no', None, Severity.HI),
+    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', Severity.MED),
+    'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-password-authentication', Severity.HI),
+    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', Severity.MED),
+    'Protocol': ('2', None, Severity.HI)
+}
+
+
 class Action:
     """
     Action class.
@@ -137,10 +146,6 @@ class ActionMeta(type):
         return meta._action_classes.values()
 
     @classmethod
-    def get_class(meta, id):
-        return meta._action_classes[id]
-
-    @classmethod
     def is_action_id(meta, id):
         return id in meta._action_classes
 
@@ -239,6 +244,7 @@ class VulnerablePackagesAction(ActionMultiDevice, metaclass=ActionMeta):
 class InsecureServicesAction(ActionPerDevice):
     action_title = 'Insecure service found'
     action_id_base = 42
+    subclasses = []
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
@@ -266,34 +272,38 @@ for name, severity in INSECURE_SERVICES:
         severity = severity
         service_name = name
     concrete_action_id += 1
+    InsecureServicesAction.subclasses.append(ConcreteInsecureServicesAction)
 
 
 # OpenSSH configuration issues found action.
-class OpensshConfigurationIssuesAction(ActionPerDevice, metaclass=ActionMeta):
-    action_id = 5
+class OpensshIssueAction(ActionPerDevice):
+    action_id_base = InsecureServicesAction.action_id_base + concrete_action_id
     action_title = 'Insecure configuration for OpenSSH found'
     action_description = \
-        'We found insecure configuration issues with OpenSSH on {devices}. To improve the security posture of your ' \
-        'node, please consider making the following changes:\n\n{changes}'
-    severity = Severity.HI
+        'We found insecure configuration issue with OpenSSH on {devices}: insecure parameter {param_name}. To improve '\
+        'the security posture of your node, please consider making the following change:\n\n{change}'
+    subclasses = []
 
     @classmethod
     def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
-        recommendations = ''
         if devices_qs is not None:
             for device in devices_qs:
-                for issue in device.sshd_issues:
-                    recommendations += f'- Change "**{issue[0]}**" from "**{issue[1]}**" to "' \
-                                       f'**{issue[2][0]}**" on {device_link(device)}.\n'
-                    if issue[2][1]:  # Documentation link available.
-                        recommendations += f' Learn more [here]({issue[2][1]})\n'
+                for param_name, param_value, param_info in device.sshd_issues:
+                    if param_name == cls.sshd_param:
+                        recommendation = f'- Change "**{param_name}**" from "**{param_value}**" to "' \
+                                         f'**{param_info[0]}**" on {device_link(device)}.\n'
+                        if param_info[1]:  # Documentation link available.
+                            recommendation += f' Learn more [here]({param_info[1]})\n'
+                        break
         else:
-            for issue in device.sshd_issues:
-                recommendations += f'- Change "**{issue[0]}**" from "**{issue[1]}**" to "' \
-                                   f'**{issue[2][0]}**".\n'
-                if issue[2][1]:  # Documentation link available.
-                    recommendations += f' Learn more [here]({issue[2][1]})\n'
-        return {'changes': recommendations}
+            for param_name, param_value, param_info in device.sshd_issues:
+                if param_name == cls.sshd_param:
+                    recommendation = f'- Change "**{param_name}**" from "**{param_value}**" to "' \
+                                       f'**{param_info[0]}**".\n'
+                    if param_info[1]:  # Documentation link available.
+                        recommendation = f' Learn more [here]({param_info[1]})\n'
+                    break
+        return dict(change=recommendation, param_name=cls.sshd_param)
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -301,9 +311,19 @@ class OpensshConfigurationIssuesAction(ActionPerDevice, metaclass=ActionMeta):
         dev_ids = []
         devices = super().affected_devices(user, device_pk, exclude_snoozed).exclude(audit_files__in=('', []))
         for dev in devices:
-            if dev.sshd_issues:
+            if any(name == cls.sshd_param for name, value, info in dev.sshd_issues):
                 dev_ids.append(dev.pk)
         return Device.objects.filter(pk__in=dev_ids)
+
+
+concrete_action_id = 0
+for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
+    class ConcreteOpensshIssueAction(OpensshIssueAction, metaclass=ActionMeta):
+        action_id = OpensshIssueAction.action_id_base + concrete_action_id
+        severity = param_info[2]
+        sshd_param = param_name
+    OpensshIssueAction.subclasses.append(ConcreteOpensshIssueAction)
+    concrete_action_id += 1
 
 
 # Automatic security update disabled action.
