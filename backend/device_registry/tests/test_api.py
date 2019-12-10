@@ -1326,7 +1326,7 @@ class SnoozeActionViewTest(APITestCase):
         self.assertEqual(self.device.actions_count, 1)
 
     def test_snooze_forever(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())
         self.assertEqual(self.device.actions_count, 2)
         # 'duration': 0 means "snooze forever"
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
@@ -1340,7 +1340,7 @@ class SnoozeActionViewTest(APITestCase):
         self.assertEqual(self.device.actions_count, 1)
 
     def test_snooze_until_time(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())
         self.assertEqual(self.device.actions_count, 2)
 
         # Snooze for 7 hours
@@ -1360,7 +1360,7 @@ class SnoozeActionViewTest(APITestCase):
         self.assertEqual(self.device.actions_count, 1)
 
     def test_wrong_action_id(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())
         action_id = max([action_class.action_id for action_class in action_classes]) + 1
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
                                                'action_id': action_id,
@@ -1369,10 +1369,10 @@ class SnoozeActionViewTest(APITestCase):
         self.assertDictEqual(response.data, {'action_id': [ErrorDetail(string='Invalid recommended action id',
                                                                        code='invalid')]})
         self.device.refresh_from_db()
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())
 
     def test_wrong_device_id(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())
         response = self.client.post(self.url, {'device_ids': [self.device.pk + 1],
                                                'action_id': self.action_class.action_id,
                                                'duration': None})
@@ -1380,10 +1380,10 @@ class SnoozeActionViewTest(APITestCase):
         self.assertDictEqual(response.data, {'device_ids': [ErrorDetail(string='Invalid device id(s) provided',
                                                                         code='invalid')]})
         self.device.refresh_from_db()
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())
 
     def test_wrong_duration(self):
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
                                                'action_id': self.action_class.action_id,
                                                'duration': -1})
@@ -1391,4 +1391,4 @@ class SnoozeActionViewTest(APITestCase):
         self.assertDictEqual(response.data, {'duration': [
             ErrorDetail(string='Ensure this value is greater than or equal to 0.', code='min_value')]})
         self.device.refresh_from_db()
-        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id), [])
+        self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())

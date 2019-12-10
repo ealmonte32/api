@@ -122,7 +122,7 @@ class SnoozeTest(TestCase):
             self.assertQuerysetEqual(self.TestAction.affected_devices(self.user).values_list('pk', flat=True),
                                      [str(self.device.pk)])
         else:
-            self.assertQuerysetEqual(self.TestAction.affected_devices(self.user), [])
+            self.assertFalse(self.TestAction.affected_devices(self.user).exists())
 
     def test_snooze_forever(self):
         self._assertHasAction(True)
