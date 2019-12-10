@@ -15,7 +15,7 @@ import tagulous.models
 import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
-from .recommended_actions import action_classes
+from .recommended_actions import ActionMeta
 
 apt_pkg.init()
 
@@ -326,7 +326,7 @@ class Device(models.Model):
     def actions_count(self):
         if hasattr(self, 'firewallstate') and hasattr(self, 'portscan'):
             return sum(
-                [action_class.affected_devices(self.owner, self.pk).exists() for action_class in action_classes]
+                [action_class.affected_devices(self.owner, self.pk).exists() for action_class in ActionMeta.all_classes()]
             )
 
     def _get_listening_sockets(self, port):

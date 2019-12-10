@@ -46,12 +46,6 @@ def device_link(device):
     return f'[{device.get_name()}]({url})'
 
 
-# A list for storing all available recommended actions classes for further usage.
-# All newly added classes should be appended to it explicitly after the declaration.
-# Otherwise they'll be inaccessible for the system.
-action_classes = []
-
-
 class BaseAction:
     """
     Common base action class.
@@ -110,6 +104,29 @@ class BaseAction:
         )
 
 
+class ActionMeta(type):
+    _action_classes = {}
+
+    def __new__(meta, name, bases, class_dict):
+        cls = type.__new__(meta, name, bases, class_dict)
+        if cls.action_id in meta._action_classes:
+            raise ValueError('This action_id already exists')
+        meta._action_classes[cls.action_id] = cls
+        return cls
+
+    @classmethod
+    def unregister(meta, cls):
+        del meta._action_classes[cls.action_id]
+
+    @classmethod
+    def all_classes(meta):
+        return meta._action_classes.values()
+
+    @classmethod
+    def is_action_id(meta, id):
+        return id in meta._action_classes
+
+
 class ActionMultiDevice(BaseAction):
     """
     Specific base action class for actions able to store info for *multiple* devices.
@@ -151,11 +168,10 @@ class ActionPerDevice(BaseAction):
 
 
 # Below is the code for real actions classes.
-# Don't forget to explicitly append a newly created action class to `action_classes` list
-# right after its declaration.
+# Don't forget to add metaclass=ActionMeta.
 
 # Default username/password used action.
-class DefaultCredentialsAction(ActionMultiDevice):
+class DefaultCredentialsAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 1
     action_title = 'Default credentials detected'
     action_description = \
@@ -167,11 +183,8 @@ class DefaultCredentialsAction(ActionMultiDevice):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(deviceinfo__default_password=True)
 
 
-action_classes.append(DefaultCredentialsAction)
-
-
 # Firewall disabled action.
-class FirewallDisabledAction(ActionMultiDevice):
+class FirewallDisabledAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 2
     action_title = 'Permissive firewall policy detected'
     action_description = \
@@ -186,11 +199,8 @@ class FirewallDisabledAction(ActionMultiDevice):
             Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
 
 
-action_classes.append(FirewallDisabledAction)
-
-
 # Vulnerable packages found action.
-class VulnerablePackagesAction(ActionMultiDevice):
+class VulnerablePackagesAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 3
     action_title = 'Vulnerable packages found'
     action_description = \
@@ -207,11 +217,8 @@ class VulnerablePackagesAction(ActionMultiDevice):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(deb_packages__vulnerabilities__isnull=False).distinct()
 
 
-action_classes.append(VulnerablePackagesAction)
-
-
 # Insecure services found action.
-class InsecureServicesAction(ActionPerDevice):
+class InsecureServicesAction(ActionPerDevice, metaclass=ActionMeta):
     action_id = 4
     action_title = 'Insecure services found'
     action_description = \
@@ -237,11 +244,8 @@ class InsecureServicesAction(ActionPerDevice):
             deb_packages__name__in=Device.INSECURE_SERVICES).distinct()
 
 
-action_classes.append(InsecureServicesAction)
-
-
 # OpenSSH configuration issues found action.
-class OpensshConfigurationIssuesAction(ActionPerDevice):
+class OpensshConfigurationIssuesAction(ActionPerDevice, metaclass=ActionMeta):
     action_id = 5
     action_title = 'Insecure configuration for OpenSSH found'
     action_description = \
@@ -278,11 +282,8 @@ class OpensshConfigurationIssuesAction(ActionPerDevice):
         return Device.objects.filter(pk__in=dev_ids)
 
 
-action_classes.append(OpensshConfigurationIssuesAction)
-
-
 # Automatic security update disabled action.
-class AutoUpdatesAction(ActionMultiDevice):
+class AutoUpdatesAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 6
     action_title = 'Consider enable automatic security updates'
     action_description = \
@@ -324,11 +325,8 @@ class AutoUpdatesAction(ActionMultiDevice):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(auto_upgrades=False)
 
 
-action_classes.append(AutoUpdatesAction)
-
-
 # FTP listening on port 21 action.
-class FtpServerAction(ActionPerDevice):
+class FtpServerAction(ActionPerDevice, metaclass=ActionMeta):
     action_id = 7
     action_title = 'Consider moving to SFTP'
     action_description = \
@@ -347,11 +345,8 @@ class FtpServerAction(ActionPerDevice):
         return Device.objects.filter(pk__in=dev_ids)
 
 
-action_classes.append(FtpServerAction)
-
-
 # Insecure MongoDB action.
-class MongodbAction(ActionPerDevice):
+class MongodbAction(ActionPerDevice, metaclass=ActionMeta):
     action_id = 8
     action_title = 'Your MongoDB instance may be publicly accessible'
     action_description = \
@@ -369,11 +364,8 @@ class MongodbAction(ActionPerDevice):
         return Device.objects.filter(pk__in=dev_ids)
 
 
-action_classes.append(MongodbAction)
-
-
 # Insecure MySQL/MariaDB action.
-class MysqlAction(ActionPerDevice):
+class MysqlAction(ActionPerDevice, metaclass=ActionMeta):
     action_id = 9
     action_title = 'Your MySQL instance may be publicly accessible'
     action_description = \
@@ -391,11 +383,8 @@ class MysqlAction(ActionPerDevice):
         return Device.objects.filter(pk__in=dev_ids)
 
 
-action_classes.append(MysqlAction)
-
-
 # MySQL root default password action.
-class MySQLDefaultRootPasswordAction(ActionPerDevice):
+class MySQLDefaultRootPasswordAction(ActionPerDevice, metaclass=ActionMeta):
     action_id = 10
     action_title = 'No root password set for the MySQL/MariaDB server'
     action_description = \
@@ -413,11 +402,8 @@ class MySQLDefaultRootPasswordAction(ActionPerDevice):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(mysql_root_access=True)
 
 
-action_classes.append(MySQLDefaultRootPasswordAction)
-
-
 # Insecure Memcached action.
-class MemcachedAction(ActionPerDevice):
+class MemcachedAction(ActionPerDevice, metaclass=ActionMeta):
     action_id = 11
     action_title = 'Your Memcached instance may be publicly accessible'
     action_description = \
@@ -435,10 +421,7 @@ class MemcachedAction(ActionPerDevice):
         return Device.objects.filter(pk__in=dev_ids)
 
 
-action_classes.append(MemcachedAction)
-
-
-class CpuVulnerableAction(ActionPerDevice):
+class CpuVulnerableAction(ActionPerDevice, metaclass=ActionMeta):
     action_id = 12
     action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
     action_description = \
@@ -452,10 +435,3 @@ class CpuVulnerableAction(ActionPerDevice):
         return Device.objects.filter(pk__in=[
             dev.pk for dev in super().affected_devices(user, device_pk, exclude_snoozed) if dev.cpu_vulnerable
         ])
-
-
-action_classes.append(CpuVulnerableAction)
-
-# Check for `action_id` property uniqueness among all action classes.
-if len({action_class.action_id for action_class in action_classes}) < len(action_classes):
-    raise ValueError('`action_classes` contains class(es) with non-unique `action_id` property.')

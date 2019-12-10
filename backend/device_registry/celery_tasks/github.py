@@ -253,7 +253,7 @@ def file_issues():
             logger.exception('failed to get installation token or list issues')
             continue
 
-        for action_class in recommended_actions.action_classes:
+        for action_class in recommended_actions.ActionMeta.all_classes():
             logger.debug(f'action class {action_class.action_id}')
             affected_devices = action_class.affected_devices(profile.user, exclude_snoozed=False)\
                 .filter(last_ping__gte=day_ago)

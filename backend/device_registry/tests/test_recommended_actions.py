@@ -10,7 +10,7 @@ from device_registry.recommended_actions import DefaultCredentialsAction, Firewa
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
     InsecureServicesAction, OpensshConfigurationIssuesAction, \
     FtpServerAction, MongodbAction, MysqlAction, MemcachedAction, \
-    CpuVulnerableAction, BaseAction
+    CpuVulnerableAction, BaseAction, ActionMeta
 
 from freezegun import freeze_time
 
@@ -94,21 +94,22 @@ class SnoozeTest(TestCase):
     Test snoozing functionality implemented in Device and RecommendedAction models only.
     setUpClass() and tearDownClass() were overloaded to register and unregister TestAction only once.
     """
-    class TestAction(BaseAction):
-        """
-        A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
-        """
-        action_id = 9999
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        recommended_actions.action_classes.append(cls.TestAction)
+
+        class TestAction(BaseAction, metaclass=ActionMeta):
+            """
+            A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
+            """
+            action_id = 9999
+        cls.TestAction = TestAction
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        recommended_actions.action_classes.remove(cls.TestAction)
+        ActionMeta.unregister(cls.TestAction)
 
     def setUp(self):
         User = get_user_model()
@@ -175,14 +176,14 @@ class BaseActionTest(TestCase):
         self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
 
     def get_search_string(self):
-        return self.search_pattern_common_page % (self.device_page_url, self.device.get_name())
+        return self.search_pattern_common_page.format(url=self.device_page_url, name=self.device.get_name())
 
     def snooze_action(self):
         self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.FOREVER)
 
 
 class DefaultCredentialsActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found default credentials present on <a href="%s">%s</a>'
+    search_pattern_common_page = 'We found default credentials present on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'We found default credentials present on this node'
     action_class = DefaultCredentialsAction
 
@@ -192,7 +193,7 @@ class DefaultCredentialsActionTest(BaseActionTest, TestsMixin):
 
 
 class FirewallDisabledActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found permissive firewall policy present on <a href="%s">%s</a>'
+    search_pattern_common_page = 'We found permissive firewall policy present on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'We found permissive firewall policy present on this node'
     action_class = FirewallDisabledAction
 
@@ -214,7 +215,7 @@ class FirewallPolicyActionTest(FirewallDisabledActionTest):
 
 
 class VulnerablePackagesActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found vulnerable packages on <a href="%s">%s</a>'
+    search_pattern_common_page = 'We found vulnerable packages on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'We found vulnerable packages on this node'
     action_class = VulnerablePackagesAction
 
@@ -230,7 +231,7 @@ class VulnerablePackagesActionTest(BaseActionTest, TestsMixin):
 
 
 class AutoUpdatesActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found that your node <a href="%s">%s</a> is not configured to automatically ' \
+    search_pattern_common_page = 'We found that your node <a href="{url}">{name}</a> is not configured to automatically ' \
                                  'install security updates'
     search_pattern_device_page = 'We found that this node is not configured to automatically install security updates'
     action_class = AutoUpdatesAction
@@ -242,7 +243,7 @@ class AutoUpdatesActionTest(BaseActionTest, TestsMixin):
 
 class MySQLDefaultRootPasswordActionTest(BaseActionTest, TestsMixin):
     search_pattern_common_page = 'We detected that there is no root password set for MySQL/MariaDB on ' \
-                                 '<a href="%s">%s</a>'
+                                 '<a href="{url}">{name}</a>'
     search_pattern_device_page = 'We detected that there is no root password set for MySQL/MariaDB on this node'
     action_class = MySQLDefaultRootPasswordAction
 
@@ -252,7 +253,7 @@ class MySQLDefaultRootPasswordActionTest(BaseActionTest, TestsMixin):
 
 
 class InsecureServicesActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found insecure services installed on <a href="%s">%s</a>'
+    search_pattern_common_page = 'We found insecure services installed on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'We found insecure services installed on this node'
     action_class = InsecureServicesAction
 
@@ -265,7 +266,7 @@ class InsecureServicesActionTest(BaseActionTest, TestsMixin):
 
 
 class OpensshConfigurationIssuesActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We found insecure configuration issues with OpenSSH on <a href="%s">%s</a>'
+    search_pattern_common_page = 'We found insecure configuration issues with OpenSSH on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'We found insecure configuration issues with OpenSSH on this node'
     action_class = OpensshConfigurationIssuesAction
 
@@ -278,7 +279,7 @@ class OpensshConfigurationIssuesActionTest(BaseActionTest, TestsMixin):
 
 
 class FtpServerActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'There appears to be an FTP server running on <a href="%s">%s</a>'
+    search_pattern_common_page = 'There appears to be an FTP server running on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'There appears to be an FTP server running on this node'
     action_class = FtpServerAction
 
@@ -290,7 +291,7 @@ class FtpServerActionTest(BaseActionTest, TestsMixin):
 
 
 class MongodbActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We detected that a MongoDB instance on <a href="%s">%s</a> may be accessible ' \
+    search_pattern_common_page = 'We detected that a MongoDB instance on <a href="{url}">{name}</a> may be accessible ' \
                                  'remotely'
     search_pattern_device_page = 'We detected that a MongoDB instance on this node may be accessible remotely'
     action_class = MongodbAction
@@ -305,7 +306,7 @@ class MongodbActionTest(BaseActionTest, TestsMixin):
 
 
 class MysqlActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We detected that a MySQL instance on <a href="%s">%s</a> may be accessible remotely'
+    search_pattern_common_page = 'We detected that a MySQL instance on <a href="{url}">{name}</a> may be accessible remotely'
     search_pattern_device_page = 'We detected that a MySQL instance on this node may be accessible remotely'
     action_class = MysqlAction
 
@@ -319,7 +320,7 @@ class MysqlActionTest(BaseActionTest, TestsMixin):
 
 
 class MemcachedActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We detected that a Memcached instance on <a href="%s">%s</a> may be accessible ' \
+    search_pattern_common_page = 'We detected that a Memcached instance on <a href="{url}">{name}</a> may be accessible ' \
                                  'remotely'
     search_pattern_device_page = 'We detected that a Memcached instance on this node may be accessible remotely'
     action_class = MemcachedAction
@@ -334,7 +335,7 @@ class MemcachedActionTest(BaseActionTest, TestsMixin):
 
 
 class CpuVulnerableActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We detected that <a href="%s">%s</a> is vulnerable to Meltdown/Spectre'
+    search_pattern_common_page = 'We detected that <a href="{url}">{name}</a> is vulnerable to Meltdown/Spectre'
     search_pattern_device_page = 'We detected that this node is vulnerable to Meltdown/Spectre'
     action_class = CpuVulnerableAction
 
