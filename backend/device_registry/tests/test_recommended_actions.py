@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -141,7 +139,7 @@ class SnoozeTest(TestCase):
     def test_snooze_interval(self):
         self._assertHasAction(True)
 
-        with freeze_time(timezone.now() - timedelta(hours=23)):
+        with freeze_time(timezone.now() - timezone.timedelta(hours=23)):
             # 23 hours ago this action had been snoozed for 24 hours
             self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.UNTIL_TIME, 24)
 
@@ -149,7 +147,7 @@ class SnoozeTest(TestCase):
         self._assertHasAction(False)
 
         # ... but in an hour from now it won't be snoozed anymore
-        with freeze_time(timezone.now() + timedelta(hours=1)):
+        with freeze_time(timezone.now() + timezone.timedelta(hours=1)):
             self._assertHasAction(True)
 
 
