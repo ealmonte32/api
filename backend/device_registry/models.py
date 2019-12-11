@@ -201,10 +201,7 @@ class Device(models.Model):
         if self.audit_files:
             for file_info in self.audit_files:
                 if 'sshd' in file_info['name']:
-                    issues = []
-                    for k, v in file_info['issues'].items():
-                        issues.append((k, v, SSHD_CONFIG_PARAMS_INFO[k]))
-                    return issues
+                    return {k: (v, SSHD_CONFIG_PARAMS_INFO[k]) for k, v in file_info['issues'].items()}
 
     @property
     def certificate_expired(self):

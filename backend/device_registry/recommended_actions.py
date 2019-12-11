@@ -95,7 +95,7 @@ class BaseAction:
         return devices
 
     @classmethod
-    def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
+    def get_action_description_context(cls, devices_qs, device_pk=None):
         """
         Method for producing a tuple of values used (as string formatting parameters)
          for action description text rendering.
@@ -170,26 +170,6 @@ class ActionMultiDevice(BaseAction):
         return int(cls.affected_devices(user).exists())
 
 
-class ActionPerDevice(BaseAction):
-    """
-    Specific base action class for actions able to store info for only *single* device.
-    """
-
-    @classmethod
-    def actions(cls, user, device_pk=None):
-        actions_list = []
-        devices = cls.affected_devices(user, device_pk)
-        for dev in devices:
-            context = cls.get_action_description_context(device=dev, device_pk=device_pk)
-            context['devices'] = device_link(dev) if device_pk is None else 'this node'
-            actions_list.append(cls._create_action(user.profile, context, [dev.pk]))
-        return actions_list
-
-    @classmethod
-    def action_blocks_count(cls, user):
-        return cls.affected_devices(user).count()
-
-
 # Below is the code for real actions classes.
 # Don't forget to add metaclass=ActionMeta.
 
@@ -241,19 +221,14 @@ class VulnerablePackagesAction(ActionMultiDevice, metaclass=ActionMeta):
 
 
 # Insecure services found action.
-class InsecureServicesAction(ActionPerDevice):
+class InsecureServicesAction(ActionMultiDevice):
     action_title = 'Insecure service found'
     action_id_base = 42
     subclasses = []
 
     @classmethod
-    def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
-        if devices_qs is not None:
-            services = devices_qs.filter(deb_packages__name=cls.service_name)
-        else:
-            services = device.insecure_services
-        services_str = ' '.join(services.values_list('name', flat=True))
-        return {'service': services_str}
+    def get_action_description_context(cls, devices_qs, device_pk=None):
+        return {'service': cls.service_name}
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -276,7 +251,7 @@ for name, severity in INSECURE_SERVICES:
 
 
 # OpenSSH configuration issues found action.
-class OpensshIssueAction(ActionPerDevice):
+class OpensshIssueAction(ActionMultiDevice):
     action_id_base = InsecureServicesAction.action_id_base + concrete_action_id
     action_title = 'Insecure configuration for OpenSSH found'
     action_description = \
@@ -285,24 +260,15 @@ class OpensshIssueAction(ActionPerDevice):
     subclasses = []
 
     @classmethod
-    def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
-        if devices_qs is not None:
-            for device in devices_qs:
-                for param_name, param_value, param_info in device.sshd_issues:
-                    if param_name == cls.sshd_param:
-                        recommendation = f'- Change "**{param_name}**" from "**{param_value}**" to "' \
-                                         f'**{param_info[0]}**" on {device_link(device)}.\n'
-                        if param_info[1]:  # Documentation link available.
-                            recommendation += f' Learn more [here]({param_info[1]})\n'
-                        break
-        else:
-            for param_name, param_value, param_info in device.sshd_issues:
-                if param_name == cls.sshd_param:
-                    recommendation = f'- Change "**{param_name}**" from "**{param_value}**" to "' \
-                                       f'**{param_info[0]}**".\n'
-                    if param_info[1]:  # Documentation link available.
-                        recommendation = f' Learn more [here]({param_info[1]})\n'
-                    break
+    def get_action_description_context(cls, devices_qs, device_pk=None):
+        for device in devices_qs:
+            if cls.sshd_param in device.sshd_issues:
+                param_value, param_info = device.sshd_issues[cls.sshd_param]
+                recommendation = f'- Change "**{cls.sshd_param}**" from "**{param_value}**" to "' \
+                                 f'**{param_info[0]}**" on {device_link(device)}.\n'
+                if param_info[1]:  # Documentation link available.
+                    recommendation += f' Learn more [here]({param_info[1]})\n'
+                break
         return dict(change=recommendation, param_name=cls.sshd_param)
 
     @classmethod
@@ -311,7 +277,7 @@ class OpensshIssueAction(ActionPerDevice):
         dev_ids = []
         devices = super().affected_devices(user, device_pk, exclude_snoozed).exclude(audit_files__in=('', []))
         for dev in devices:
-            if any(name == cls.sshd_param for name, value, info in dev.sshd_issues):
+            if cls.sshd_param in dev.sshd_issues:
                 dev_ids.append(dev.pk)
         return Device.objects.filter(pk__in=dev_ids)
 
@@ -350,7 +316,7 @@ class AutoUpdatesAction(ActionMultiDevice, metaclass=ActionMeta):
                 return debian_url
 
     @classmethod
-    def get_action_description_context(cls, device=None, devices_qs=None, device_pk=None):
+    def get_action_description_context(cls, devices_qs, device_pk=None):
         if device_pk is None:
             if devices_qs.count() > 1:
                 subject, verb = 'your nodes ', 'are'
@@ -370,7 +336,7 @@ class AutoUpdatesAction(ActionMultiDevice, metaclass=ActionMeta):
 
 
 # FTP listening on port 21 action.
-class FtpServerAction(ActionPerDevice, metaclass=ActionMeta):
+class FtpServerAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 7
     action_title = 'Consider moving to SFTP'
     action_description = \
@@ -390,7 +356,7 @@ class FtpServerAction(ActionPerDevice, metaclass=ActionMeta):
 
 
 # Insecure MongoDB action.
-class MongodbAction(ActionPerDevice, metaclass=ActionMeta):
+class MongodbAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 8
     action_title = 'Your MongoDB instance may be publicly accessible'
     action_description = \
@@ -409,7 +375,7 @@ class MongodbAction(ActionPerDevice, metaclass=ActionMeta):
 
 
 # Insecure MySQL/MariaDB action.
-class MysqlAction(ActionPerDevice, metaclass=ActionMeta):
+class MysqlAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 9
     action_title = 'Your MySQL instance may be publicly accessible'
     action_description = \
@@ -428,7 +394,7 @@ class MysqlAction(ActionPerDevice, metaclass=ActionMeta):
 
 
 # MySQL root default password action.
-class MySQLDefaultRootPasswordAction(ActionPerDevice, metaclass=ActionMeta):
+class MySQLDefaultRootPasswordAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 10
     action_title = 'No root password set for the MySQL/MariaDB server'
     action_description = \
@@ -447,7 +413,7 @@ class MySQLDefaultRootPasswordAction(ActionPerDevice, metaclass=ActionMeta):
 
 
 # Insecure Memcached action.
-class MemcachedAction(ActionPerDevice, metaclass=ActionMeta):
+class MemcachedAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 11
     action_title = 'Your Memcached instance may be publicly accessible'
     action_description = \
@@ -465,7 +431,7 @@ class MemcachedAction(ActionPerDevice, metaclass=ActionMeta):
         return Device.objects.filter(pk__in=dev_ids)
 
 
-class CpuVulnerableAction(ActionPerDevice, metaclass=ActionMeta):
+class CpuVulnerableAction(ActionMultiDevice, metaclass=ActionMeta):
     action_id = 12
     action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
     action_description = \
