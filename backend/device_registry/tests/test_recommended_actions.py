@@ -10,7 +10,7 @@ from device_registry.recommended_actions import DefaultCredentialsAction, Firewa
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
     InsecureServicesAction, OpensshIssueAction, \
     FtpServerAction, MongodbAction, MysqlAction, MemcachedAction, \
-    CpuVulnerableAction, BaseAction, ActionMeta
+    CpuVulnerableAction, BaseAction, ActionMeta, Action
 
 from freezegun import freeze_time
 
@@ -45,48 +45,6 @@ class NoDevicesActionTest(TestCase):
         response = self.client.get(common_actions_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, search_string)
-
-
-class TestsMixin:
-    """
-    A mixin with actual unified tests code.
-
-    The reason of putting them in a separate mixin out of the base test class -
-     is that otherwise the Django test runner considers the base test class as
-     a regular test class and run its tests which isn't what we want from it.
-    """
-
-    def test_get(self):
-        search_string_common_page = self.get_search_string()
-
-        # No action at the beginning.
-        self.assertEqual(self.device.actions_count, 0)
-        response = self.client.get(self.common_actions_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, search_string_common_page)
-        response = self.client.get(self.device_actions_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, self.search_pattern_device_page)
-
-        # Enable the action.
-        self.enable_action()
-        self.assertEqual(self.device.actions_count, 1)
-        response = self.client.get(self.common_actions_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, search_string_common_page)
-        response = self.client.get(self.device_actions_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.search_pattern_device_page)
-
-        # Snooze the action.
-        self.snooze_action()
-        self.assertEqual(self.device.actions_count, 0)
-        response = self.client.get(self.common_actions_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, search_string_common_page)
-        response = self.client.get(self.device_actions_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, self.search_pattern_device_page)
 
 
 class SnoozeTest(TestCase):
@@ -152,13 +110,47 @@ class SnoozeTest(TestCase):
             self._assertHasAction(True)
 
 
-class BaseActionTest(TestCase):
+class TestsMixin:
     """
-    Base action test class.
+    A mixin with actual unified tests code.
 
-    Doesn't supposed to be exectuted by the Django test runner because it
-     doesn't contain real tests code.
+    The reason of putting them in a separate mixin out of the base test class -
+     is that otherwise the Django test runner considers the base test class as
+     a regular test class and run its tests which isn't what we want from it.
     """
+
+    def assertOneAction(self, url):
+        self.assertEqual(self.device.actions_count, 1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['actions']), 1)
+        return response.context['actions'][0]
+
+    def assertNoAction(self, url):
+        self.assertEqual(self.device.actions_count, 0)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['actions']), 0)
+
+    def test_get(self):
+        search_string_common_page = self.get_search_string()
+
+        # No action at the beginning.
+        self.assertNoAction(self.common_actions_url)
+        self.assertNoAction(self.device_actions_url)
+
+        # Enable the action.
+        self.enable_action()
+        self.check_action(self.assertOneAction(self.common_actions_url), search_string_common_page)
+        self.check_action(self.assertOneAction(self.device_actions_url), self.search_pattern_device_page)
+
+        # Snooze the action.
+        self.snooze_action()
+        self.assertNoAction(self.common_actions_url)
+        self.assertNoAction(self.device_actions_url)
+
+    def check_action(self, action: Action, text):
+        self.assertIn(text, action.description)
 
     def setUp(self):
         User = get_user_model()
@@ -185,7 +177,7 @@ class BaseActionTest(TestCase):
         self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
 
 
-class DefaultCredentialsActionTest(BaseActionTest, TestsMixin):
+class DefaultCredentialsActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We found default credentials present on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'We found default credentials present on this node'
     action_class = DefaultCredentialsAction
@@ -195,7 +187,7 @@ class DefaultCredentialsActionTest(BaseActionTest, TestsMixin):
         self.device.deviceinfo.save(update_fields=['default_password'])
 
 
-class FirewallDisabledActionTest(BaseActionTest, TestsMixin):
+class FirewallDisabledActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We found permissive firewall policy present on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'We found permissive firewall policy present on this node'
     action_class = FirewallDisabledAction
@@ -217,7 +209,7 @@ class FirewallPolicyActionTest(FirewallDisabledActionTest):
         self.policy.save()
 
 
-class VulnerablePackagesActionTest(BaseActionTest, TestsMixin):
+class VulnerablePackagesActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We found vulnerable packages on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'We found vulnerable packages on this node'
     action_class = VulnerablePackagesAction
@@ -233,7 +225,7 @@ class VulnerablePackagesActionTest(BaseActionTest, TestsMixin):
         self.device.deb_packages.add(deb_package)
 
 
-class AutoUpdatesActionTest(BaseActionTest, TestsMixin):
+class AutoUpdatesActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We found that your node <a href="{url}">{name}</a> is not configured to automatically ' \
                                  'install security updates'
     search_pattern_device_page = 'We found that this node is not configured to automatically install security updates'
@@ -244,7 +236,7 @@ class AutoUpdatesActionTest(BaseActionTest, TestsMixin):
         self.device.save(update_fields=['auto_upgrades'])
 
 
-class MySQLDefaultRootPasswordActionTest(BaseActionTest, TestsMixin):
+class MySQLDefaultRootPasswordActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We detected that there is no root password set for MySQL/MariaDB on ' \
                                  '<a href="{url}">{name}</a>'
     search_pattern_device_page = 'We detected that there is no root password set for MySQL/MariaDB on this node'
@@ -255,7 +247,7 @@ class MySQLDefaultRootPasswordActionTest(BaseActionTest, TestsMixin):
         self.device.save(update_fields=['mysql_root_access'])
 
 
-class InsecureServicesActionTest(BaseActionTest, TestsMixin):
+class InsecureServicesActionTest(TestsMixin, TestCase):
     def enable_action(self):
         self.device.deb_packages_hash = 'abcd'
         self.device.save(update_fields=['deb_packages_hash'])
@@ -277,7 +269,7 @@ class InsecureServicesActionTest(BaseActionTest, TestsMixin):
             self.disable_action()
 
 
-class OpensshIssueActionTest(BaseActionTest, TestsMixin):
+class OpensshIssueActionTest(TestsMixin, TestCase):
     search_pattern_common = 'We found insecure configuration issue with OpenSSH on <a href="{url}">{name}</a>: ' \
                             'insecure parameter '
     search_pattern_device = 'We found insecure configuration issue with OpenSSH on this node: ' \
@@ -313,7 +305,7 @@ class OpensshIssueActionTest(BaseActionTest, TestsMixin):
             self.disable_action()
 
 
-class FtpServerActionTest(BaseActionTest, TestsMixin):
+class FtpServerActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'There appears to be an FTP server running on <a href="{url}">{name}</a>'
     search_pattern_device_page = 'There appears to be an FTP server running on this node'
     action_class = FtpServerAction
@@ -325,9 +317,9 @@ class FtpServerActionTest(BaseActionTest, TestsMixin):
         self.device.portscan.save(update_fields=['scan_info'])
 
 
-class MongodbActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We detected that a MongoDB instance on <a href="{url}">{name}</a> may be accessible ' \
-                                 'remotely'
+class MongodbActionTest(TestsMixin, TestCase):
+    search_pattern_common_page = 'We detected that a MongoDB instance on <a href="{url}">{name}</a> may be ' \
+                                 'accessible remotely'
     search_pattern_device_page = 'We detected that a MongoDB instance on this node may be accessible remotely'
     action_class = MongodbAction
 
@@ -340,8 +332,9 @@ class MongodbActionTest(BaseActionTest, TestsMixin):
         self.device.portscan.save(update_fields=['scan_info'])
 
 
-class MysqlActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We detected that a MySQL instance on <a href="{url}">{name}</a> may be accessible remotely'
+class MysqlActionTest(TestsMixin, TestCase):
+    search_pattern_common_page = 'We detected that a MySQL instance on <a href="{url}">{name}</a> may be ' \
+                                 'accessible remotely'
     search_pattern_device_page = 'We detected that a MySQL instance on this node may be accessible remotely'
     action_class = MysqlAction
 
@@ -354,9 +347,9 @@ class MysqlActionTest(BaseActionTest, TestsMixin):
         self.device.portscan.save(update_fields=['scan_info'])
 
 
-class MemcachedActionTest(BaseActionTest, TestsMixin):
-    search_pattern_common_page = 'We detected that a Memcached instance on <a href="{url}">{name}</a> may be accessible ' \
-                                 'remotely'
+class MemcachedActionTest(TestsMixin, TestCase):
+    search_pattern_common_page = 'We detected that a Memcached instance on <a href="{url}">{name}</a> may be ' \
+                                 'accessible remotely'
     search_pattern_device_page = 'We detected that a Memcached instance on this node may be accessible remotely'
     action_class = MemcachedAction
 
@@ -369,7 +362,7 @@ class MemcachedActionTest(BaseActionTest, TestsMixin):
         self.device.portscan.save(update_fields=['scan_info'])
 
 
-class CpuVulnerableActionTest(BaseActionTest, TestsMixin):
+class CpuVulnerableActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We detected that <a href="{url}">{name}</a> is vulnerable to Meltdown/Spectre'
     search_pattern_device_page = 'We detected that this node is vulnerable to Meltdown/Spectre'
     action_class = CpuVulnerableAction
