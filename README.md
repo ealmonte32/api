@@ -3,6 +3,12 @@
 
 ## Development server
 
+On the first run, run:
+```
+$ docker network create wott
+```
+
+Then:
 ```
 $ docker-compose build
 $ docker-compose up
