@@ -4,7 +4,6 @@
 {% load static %}
 
 {% load bootstrap4 %}
-{% load widget_tweaks %}
 
 {% block title %}WoTT - {% trans "Register for an account" %}{% endblock %}
 
@@ -15,44 +14,141 @@
         <img id="server-image-content" src="{% static 'media/server.svg' %}" alt="server"/>
       </div>
       <div class="container h-100">
-    
         <div id="register-head" class="d-flex bg-white">
           <h1 id="register-title">Register</h1>
           <picture class="d-flex align-items-center align-items-end">
             <a href="/"><img src="{% static '/media/logo.svg' %}" alt="Wott Log"/></a>
-          </picture> 
+          </picture>
         </div>
-
         <div class="p-0 mb-0 position-relative">
           <form id="register-form" class="position-relative" method="post" action="">
+            {% bootstrap_form_errors form type='non_fields' %}
             {% csrf_token %}
-            
-            <div class="input-fields-box d-flex">
-              <div class="box-left pb-2">
-                {% include "form_field.html" with field=form.email asterisk=True %}
-                {% include "form_field.html" with field=form.password1 asterisk=True %}
-                {% include "form_field.html" with field=form.password2 asterisk=True %}
-                {% include "form_field.html" with field=form.payment_plan %}
-                <h5 id="required-text" class="wott-blue position-absolute">* Required</h5>
-              </div>
-              
-              <div class="box-right pb-2">
-                {% include "form_field.html" with field=form.first_name %}
-                {% include "form_field.html" with field=form.last_name %}
-                {% include "form_field.html" with field=form.company %}
-                {% include "form_field.html" with field=form.phone %}
-              </div>
+            <input type="hidden" value=1 id="remembered-nodes-number">
+            {% bootstrap_field form.email %}
+            {% bootstrap_field form.password1 %}
+            {% bootstrap_field form.password2 %}
+            {% bootstrap_field form.first_name %}
+            {% bootstrap_field form.last_name %}
+            {% bootstrap_field form.company %}
+            {% bootstrap_field form.phone %}
+            {% bootstrap_field form.payment_plan %}
+            {% bootstrap_field form.total_sum form_group_class="free-hidden form-group d-none" %}
+            {% bootstrap_field form.nodes_number form_group_class="free-hidden form-group d-none" %}
+            {% bootstrap_field form.payment_method_id %}
+            <div class="free-hidden form-group d-none">
+              <label for="id_card_element">Credit or debit card</label>
+              <div id="id_card_element"></div>
+              <div id="id_card_errors" role="alert" style="color:red;"></div>
             </div>
-            
-            <div class="form-group box-bottom text-center mb-0 pt-3 pb-4">
-              {% buttons %}
-              <button type="submit" class="wott-btn btn-wott-primary w-25">{% trans 'Get Started' %}</button>
-              {% endbuttons %}
-            </div>
+            {% buttons %}
+              <button type="submit" class="btn btn-lg btn-primary">Submit</button>
+            {% endbuttons %}
           </form>
         </div>
       </div>
-        
     </main>
   </div>
 {% endblock content %}
+
+{% block js %}
+  {{ block.super }}
+  <script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script>
+      let handle_stripe_submission = false;
+      let price_per_node = $('#id_total_sum').val();
+
+      // Show hidden section after page reload (due failed form validation by Django) if it's needed.
+      if ($('#id_payment_plan').val() !== '1') {
+          $('.free-hidden').removeClass('d-none');
+          handle_stripe_submission = true;
+      }
+      // Show/hide paid tier related fields.
+      $('#id_payment_plan').change(function () {
+          if ($('#id_payment_plan').val() === '1') {
+              // Credit card info gets hidden
+              $('.free-hidden').addClass('d-none');
+              $('#remembered-nodes-number').val($('#id_nodes_number').val());
+              $('#id_nodes_number').val(1);
+              handle_stripe_submission = false;
+          } else {
+              // Credit card info gets shown
+              $('#id_nodes_number').val($('#remembered-nodes-number').val());
+              $('.free-hidden').removeClass('d-none');
+              handle_stripe_submission = true;
+          }
+      });
+
+      // Update the total sum field value.
+      $('#id_nodes_number').change(function () {
+          //alert($(this).val());
+          $('#id_total_sum').val($(this).val() * price_per_node);
+      });
+
+      // Stripe related stuff.
+      let form = document.getElementById('register-form');
+      let errorElement = document.getElementById('id_card_errors');
+      // Create a Stripe client.
+      let stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+
+      // Create an instance of Elements.
+      let elements = stripe.elements();
+
+      const style = {
+          base: {
+              color: '#32325d',
+              fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+              fontSmoothing: 'antialiased',
+              fontSize: '16px',
+              '::placeholder': {
+                  color: '#aab7c4'
+              }
+          },
+          invalid: {
+              color: '#fa755a',
+              iconColor: '#fa755a'
+          }
+      };
+
+      // Create an instance of the card Element.
+      let card = elements.create('card', {style: style});
+
+      // Add an instance of the card Element into the `id_card_element` <div>.
+      card.mount('#id_card_element');
+
+
+      // Handle real-time validation errors from the card Element.
+      card.on('change', (event) => {
+          if (event.error) {
+              errorElement.textContent = event.error.message;
+          } else {
+              errorElement.textContent = '';
+          }
+      });
+
+      // Handle form submission.
+      $(form).on('submit', (event) => {
+          if (handle_stripe_submission) {
+              event.preventDefault();
+              stripe.createPaymentMethod({
+                  type: 'card', card: card, billing_details: {email: $('#id_email').val()}
+              }).then(function (result) {
+                  if (result.error) {
+                      // Inform the user if there was an error.
+                      errorElement.textContent = result.error.message;
+                  } else {
+                      // Save Stripe payment id to the hidden field.
+                      var hiddenInput = form.elements["payment_method_id"];
+                      hiddenInput.setAttribute('value', result.paymentMethod.id);
+                      // Submit the form.
+                      form.submit();
+                  }
+              });
+          }
+      });
+  </script>
+{% endblock %}

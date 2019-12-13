@@ -4,15 +4,18 @@
 {% block profile_content %}
   <div class="inner-profile-tab">
     {% if user.auth_token %}
-    <h2 class="mb-4 font-weight-bold py-2 api-title">Revoke your API Token</h2>
-    <div class=" wott-alert-full wott-rounded-lg py-3 px-4">
-      <h4 class="mb-3 font-weight-bolder px-0">Your API token is:</h4>
-      <div><b><samp id="token-code">{{ user.auth_token }}</samp></b></div>
-    </div>
-    <a href="{% url 'revoke_api_token' %}" class="btn btn-danger wott-btn d-flex justify-content-center align-items-center mt-4">Revoke token</a>
+      <h2 class="mb-4 font-weight-bold py-2 api-title">Revoke your API Token</h2>
+      <div class=" wott-alert-full wott-rounded-lg py-3 px-4">
+        <h4 class="mb-3 font-weight-bolder px-0">Your API token is:</h4>
+        <div><b><samp id="token-code">{{ user.auth_token }}</samp></b></div>
+      </div>
+      <a href="{% url 'revoke_api_token' %}"
+         class="btn btn-danger wott-btn d-flex justify-content-center align-items-center mt-4">Revoke token</a>
     {% else %}
       <h2 class="mb-4 api-title font-weight-bold py-2">Generate your API Token</h2>
-      <a href="{% url 'generate_api_token' %}" class="btn wott-btn btn-wott-primary d-flex justify-content-center align-items-center py-3 px-3">Generate token</a>
+      <a href="{% url 'generate_api_token' %}"
+         class="btn wott-btn btn-wott-primary d-flex justify-content-center align-items-center py-3 px-3">Generate
+        token</a>
     {% endif %}
   </div>
 {% endblock %}

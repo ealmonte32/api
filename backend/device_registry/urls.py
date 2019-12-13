@@ -105,7 +105,7 @@ if settings.IS_DASH or settings.IS_CELERY:
         path('ajax-policies/<int:pk>/device-nr/', api_views.PolicyDeviceNumberView.as_view(),
              name='ajax_policy_device_nr'),
         path('actions/', views.RecommendedActionsView.as_view(), name='actions'),
-        path('devices/<int:device_pk>/actions/', views.RecommendedActionsView.as_view(), name='device_actions'),
+        path('devices/<int:pk>/actions/', views.RecommendedActionsView.as_view(), name='device_actions'),
         path('cve/', views.CVEView.as_view(), name='cve'),
         path('devices/<int:device_pk>/cve/', views.CVEView.as_view(), name='device_cve'),
         path('ajax/tags/autocomplete/', api_views.autocomplete_tags, name='ajax-tags-autocomplete'),

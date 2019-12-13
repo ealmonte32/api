@@ -13,7 +13,6 @@
 
 {% block admin_content %}
   <div class="container-fluid">
-
     <div id="inner-settings" class="row wott-box-shadow">
       <div id="settings-nav" class="card mb-0 border-0 h-auto w-25 pr-0">
         <div class="border-0 bg-white py-3 wott-border-radius-lg">
@@ -22,10 +21,9 @@
           {% include "menu_item.html" with tab=tab_api_token url='profile_token' image='/media/api.svg' image_selected='/media/api-selected.svg' label="API Token" %}
           {% include "menu_item.html" with tab=tab_github_integration url='github_integration' image='/media/github.svg' image_selected='/media/github-selected.svg' label="GitHub Integration" beta_badge=True %}
           {% include "menu_item.html" with tab=tab_slack_integration url='slack_integration' image='/media/slack.svg' image_selected='/media/slack-selected.svg' label="Slack Integration"%}
-          {% include "menu_item.html" with tab=tab_payment_plan url='payment_plan' image='/media/payment.svg' image_selected='/media/payment-selected.svg' label="Payment Plan" %}
+          {% include "menu_item.html" with tab=tab_payment_plan url='payment_plan' image='/media/payment.svg' image_selected='/media/payment-selected.svg' label="Billing" %}
         </div>
       </div>
-
       <div class="w-75 py-0">
         <div class="tab-content">
           <div class="tab-pane fade show active" id="account" role="tabpanel">
@@ -35,6 +33,5 @@
         </div>
       </div>
     </div>
-
   </div>
 {% endblock %}

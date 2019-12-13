@@ -6,10 +6,9 @@ from django.utils import timezone
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
     GlobalPolicy, RecommendedAction
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
-    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
-    InsecureServicesGroupAction, OpensshIssueGroupAction, FtpServerAction, \
-    CpuVulnerableAction, BaseAction, ActionMeta, Action, PubliclyAccessibleServiceGroupAction, \
-    PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction
+    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, InsecureServicesGroupAction, OpensshIssueGroupAction, \
+    FtpServerAction, CpuVulnerableAction, BaseAction, ActionMeta, Action, PubliclyAccessibleServiceGroupAction, \
+    GithubAction, EnrollAction
 
 from freezegun import freeze_time
 
@@ -58,7 +57,7 @@ class GithubActionTest(TestCase):
 
         # The user has one device - no "Enroll your nodes" RA.
         device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=user)
-        device_actions_url = reverse('device_actions', kwargs={'device_pk': device.pk})
+        device_actions_url = reverse('device_actions', kwargs={'pk': device.pk})
 
         # Github integration is not set up - RA is shown at the common actions page.
         response = self.client.get(common_actions_url)
@@ -290,7 +289,7 @@ class SnoozeTest(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
+        Profile.objects.create(user=self.user, github_repo_id=1234, github_oauth_token='abcd')
         self.client.login(username='test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.device.generate_recommended_actions()
@@ -319,7 +318,7 @@ class SnoozeTest(TestCase):
         self._assertHasAction(True)
         self.snooze_action(None)
         self._assertHasAction(False, False)  # Don't generate RAs -> will stay "fixed"
-        self._assertHasAction(True, True)    # Generate RAs -> will be "unfixed" again
+        self._assertHasAction(True, True)  # Generate RAs -> will be "unfixed" again
 
     def test_snooze_interval(self):
         self._assertHasAction(True)
@@ -352,6 +351,7 @@ class TestsMixin:
      is that otherwise the Django test runner considers the base test class as
      a regular test class and run its tests which isn't what we want from it.
     """
+
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test')
@@ -363,10 +363,10 @@ class TestsMixin:
         PortScan.objects.create(device=self.device)
         DeviceInfo.objects.create(device=self.device, default_password=False)
         self.client.login(username='test', password='123')
-        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
+        Profile.objects.create(user=self.user, github_repo_id=1234, github_oauth_token='abcd')
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
-        self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
+        self.device_actions_url = reverse('device_actions', kwargs={'pk': self.device.pk})
 
     def assertOneAction(self, url):
         self.assertEqual(self.device.actions_count, 1)
@@ -437,7 +437,8 @@ class FirewallDisabledActionTest(TestsMixin, TestCase):
 class FirewallPolicyActionTest(FirewallDisabledActionTest):
     def setUp(self):
         super().setUp()
-        self.policy = GlobalPolicy.objects.create(name='test policy', owner=self.user, policy=GlobalPolicy.POLICY_BLOCK)
+        self.policy = GlobalPolicy.objects.create(name='test policy', owner=self.user,
+                                                  policy=GlobalPolicy.POLICY_BLOCK)
         self.device.firewallstate.global_policy = self.policy
         self.device.firewallstate.save()
 
@@ -495,7 +496,6 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
     def test_get(self):
         for subclass in InsecureServicesGroupAction.subclasses:
             self.action_class = subclass
-
 
             super().test_get()
             self.disable_action()

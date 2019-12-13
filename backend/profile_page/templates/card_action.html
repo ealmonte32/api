@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Card Action</title>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+<div id="id_card_errors" role="alert"></div>
+<script>
+    let stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+    stripe.confirmCard{% if setup %}Setup{% else %}Payment{% endif %}(
+    '{{ payment_intent_client_secret }}'
+    ).then(function (result) {
+            if (result.error) {
+                // Show error in payment form
+                let errorElement = document.getElementById('id_card_errors');
+                errorElement.textContent = result.error.message;
+            } else {
+                location.href = "{% url 'sync_subscription' subscription_pk %}";
+            }
+        }
+    )
+</script>
+</body>
+</html>

@@ -82,7 +82,7 @@
                     {% include "menu_item.html" with tab=tab_api_token url='profile_token' image='/media/api.svg' image_selected='/media/api-selected.svg' label="API Token" %}
                     {% include "menu_item.html" with tab=tab_github_integration url='github_integration' image='/media/github.svg' image_selected='/media/github-selected.svg' label="GitHub Integration" beta_badge=False %}
                     {% include "menu_item.html" with tab=tab_slack_integration url='slack_integration' image='/media/slack.svg' image_selected='/media/slack-selected.svg' label="Slack Integration"%}
-                    {% include "menu_item.html" with tab=tab_payment_plan url='payment_plan' image='/media/payment.svg' image_selected='/media/payment-selected.svg' label="Payment Plan" %}
+                    {% include "menu_item.html" with tab=tab_payment_plan url='payment_plan' image='/media/payment.svg' image_selected='/media/payment-selected.svg' label="Billing" %}
                     <div class="dropdown-divider mt-0 mb-0" ></div>
                     <div class="sidebar-item py-2">
                       <a class="sidebar-link py-3 px-0 d-flex border-0" href="{% url 'auth_logout' %}">
@@ -100,9 +100,7 @@
       <main style="min-height: 85vh;" class="content">
         {% if messages %}
           {% for message in messages %}
-            <div class="alert alert-success" role="alert">
-              <div class="alert alert-success text-center" role="alert"><h4><br>{{ message }}</h4></div>
-            </div>
+            <div class="alert alert-success text-center" role="alert"><h4>{{ message }}</h4></div>
           {% endfor %}
         {% endif %}
         {% block admin_content %}

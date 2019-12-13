@@ -127,6 +127,25 @@ class Device(models.Model):
             return self.deviceinfo.default_password
 
     @property
+    def payment_status(self):
+        """
+        Guess if the device is 'free', 'paid' or 'unpaid'.
+        """
+        if self.pk and self.owner:
+            devices = self.owner.devices.order_by('pk')
+            if self.pk == devices[0].pk:
+                return 'free'
+            # For `unlimited` customer all nodes are paid regardless of his subscription status.
+            if hasattr(self.owner, 'profile') and self.owner.profile.unlimited_customer:
+                return 'paid'
+            if hasattr(self.owner, 'profile') and \
+                    self.pk in devices[1:self.owner.profile.paid_nodes_number + 1].values_list('pk', flat=True):
+                return 'paid'
+            else:
+                return 'unpaid'
+        return
+
+    @property
     def eol_info(self):
         """
         Return a dict with an info about current device distro's EOL.
@@ -486,8 +505,8 @@ class Device(models.Model):
         """
 
         # We have no vulnerability data for OS other than Debian and Ubuntu flavors.
-        if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
-               and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
+        if not (self.deb_packages_hash and self.deb_packages.exists() and self.os_release
+                and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
             return
 
         # For every CVE name detected for this device, find its maximal urgency among the whole CVE database.
@@ -545,8 +564,8 @@ class Device(models.Model):
         :return:
         """
         ra_all = self.recommendedaction_set.all().values_list('action_id', flat=True)
-        ra_affected = self.recommendedaction_set.exclude(status=RecommendedAction.Status.NOT_AFFECTED)\
-                                                .values_list('action_id', flat=True)
+        ra_affected = self.recommendedaction_set.exclude(status=RecommendedAction.Status.NOT_AFFECTED) \
+            .values_list('action_id', flat=True)
         newly_affected = []
         newly_not_affected = []
         added = []
@@ -561,9 +580,9 @@ class Device(models.Model):
             elif not is_affected and action_class.action_id in ra_affected:
                 # A RecommendedAction object is in AFFECTED or SNOOZED_* status, but the RA doesn't affect the device
                 newly_not_affected.append(action_class.action_id)
-        n_affected = self.recommendedaction_set.filter(action_id__in=newly_affected)\
+        n_affected = self.recommendedaction_set.filter(action_id__in=newly_affected) \
             .update(status=RecommendedAction.Status.AFFECTED)
-        n_unaffected = self.recommendedaction_set.filter(action_id__in=newly_not_affected)\
+        n_unaffected = self.recommendedaction_set.filter(action_id__in=newly_not_affected) \
             .update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
         ra_new = [RecommendedAction(action_id=action_id, device=self,
                                     status=RecommendedAction.Status.AFFECTED if affected else

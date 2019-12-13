@@ -1,7 +1,7 @@
 import json
 import sys
 from collections import defaultdict
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 
 from dateutil.relativedelta import relativedelta, TU, SU
 from django.conf import settings
@@ -20,8 +20,8 @@ from cryptography.x509.oid import NameOID
 from freezegun import freeze_time
 
 from device_registry import ca_helper
-from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
-    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord
+from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, GlobalPolicy, PairingKey, \
+    Vulnerability, RecommendedAction, HistoryRecord
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 from device_registry.recommended_actions import BaseAction, ActionMeta, Severity
@@ -321,7 +321,7 @@ class DeviceModelTest(TestCase):
         self.device1.update_trust_score_now()
         average_score = profile.average_trust_score
         real_average_score = ((self.device0.trust_score + self.device1.trust_score) / 2.0)
-        self.assertLessEqual(abs(average_score - real_average_score), 2*sys.float_info.epsilon)
+        self.assertLessEqual(abs(average_score - real_average_score), 2 * sys.float_info.epsilon)
 
     def test_heartbleed(self):
         self.assertIsNone(self.device0.heartbleed_vulnerable)
@@ -411,6 +411,7 @@ class DeviceModelTest(TestCase):
         self.assertEqual(self.device0.actions_count_delta['count'], 1)
         self.assertEqual(self.device0.actions_count_delta['arrow'], 'down')
 
+
 class FormsTests(TestCase):
     def setUp(self):
         User = get_user_model()
@@ -460,6 +461,7 @@ class DeviceDetailViewTests(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
+        Profile.objects.create(user=self.user, unlimited_customer=True)
         self.user2 = User.objects.create_user('user')
         self.device = Device.objects.create(
             device_id='device0.d.wott-dev.local', owner=self.user, certificate=TEST_CERT,
@@ -477,8 +479,11 @@ class DeviceDetailViewTests(TestCase):
                                                 netstat=OPEN_CONNECTIONS_INFO)
         self.firewall = FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
-        self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-        self.url3 = reverse('device-detail-metadata', kwargs={'pk': self.device.pk})
+        self.url2 = reverse('device-detail-software', kwargs={'pk': self.device.pk})
+        self.url3 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+        self.url4 = reverse('device-detail-network', kwargs={'pk': self.device.pk})
+        self.url5 = reverse('device-detail-hardware', kwargs={'pk': self.device.pk})
+        self.url6 = reverse('device-detail-metadata', kwargs={'pk': self.device.pk})
 
         self.device_no_portscan = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user,
                                                         certificate=TEST_CERT)
@@ -507,23 +512,28 @@ class DeviceDetailViewTests(TestCase):
         self.gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
 
     def test_device_detail_not_logged_in(self):
-        url = reverse('device-detail', kwargs={'pk': self.device.pk})
-        response = self.client.get(url)
+        response = self.client.get(self.url)
         self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/')
 
-    def test_device_detail_security_not_logged_in(self):
+    def test_device_detail_software_not_logged_in(self):
         response = self.client.get(self.url2)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/software/')
+
+    def test_device_detail_security_not_logged_in(self):
+        response = self.client.get(self.url3)
         self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/security/')
 
     def test_device_detail_network_not_logged_in(self):
-        url = reverse('device-detail-network', kwargs={'pk': self.device.pk})
-        response = self.client.get(url)
+        response = self.client.get(self.url4)
         self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/network/')
 
     def test_device_detail_hardware_not_logged_in(self):
-        url = reverse('device-detail-hardware', kwargs={'pk': self.device.pk})
-        response = self.client.get(url)
+        response = self.client.get(self.url5)
         self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/hardware/')
+
+    def test_device_detail_metadata_not_logged_in(self):
+        response = self.client.get(self.url6)
+        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/metadata/')
 
     def test_credentials_not_logged_in(self):
         url = reverse('credentials')
@@ -578,8 +588,8 @@ class DeviceDetailViewTests(TestCase):
     def test_device_metadata(self):
         self.client.login(username='test', password='123')
         form_data = {'device_metadata': '{"test": "value"}'}
-        self.client.post(self.url3, form_data)
-        response = self.client.get(self.url3)
+        self.client.post(self.url6, form_data)
+        response = self.client.get(self.url6)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.context_data["device"].deviceinfo.device_metadata, {"test": "value"})
 
@@ -602,10 +612,10 @@ class DeviceDetailViewTests(TestCase):
     def test_open_ports(self):
         self.client.login(username='test', password='123')
         form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
-        self.client.post(self.url2, form_data)
+        self.client.post(self.url3, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22, False]])
-        response = self.client.get(self.url2)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Firewall Ports Policy')
         self.assertInHTML('<span class="pl-1" id="ports-table-column-1">Allowed</span>', response.rendered_content)
@@ -613,12 +623,12 @@ class DeviceDetailViewTests(TestCase):
     def test_open_ports_global_policy(self):
         self.client.login(username='test', password='123')
         form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
-        self.client.post(self.url2, form_data)
+        self.client.post(self.url3, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22, False]])
         self.firewall.global_policy = self.gp
         self.firewall.save(update_fields=['global_policy'])
-        response = self.client.get(self.url2)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Open Ports')
         self.assertNotContains(response, '<th scope="col" width="5%"><span\n                                      '
@@ -629,16 +639,16 @@ class DeviceDetailViewTests(TestCase):
         self.firewall.global_policy = self.gp
         self.firewall.save(update_fields=['global_policy'])
         form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
-        response = self.client.post(self.url2, form_data)
+        response = self.client.post(self.url3, form_data)
         self.assertEqual(response.status_code, 403)
 
     def test_open_connections(self):
         self.client.login(username='test', password='123')
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
-        self.client.post(self.url2, form_data)
+        self.client.post(self.url3, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
-        response = self.client.get(self.url2)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertInHTML('<input type="checkbox" value="0" id="connections-check-all">Blocked',
                           response.rendered_content)
@@ -646,12 +656,12 @@ class DeviceDetailViewTests(TestCase):
     def test_open_connections_global_policy(self):
         self.client.login(username='test', password='123')
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
-        self.client.post(self.url2, form_data)
+        self.client.post(self.url3, form_data)
         portscan = PortScan.objects.get(pk=self.portscan.pk)
         self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
         self.firewall.global_policy = self.gp
         self.firewall.save(update_fields=['global_policy'])
-        response = self.client.get(self.url2)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, '<th scope="col" width="5%">Blocked</th>')
 
@@ -660,7 +670,7 @@ class DeviceDetailViewTests(TestCase):
         self.firewall.global_policy = self.gp
         self.firewall.save(update_fields=['global_policy'])
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
-        response = self.client.post(self.url2, form_data)
+        response = self.client.post(self.url3, form_data)
         self.assertEqual(response.status_code, 403)
 
     def test_no_logins(self):
@@ -672,16 +682,14 @@ class DeviceDetailViewTests(TestCase):
 
     def test_logins(self):
         self.client.login(username='test', password='123')
-        response = self.client.get(self.url2)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<pre class="mb-0">pi:')
         self.assertContains(response, 'success: 1')
 
     def test_insecure_services(self):
         self.client.login(username='test', password='123')
-        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'telnetd')
         self.assertNotContains(response, 'fingerd')
@@ -695,7 +703,7 @@ class DeviceDetailViewTests(TestCase):
         ], {'codename': 'jessie'})
         self.device.deb_packages_hash = 'abcdef'
         self.device.save()
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'telnetd')
         self.assertNotContains(response, 'fingerd')
@@ -713,7 +721,7 @@ class DeviceDetailViewTests(TestCase):
              'arch': 'i386', 'os_release_codename': 'jessie'}
         ], {'codename': 'jessie'})
         self.device.save()
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'telnetd')
         self.assertContains(response, 'fingerd')
@@ -727,9 +735,7 @@ class DeviceDetailViewTests(TestCase):
     def test_heartbleed_render(self):
         self.device.deb_packages_hash = 'aabbccdd'
         self.client.login(username='test', password='123')
-        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertNotContains(response, 'Patched against Heartbleed')
 
         self.device.set_deb_packages([{
@@ -741,7 +747,7 @@ class DeviceDetailViewTests(TestCase):
         }], {'codename': 'stretch'})
         self.device.save()
 
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertInHTML("""<th class="wott-table-label" scope="row">Patched against Heartbleed</th>
                              <td>
                                <span class="p-1 text-success"><i class="fas fa-check" ></i></span>
@@ -753,7 +759,7 @@ class DeviceDetailViewTests(TestCase):
                                          remote=None, fix_available=True, os_release_codename='stretch')
         self.device.deb_packages.first().vulnerabilities.add(v)
 
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertInHTML("""<th class="wott-table-label" scope="row">Patched against Heartbleed</th>
                              <td>
                                <span class="p-1 text-danger"><i class="fas fa-exclamation-circle" ></i></span>
@@ -762,74 +768,65 @@ class DeviceDetailViewTests(TestCase):
 
     def test_cpu_vulnerable_render(self):
         self.client.login(username='test', password='123')
-        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertContains(response, 'Patched against Meltdown/Spectre')
 
         self.device.cpu['vendor'] = 'AuthenticAMD'
         self.device.save()
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertNotContains(response, 'Patched against Meltdown/Spectre')
 
     def test_global_policies_list(self):
         gp2 = GlobalPolicy.objects.create(name='gp2', owner=self.user2, policy=GlobalPolicy.POLICY_ALLOW)
         self.client.login(username='test', password='123')
-        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         # Current user's global policy is available as an option.
         self.assertContains(response, '<option value="%d">%s</option>' % (self.gp.pk, self.gp.name))
         # Other user's global policy is not available as an option.
         self.assertNotContains(response, '<option value="%d">%s</option>' % (gp2.pk, gp2.name))
 
-    def test_device_detail_software_not_logged_in(self):
-        url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
-        response = self.client.get(url)
-        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/software/')
-
     @patch('django.utils.timezone.now')
     def test_get_device_detail_software(self, mock_timezone):
         mock_timezone.return_value = timezone.datetime(2019, 11, 5, tzinfo=timezone.utc)
         self.client.login(username='test', password='123')
-        url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
         # Unknown distro.
-        response = self.client.get(url)
+        response = self.client.get(self.url2)
         self.assertInHTML('<td class="pl-4" id="eol_info">N/A</td>', response.rendered_content)
         # Supported distro version.
         self.device.os_release = {'distro': 'raspbian', 'version': '10', 'codename': 'buster',
                                   'distro_root': 'debian', 'full_version': '10 (buster)'}
         self.device.save(update_fields=['os_release'])
-        response = self.client.get(url)
+        response = self.client.get(self.url2)
         # print(response.content)
         self.assertInHTML('<td class="pl-4" id="eol_info">July 1, 2022</td>', response.rendered_content)
         # Outdated distro version.
         self.device.os_release = {'distro': 'debian', 'version': '7', 'codename': 'wheezy',
                                   'distro_root': 'debian', 'full_version': '7 (wheezy)'}
         self.device.save(update_fields=['os_release'])
-        response = self.client.get(url)
-        self.assertInHTML('<td class="pl-4" id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
-                          '</i></span>May 31, 2018</td>', response.rendered_content)
+        response = self.client.get(self.url2)
+        self.assertInHTML('<td class="pl-4" id="eol_info"><span class="p-1 text-danger"><i '
+                          'class="fas fa-exclamation-circle" ></i></span>May 31, 2018</td>',
+                          response.rendered_content)
 
     def test_default_credentials(self):
-        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
         self.client.login(username='test', password='123')
 
         self.device.deviceinfo.default_password = False
         self.device.deviceinfo.save()
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "No default credentials detected.")
 
         self.device.deviceinfo.default_password = True
         self.device.deviceinfo.save()
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Default credentials detected!")
 
         self.device.default_password_users = ['pi', 'root']
         self.device.save()
-        response = self.client.get(url)
+        response = self.client.get(self.url3)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Users with default credentials: pi, root")
 
@@ -866,7 +863,7 @@ class RootViewTests(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        Profile.objects.create(user=self.user)
+        Profile.objects.create(user=self.user, unlimited_customer=True)
 
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
@@ -1357,27 +1354,37 @@ class DashboardViewTests(TestCase):
                               status=RecommendedAction.Status.AFFECTED),
 
             # both devices affected - counts as one RA
-            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device0, status=RecommendedAction.Status.AFFECTED),
-            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device0,
+                              status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device1,
+                              status=RecommendedAction.Status.AFFECTED),
 
             # one device is affected, second was never affected (and never fixed)
-            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
-            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device0,
+                              status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device1,
+                              status=RecommendedAction.Status.AFFECTED),
 
             # one device is affected, second fixed - still not fixed
-            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device0,
+                              status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
-            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device1,
+                              status=RecommendedAction.Status.AFFECTED),
 
             # fixed on both devices - completely fixed
-            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device0,
+                              status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
-            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device1,
+                              status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
 
             # one never affected, another one fixed - completely fixed
-            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
-            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device0,
+                              status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device1,
+                              status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
 
             # resolved a week ago - doesn't count
@@ -1429,21 +1436,22 @@ class CVEViewTests(TestCase):
         self.device_url = reverse('device_cve', kwargs={'device_pk': self.device0.pk})
 
         self.packages = [
-            DebPackage(name='one_first', version='version_one', source_name='one_source', source_version='one_version',
-                       arch=DebPackage.Arch.i386),
-            DebPackage(name='one_second', version='version_one', source_name='one_source', source_version='one_version',
-                       arch=DebPackage.Arch.i386),
+            DebPackage(name='one_first', version='version_one', source_name='one_source',
+                       source_version='one_version', arch=DebPackage.Arch.i386),
+            DebPackage(name='one_second', version='version_one', source_name='one_source',
+                       source_version='one_version', arch=DebPackage.Arch.i386),
             DebPackage(name='two_first', version='version_two', source_name='two_source', source_version='two_version',
                        arch=DebPackage.Arch.i386),
-            DebPackage(name='two_second', version='version_two', source_name='two_source', source_version='two_version',
-                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_second', version='version_two', source_name='two_source',
+                       source_version='two_version', arch=DebPackage.Arch.i386),
         ]
         self.today = timezone.now().date()
         self.vulns = [
             Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='one_source', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
             Vulnerability(os_release_codename='buster', name='CVE-2018-2', package='one_source', is_binary=False,
-                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True, pub_date=self.today),
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True,
+                          pub_date=self.today),
             Vulnerability(os_release_codename='stretch', name='CVE-2018-3', package='one_source', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
         ]
@@ -1558,12 +1566,12 @@ class CVECountTests(TestCase):
         self.packages = [
             DebPackage(name='one_first', version='version_one', source_name='one_source', source_version='one_version',
                        arch=DebPackage.Arch.i386),
-            DebPackage(name='one_second', version='version_one', source_name='one_source', source_version='one_version',
-                       arch=DebPackage.Arch.i386),
+            DebPackage(name='one_second', version='version_one', source_name='one_source',
+                       source_version='one_version', arch=DebPackage.Arch.i386),
             DebPackage(name='two_first', version='version_two', source_name='two_source', source_version='two_version',
                        arch=DebPackage.Arch.i386),
-            DebPackage(name='two_second', version='version_two', source_name='two_source', source_version='two_version',
-                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_second', version='version_two', source_name='two_source',
+                       source_version='two_version', arch=DebPackage.Arch.i386),
         ]
         DebPackage.objects.bulk_create(self.packages)
         self.vulns = [
@@ -1632,3 +1640,80 @@ class CVECountTests(TestCase):
             self.profile.sample_history()
 
         self.assertTupleEqual(self.profile.cve_count_last_week, (1, 2, 3))
+
+
+class DevicePaymentStatusTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device1 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.device2 = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user)
+        self.device3 = Device.objects.create(device_id='device2.d.wott-dev.local', owner=self.user)
+
+    def test_user_no_profile(self):
+        self.assertEqual(self.device1.payment_status, 'free')
+        self.assertEqual(self.device2.payment_status, 'unpaid')
+        self.assertEqual(self.device3.payment_status, 'unpaid')
+
+    def test_user_has_profile(self):
+        Profile.objects.create(user=self.user)
+        self.assertEqual(self.device1.payment_status, 'free')
+        self.assertEqual(self.device2.payment_status, 'unpaid')
+        self.assertEqual(self.device3.payment_status, 'unpaid')
+
+    def test_unlimited_customer(self):
+        Profile.objects.create(user=self.user, unlimited_customer=True)
+        self.assertEqual(self.device1.payment_status, 'free')
+        self.assertEqual(self.device2.payment_status, 'paid')
+        self.assertEqual(self.device3.payment_status, 'paid')
+
+    @patch('profile_page.models.Profile.paid_nodes_number', new_callable=PropertyMock)
+    def test_paid_one_device(self, mock_paid_nodes_number):
+        mock_paid_nodes_number.return_value = 1
+        Profile.objects.create(user=self.user)
+        self.assertEqual(self.device1.payment_status, 'free')
+        self.assertEqual(self.device2.payment_status, 'paid')
+        self.assertEqual(self.device3.payment_status, 'unpaid')
+        mock_paid_nodes_number.assert_called()
+
+
+class UnpaidNodesPagesTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device1 = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.device2 = Device.objects.create(device_id='device1.d.wott-dev.local', owner=self.user)
+        self.device3 = Device.objects.create(device_id='device2.d.wott-dev.local', owner=self.user)
+        for device in (self.device1, self.device2, self.device3):
+            DeviceInfo.objects.create(device=device)
+            PortScan.objects.create(device=device)
+            FirewallState.objects.create(device=device)
+        self.url_pattern_names = (
+            'device-detail', 'device-detail-software', 'device-detail-security', 'device-detail-network',
+            'device-detail-hardware', 'device-detail-metadata', 'device_actions'
+        )
+        self.client.login(username='test', password='123')
+
+    def test_free_device(self):
+        for url_pattern in self.url_pattern_names:
+            url = reverse(url_pattern, kwargs={'pk': self.device1.pk})
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+
+    @patch('profile_page.models.Profile.paid_nodes_number', new_callable=PropertyMock)
+    def test_paid_device(self, mock_paid_nodes_number):
+        mock_paid_nodes_number.return_value = 1
+        for url_pattern in self.url_pattern_names:
+            url = reverse(url_pattern, kwargs={'pk': self.device2.pk})
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+
+    @patch('profile_page.models.Profile.paid_nodes_number', new_callable=PropertyMock)
+    def test_unpaid_device(self, mock_paid_nodes_number):
+        mock_paid_nodes_number.return_value = 1
+        for url_pattern in self.url_pattern_names:
+            url = reverse(url_pattern, kwargs={'pk': self.device3.pk})
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 403)

@@ -335,7 +335,27 @@
   <script>
     var table, data_timestamp, data_timer;
     const UPDATE_INTERVAL = 5000;
-  
+
+    function confirm_goto_payment() {
+      $.confirm({
+          title: 'Unpaid node warning',
+          content: 'This node is out of your paid nodes list. In order to access its check details, ' +
+              'please buy/extend your subscription.',
+          icon: 'fas fa-dollar-sign',
+          buttons: {
+              buy: {
+                  btnClass: 'btn-success',
+                  action: function () {
+                      location.href = '{% url 'payment_plan' %}';
+                  }
+              },
+              cancel: {
+                  btnClass: 'btn-secondary'
+              }
+          }
+      });
+  }
+
     $(() => {
   
         // last-ping sorting
@@ -589,7 +609,7 @@
               if(opt_type == 'tags')
                 Tagulous.select2($('#filter-tags'));
           }
-  
+
         function enableFilter(b) {
             $('#filter-name-div,#filter-predicate-div,#filter-value-div').children().attr('disabled', !b)
         }
@@ -634,10 +654,13 @@
      * @param meta - meta: [meta.column, meta.row - int]
      * @returns {string|*}
      */
-        function render_device_name(data, type, row, meta){
-            if (type == 'sort') return data;
+    function render_device_name(data, type, row, meta) {
+        if (type === 'sort') return data;
+        if (row['payment_status'] === 'unpaid')
+            return `<a href="#" onclick="confirm_goto_payment();"><s>${data}</s></a>`;
+        else
             return `<a href="/devices/${row['id']}/">${data}</a>`;
-        }
+    }
   
     /**
      * datatable cell rendering callback for trustscore column
@@ -659,11 +682,14 @@
         }
         $('.toast').toast({delay: 5000});
         $('.toast').hide();
-  
-        function render_actions_count(data, type, row, meta) {
-            if (type == 'sort') return data;
-            return data.count? `<a class="wott-badge-pill" href="${data.url}"}>${data.count}</span>`: "";
-        }
+
+    function render_actions_count(data, type, row, meta) {
+        if (type == 'sort') return data;
+        if (row['payment_status'] === 'unpaid')
+            return data ? `<a class="badge badge-pill badge-danger" href="#" onclick="confirm_goto_payment();">${data.count}</span>` : "";
+        else
+            return data ? `<a class="badge badge-pill badge-danger" href="${data.url}">${data.count}</span>` : "";
+    }
   
     {% if not user.profile.wizard_shown %}
       $(() => {

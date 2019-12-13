@@ -228,6 +228,7 @@ class DeviceListSerializer(serializers.ModelSerializer):
             'count': instance.actions_count or '',
             'url': reverse('device_actions', args=[instance.pk])
         }
+        representation['payment_status'] = instance.payment_status
         return representation
 
 

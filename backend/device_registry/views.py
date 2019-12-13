@@ -18,13 +18,12 @@ from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
 
 from profile_page.mixins import LoginTrackMixin
-from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
-from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, Vulnerability
-from .models import GlobalPolicy
+from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, GlobalPolicy, Vulnerability
+from .models import RecommendedAction
 from .recommended_actions import ActionMeta, FirewallDisabledAction, EnrollAction, GithubAction
+from .mixins import DeviceListFilterMixin, ConvertPortsInfoMixin, BlockUnpaidNodeMixin
 
 
 class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
@@ -60,7 +59,7 @@ class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListV
                 'Recommended Actions'
             ],
             filter_params=[(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in
-                            self.FILTER_FIELDS.items()],
+                           self.FILTER_FIELDS.items()],
 
             # TODO: convert this into a list of dicts for multiple filters
             filter=self.filter_dict
@@ -82,8 +81,9 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                                    key=lambda v: severities[v].value[2], reverse=True)
             for action_id in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 affected_devices = Device.objects.filter(owner=self.request.user,
-                    recommendedaction__in=RecommendedAction.objects.filter(
-                    RecommendedAction.get_affected_query(), action_id=action_id)).distinct()
+                                                         recommendedaction__in=RecommendedAction.objects.filter(
+                                                             RecommendedAction.get_affected_query(),
+                                                             action_id=action_id)).distinct()
                 a = ActionMeta.get_class(action_id).action(self.request.user, affected_devices, None)
                 actions.append(a._replace(resolved=False))
 
@@ -125,17 +125,6 @@ class GlobalPoliciesListView(LoginRequiredMixin, LoginTrackMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
-
-
-class ConvertPortsInfoMixin:
-    def dicts_to_lists(self, ports):
-        if ports:
-            return [[d[k] for k in ('address', 'protocol', 'port', 'ip_version')] for d in ports]
-        else:
-            return []
-
-    def lists_to_dicts(self, ports):
-        return [{'address': d[0], 'protocol': d[1], 'port': d[2], 'ip_version': d[3]} for d in ports]
 
 
 class GlobalPolicyCreateView(LoginRequiredMixin, LoginTrackMixin, CreateView, ConvertPortsInfoMixin):
@@ -277,7 +266,7 @@ def claim_device_view(request):
     })
 
 
-class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_overview.html'
 
@@ -301,6 +290,8 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if self.object.payment_status == 'unpaid':
+            return HttpResponseForbidden()
         form = DeviceAttrsForm(request.POST, instance=self.object)
         if form.is_valid():
             if 'revoke_button' in form.data:
@@ -315,7 +306,7 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class DeviceDetailSoftwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailSoftwareView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_software.html'
 
@@ -336,7 +327,7 @@ class DeviceDetailSoftwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailSecurityView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_security.html'
 
@@ -376,8 +367,10 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return context
 
     def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
         # TODO: handle missing portscan and firewallstate instances.
+        self.object = self.get_object()
+        if self.object.payment_status == 'unpaid':
+            return HttpResponseForbidden()
         portscan = self.object.portscan
         firewallstate = self.object.firewallstate
 
@@ -427,7 +420,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
-class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailNetworkView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_network.html'
 
@@ -448,7 +441,7 @@ class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailHardwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailHardwareView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_hardware.html'
 
@@ -469,7 +462,7 @@ class DeviceDetailHardwareView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         return context
 
 
-class DeviceDetailMetadataView(LoginRequiredMixin, LoginTrackMixin, DetailView):
+class DeviceDetailMetadataView(BlockUnpaidNodeMixin, LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_metadata.html'
 
@@ -501,6 +494,8 @@ class DeviceDetailMetadataView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if self.object.payment_status == 'unpaid':
+            return HttpResponseForbidden()
         form = DeviceMetadataForm(request.POST, instance=self.object.deviceinfo)
         if form.is_valid() and "device_metadata" in form.cleaned_data:
             self.object.deviceinfo.device_metadata = form.cleaned_data["device_metadata"]
@@ -567,6 +562,8 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             actions_by_id = defaultdict(list)
             affected_devices = set()
             for ra in active_actions:
+                if ra.device.payment_status == 'unpaid':
+                    continue  # Filter out actions for unpaid devices.
                 affected_devices.add(ra.device.pk)
                 actions_by_id[ra.action_id].append(ra.device.pk)
             affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
@@ -595,10 +592,19 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         return device_name, actions
 
+    def get(self, request, *args, **kwargs):
+        device_pk = kwargs.get('pk')
+        if device_pk is not None:
+            device = get_object_or_404(Device, pk=device_pk, owner=request.user)
+            if device.payment_status == 'unpaid':
+                return HttpResponseForbidden()
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        device_name, actions = self._actions(kwargs.get('device_pk'))
+        device_name, actions = self._actions(kwargs.get('pk'))
         context.update(
             actions=actions,
             device_name=device_name
@@ -681,18 +687,18 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         # Select all CVEs which affect all user's devices and for every CVE find its publication date by looking through
         # all CVEs with this name and finding maximal pub_date. By using Max() we avoid NULLs, as they compare as less
         # than any other non-NULL value.
-        vuln_names = Vulnerability.objects.filter(vuln_query)\
-                                          .values('name').distinct()
+        vuln_names = Vulnerability.objects.filter(vuln_query) \
+            .values('name').distinct()
         vuln_pub_dates_qs = Vulnerability.objects.filter(name__in=vuln_names) \
-                                                 .values('name').annotate(pubdate=Max('pub_date')).distinct()
+            .values('name').annotate(pubdate=Max('pub_date')).distinct()
         # Build a lookup dictionary for CVE publication dates.
         vuln_pub_dates = {v['name']: v['pubdate'] for v in vuln_pub_dates_qs}
 
         # Group CVEs selected above by their maximal urgency. We could put this into the huge request below,
         # but it would work slower.
-        vuln_urgencies = Vulnerability.objects.filter(name__in=vuln_names)\
-                                              .values('name').distinct()\
-                                              .annotate(max_urgency=Max('urgency'))
+        vuln_urgencies = Vulnerability.objects.filter(name__in=vuln_names) \
+            .values('name').distinct() \
+            .annotate(max_urgency=Max('urgency'))
         vulns_by_urgency = defaultdict(list)
         for vuln_urgency in vuln_urgencies:
             vulns_by_urgency[vuln_urgency['max_urgency']].append(vuln_urgency['name'])
@@ -715,14 +721,14 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         # We have to do this with one request  because the number of CVEs, the number of packages and the number of
         # devices - any of them may be well over a hundred, and we can't afford to run 100 requests while handling the
         # web request.
-        devices_packages_cves = Vulnerability.objects.filter(vuln_query, fix_available=True)\
-            .values('name')\
+        devices_packages_cves = Vulnerability.objects.filter(vuln_query, fix_available=True) \
+            .values('name') \
             .annotate(max_urgency=Case(
-              *[When(name__in=vulns_by_urgency[u], then=Value(u)) for u in Vulnerability.Urgency],
-              output_field=IntegerField()
-            )) \
+            *[When(name__in=vulns_by_urgency[u], then=Value(u)) for u in Vulnerability.Urgency],
+            output_field=IntegerField()
+        )) \
             .values('name', 'max_urgency', 'debpackage__pk', 'debpackage__device__pk', 'debpackage__name',
-                    'debpackage__device__name',  'debpackage__device__deviceinfo__fqdn')\
+                    'debpackage__device__name', 'debpackage__device__deviceinfo__fqdn') \
             .annotate(devcnt=Window(expression=Count('debpackage__name'),
                                     partition_by=['name', 'debpackage__name']),
                       cvecnt=Window(expression=Count('debpackage__name'),
@@ -733,11 +739,11 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         current_row = None
         current_package = None
         for device_package_cve in devices_packages_cves:
-            cve_name, package_name, urgency, devices_count,\
-                device_pk, device_name, device_fqdn = (device_package_cve[k] for k in [
-                                                            'name', 'debpackage__name', 'max_urgency', 'devcnt',
-                                                            'debpackage__device__pk', 'debpackage__device__name',
-                                                            'debpackage__device__deviceinfo__fqdn'])
+            cve_name, package_name, urgency, devices_count, \
+            device_pk, device_name, device_fqdn = (device_package_cve[k] for k in [
+                'name', 'debpackage__name', 'max_urgency', 'devcnt',
+                'debpackage__device__pk', 'debpackage__device__name',
+                'debpackage__device__deviceinfo__fqdn'])
             # In devices_packages_cves the rows are ordered by cve_name and package_name. This means that they will be
             # grouped together by cve_name and the rows with the same cve_name will be grouped together by package_name.
             # Hence we have current_row.cve_name and current_package.name to detect when the cve_name or package_name

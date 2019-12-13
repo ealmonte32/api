@@ -128,6 +128,7 @@ SUBTITLES = {
     Severity.LO: 'Resolve this to improve your security posture'
 }
 
+
 def device_link(device, absolute=False):
     """Create a device's page html link code"""
     url = reverse('device-detail', kwargs={'pk': device.pk})
@@ -235,14 +236,14 @@ class BaseAction:
         from .models import RecommendedAction
         day_ago = timezone.now() - timedelta(hours=24)
         actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
-                                                   device__last_ping__gte=day_ago)\
-                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
+                                                   device__last_ping__gte=day_ago) \
+            .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]
         if not affected_devices or not any(a.status != RecommendedAction.Status.NOT_AFFECTED for a in actions):
             return
         affected_list = ['- [{x}] {device}'
-                         .format(x='x' if a.status == RecommendedAction.Status.NOT_AFFECTED else ' ',
-                                 device=device_link(a.device, absolute=True))
+                             .format(x='x' if a.status == RecommendedAction.Status.NOT_AFFECTED else ' ',
+                                     device=device_link(a.device, absolute=True))
                          for a in actions]
         resolved = '\n'.join(affected_list)
         context = cls.get_context(affected_devices)
@@ -286,6 +287,7 @@ class GroupedAction:
     GroupedAction classes must have group_action_main and group_action_title declared. The registered subclasses must
     have group_action_section_title and group_action_section_body declared.
     """
+
     @classmethod
     def get_description(cls, user, **kwargs):
         """
@@ -435,8 +437,8 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
         firewallstate = getattr(device, 'firewallstate', None)
         return firewallstate is not None and \
                (firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK \
-                if firewallstate.global_policy is None \
-                else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
+                    if firewallstate.global_policy is None \
+                    else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
 
 
 # Vulnerable packages found action.

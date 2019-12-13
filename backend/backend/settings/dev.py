@@ -23,6 +23,7 @@ INSTALLED_APPS += [
 ]
 
 IS_DEV = True
+# IS_API = IS_DEV = IS_DASH = IS_MTLS_API = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

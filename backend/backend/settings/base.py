@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'tagulous',
     'device_registry.apps.DeviceRegistryConfig',
+    'djstripe',
     'profile_page.apps.ProfilePageConfig',
     'monitoring.apps.MonitoringConfig',
     'bootstrap4',
@@ -270,6 +271,10 @@ CELERY_BEAT_SCHEDULE = {
     'sample_history': {
         'task': 'device_registry.tasks.sample_history',
         'schedule': crontab(hour=17, minute=0)  # Execute once a day at 5PM.
+    },
+    'sync_subscriptions': {
+        'task': 'profile_page.tasks.sync_subscriptions',
+        'schedule': crontab(hour='*', minute=0)  # Execute every hour.
     }
 }
 
@@ -283,10 +288,23 @@ REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
 
 # The following data can be obtained at https://github.com/settings/apps/wott-bot
 GITHUB_APP_PEM = os.getenvb(b'GITHUB_APP_PEM')  # Github app private key, either raw or escape-encoded
-GITHUB_APP_ID = os.getenv('GITHUB_APP_ID')    # Github App ID
+GITHUB_APP_ID = os.getenv('GITHUB_APP_ID')  # Github App ID
 GITHUB_APP_NAME = os.getenv('GITHUB_APP_NAME')  # Github app name (wott-bot)
 GITHUB_APP_CLIENT_ID = os.getenv('GITHUB_APP_CLIENT_ID')  # Github app Client ID
-GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')    # Github App Client Secret
-GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')    # Github App Redirect URL
+GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')  # Github App Client Secret
+GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')  # Github App Redirect URL
 
 MAX_WEEKLY_RA = 5  # The number of RAs for the user to resolve in a week (starting this Monday)
+
+# Stripe settings.
+STRIPE_LIVE_PUBLIC_KEY = None
+STRIPE_LIVE_SECRET_KEY = None
+STRIPE_TEST_PUBLIC_KEY = 'pk_test_380KNHna4diAHvGVsucQ3pel00xbqUaSQf'
+STRIPE_TEST_SECRET_KEY = 'sk_test_fICt6Rar7IYLVSvBYncQSGja00dXMw2Ufs'
+STRIPE_LIVE_MODE = False  # Change to True in production.
+DJSTRIPE_WEBHOOK_SECRET = 'whsec_KJPxeCf0oTnSw6ZGP9Kiqm7Mf5E6mnom'  # Not used, but still required.
+WOTT_STANDARD_PLAN_ID = 'plan_GLUYYLh2OnuJwI'  # Monthly with 30d trial.
+# WOTT_STANDARD_PLAN_ID = 'plan_GNgOchjZ4tXkQO'  # Monthly without trial.
+# WOTT_STANDARD_PLAN_ID = 'plan_GQiy3tSBzYYuM9'  # Daily without trial.
+# WOTT_STANDARD_PLAN_ID = 'plan_GQnlf795k5cWIY'  # Daily with 1d trial.
+WOTT_PRICE_PER_NODE = 9
