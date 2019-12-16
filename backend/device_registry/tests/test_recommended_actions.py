@@ -9,7 +9,7 @@ from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, 
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
     InsecureServicesAction, OpensshIssueAction, FtpServerAction, \
-    CpuVulnerableAction, BaseAction, ActionMeta, Action, PubliclyAccessibleServiceAction, grouped_action, \
+    CpuVulnerableAction, BaseAction, ActionMeta, Action, PubliclyAccessibleServiceAction, \
     PUBLIC_SERVICE_PORTS
 
 from freezegun import freeze_time
@@ -138,16 +138,23 @@ class TestsMixin:
         # No action at the beginning.
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
+        self.assertIsNone(self.action_class.get_description(self.user))
 
         # Enable the action.
         self.enable_action()
         self.check_action(self.assertOneAction(self.common_actions_url), search_string_common_page)
         self.check_action(self.assertOneAction(self.device_actions_url), self.search_pattern_device_page)
+        self.check_description()
 
         # Snooze the action.
         self.snooze_action()
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
+
+    def check_description(self):
+        title, text = self.action_class.get_description(self.user, devices='this node')
+        self.assertIn(self.search_pattern_device_page, text)
+        self.assertIn(reverse('device-detail', kwargs={'pk': self.device.pk}), text)
 
     def check_action(self, action: Action, text, title=None):
         self.assertIn(text, action.description)
@@ -271,6 +278,9 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
             self.unsnooze_action()
             self.disable_action()
 
+    def check_description(self):
+        pass
+
     def test_group(self):
         services_installed = ['fingerd', 'tftpd']
         service_not_installed = 'telnetd'
@@ -281,8 +291,8 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
                                                     arch='amd64', os_release_codename='jessie')
             self.device.deb_packages.add(deb_package)
 
-        title, text = grouped_action(InsecureServicesAction, self.user)
-        self.assertEqual(title, 'Insecure service found')
+        title, text = InsecureServicesAction.get_description(self.user)
+        self.assertEqual(title, 'Insecure services found')
         self.assertIn('We found insecure services installed on your nodes.', text)
         for pkg_name in services_installed:
             self.assertIn(f'### {pkg_name} ###', text)
@@ -333,7 +343,7 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
         self.device.audit_files[0]['issues'] = bad_config
         self.device.save(update_fields=['audit_files'])
 
-        title, text = grouped_action(OpensshIssueAction, self.user)
+        title, text = OpensshIssueAction.get_description(self.user)
         self.assertIn('We found insecure configuration issues with OpenSSH on your nodes. To improve the '
                       'security posture of your node, please consider making the following changes:', text)
         self.assertEqual(title, 'Insecure configuration for OpenSSH found')
@@ -342,6 +352,9 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
             self.assertIn(f'Please consider changing {config_name}', text)
         self.assertNotIn(f'### {good_config_name} ###', text)
         self.assertNotIn(f'Please consider changing {good_config_name}', text)
+
+    def check_description(self):
+        pass
 
 
 class FtpServerActionTest(TestsMixin, TestCase):
@@ -382,6 +395,9 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
         self.assertEqual(f'Your {self.action_class.service_name} instance may be publicly accessible',
                          action.title)
 
+    def check_description(self):
+        pass
+
     def test_get(self):
         for subclass in PubliclyAccessibleServiceAction.subclasses:
             self.action_class = subclass
@@ -405,7 +421,7 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
         self.device.deviceinfo.save(update_fields=['processes'])
         self.device.portscan.save(update_fields=['scan_info'])
 
-        title, text = grouped_action(PubliclyAccessibleServiceAction, self.user)
+        title, text = PubliclyAccessibleServiceAction.get_description(self.user)
         self.assertEqual(title, 'Your services may be publicly accessible')
         for service in publicly_available:
             port, name = PUBLIC_SERVICE_PORTS[service][:2]

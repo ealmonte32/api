@@ -151,35 +151,57 @@ class BaseAction:
     def action_blocks_count(cls, user):
         return int(cls.affected_devices(user).exists())
 
+    @classmethod
+    def get_description(cls, user, **kwargs):
+        day_ago = timezone.now() - timedelta(hours=24)
+        affected_devices = cls.affected_devices(user, exclude_snoozed=False).filter(last_ping__gte=day_ago)
+        if not affected_devices.exists():
+            return
+        affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
+        context = cls.get_action_description_context(affected_devices)
+        context.update(kwargs)
+        if 'subject' in context:
+            # Workaround for AutoUpdatesAction three-way logic
+            context['subject'] = ''
+        action_text = cls.action_description.format(**context) + f"\n\n#### Affected nodes: ####\n{affected_list}"
+        return cls.action_title, action_text
 
-def grouped_action(action_class, user):
-    day_ago = timezone.now() - timedelta(hours=24)
-    action_text = action_class.group_action_main
-    for cls in action_class.subclasses:
-        affected_devices = cls.affected_devices(user, exclude_snoozed=False) #.filter(last_ping__gte=day_ago)
-        if affected_devices.exists():
-            # FIXME: here should be devices affected by this RA (cls.affected_devices) and devices where this RA was fixed (RecommendedAction.FIXED).
-            affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
-            action_text += f"\n\n### {cls.group_action_section_title} ###\n\n{cls.group_action_section_body}\n\n" \
-                           f"#### Affected nodes: ####\n{affected_list}" \
-                .format(**cls.get_action_description_context(affected_devices))
-    action_title = getattr(action_class, 'group_action_title', action_class.action_title)
-    return action_title, action_text
+
+class GroupedAction(BaseAction):
+    @classmethod
+    def get_description(cls, user, **kwargs):
+        day_ago = timezone.now() - timedelta(hours=24)
+        action_text = ''
+        for subclass in cls.subclasses:
+            affected_devices = subclass.affected_devices(user, exclude_snoozed=False).filter(last_ping__gte=day_ago)
+            if affected_devices.exists():
+                # FIXME: here should be devices affected by this RA (subclass.affected_devices) and devices where this RA was fixed (RecommendedAction.FIXED).
+                affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
+                action_text += f"\n\n### {subclass.group_action_section_title} ###\n\n" \
+                               f"{subclass.group_action_section_body}\n\n" \
+                               f"#### Affected nodes: ####\n{affected_list}" \
+                    .format(**subclass.get_action_description_context(affected_devices))
+        if not action_text:
+            return
+        action_title = getattr(cls, 'group_action_title', cls.action_title)
+        return action_title, cls.group_action_main + action_text
 
 
 class ActionMeta(type):
     _action_classes = {}
-    _grouped_action_classes = {}
+    _grouped_action_classes = set()
     _ungrouped_action_classes = {}
 
     def __new__(meta, name, bases, class_dict):
         cls = type.__new__(meta, name, bases, class_dict)
         if cls.action_id in meta._action_classes:
             raise ValueError('This action_id already exists')
-        if hasattr(cls.__base__, 'subclasses'):
+        if cls.__base__.__base__ and cls.__base__.__base__ == GroupedAction:
             meta._ungrouped_action_classes[cls.action_id] = cls
-        elif getattr(cls, 'grouped_action', False) is True:
-            meta._grouped_action_classes[cls.action_id] = cls
+            if not hasattr(cls.__base__, 'subclasses'):
+                setattr(cls.__base__, 'subclasses', [])
+            cls.__base__.subclasses.append(cls)
+            meta._grouped_action_classes.add(cls.__base__)
         else:
             meta._action_classes[cls.action_id] = cls
         return cls
@@ -190,10 +212,9 @@ class ActionMeta(type):
 
     @classmethod
     def all_classes(meta, grouped=False):
-        if grouped:
-            return itertools.chain(meta._action_classes.values(), meta._grouped_action_classes.values())
-        else:
-            return itertools.chain(meta._action_classes.values(), meta._ungrouped_action_classes.values())
+        regular = list(meta._action_classes.values())
+        return regular + (list(meta._grouped_action_classes) if grouped
+                          else list(meta._ungrouped_action_classes.values()))
 
     @classmethod
     def is_action_id(meta, id):
@@ -251,12 +272,12 @@ class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
 
 
 # Insecure services found action.
-class InsecureServicesAction(BaseAction):
+class InsecureServicesAction(GroupedAction):
     action_title = 'Insecure service found'
+    group_action_title = 'Insecure services found'
     group_action_main = 'We found insecure services installed on your nodes. Because these services are ' \
                         'considered insecure, we recommend you to uninstall them.'
-    action_id_base = 1000
-    subclasses = []
+    action_id = 1000
 
     @classmethod
     def get_action_description_context(cls, devices_qs, device_pk=None):
@@ -270,7 +291,7 @@ class InsecureServicesAction(BaseAction):
 
 for name, sub_id, severity in INSECURE_SERVICES:
     class ConcreteInsecureServicesAction(InsecureServicesAction, metaclass=ActionMeta):
-        action_id = sub_id + InsecureServicesAction.action_id_base
+        action_id = sub_id + InsecureServicesAction.action_id
         action_description = \
             'We found {service} installed on {devices}. Because this service is considered insecure, it is ' \
             'recommended that you uninstall it.\n\n' \
@@ -279,12 +300,11 @@ for name, sub_id, severity in INSECURE_SERVICES:
         group_action_section_body = 'Run `sudo apt-get remove {service}` to remove it.'
         severity = severity
         service_name = name
-    InsecureServicesAction.subclasses.append(ConcreteInsecureServicesAction)
 
 
 # OpenSSH configuration issues found action.
-class OpensshIssueAction(BaseAction):
-    action_id_base = 2000
+class OpensshIssueAction(GroupedAction):
+    action_id = 2000
     action_title = 'Insecure configuration for OpenSSH found'
     action_description = \
         'We found insecure configuration issue with OpenSSH on {devices}: insecure parameter {param_name}. To improve '\
@@ -292,7 +312,6 @@ class OpensshIssueAction(BaseAction):
     group_action_main = \
         'We found insecure configuration issues with OpenSSH on your nodes. To improve the security posture of your ' \
         'node, please consider making the following changes:'
-    subclasses = []
 
     @classmethod
     def get_action_description_context(cls, devices_qs, device_pk=None):
@@ -315,13 +334,12 @@ class OpensshIssueAction(BaseAction):
 for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
     class ConcreteOpensshIssueAction(OpensshIssueAction, metaclass=ActionMeta):
         _, doc_url, sub_id, severity = param_info
-        action_id = OpensshIssueAction.action_id_base + sub_id
+        action_id = OpensshIssueAction.action_id + sub_id
         sshd_param = param_name
         group_action_section_title = param_name
         group_action_section_body = \
             'Please consider changing {param_name} to "{safe_value}".' \
             + (f'\n\nYou can learn more [here]({doc_url}).' if doc_url else '')
-    OpensshIssueAction.subclasses.append(ConcreteOpensshIssueAction)
 
 
 # Automatic security update disabled action.
@@ -406,8 +424,8 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(mysql_root_access=True)
 
 
-class PubliclyAccessibleServiceAction(BaseAction):
-    action_id_base = 3000
+class PubliclyAccessibleServiceAction(GroupedAction):
+    action_id = 3000
     action_title = 'Your {service} instance may be publicly accessible'
     action_description = \
         'We detected that a {service} instance on {devices} may be accessible remotely. Consider either blocking '\
@@ -418,7 +436,6 @@ class PubliclyAccessibleServiceAction(BaseAction):
         'We detected that a {service} instance on your nodes may be accessible remotely. Consider either blocking ' \
         'port {port} through the WoTT firewall management tool, or re-configure {service} to only listen on localhost.'
     severity = Severity.HI
-    subclasses = []
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -437,10 +454,9 @@ class PubliclyAccessibleServiceAction(BaseAction):
 for service, service_info in PUBLIC_SERVICE_PORTS.items():
     class ConcretePubliclyAccessibleServiceAction(PubliclyAccessibleServiceAction, metaclass=ActionMeta):
         port, service_name, sub_id = service_info
-        action_id = sub_id + PubliclyAccessibleServiceAction.action_id_base
+        action_id = sub_id + PubliclyAccessibleServiceAction.action_id
         service = service
         group_action_section_title = service_name
-    PubliclyAccessibleServiceAction.subclasses.append(ConcretePubliclyAccessibleServiceAction)
 
 
 class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):

@@ -295,8 +295,9 @@ class Device(models.Model):
     @property
     def actions_count(self):
         if hasattr(self, 'firewallstate') and hasattr(self, 'portscan'):
+            action_classes = ActionMeta.all_classes()
             return sum(
-                [action_class.affected_devices(self.owner, self.pk).exists() for action_class in ActionMeta.all_classes()]
+                [action_class.affected_devices(self.owner, self.pk).exists() for action_class in action_classes]
             )
 
     def _get_listening_sockets(self, port):
