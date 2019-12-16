@@ -76,12 +76,17 @@ class SnoozeTest(TestCase):
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
 
-    def _assertHasAction(self, has_action):
+    def _assertHasAction(self, has_action, exclude_snoozed=True):
         if has_action:
-            self.assertQuerysetEqual(self.TestAction.affected_devices(self.user).values_list('pk', flat=True),
-                                     [str(self.device.pk)])
+            self.assertQuerysetEqual(self.TestAction.affected_devices(self.user, exclude_snoozed=exclude_snoozed)
+                                     .values_list('pk', flat=True), [str(self.device.pk)])
         else:
-            self.assertFalse(self.TestAction.affected_devices(self.user).exists())
+            self.assertFalse(self.TestAction.affected_devices(self.user, exclude_snoozed=exclude_snoozed).exists())
+
+    def test_exclude_snoozed(self):
+        self._assertHasAction(True)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.FOREVER)
+        self._assertHasAction(True, exclude_snoozed=False)
 
     def test_snooze_forever(self):
         self._assertHasAction(True)
