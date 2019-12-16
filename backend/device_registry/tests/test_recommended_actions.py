@@ -8,8 +8,8 @@ from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, 
     GlobalPolicy, RecommendedAction
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
-    InsecureServicesAction, OpensshIssueAction, FtpServerAction, \
-    CpuVulnerableAction, BaseAction, ActionMeta, Action, PubliclyAccessibleServiceAction, \
+    InsecureServicesGroupAction, OpensshIssueGroupAction, FtpServerAction, \
+    CpuVulnerableAction, BaseAction, ActionMeta, Action, PubliclyAccessibleServiceGroupAction, \
     PUBLIC_SERVICE_PORTS
 
 from freezegun import freeze_time
@@ -178,6 +178,7 @@ class TestsMixin:
         return self.search_pattern_common_page.format(url=self.device_page_url, name=self.device.get_name())
 
     def snooze_action(self):
+        self.assertTrue(ActionMeta.is_action_id(self.action_class.action_id))
         self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.FOREVER)
 
     def unsnooze_action(self):
@@ -270,7 +271,7 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
         self.device.deb_packages.remove(DebPackage.objects.get(name=self.action_class.service_name))
 
     def test_get(self):
-        for subclass in InsecureServicesAction.subclasses:
+        for subclass in InsecureServicesGroupAction.subclasses:
             self.action_class = subclass
             self.search_pattern_device_page = 'We found ' + self.action_class.service_name + ' installed on this node'
             self.search_pattern_common_page = 'We found ' + self.action_class.service_name + ' installed on <a href="{url}">{name}</a>'
@@ -291,7 +292,7 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
                                                     arch='amd64', os_release_codename='jessie')
             self.device.deb_packages.add(deb_package)
 
-        title, text = InsecureServicesAction.get_description(self.user)
+        title, text = InsecureServicesGroupAction.get_description(self.user, devices='your nodes')
         self.assertEqual(title, 'Insecure services found')
         self.assertIn('We found insecure services installed on your nodes.', text)
         for pkg_name in services_installed:
@@ -328,7 +329,7 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
         self.device.save(update_fields=['audit_files'])
 
     def test_get(self):
-        for subclass in OpensshIssueAction.subclasses:
+        for subclass in OpensshIssueGroupAction.subclasses:
             self.action_class = subclass
             self.search_pattern_common_page = self.search_pattern_common + self.action_class.sshd_param
             self.search_pattern_device_page = self.search_pattern_device + self.action_class.sshd_param
@@ -343,7 +344,7 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
         self.device.audit_files[0]['issues'] = bad_config
         self.device.save(update_fields=['audit_files'])
 
-        title, text = OpensshIssueAction.get_description(self.user)
+        title, text = OpensshIssueGroupAction.get_description(self.user, devices='your nodes')
         self.assertIn('We found insecure configuration issues with OpenSSH on your nodes. To improve the '
                       'security posture of your node, please consider making the following changes:', text)
         self.assertEqual(title, 'Insecure configuration for OpenSSH found')
@@ -399,7 +400,7 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
         pass
 
     def test_get(self):
-        for subclass in PubliclyAccessibleServiceAction.subclasses:
+        for subclass in PubliclyAccessibleServiceGroupAction.subclasses:
             self.action_class = subclass
             self.search_pattern_common_page = self.search_pattern_common.format(service=subclass.service_name)
             self.search_pattern_device_page = self.search_pattern_device.format(service=subclass.service_name)
@@ -421,7 +422,7 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
         self.device.deviceinfo.save(update_fields=['processes'])
         self.device.portscan.save(update_fields=['scan_info'])
 
-        title, text = PubliclyAccessibleServiceAction.get_description(self.user)
+        title, text = PubliclyAccessibleServiceGroupAction.get_description(self.user, devices='your nodes')
         self.assertEqual(title, 'Your services may be publicly accessible')
         for service in publicly_available:
             port, name = PUBLIC_SERVICE_PORTS[service][:2]
