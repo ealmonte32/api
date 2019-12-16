@@ -154,7 +154,7 @@ class BaseAction:
     @classmethod
     def get_description(cls, user, body=None, **kwargs):
         day_ago = timezone.now() - timedelta(hours=24)
-        affected_devices = cls.affected_devices(user, exclude_snoozed=False)  # .filter(last_ping__gte=day_ago)
+        affected_devices = cls.affected_devices(user, exclude_snoozed=False).filter(last_ping__gte=day_ago)
         if not affected_devices.exists():
             return
         affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
