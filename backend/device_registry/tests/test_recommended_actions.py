@@ -170,7 +170,7 @@ class TestsMixin:
         self.user.set_password('123')
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, auto_upgrades=True,
-                                            mysql_root_access=False)
+                                            mysql_root_access=False, last_ping=timezone.now())
         FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         PortScan.objects.create(device=self.device)
         DeviceInfo.objects.create(device=self.device, default_password=False)

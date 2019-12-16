@@ -126,7 +126,10 @@ class BaseAction:
         :param devices_list: list of Device ids
         :return: Action
         """
-        issue_number = profile.github_issues.get(str(cls.action_id))
+        if hasattr(cls, 'group_action'):
+            issue_number = profile.github_issues.get(str(cls.group_action.action_id))
+        else:
+            issue_number = profile.github_issues.get(str(cls.action_id))
         issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
         return Action(
             cls.action_title.format(**context),
