@@ -23,11 +23,6 @@ DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
 UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite names.
 IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
-PUBLIC_SERVICE_PORTS = {
-    'mongod': (27017, 'MongoDB'),
-    'mysqld': (3306, 'MySQL/MariaDB'),
-    'memcached': (11211, 'Memcached')
-}
 FTP_PORT = 21
 
 
@@ -215,7 +210,7 @@ class Device(models.Model):
         """
         if not self.deb_packages_hash:
             return None
-        return self.deb_packages.filter(name__in=[name for name, severity in INSECURE_SERVICES])
+        return self.deb_packages.filter(name__in=[name for name, _, _ in INSECURE_SERVICES])
 
     def set_deb_packages(self, packages, os_info):
         """
@@ -321,6 +316,7 @@ class Device(models.Model):
         Looks for open ports and known services (declared in PUBLIC_SERVICE_PORTS) listening on them.
         :return: a set of service names (keys from PUBLIC_SERVICE_PORTS) which are listening.
         """
+        from .recommended_actions import PUBLIC_SERVICE_PORTS
         processes = self.deviceinfo.processes
         found = set()
         for p in processes.values():

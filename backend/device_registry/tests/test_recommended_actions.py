@@ -8,9 +8,9 @@ from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, 
     GlobalPolicy, RecommendedAction
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
-    InsecureServicesAction, OpensshIssueAction, \
-    FtpServerAction, MongodbAction, MysqlAction, MemcachedAction, \
-    CpuVulnerableAction, BaseAction, ActionMeta, Action
+    InsecureServicesAction, OpensshIssueAction, FtpServerAction, \
+    CpuVulnerableAction, BaseAction, ActionMeta, Action, PubliclyAccessibleServiceAction, grouped_action, \
+    PUBLIC_SERVICE_PORTS
 
 from freezegun import freeze_time
 
@@ -149,7 +149,7 @@ class TestsMixin:
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
 
-    def check_action(self, action: Action, text):
+    def check_action(self, action: Action, text, title=None):
         self.assertIn(text, action.description)
 
     def setUp(self):
@@ -248,9 +248,12 @@ class MySQLDefaultRootPasswordActionTest(TestsMixin, TestCase):
 
 
 class InsecureServicesActionTest(TestsMixin, TestCase):
-    def enable_action(self):
+    def setUp(self):
+        super().setUp()
         self.device.deb_packages_hash = 'abcd'
         self.device.save(update_fields=['deb_packages_hash'])
+
+    def enable_action(self):
         deb_package = DebPackage.objects.create(name=self.action_class.service_name, version='version1',
                                                 source_name=self.action_class.service_name, source_version='sversion1',
                                                 arch='amd64', os_release_codename='jessie')
@@ -267,6 +270,25 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
             super().test_get()
             self.unsnooze_action()
             self.disable_action()
+
+    def test_group(self):
+        services_installed = ['fingerd', 'tftpd']
+        service_not_installed = 'telnetd'
+        for pkg_name in services_installed:
+            deb_package = DebPackage.objects.create(name=pkg_name, version='version1',
+                                                    source_name=pkg_name,
+                                                    source_version='sversion1',
+                                                    arch='amd64', os_release_codename='jessie')
+            self.device.deb_packages.add(deb_package)
+
+        title, text = grouped_action(InsecureServicesAction, self.user)
+        self.assertEqual(title, 'Insecure service found')
+        self.assertIn('We found insecure services installed on your nodes.', text)
+        for pkg_name in services_installed:
+            self.assertIn(f'### {pkg_name} ###', text)
+            self.assertIn(f'Run `sudo apt-get remove {pkg_name}` to remove it.', text)
+        self.assertNotIn(f'### {service_not_installed} ###', text)
+        self.assertNotIn(f'Run `sudo apt-get remove {service_not_installed}` to remove it.', text)
 
 
 class OpensshIssueActionTest(TestsMixin, TestCase):
@@ -304,6 +326,23 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
             self.unsnooze_action()
             self.disable_action()
 
+    def test_group(self):
+        good_config_name = list(self.bad_config.keys())[0]
+        bad_config = self.bad_config.copy()
+        del(bad_config[good_config_name])
+        self.device.audit_files[0]['issues'] = bad_config
+        self.device.save(update_fields=['audit_files'])
+
+        title, text = grouped_action(OpensshIssueAction, self.user)
+        self.assertIn('We found insecure configuration issues with OpenSSH on your nodes. To improve the '
+                      'security posture of your node, please consider making the following changes:', text)
+        self.assertEqual(title, 'Insecure configuration for OpenSSH found')
+        for config_name in bad_config:
+            self.assertIn(f'### {config_name} ###', text)
+            self.assertIn(f'Please consider changing {config_name}', text)
+        self.assertNotIn(f'### {good_config_name} ###', text)
+        self.assertNotIn(f'Please consider changing {good_config_name}', text)
+
 
 class FtpServerActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'There appears to be an FTP server running on <a href="{url}">{name}</a>'
@@ -317,49 +356,70 @@ class FtpServerActionTest(TestsMixin, TestCase):
         self.device.portscan.save(update_fields=['scan_info'])
 
 
-class MongodbActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We detected that a MongoDB instance on <a href="{url}">{name}</a> may be ' \
+class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
+    search_pattern_common = 'We detected that a {service} instance on <a href="{{url}}">{{name}}</a> may be ' \
                                  'accessible remotely'
-    search_pattern_device_page = 'We detected that a MongoDB instance on this node may be accessible remotely'
-    action_class = MongodbAction
+    search_pattern_device = 'We detected that a {service} instance on this node may be accessible remotely'
 
     def enable_action(self):
-        self.device.deviceinfo.processes = {12345: ('mongod', '', 'mongo', None)}
+        dummy_pid = 34568
+        self.device.deviceinfo.processes = {dummy_pid: (self.action_class.service, '', '', None)}
         self.device.deviceinfo.save(update_fields=['processes'])
         self.device.portscan.scan_info = [
-            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 27017, 'pid': 12345}
+            {'ip_version': 4, 'proto': 'tcp', 'state': 'LISTEN', 'host': '0.0.0.0',
+             'port': self.action_class.port, 'pid': dummy_pid}
         ]
         self.device.portscan.save(update_fields=['scan_info'])
 
-
-class MysqlActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We detected that a MySQL instance on <a href="{url}">{name}</a> may be ' \
-                                 'accessible remotely'
-    search_pattern_device_page = 'We detected that a MySQL instance on this node may be accessible remotely'
-    action_class = MysqlAction
-
-    def enable_action(self):
-        self.device.deviceinfo.processes = {34567: ('mysqld', '', 'mysql', None)}
+    def disable_action(self):
+        self.device.deviceinfo.processes = {}
         self.device.deviceinfo.save(update_fields=['processes'])
-        self.device.portscan.scan_info = [
-            {'ip_version': 4, 'proto': 'tcp', 'state': '???', 'host': '0.0.0.0', 'port': 3306, 'pid': 34567}
-        ]
+        self.device.portscan.scan_info = []
         self.device.portscan.save(update_fields=['scan_info'])
 
+    def check_action(self, action: Action, text):
+        super().check_action(action, text)
+        self.assertEqual(f'Your {self.action_class.service_name} instance may be publicly accessible',
+                         action.title)
 
-class MemcachedActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We detected that a Memcached instance on <a href="{url}">{name}</a> may be ' \
-                                 'accessible remotely'
-    search_pattern_device_page = 'We detected that a Memcached instance on this node may be accessible remotely'
-    action_class = MemcachedAction
+    def test_get(self):
+        for subclass in PubliclyAccessibleServiceAction.subclasses:
+            self.action_class = subclass
+            self.search_pattern_common_page = self.search_pattern_common.format(service=subclass.service_name)
+            self.search_pattern_device_page = self.search_pattern_device.format(service=subclass.service_name)
+            super().test_get()
+            self.unsnooze_action()
+            self.disable_action()
 
-    def enable_action(self):
-        self.device.deviceinfo.processes = {34568: ('memcached', '', 'memcache', None)}
+    def test_group(self):
+        dummy_pid = 34568
+        publicly_available = ['mongod', 'mysqld', 'memcached']
+        not_publicly_available = 'redis-server'
+        for service in publicly_available:
+            self.device.deviceinfo.processes[dummy_pid] = (service, '', '', None)
+            self.device.portscan.scan_info.append(
+                {'ip_version': 4, 'proto': 'tcp', 'state': 'LISTEN', 'host': '0.0.0.0',
+                 'port': PUBLIC_SERVICE_PORTS[service][0], 'pid': dummy_pid}
+            )
+            dummy_pid += 1
         self.device.deviceinfo.save(update_fields=['processes'])
-        self.device.portscan.scan_info = [
-            {'ip_version': 4, 'proto': 'tcp', 'state': 'LISTEN', 'host': '0.0.0.0', 'port': 11211, 'pid': 34568}
-        ]
         self.device.portscan.save(update_fields=['scan_info'])
+
+        title, text = grouped_action(PubliclyAccessibleServiceAction, self.user)
+        self.assertEqual(title, 'Your services may be publicly accessible')
+        for service in publicly_available:
+            port, name = PUBLIC_SERVICE_PORTS[service][:2]
+            self.assertIn(f'### {name} ###', text)
+            self.assertIn(f'We detected that a {name} instance on your nodes may be accessible '
+                          f'remotely. Consider either blocking port {port} through the WoTT firewall '
+                          f'management tool, or re-configure {name} to only listen on localhost.',
+                          text)
+        port, name = PUBLIC_SERVICE_PORTS[not_publicly_available][:2]
+        self.assertNotIn(f'### {name} ###', text)
+        self.assertNotIn(f'We detected that a {name} instance on your nodes may be accessible '
+                         f'remotely. Consider either blocking port {port} through the WoTT firewall '
+                         f'management tool, or re-configure {name} to only listen on localhost.',
+                         text)
 
 
 class CpuVulnerableActionTest(TestsMixin, TestCase):

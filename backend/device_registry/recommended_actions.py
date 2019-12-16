@@ -1,5 +1,8 @@
+import itertools
+from datetime import timedelta
 from enum import Enum
 
+from django.conf import settings
 from django.db.models import Q
 from django.urls import reverse
 
@@ -14,25 +17,31 @@ class Severity(Enum):
 
 
 INSECURE_SERVICES = [
-    ('fingerd', Severity.MED),
-    ('tftpd', Severity.MED),
-    ('telnetd', Severity.HI),
-    ('snmpd', Severity.MED),
-    ('xinetd', Severity.MED),
-    ('nis', Severity.MED),
-    ('atftpd', Severity.MED),
-    ('tftpd-hpa', Severity.MED),
-    ('rsh-server', Severity.HI),
-    ('rsh-redone-server', Severity.HI)
+    ('fingerd', 1, Severity.MED),
+    ('tftpd', 2, Severity.MED),
+    ('telnetd', 3, Severity.HI),
+    ('snmpd', 4, Severity.MED),
+    ('xinetd', 5, Severity.MED),
+    ('nis', 6, Severity.MED),
+    ('atftpd', 7, Severity.MED),
+    ('tftpd-hpa', 8, Severity.MED),
+    ('rsh-server', 9, Severity.HI),
+    ('rsh-redone-server', 10, Severity.HI)
 ]
 
-
 SSHD_CONFIG_PARAMS_INFO = {
-    'PermitEmptyPasswords': ('no', None, Severity.HI),
-    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', Severity.MED),
-    'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-password-authentication', Severity.HI),
-    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', Severity.MED),
-    'Protocol': ('2', None, Severity.HI)
+    'PermitEmptyPasswords': ('no', None, 1, Severity.HI),
+    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', 2, Severity.MED),
+    'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-password-authentication', 3, Severity.HI),
+    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', 4, Severity.MED),
+    'Protocol': ('2', None, 5, Severity.HI)
+}
+
+PUBLIC_SERVICE_PORTS = {
+    'mongod': (27017, 'MongoDB', 1),
+    'mysqld': (3306, 'MySQL/MariaDB', 2),
+    'memcached': (11211, 'Memcached', 3),
+    'redis-server': (6379, 'Redis', 4)
 }
 
 
@@ -63,9 +72,11 @@ class Action:
         self.severity = severity
 
 
-def device_link(device):
+def device_link(device, absolute=False):
     """Create a device's page html link code"""
     url = reverse('device-detail', kwargs={'pk': device.pk})
+    if absolute:
+        url = settings.DASH_URL + url
     return f'[{device.get_name()}]({url})'
 
 
@@ -118,42 +129,13 @@ class BaseAction:
         issue_number = profile.github_issues.get(str(cls.action_id))
         issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
         return Action(
-            cls.action_title,
+            cls.action_title.format(**context),
             cls.action_description.format(**context),
             cls.action_id, devices_list,
             cls.severity,
             issue_url=issue_url,
             doc_url=cls.doc_url
         )
-
-
-class ActionMeta(type):
-    _action_classes = {}
-
-    def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
-        if cls.action_id in meta._action_classes:
-            raise ValueError('This action_id already exists')
-        meta._action_classes[cls.action_id] = cls
-        return cls
-
-    @classmethod
-    def unregister(meta, cls):
-        del meta._action_classes[cls.action_id]
-
-    @classmethod
-    def all_classes(meta):
-        return meta._action_classes.values()
-
-    @classmethod
-    def is_action_id(meta, id):
-        return id in meta._action_classes
-
-
-class ActionMultiDevice(BaseAction):
-    """
-    Specific base action class for actions able to store info for *multiple* devices.
-    """
 
     @classmethod
     def actions(cls, user, device_pk=None):
@@ -170,11 +152,59 @@ class ActionMultiDevice(BaseAction):
         return int(cls.affected_devices(user).exists())
 
 
+def grouped_action(action_class, user):
+    day_ago = timezone.now() - timedelta(hours=24)
+    action_text = action_class.group_action_main
+    for cls in action_class.subclasses:
+        affected_devices = cls.affected_devices(user, exclude_snoozed=False) #.filter(last_ping__gte=day_ago)
+        if affected_devices.exists():
+            # FIXME: here should be devices affected by this RA (cls.affected_devices) and devices where this RA was fixed (RecommendedAction.FIXED).
+            affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
+            action_text += f"\n\n### {cls.group_action_section_title} ###\n\n{cls.group_action_section_body}\n\n" \
+                           f"#### Affected nodes: ####\n{affected_list}" \
+                .format(**cls.get_action_description_context(affected_devices))
+    action_title = getattr(action_class, 'group_action_title', action_class.action_title)
+    return action_title, action_text
+
+
+class ActionMeta(type):
+    _action_classes = {}
+    _grouped_action_classes = {}
+    _ungrouped_action_classes = {}
+
+    def __new__(meta, name, bases, class_dict):
+        cls = type.__new__(meta, name, bases, class_dict)
+        if cls.action_id in meta._action_classes:
+            raise ValueError('This action_id already exists')
+        if hasattr(cls.__base__, 'subclasses'):
+            meta._ungrouped_action_classes[cls.action_id] = cls
+        elif getattr(cls, 'grouped_action', False) is True:
+            meta._grouped_action_classes[cls.action_id] = cls
+        else:
+            meta._action_classes[cls.action_id] = cls
+        return cls
+
+    @classmethod
+    def unregister(meta, cls):
+        del meta._action_classes[cls.action_id]
+
+    @classmethod
+    def all_classes(meta, grouped=False):
+        if grouped:
+            return itertools.chain(meta._action_classes.values(), meta._grouped_action_classes.values())
+        else:
+            return itertools.chain(meta._action_classes.values(), meta._ungrouped_action_classes.values())
+
+    @classmethod
+    def is_action_id(meta, id):
+        return id in meta._action_classes
+
+
 # Below is the code for real actions classes.
 # Don't forget to add metaclass=ActionMeta.
 
 # Default username/password used action.
-class DefaultCredentialsAction(ActionMultiDevice, metaclass=ActionMeta):
+class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
     action_id = 1
     action_title = 'Default credentials detected'
     action_description = \
@@ -187,7 +217,7 @@ class DefaultCredentialsAction(ActionMultiDevice, metaclass=ActionMeta):
 
 
 # Firewall disabled action.
-class FirewallDisabledAction(ActionMultiDevice, metaclass=ActionMeta):
+class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
     action_id = 2
     action_title = 'Permissive firewall policy detected'
     action_description = \
@@ -203,7 +233,7 @@ class FirewallDisabledAction(ActionMultiDevice, metaclass=ActionMeta):
 
 
 # Vulnerable packages found action.
-class VulnerablePackagesAction(ActionMultiDevice, metaclass=ActionMeta):
+class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
     action_id = 3
     action_title = 'Vulnerable packages found'
     action_description = \
@@ -221,9 +251,11 @@ class VulnerablePackagesAction(ActionMultiDevice, metaclass=ActionMeta):
 
 
 # Insecure services found action.
-class InsecureServicesAction(ActionMultiDevice):
+class InsecureServicesAction(BaseAction):
     action_title = 'Insecure service found'
-    action_id_base = 42
+    group_action_main = 'We found insecure services installed on your nodes. Because these services are ' \
+                        'considered insecure, we recommend you to uninstall them.'
+    action_id_base = 1000
     subclasses = []
 
     @classmethod
@@ -236,40 +268,38 @@ class InsecureServicesAction(ActionMultiDevice):
             deb_packages__name=cls.service_name).distinct()
 
 
-concrete_action_id = 0
-for name, severity in INSECURE_SERVICES:
+for name, sub_id, severity in INSECURE_SERVICES:
     class ConcreteInsecureServicesAction(InsecureServicesAction, metaclass=ActionMeta):
-        action_id = InsecureServicesAction.action_id_base + concrete_action_id
+        action_id = sub_id + InsecureServicesAction.action_id_base
         action_description = \
             'We found {service} installed on {devices}. Because this service is considered insecure, it is ' \
             'recommended that you uninstall it.\n\n' \
-            'Run `sudo apt-get purge {service}` to disable it.'
+            'Run `sudo apt-get remove {service}` to remove it.'
+        group_action_section_title = name
+        group_action_section_body = 'Run `sudo apt-get remove {service}` to remove it.'
         severity = severity
         service_name = name
-    concrete_action_id += 1
     InsecureServicesAction.subclasses.append(ConcreteInsecureServicesAction)
 
 
 # OpenSSH configuration issues found action.
-class OpensshIssueAction(ActionMultiDevice):
-    action_id_base = InsecureServicesAction.action_id_base + concrete_action_id
+class OpensshIssueAction(BaseAction):
+    action_id_base = 2000
     action_title = 'Insecure configuration for OpenSSH found'
     action_description = \
         'We found insecure configuration issue with OpenSSH on {devices}: insecure parameter {param_name}. To improve '\
-        'the security posture of your node, please consider making the following change:\n\n{change}'
+        'the security posture of your node, please consider changing {param_name} to "{safe_value}".'
+    group_action_main = \
+        'We found insecure configuration issues with OpenSSH on your nodes. To improve the security posture of your ' \
+        'node, please consider making the following changes:'
     subclasses = []
 
     @classmethod
     def get_action_description_context(cls, devices_qs, device_pk=None):
-        for device in devices_qs:
-            if cls.sshd_param in device.sshd_issues:
-                param_value, param_info = device.sshd_issues[cls.sshd_param]
-                recommendation = f'- Change "**{cls.sshd_param}**" from "**{param_value}**" to "' \
-                                 f'**{param_info[0]}**" on {device_link(device)}.\n'
-                if param_info[1]:  # Documentation link available.
-                    recommendation += f' Learn more [here]({param_info[1]})\n'
-                break
-        return dict(change=recommendation, param_name=cls.sshd_param)
+        safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[cls.sshd_param]
+        return dict(param_name=cls.sshd_param,
+                    safe_value=safe_value,
+                    doc_url=doc_url)
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
@@ -282,18 +312,20 @@ class OpensshIssueAction(ActionMultiDevice):
         return Device.objects.filter(pk__in=dev_ids)
 
 
-concrete_action_id = 0
 for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
     class ConcreteOpensshIssueAction(OpensshIssueAction, metaclass=ActionMeta):
-        action_id = OpensshIssueAction.action_id_base + concrete_action_id
-        severity = param_info[2]
+        _, doc_url, sub_id, severity = param_info
+        action_id = OpensshIssueAction.action_id_base + sub_id
         sshd_param = param_name
+        group_action_section_title = param_name
+        group_action_section_body = \
+            'Please consider changing {param_name} to "{safe_value}".' \
+            + (f'\n\nYou can learn more [here]({doc_url}).' if doc_url else '')
     OpensshIssueAction.subclasses.append(ConcreteOpensshIssueAction)
-    concrete_action_id += 1
 
 
 # Automatic security update disabled action.
-class AutoUpdatesAction(ActionMultiDevice, metaclass=ActionMeta):
+class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
     action_id = 6
     action_title = 'Consider enable automatic security updates'
     action_description = \
@@ -336,7 +368,7 @@ class AutoUpdatesAction(ActionMultiDevice, metaclass=ActionMeta):
 
 
 # FTP listening on port 21 action.
-class FtpServerAction(ActionMultiDevice, metaclass=ActionMeta):
+class FtpServerAction(BaseAction, metaclass=ActionMeta):
     action_id = 7
     action_title = 'Consider moving to SFTP'
     action_description = \
@@ -355,46 +387,8 @@ class FtpServerAction(ActionMultiDevice, metaclass=ActionMeta):
         return Device.objects.filter(pk__in=dev_ids)
 
 
-# Insecure MongoDB action.
-class MongodbAction(ActionMultiDevice, metaclass=ActionMeta):
-    action_id = 8
-    action_title = 'Your MongoDB instance may be publicly accessible'
-    action_description = \
-        'We detected that a MongoDB instance on {devices} may be accessible remotely. Consider either blocking port ' \
-        '27017 through the WoTT firewall management tool, or re-configure MongoDB to only listen on localhost.'
-    severity = Severity.HI
-
-    @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        dev_ids = []
-        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
-            if 'mongod' in dev.public_services:
-                dev_ids.append(dev.pk)
-        return Device.objects.filter(pk__in=dev_ids)
-
-
-# Insecure MySQL/MariaDB action.
-class MysqlAction(ActionMultiDevice, metaclass=ActionMeta):
-    action_id = 9
-    action_title = 'Your MySQL instance may be publicly accessible'
-    action_description = \
-        'We detected that a MySQL instance on {devices} may be accessible remotely. Consider either blocking port ' \
-        '3306 through the WoTT firewall management tool, or re-configure MySQL to only listen on localhost.'
-    severity = Severity.HI
-
-    @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        dev_ids = []
-        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
-            if 'mysqld' in dev.public_services:
-                dev_ids.append(dev.pk)
-        return Device.objects.filter(pk__in=dev_ids)
-
-
 # MySQL root default password action.
-class MySQLDefaultRootPasswordAction(ActionMultiDevice, metaclass=ActionMeta):
+class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
     action_id = 10
     action_title = 'No root password set for the MySQL/MariaDB server'
     action_description = \
@@ -412,26 +406,44 @@ class MySQLDefaultRootPasswordAction(ActionMultiDevice, metaclass=ActionMeta):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(mysql_root_access=True)
 
 
-# Insecure Memcached action.
-class MemcachedAction(ActionMultiDevice, metaclass=ActionMeta):
-    action_id = 11
-    action_title = 'Your Memcached instance may be publicly accessible'
+class PubliclyAccessibleServiceAction(BaseAction):
+    action_id_base = 3000
+    action_title = 'Your {service} instance may be publicly accessible'
     action_description = \
-        'We detected that a Memcached instance on {devices} may be accessible remotely. Consider either blocking ' \
-        'port 11211 through the WoTT firewall management tool, or re-configure Memcached to only listen on localhost.'
+        'We detected that a {service} instance on {devices} may be accessible remotely. Consider either blocking '\
+        'port {port} through the WoTT firewall management tool, or re-configure {service} to only listen on localhost.'
+    group_action_title = 'Your services may be publicly accessible'
+    group_action_main = 'We detected that the following services on your nodes may be accessible remotely.'
+    group_action_section_body = \
+        'We detected that a {service} instance on your nodes may be accessible remotely. Consider either blocking ' \
+        'port {port} through the WoTT firewall management tool, or re-configure {service} to only listen on localhost.'
     severity = Severity.HI
+    subclasses = []
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         from .models import Device
         dev_ids = []
         for dev in super().affected_devices(user, device_pk, exclude_snoozed):
-            if 'memcached' in dev.public_services:
+            if cls.service in dev.public_services:
                 dev_ids.append(dev.pk)
         return Device.objects.filter(pk__in=dev_ids)
 
+    @classmethod
+    def get_action_description_context(cls, devices_qs, device_pk=None):
+        return dict(service=cls.service_name, port=cls.port)
 
-class CpuVulnerableAction(ActionMultiDevice, metaclass=ActionMeta):
+
+for service, service_info in PUBLIC_SERVICE_PORTS.items():
+    class ConcretePubliclyAccessibleServiceAction(PubliclyAccessibleServiceAction, metaclass=ActionMeta):
+        port, service_name, sub_id = service_info
+        action_id = sub_id + PubliclyAccessibleServiceAction.action_id_base
+        service = service
+        group_action_section_title = service_name
+    PubliclyAccessibleServiceAction.subclasses.append(ConcretePubliclyAccessibleServiceAction)
+
+
+class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):
     action_id = 12
     action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
     action_description = \
