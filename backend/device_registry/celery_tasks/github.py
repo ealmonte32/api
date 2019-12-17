@@ -222,7 +222,7 @@ class GithubRepo:
 
     def update_issue(self, issue_number, body_text):
         """
-        Open an existing closed Github issue
+        Update issue text and open it if closed.
         :param issue_number: issue number
         :return: None
         :raises GithubError

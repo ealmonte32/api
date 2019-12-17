@@ -210,7 +210,7 @@ class Device(models.Model):
         """
         if not self.deb_packages_hash:
             return None
-        return self.deb_packages.filter(name__in=[name for name, _, _ in INSECURE_SERVICES])
+        return self.deb_packages.filter(name__in=[service.name for service in INSECURE_SERVICES])
 
     def set_deb_packages(self, packages, os_info):
         """

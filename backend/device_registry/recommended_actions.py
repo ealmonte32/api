@@ -1,13 +1,13 @@
-import itertools
 from datetime import timedelta
 from enum import Enum
+from typing import NamedTuple, List, Union
 
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.urls import reverse
+from django.utils import timezone
 
 import markdown
-from django.utils import timezone
 
 
 class Severity(Enum):
@@ -16,32 +16,72 @@ class Severity(Enum):
     HI = ('High', 'danger')
 
 
+class InsecureService(NamedTuple):
+    """
+    name: Process name (e.g. fingerd, tftpd).
+    sub_id: Action subclass id starting with 1. Should be unique across all InsecureService's.
+    severity: Action severity.
+    """
+    name: str
+    sub_id: int
+    severity: Severity
+
+
+class OpenSSHConfigParam(NamedTuple):
+    """
+    safe_value: The value of the config parameter which is considered safe.
+    doc_url: "Learn More" URL or None.
+    sub_id: Action subclass id starting with 1. Should be unique across all OpenSSHConfigParam's.
+    severity: Action severity.
+    """
+    safe_value: str
+    doc_url: str
+    sub_id: int
+    severity: Severity
+
+
+class PubliclyAccessiblePort(NamedTuple):
+    """
+    port: TCP port number. Should ideally be a valid port number, i.e. in [0, 65535].
+    name: Display name of the service listening on this port.
+    sub_id: Action subclass id starting with 1. Should be unique across all PubliclyAccessiblePort's.
+    """
+    port: int
+    name: str
+    sub_id: int
+
+
 INSECURE_SERVICES = [
-    ('fingerd', 1, Severity.MED),
-    ('tftpd', 2, Severity.MED),
-    ('telnetd', 3, Severity.HI),
-    ('snmpd', 4, Severity.MED),
-    ('xinetd', 5, Severity.MED),
-    ('nis', 6, Severity.MED),
-    ('atftpd', 7, Severity.MED),
-    ('tftpd-hpa', 8, Severity.MED),
-    ('rsh-server', 9, Severity.HI),
-    ('rsh-redone-server', 10, Severity.HI)
+    InsecureService('fingerd', 1, Severity.MED),
+    InsecureService('tftpd', 2, Severity.MED),
+    InsecureService('telnetd', 3, Severity.HI),
+    InsecureService('snmpd', 4, Severity.MED),
+    InsecureService('xinetd', 5, Severity.MED),
+    InsecureService('nis', 6, Severity.MED),
+    InsecureService('atftpd', 7, Severity.MED),
+    InsecureService('tftpd-hpa', 8, Severity.MED),
+    InsecureService('rsh-server', 9, Severity.HI),
+    InsecureService('rsh-redone-server', 10, Severity.HI)
 ]
 
 SSHD_CONFIG_PARAMS_INFO = {
-    'PermitEmptyPasswords': ('no', None, 1, Severity.HI),
-    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', 2, Severity.MED),
-    'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-password-authentication', 3, Severity.HI),
-    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', 4, Severity.MED),
-    'Protocol': ('2', None, 5, Severity.HI)
+    'PermitEmptyPasswords': OpenSSHConfigParam(
+        'no', None, 1, Severity.HI),
+    'PermitRootLogin': OpenSSHConfigParam(
+        'no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', 2, Severity.MED),
+    'PasswordAuthentication': OpenSSHConfigParam(
+        'no', 'https://wott.io/documentation/faq#openssh-password-authentication', 3, Severity.HI),
+    'AllowAgentForwarding': OpenSSHConfigParam(
+        'no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', 4, Severity.MED),
+    'Protocol': OpenSSHConfigParam(
+        '2', None, 5, Severity.HI)
 }
 
 PUBLIC_SERVICE_PORTS = {
-    'mongod': (27017, 'MongoDB', 1),
-    'mysqld': (3306, 'MySQL/MariaDB', 2),
-    'memcached': (11211, 'Memcached', 3),
-    'redis-server': (6379, 'Redis', 4)
+    'mongod': PubliclyAccessiblePort(27017, 'MongoDB', 1),
+    'mysqld': PubliclyAccessiblePort(3306, 'MySQL/MariaDB', 2),
+    'memcached': PubliclyAccessiblePort(11211, 'Memcached', 3),
+    'redis-server': PubliclyAccessiblePort(6379, 'Redis', 4)
 }
 
 
@@ -85,13 +125,20 @@ class BaseAction:
     Common base action class.
 
     It's a parent for all specific base action classes.
-    Contains the code supposed to fit *all* actions.
     """
     severity = Severity.LO
     doc_url = 'https://wott.io/documentation/faq'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True) -> QuerySet:
+        """
+        Select user's devices which are affected by this recommended action. May return empty queryset.
+        If device_pk is given, will select only one device with this pk.
+        :param user: the owner of the processed devices.
+        :param device_pk: if given, then only one device with this pk is processed.
+        :param exclude_snoozed: if True, snoozed actions will be excluded.
+        :return:
+        """
         from .models import RecommendedAction
         if exclude_snoozed:
             devices = user.devices.exclude(Q(recommendedaction__action_id=cls.action_id) &
@@ -106,7 +153,7 @@ class BaseAction:
         return devices
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
+    def get_action_description_context(cls, devices_qs, device_pk=None) -> dict:
         """
         Method for producing a tuple of values used (as string formatting parameters)
          for action description text rendering.
@@ -141,7 +188,13 @@ class BaseAction:
         )
 
     @classmethod
-    def actions(cls, user, device_pk=None):
+    def actions(cls, user, device_pk=None) -> List[Action]:
+        """
+        Generate a list of Action objects for the user. Excludes snoozed actions.
+        :param user: the owner of the processed devices.
+        :param device_pk: if given, then only one device with this pk is processed.
+        :return:
+        """
         actions_list = []
         devices = cls.affected_devices(user, device_pk)
         if devices.exists():
@@ -151,11 +204,20 @@ class BaseAction:
         return actions_list
 
     @classmethod
-    def action_blocks_count(cls, user):
+    def action_blocks_count(cls, user) -> int:
         return int(cls.affected_devices(user).exists())
 
     @classmethod
-    def get_description(cls, user, body=None, **kwargs):
+    def get_description(cls, user, body=None, **kwargs) -> (str, str):
+        """
+        Generate a Markdown-formatted descriptive text for this recommended action.
+        Mainly used for filing Github issues. Does not exclude snoozed actions. Uses
+        cls.action_description as a template and formats it using cls.get_action_description_context().
+        :param user: the owner of the processed devices.
+        :param body: if given, will be used as template instead of cls.action_description.
+        :param kwargs: additional context for formatting the body.
+        :return: (title, text)
+        """
         day_ago = timezone.now() - timedelta(hours=24)
         affected_devices = cls.affected_devices(user, exclude_snoozed=False).filter(last_ping__gte=day_ago)
         if not affected_devices.exists():
@@ -172,8 +234,50 @@ class BaseAction:
 
 
 class GroupedAction:
+    """
+    Recommended Action which has subclasses. Can produce grouped description by merging descriptions of subclasses.
+    A BaseAction class will be registered as a GroupedAction subclass if: it specifies grouped_action field and
+    is has ActionMeta metaclass. Example:
+
+        class Grouped(GroupedAction):
+            group_action_main = "group main"
+            group_action_title = "group title"
+
+        class SomeBaseAction(BaseAction, metaclass=ActionMeta):
+            grouped_action = Grouped
+
+        class SomeConcreteAction(SomeBaseAction, metaclass=ActionMeta):
+            group_action_section_title = "concrete title"
+            group_action_section_body = "concrete body"
+
+    Here, SomeConcreteAction will be registered subclass for Grouped. Then the result of Grouped.get_description()
+    will be:
+        "group title"
+        group main
+
+        concrete title
+        concrete body
+    It is designed for easy addition of subclasses. If you declare a number of classes similar to SomeConcreteAction
+    they will be registered automatically.
+
+    GroupedAction classes must have group_action_main and group_action_title declared. The registered subclasses must
+    have group_action_section_title and group_action_section_body declared.
+    """
     @classmethod
     def get_description(cls, user, **kwargs):
+        """
+        Behaves like BaseAction.get_description(), but merges descriptions from all subclasses, prepending
+        group_action_main. The result looks like this:
+          group_action_main
+
+          group_action_section_title
+          description
+
+          group_action_section_title
+          description
+
+          ...
+        """
         action_text = ''
         for subclass in cls.subclasses:
             description = subclass.get_description(user, body=subclass.group_action_section_body, **kwargs)
@@ -185,6 +289,11 @@ class GroupedAction:
 
 
 class ActionMeta(type):
+    """
+    Automatically registers action classes and divides them into regular, grouped and ungrouped (which are subclasses).
+    A class is regular if it's neither grouped (i.e. subclass of GroupedAction), nor a subclass of grouped (doesn't have
+    grouped_action field).
+    """
     _action_classes = {}
     _grouped_action_classes = set()
     _ungrouped_action_classes = {}
@@ -206,16 +315,32 @@ class ActionMeta(type):
 
     @classmethod
     def unregister(meta, cls):
+        """
+        Unregister the regular class. Mainly used in tests.
+        :param cls:
+        :return:
+        """
         del meta._action_classes[cls.action_id]
 
     @classmethod
-    def all_classes(meta, grouped=False):
+    def all_classes(meta, grouped=False) -> List[Union[BaseAction, GroupedAction]]:
+        """
+        Get a list of all registered action classes. Depending on value of "grouped", will return either
+        regular and grouped classes, or regular and subclasses.
+        :param grouped:
+        :return:
+        """
         regular = list(meta._action_classes.values())
         return regular + (list(meta._grouped_action_classes) if grouped
                           else list(meta._ungrouped_action_classes.values()))
 
     @classmethod
-    def is_action_id(meta, id):
+    def is_action_id(meta, id) -> bool:
+        """
+        Whether the provided action id is registered (has metaclass=ActionMeta)
+        :param id:
+        :return:
+        """
         return id in meta._action_classes or id in meta._ungrouped_action_classes
 
 
