@@ -10,7 +10,7 @@ from django.dispatch import receiver
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.recommended_actions import action_classes
+from device_registry.recommended_actions import ActionMeta
 from device_registry.celery_tasks import github
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class Profile(models.Model):
 
     @property
     def actions_count(self):
-        return sum([action_class.action_blocks_count(self.user) for action_class in action_classes])
+        return sum([action_class.action_blocks_count(self.user) for action_class in ActionMeta.all_classes()])
 
     @property
     def github_repos(self):

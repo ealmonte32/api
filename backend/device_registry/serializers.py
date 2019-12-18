@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.utils.representation import smart_repr
 
 from .models import Device, DeviceInfo, Credential, Tag, PairingKey
-from .recommended_actions import action_classes
+from .recommended_actions import ActionMeta
 
 
 class RequiredValidator(object):
@@ -237,7 +237,7 @@ class SnoozeActionSerializer(serializers.Serializer):
     duration = serializers.IntegerField(allow_null=True, min_value=0)
 
     def validate_action_id(self, value):
-        if value not in [action_class.action_id for action_class in action_classes]:
+        if not ActionMeta.is_action_id(value):
             raise serializers.ValidationError('Invalid recommended action id')
         return value
 

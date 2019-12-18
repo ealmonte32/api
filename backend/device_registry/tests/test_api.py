@@ -19,8 +19,7 @@ from rest_framework.authtoken.models import Token
 from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey, \
     RecommendedAction
 from device_registry.serializers import DeviceListSerializer
-from device_registry.recommended_actions import action_classes, DefaultCredentialsAction
-
+from device_registry.recommended_actions import ActionMeta, DefaultCredentialsAction
 from device_registry.models import GlobalPolicy
 from profile_page.models import Profile
 
@@ -1379,7 +1378,8 @@ class SnoozeActionViewTest(APITestCase):
 
     def test_wrong_action_id(self):
         self.assertFalse(self.device.recommendedaction_set.filter(action_id=self.action_class.action_id).exists())
-        action_id = max([action_class.action_id for action_class in action_classes]) + 1
+        action_id = 9999
+        self.assertFalse(ActionMeta.is_action_id(action_id))
         response = self.client.post(self.url, {'device_ids': [self.device.pk],
                                                'action_id': action_id,
                                                'duration': None})

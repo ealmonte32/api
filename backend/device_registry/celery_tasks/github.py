@@ -13,7 +13,6 @@ from jwt import JWT, jwk_from_pem
 
 from device_registry import recommended_actions
 
-
 HEADERS = {'Accept': 'application/vnd.github.machine-man-preview+json'}
 logger = logging.getLogger('django')
 
@@ -221,6 +220,22 @@ class GithubRepo:
         else:
             raise GithubError(body)
 
+    def update_issue(self, issue_number, body_text):
+        """
+        Update issue text and open it if closed.
+        :param issue_number: issue number
+        :return: None
+        :raises GithubError
+        """
+        status, body = self._issues(issue_number).patch(body={
+            'state': 'open',
+            'body': body_text
+        })
+        if status == 200:
+            logger.debug('issue updated')
+        else:
+            raise GithubError(body)
+
 
 def get_device_link(device):
     url = settings.DASH_URL + reverse('device-detail', kwargs={'pk': device.pk})
@@ -253,43 +268,26 @@ def file_issues():
             logger.exception('failed to get installation token or list issues')
             continue
 
-        for action_class in recommended_actions.action_classes:
+        for action_class in recommended_actions.ActionMeta.all_classes(grouped=True):
             logger.debug(f'action class {action_class.action_id}')
-            affected_devices = action_class.affected_devices(profile.user, exclude_snoozed=False)\
-                .filter(last_ping__gte=day_ago)
-            logger.debug(f'affected {affected_devices.count()} devices')
-
             # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
             issue_number = profile.github_issues.get(str(action_class.action_id))
-
+            description = action_class.get_description(profile.user, devices='your nodes')
             logger.debug(f'issue #{issue_number}')
             try:
-                if affected_devices.exists():
+                if description:
+                    title, text = description
                     if issue_number:
                         # Issue was created and opened/closed by us. Cloud also be locked in which case it will be
                         # neither in 'open' nor in 'closed' because we can't comment in a locked issue.
-
-                        comment = 'Affected nodes: ' + ', '.join(
-                            [get_device_link(dev) for dev in affected_devices])
-                        if issue_number in issues['closed']:
-                            # Issue was opened by us and then closed => reopen
-                            github_repo.open_issue(issue_number)
                         if issue_number in issues['open'] + issues['closed']:
                             # Issue was opened or closed (and reopened above) by us and not locked => add comment
-                            github_repo.add_comment(issue_number, comment)
+                            last_updated = timezone.now().strftime('%Y-%m-%d %H:%M')
+                            github_repo.update_issue(issue_number, text +
+                                                     f"\n\n*Last updated: {last_updated} UTC*")
                             counter += 1
                     else:
-                        # We haven't filed an issue yet. File it.
-
-                        context = action_class.get_action_description_context(devices_qs=affected_devices)
-
-                        # AutoUpdatesAction will have empty "devices" because it sets "your nodes" as subject.
-                        context['devices'] = 'your nodes' if 'subject' not in context else ''
-
-                        action_text = action_class.action_description.format(**context)
-                        action_text += '\n\nAffected nodes: ' + ', '.join(
-                            [get_device_link(dev) for dev in affected_devices])
-                        issue_number = github_repo.create_issue(action_class.action_title, action_text)
+                        issue_number = github_repo.create_issue(title, text)
                         counter += 1
                 else:
                     if issue_number in issues['open']:

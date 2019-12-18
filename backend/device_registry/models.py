@@ -3,6 +3,7 @@ import datetime
 from statistics import mean
 import json
 import uuid
+from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
@@ -15,7 +16,7 @@ import tagulous.models
 import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
-from .recommended_actions import action_classes
+from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, Severity, PUBLIC_SERVICE_PORTS
 
 apt_pkg.init()
 
@@ -23,11 +24,6 @@ DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
 UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite names.
 IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
-PUBLIC_SERVICE_PORTS = {
-    'mongod': (27017, 'MongoDB'),
-    'mysqld': (3306, 'MySQL/MariaDB'),
-    'memcached': (11211, 'Memcached')
-}
 FTP_PORT = 21
 
 
@@ -75,16 +71,12 @@ class DebPackage(models.Model):
         unique_together = ['name', 'version', 'arch', 'os_release_codename']
 
 
-SSHD_CONFIG_PARAMS_INFO = {
-    'PermitEmptyPasswords': ('no', None),
-    'PermitRootLogin': ('no', 'https://wott.io/documentation/faq#openssh-perminrootlogin'),
-    'PasswordAuthentication': ('no', 'https://wott.io/documentation/faq#openssh-password-authentication'),
-    'AllowAgentForwarding': ('no', 'https://wott.io/documentation/faq#openssh-passwordauthentication'),
-    'Protocol': ('2', None)
-}
-
-
 class Device(models.Model):
+    class SshdIssueItem(NamedTuple):
+        safe_value: str
+        unsafe_value: str
+        severity: Severity
+
     device_id = models.CharField(
         max_length=128,
         unique=True,
@@ -210,27 +202,13 @@ class Device(models.Model):
         if self.audit_files:
             for file_info in self.audit_files:
                 if 'sshd' in file_info['name']:
-                    issues = []
-                    for k, v in file_info['issues'].items():
-                        issues.append((k, v, SSHD_CONFIG_PARAMS_INFO[k]))
-                    return issues
+                    return {k: self.SshdIssueItem(unsafe_value=v, safe_value=SSHD_CONFIG_PARAMS_INFO[k].safe_value,
+                                                  severity=SSHD_CONFIG_PARAMS_INFO[k].severity)
+                            for k, v in file_info['issues'].items()}
 
     @property
     def certificate_expired(self):
         return self.certificate_expires < timezone.now()
-
-    INSECURE_SERVICES = [
-        'fingerd',
-        'tftpd',
-        'telnetd',
-        'snmpd',
-        'xinetd',
-        'nis',
-        'atftpd',
-        'tftpd-hpa',
-        'rsh-server',
-        'rsh-redone-server'
-    ]
 
     @property
     def insecure_services(self):
@@ -240,7 +218,7 @@ class Device(models.Model):
         """
         if not self.deb_packages_hash:
             return None
-        return self.deb_packages.filter(name__in=self.INSECURE_SERVICES)
+        return self.deb_packages.filter(name__in=[service.name for service in INSECURE_SERVICES])
 
     def set_deb_packages(self, packages, os_info):
         """
@@ -325,6 +303,7 @@ class Device(models.Model):
     @property
     def actions_count(self):
         if hasattr(self, 'firewallstate') and hasattr(self, 'portscan'):
+            action_classes = ActionMeta.all_classes()
             return sum(
                 [action_class.affected_devices(self.owner, self.pk).exists() for action_class in action_classes]
             )

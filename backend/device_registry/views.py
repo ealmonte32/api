@@ -18,7 +18,7 @@ from .models import Device, average_trust_score, PortScan, FirewallState, get_bo
     RecommendedAction
 from .models import GlobalPolicy
 from .api_views import DeviceListFilterMixin
-from .recommended_actions import action_classes, FirewallDisabledAction, Action, Severity
+from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
 
 
 class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
@@ -491,7 +491,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             else:
                 device_name = None
 
-            for action_class in action_classes:
+            for action_class in ActionMeta.all_classes():
                 actions.extend(action_class.actions(self.request.user, device_pk))
         else:  # User has no devices - display the special action.
             device_name = None

@@ -21,3 +21,4 @@ COMMON_NAME_PREFIX = 'd.wott-dev.local'
 IS_DASH = True
 IS_API = True
 IS_MTLS_API = True
+DASH_URL = 'https://example.com'
