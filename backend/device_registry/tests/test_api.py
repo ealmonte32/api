@@ -20,7 +20,6 @@ from device_registry.models import Credential, Device, DeviceInfo, Tag, Firewall
     RecommendedAction
 from device_registry.serializers import DeviceListSerializer
 from device_registry.recommended_actions import ActionMeta, DefaultCredentialsAction
-
 from device_registry.models import GlobalPolicy
 from profile_page.models import Profile
 

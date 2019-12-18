@@ -1,6 +1,7 @@
 from datetime import timedelta
 from enum import Enum
 from typing import NamedTuple, List, Union
+from urllib.parse import urljoin
 
 from django.conf import settings
 from django.db.models import Q, QuerySet
@@ -116,7 +117,7 @@ def device_link(device, absolute=False):
     """Create a device's page html link code"""
     url = reverse('device-detail', kwargs={'pk': device.pk})
     if absolute:
-        url = settings.DASH_URL + url
+        url = urljoin(settings.DASH_URL, url)
     return f'[{device.get_name()}]({url})'
 
 
@@ -298,14 +299,22 @@ class ActionMeta(type):
     _grouped_action_classes = set()
     _ungrouped_action_classes = {}
 
-    def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
-        if cls.action_id in meta._action_classes:
+    def __new__(meta, *args, **kwargs):
+        """
+        Called when a new class is declared with metaclass=ActionMeta. Registers the class.
+        :return: The declared class type.
+        """
+        cls = type.__new__(meta, *args, **kwargs)  # Create the class type
+        if cls.action_id in meta._action_classes or cls.action_id in meta._ungrouped_action_classes:
             raise ValueError('This action_id already exists')
         if hasattr(cls, 'group_action'):
+            # If the class has this attribute then it should be registered as a subclass to the grouped action class
+            # specified by group_action.
             group_action = cls.group_action
             meta._ungrouped_action_classes[cls.action_id] = cls
             if not hasattr(group_action, 'subclasses'):
+                # The GroupedAction class does not have 'subclasses' declared initially because then it would be the
+                # same for all its child classes.
                 setattr(group_action, 'subclasses', [])
             group_action.subclasses.append(cls)
             meta._grouped_action_classes.add(group_action)

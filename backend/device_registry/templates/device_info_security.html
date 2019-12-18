@@ -133,15 +133,13 @@
                       {% elif sshd_issues %}
                         <h5>OpenSSH</h5>
                         <ul style="list-style-type:none; padding: 0;">
-                          {% for issue_item in sshd_issues.items %}
-                            {% with param_name=issue_item.0  param_value=issue_item.1.0 param_info=issue_item.1.1 %}
+                          {% for param_name, param_info in sshd_issues.items %}
                             <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider
-                              changing "{{ param_name }}" from "{{ param_value }}" to "{{ param_info.0 }}"
-                              {% if param_info.1 %}
-                                <a href="{{ param_info.1 }}"
+                              changing "{{ param_name }}" from "{{ param_info.unsafe_value }}" to "{{ param_info.safe_value }}"
+                              {% if param_info.severity %}
+                                <a href="{{ param_info.severity }}"
                                    target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
                               {% endif %}
-                            {% endwith %}
                             </li>
                           {% endfor %}
                         </ul>

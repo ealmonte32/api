@@ -3,6 +3,7 @@ import datetime
 from statistics import mean
 import json
 import uuid
+from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
@@ -15,7 +16,7 @@ import tagulous.models
 import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
-from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO
+from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, Severity, PUBLIC_SERVICE_PORTS
 
 apt_pkg.init()
 
@@ -71,6 +72,11 @@ class DebPackage(models.Model):
 
 
 class Device(models.Model):
+    class SshdIssueItem(NamedTuple):
+        safe_value: str
+        unsafe_value: str
+        severity: Severity
+
     device_id = models.CharField(
         max_length=128,
         unique=True,
@@ -196,7 +202,9 @@ class Device(models.Model):
         if self.audit_files:
             for file_info in self.audit_files:
                 if 'sshd' in file_info['name']:
-                    return {k: (v, SSHD_CONFIG_PARAMS_INFO[k]) for k, v in file_info['issues'].items()}
+                    return {k: self.SshdIssueItem(unsafe_value=v, safe_value=SSHD_CONFIG_PARAMS_INFO[k].safe_value,
+                                                  severity=SSHD_CONFIG_PARAMS_INFO[k].severity)
+                            for k, v in file_info['issues'].items()}
 
     @property
     def certificate_expired(self):
@@ -317,7 +325,6 @@ class Device(models.Model):
         Looks for open ports and known services (declared in PUBLIC_SERVICE_PORTS) listening on them.
         :return: a set of service names (keys from PUBLIC_SERVICE_PORTS) which are listening.
         """
-        from .recommended_actions import PUBLIC_SERVICE_PORTS
         processes = self.deviceinfo.processes
         found = set()
         for p in processes.values():
