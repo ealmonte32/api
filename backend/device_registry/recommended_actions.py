@@ -467,7 +467,8 @@ class BaseOpensshIssueAction(BaseAction):
         dev_ids = []
         devices = super().affected_devices(user, device_pk, exclude_snoozed).exclude(audit_files__in=('', []))
         for dev in devices:
-            if cls.sshd_param in dev.sshd_issues:
+            issues = dev.sshd_issues
+            if issues and cls.sshd_param in issues:
                 dev_ids.append(dev.pk)
         return Device.objects.filter(pk__in=dev_ids)
 
