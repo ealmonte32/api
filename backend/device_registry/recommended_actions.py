@@ -130,9 +130,10 @@ class BaseAction:
         from .models import RecommendedAction
         if exclude_snoozed:
             devices = user.devices.exclude(Q(recommendedaction__action_id=cls.action_id) &
-                                           (Q(recommendedaction__snoozed__in=[RecommendedAction.Snooze.FOREVER,
-                                                                              RecommendedAction.Snooze.UNTIL_PING]) |
-                                            Q(recommendedaction__snoozed=RecommendedAction.Snooze.UNTIL_TIME,
+                                           (Q(recommendedaction__status__in=[
+                                               RecommendedAction.Status.SNOOZED_FOREVER,
+                                               RecommendedAction.Status.SNOOZED_UNTIL_PING]) |
+                                            Q(recommendedaction__status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
                                               recommendedaction__snoozed_until__gte=timezone.now())))
         else:
             devices = user.devices.all()

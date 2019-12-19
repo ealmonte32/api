@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('action_id', models.PositiveSmallIntegerField()),
-                ('snoozed', models.PositiveSmallIntegerField(choices=[(device_registry.models.RecommendedAction.Snooze(0), 0), (device_registry.models.RecommendedAction.Snooze(1), 1), (device_registry.models.RecommendedAction.Snooze(2), 2), (device_registry.models.RecommendedAction.Snooze(3), 3)], default=device_registry.models.RecommendedAction.Snooze(0))),
+                ('snoozed', models.PositiveSmallIntegerField(choices=[(device_registry.models.RecommendedAction.Status(0), 0), (device_registry.models.RecommendedAction.Status(1), 1), (device_registry.models.RecommendedAction.Status(2), 2), (device_registry.models.RecommendedAction.Status(3), 3)], default=device_registry.models.RecommendedAction.Status(0))),
                 ('snoozed_until', models.DateTimeField(null=True)),
                 ('device', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='device_registry.Device')),
             ],

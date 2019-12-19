@@ -1339,7 +1339,7 @@ class SnoozeActionViewTest(APITestCase):
         self.device.refresh_from_db()
         actions = self.device.recommendedaction_set.filter(action_id=self.action_class.action_id)
         self.assertQuerysetEqual(actions.values_list('action_id', flat=True), [str(self.action_class.action_id)])
-        self.assertEqual(actions[0].snoozed, RecommendedAction.Snooze.UNTIL_PING)
+        self.assertEqual(actions[0].status, RecommendedAction.Status.SNOOZED_UNTIL_PING)
         self.assertEqual(self.device.actions_count, 1)
 
     def test_snooze_forever(self):
@@ -1353,7 +1353,7 @@ class SnoozeActionViewTest(APITestCase):
         self.device.refresh_from_db()
         actions = self.device.recommendedaction_set.filter(action_id=self.action_class.action_id)
         self.assertQuerysetEqual(actions.values_list('action_id', flat=True), [str(self.action_class.action_id)])
-        self.assertEqual(actions[0].snoozed, RecommendedAction.Snooze.FOREVER)
+        self.assertEqual(actions[0].status, RecommendedAction.Status.SNOOZED_FOREVER)
         self.assertEqual(self.device.actions_count, 1)
 
     def test_snooze_until_time(self):
@@ -1369,7 +1369,7 @@ class SnoozeActionViewTest(APITestCase):
         self.device.refresh_from_db()
         actions = self.device.recommendedaction_set.filter(action_id=self.action_class.action_id)
         self.assertQuerysetEqual(actions.values_list('action_id', flat=True), [str(self.action_class.action_id)])
-        self.assertEqual(actions[0].snoozed, RecommendedAction.Snooze.UNTIL_TIME)
+        self.assertEqual(actions[0].status, RecommendedAction.Status.SNOOZED_UNTIL_TIME)
 
         # Should be snoozed for at least 6 hours from now. It's actually 7 hours minus a couple seconds.
         self.assertGreaterEqual((actions[0].snoozed_until - timezone.now()).total_seconds() // 3600, 6)

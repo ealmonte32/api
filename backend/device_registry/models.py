@@ -128,8 +128,8 @@ class Device(models.Model):
 
     def snooze_action(self, action_id, snoozed, duration=None):
         action, _ = RecommendedAction.objects.get_or_create(action_id=action_id, device=self)
-        action.snoozed = snoozed
-        if snoozed == RecommendedAction.Snooze.UNTIL_TIME:
+        action.status = snoozed
+        if snoozed == RecommendedAction.Status.SNOOZED_UNTIL_TIME:
             action.snoozed_until = timezone.now() + datetime.timedelta(hours=duration)
         else:
             action.snoozed_until = None
@@ -820,14 +820,15 @@ class Distro(models.Model):
 
 
 class RecommendedAction(models.Model):
-    class Snooze(IntEnum):
-        NOT_SNOOZED = 0
-        UNTIL_PING = 1
-        UNTIL_TIME = 2
-        FOREVER = 3
+    class Status(IntEnum):
+        AFFECTED = 0
+        SNOOZED_UNTIL_PING = 1
+        SNOOZED_UNTIL_TIME = 2
+        SNOOZED_FOREVER = 3
+        NOT_AFFECTED = 4
 
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     action_id = models.PositiveSmallIntegerField()
-    snoozed = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Snooze],
-                                               default=Snooze.NOT_SNOOZED.value)
+    status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Status],
+                                              default=Status.AFFECTED.value)
     snoozed_until = models.DateTimeField(null=True, blank=True)

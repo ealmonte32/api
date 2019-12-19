@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='recommendedaction',
             name='snoozed',
-            field=models.PositiveSmallIntegerField(choices=[(device_registry.models.RecommendedAction.Snooze(0), 0), (device_registry.models.RecommendedAction.Snooze(1), 1), (device_registry.models.RecommendedAction.Snooze(2), 2), (device_registry.models.RecommendedAction.Snooze(3), 3)], default=0),
+            field=models.PositiveSmallIntegerField(choices=[(device_registry.models.RecommendedAction.Status(0), 0), (device_registry.models.RecommendedAction.Status(1), 1), (device_registry.models.RecommendedAction.Status(2), 2), (device_registry.models.RecommendedAction.Status(3), 3)], default=0),
         ),
         migrations.AlterField(
             model_name='recommendedaction',

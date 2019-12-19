@@ -337,7 +337,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 firewallstate.policy = form.cleaned_data['policy']
                 # Stop snoozing 'Permissive firewall policy detected' recommended action.
                 if int(firewallstate.policy) == FirewallState.POLICY_ENABLED_BLOCK:
-                    self.object.snooze_action(FirewallDisabledAction.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
+                    self.object.snooze_action(FirewallDisabledAction.action_id, RecommendedAction.Status.AFFECTED)
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
                     firewallstate.save(update_fields=['policy'])

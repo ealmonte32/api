@@ -84,19 +84,19 @@ class SnoozeTest(TestCase):
 
     def test_exclude_snoozed(self):
         self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.FOREVER)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
         self._assertHasAction(True, exclude_snoozed=False)
 
     def test_snooze_forever(self):
         self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.FOREVER)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
         self._assertHasAction(False)
 
     def test_snooze_until_ping(self):
         self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.UNTIL_PING)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_UNTIL_PING)
         self._assertHasAction(False)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.AFFECTED)
         self._assertHasAction(True)
 
     def test_snooze_interval(self):
@@ -104,7 +104,7 @@ class SnoozeTest(TestCase):
 
         with freeze_time(timezone.now() - timezone.timedelta(hours=23)):
             # 23 hours ago this action had been snoozed for 24 hours
-            self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.UNTIL_TIME, 24)
+            self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_UNTIL_TIME, 24)
 
         # ... which means now it's still snoozed
         self._assertHasAction(False)
@@ -183,10 +183,10 @@ class TestsMixin:
 
     def snooze_action(self):
         self.assertTrue(ActionMeta.is_action_id(self.action_class.action_id))
-        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.FOREVER)
+        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
 
     def unsnooze_action(self):
-        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
+        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Status.AFFECTED)
 
 
 class DefaultCredentialsActionTest(TestsMixin, TestCase):
