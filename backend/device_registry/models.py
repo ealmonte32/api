@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -111,6 +112,9 @@ class Device(models.Model):
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
     mysql_root_access = models.BooleanField(null=True, blank=True)
+
+    class Meta:
+        ordering = ('created',)
 
     @property
     def eol_info(self):
@@ -461,8 +465,22 @@ class Device(models.Model):
                 self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
-    class Meta:
-        ordering = ('created',)
+    def generate_recommended_actions(self):
+        ra_affected = self.recommendedaction_set.filter(not Q(status=RecommendedAction.Status.NOT_AFFECTED))\
+            .values_list('action_id', flat=True)
+        newly_affected = []
+        newly_not_affected = []
+        for action_class in ActionMeta.all_classes():
+            is_affected = action_class.is_affected(self)
+            if is_affected and action_class.action_id not in ra_affected:
+                newly_affected.append(action_class.action_id)
+            elif not is_affected and action_class.action_id in ra_affected:
+                newly_not_affected.append(action_class.action_id)
+        self.recommendedaction_set.filter(action_id__in=newly_affected)\
+            .update(status=RecommendedAction.Status.AFFECTED)
+        self.recommendedaction_set.filter(action_id__in=newly_not_affected)\
+            .update(status=RecommendedAction.Status.NOT_AFFECTED)
+
 
 
 class DeviceInfo(models.Model):

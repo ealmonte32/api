@@ -142,6 +142,10 @@ class BaseAction:
         return devices
 
     @classmethod
+    def is_affected(cls, device) -> bool:
+        raise NotImplementedError
+
+    @classmethod
     def get_action_description_context(cls, devices_qs, device_pk=None) -> dict:
         """
         Method for producing a tuple of values used (as string formatting parameters)
