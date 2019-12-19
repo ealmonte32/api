@@ -89,8 +89,8 @@ class GenerateActionsTest(TestCase):
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
 
-    def check_actions_status(self, status_one, status_two):
-        self.device.generate_recommended_actions()
+    def check_actions_status(self, status_one, status_two, classes=...):
+        self.device.generate_recommended_actions(classes)
         self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id__in=[self.TestActionOne.action_id,
                                                                                          self.TestActionTwo.action_id])
                                  .order_by('action_id')
@@ -117,6 +117,13 @@ class GenerateActionsTest(TestCase):
 
         self.TestActionOne.affected = False
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
+
+        self.TestActionTwo.affected = False
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
+        self.TestActionOne.affected = True
+        self.TestActionTwo.affected = True
+        self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.NOT_AFFECTED,
+                                  classes=[self.TestActionOne])
 
 
 class SnoozeTest(TestCase):

@@ -465,14 +465,14 @@ class Device(models.Model):
                 self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
-    def generate_recommended_actions(self):
+    def generate_recommended_actions(self, classes=...):
         ra_all = self.recommendedaction_set.all().values_list('action_id', flat=True)
         ra_affected = self.recommendedaction_set.exclude(Q(status=RecommendedAction.Status.NOT_AFFECTED))\
             .values_list('action_id', flat=True)
         newly_affected = []
         newly_not_affected = []
         added = []
-        for action_class in ActionMeta.all_classes():
+        for action_class in ActionMeta.all_classes() if classes is ... else classes:
             is_affected = action_class.is_affected(self)
             if is_affected and action_class.action_id not in ra_affected:
                 newly_affected.append(action_class.action_id)
