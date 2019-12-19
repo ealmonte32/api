@@ -46,6 +46,79 @@ class NoDevicesActionTest(TestCase):
         self.assertContains(response, search_string)
 
 
+class GenerateActionsTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        class TestActionOne(BaseAction, metaclass=ActionMeta):
+            """
+            A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
+            """
+            action_id = 9991
+            affected = False
+
+            @classmethod
+            def is_affected(cls, device) -> bool:
+                return cls.affected
+
+        class TestActionTwo(BaseAction, metaclass=ActionMeta):
+            """
+            A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
+            """
+            action_id = 9992
+            affected = False
+
+            @classmethod
+            def is_affected(cls, device) -> bool:
+                return cls.affected
+
+        cls.TestActionOne = TestActionOne
+        cls.TestActionTwo = TestActionTwo
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        ActionMeta.unregister(cls.TestActionOne)
+        ActionMeta.unregister(cls.TestActionTwo)
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+
+    def check_actions_status(self, status_one, status_two):
+        self.device.generate_recommended_actions()
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id__in=[self.TestActionOne.action_id,
+                                                                                         self.TestActionTwo.action_id])
+                                 .order_by('action_id')
+                                 .values_list('action_id', 'status'),
+                                 [(self.TestActionOne.action_id, status_one.value),
+                                  (self.TestActionTwo.action_id, status_two.value)],
+                                 transform=lambda v: v)
+
+    def test_generate_recommended_actions(self):
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
+
+        self.TestActionOne.affected = True
+        self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
+
+        self.TestActionTwo.affected = True
+        self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.AFFECTED)
+
+        self.TestActionOne.affected = False
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
+
+        self.TestActionOne.affected = True
+        self.device.snooze_action(self.TestActionOne.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
+        self.check_actions_status(RecommendedAction.Status.SNOOZED_FOREVER, RecommendedAction.Status.AFFECTED)
+
+        self.TestActionOne.affected = False
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
+
+
 class SnoozeTest(TestCase):
     """
     Test snoozing functionality implemented in Device and RecommendedAction models only.

@@ -143,7 +143,8 @@ class BaseAction:
 
     @classmethod
     def is_affected(cls, device) -> bool:
-        raise NotImplementedError
+        # raise NotImplementedError
+        return False
 
     @classmethod
     def get_action_description_context(cls, devices_qs, device_pk=None) -> dict:

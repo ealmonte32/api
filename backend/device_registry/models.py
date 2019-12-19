@@ -466,21 +466,28 @@ class Device(models.Model):
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
     def generate_recommended_actions(self):
-        ra_affected = self.recommendedaction_set.filter(not Q(status=RecommendedAction.Status.NOT_AFFECTED))\
+        ra_all = self.recommendedaction_set.all().values_list('action_id', flat=True)
+        ra_affected = self.recommendedaction_set.exclude(Q(status=RecommendedAction.Status.NOT_AFFECTED))\
             .values_list('action_id', flat=True)
         newly_affected = []
         newly_not_affected = []
+        added = []
         for action_class in ActionMeta.all_classes():
             is_affected = action_class.is_affected(self)
             if is_affected and action_class.action_id not in ra_affected:
                 newly_affected.append(action_class.action_id)
             elif not is_affected and action_class.action_id in ra_affected:
                 newly_not_affected.append(action_class.action_id)
+            elif action_class.action_id not in ra_all:
+                added.append((action_class.action_id, is_affected))
         self.recommendedaction_set.filter(action_id__in=newly_affected)\
             .update(status=RecommendedAction.Status.AFFECTED)
         self.recommendedaction_set.filter(action_id__in=newly_not_affected)\
             .update(status=RecommendedAction.Status.NOT_AFFECTED)
-
+        ra_new = [RecommendedAction(action_id=action_id, device=self,
+                                    status=RecommendedAction.Status.AFFECTED if affected else
+                                    RecommendedAction.Status.NOT_AFFECTED) for action_id, affected in added]
+        self.recommendedaction_set.bulk_create(ra_new)
 
 
 class DeviceInfo(models.Model):
