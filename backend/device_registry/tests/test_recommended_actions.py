@@ -190,7 +190,7 @@ class TestsMixin:
 
 
 class DefaultCredentialsActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found default credentials present on <a href="{url}">{name}</a>'
+    search_pattern_common_page = 'We found default credentials present on [{name}]({url})'
     search_pattern_device_page = 'We found default credentials present on this node'
     action_class = DefaultCredentialsAction
 
@@ -200,7 +200,7 @@ class DefaultCredentialsActionTest(TestsMixin, TestCase):
 
 
 class FirewallDisabledActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found permissive firewall policy present on <a href="{url}">{name}</a>'
+    search_pattern_common_page = 'We found permissive firewall policy present on [{name}]({url})'
     search_pattern_device_page = 'We found permissive firewall policy present on this node'
     action_class = FirewallDisabledAction
 
@@ -222,7 +222,7 @@ class FirewallPolicyActionTest(FirewallDisabledActionTest):
 
 
 class VulnerablePackagesActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found vulnerable packages on <a href="{url}">{name}</a>'
+    search_pattern_common_page = 'We found vulnerable packages on [{name}]({url})'
     search_pattern_device_page = 'We found vulnerable packages on this node'
     action_class = VulnerablePackagesAction
 
@@ -238,7 +238,7 @@ class VulnerablePackagesActionTest(TestsMixin, TestCase):
 
 
 class AutoUpdatesActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found that your node <a href="{url}">{name}</a> is not configured to automatically ' \
+    search_pattern_common_page = 'We found that your node [{name}]({url}) is not configured to automatically ' \
                                  'install security updates'
     search_pattern_device_page = 'We found that this node is not configured to automatically install security updates'
     action_class = AutoUpdatesAction
@@ -250,7 +250,7 @@ class AutoUpdatesActionTest(TestsMixin, TestCase):
 
 class MySQLDefaultRootPasswordActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We detected that there is no root password set for MySQL/MariaDB on ' \
-                                 '<a href="{url}">{name}</a>'
+                                 '[{name}]({url})'
     search_pattern_device_page = 'We detected that there is no root password set for MySQL/MariaDB on this node'
     action_class = MySQLDefaultRootPasswordAction
 
@@ -278,7 +278,7 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
         for subclass in InsecureServicesGroupAction.subclasses:
             self.action_class = subclass
             self.search_pattern_device_page = 'We found ' + self.action_class.service_name + ' installed on this node'
-            self.search_pattern_common_page = 'We found ' + self.action_class.service_name + ' installed on <a href="{url}">{name}</a>'
+            self.search_pattern_common_page = 'We found ' + self.action_class.service_name + ' installed on [{name}]({url})'
             super().test_get()
             self.unsnooze_action()
             self.disable_action()
@@ -307,7 +307,7 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
 
 
 class OpensshIssueActionTest(TestsMixin, TestCase):
-    search_pattern_common = 'We found insecure configuration issue with OpenSSH on <a href="{url}">{name}</a>: ' \
+    search_pattern_common = 'We found insecure configuration issue with OpenSSH on [{name}]({url}): ' \
                             'insecure parameter '
     search_pattern_device = 'We found insecure configuration issue with OpenSSH on this node: ' \
                             'insecure parameter '
@@ -363,7 +363,7 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
 
 
 class FtpServerActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'There appears to be an FTP server running on <a href="{url}">{name}</a>'
+    search_pattern_common_page = 'There appears to be an FTP server running on [{name}]({url})'
     search_pattern_device_page = 'There appears to be an FTP server running on this node'
     action_class = FtpServerAction
 
@@ -375,7 +375,7 @@ class FtpServerActionTest(TestsMixin, TestCase):
 
 
 class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
-    search_pattern_common = 'We detected that a {service} instance on <a href="{{url}}">{{name}}</a> may be ' \
+    search_pattern_common = 'We detected that a {service} instance on [{{name}}]({{url}}) may be ' \
                                  'accessible remotely'
     search_pattern_device = 'We detected that a {service} instance on this node may be accessible remotely'
 
@@ -444,7 +444,7 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
 
 
 class CpuVulnerableActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We detected that <a href="{url}">{name}</a> is vulnerable to Meltdown/Spectre'
+    search_pattern_common_page = 'We detected that [{name}]({url}) is vulnerable to Meltdown/Spectre'
     search_pattern_device_page = 'We detected that this node is vulnerable to Meltdown/Spectre'
     action_class = CpuVulnerableAction
 

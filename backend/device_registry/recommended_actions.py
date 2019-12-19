@@ -52,6 +52,20 @@ class PubliclyAccessiblePort(NamedTuple):
     sub_id: int
 
 
+class Action(NamedTuple):
+    title: str
+    description: str
+    action_id: int
+    devices: List[int]
+    severity: Severity
+    doc_url: str = '/'
+    issue_url: str = None
+
+    @property
+    def html(self):
+        return markdown.markdown(self.description)
+
+
 INSECURE_SERVICES = [
     InsecureService('fingerd', 1, Severity.MED),
     InsecureService('tftpd', 2, Severity.MED),
@@ -84,33 +98,6 @@ PUBLIC_SERVICE_PORTS = {
     'memcached': PubliclyAccessiblePort(11211, 'Memcached', 3),
     'redis-server': PubliclyAccessiblePort(6379, 'Redis', 4)
 }
-
-
-class Action:
-    """
-    Action class.
-
-    Its only purpose is to store particular actions info and be passed from a
-     view to a template.
-    """
-    def __init__(self, title, description, action_id, devices, severity: Severity, doc_url="/", issue_url=None):
-        """
-
-        :param title: Title text
-        :param description: Body text
-        :param action_id: the value of action_id field of BaseAction subclasses
-        :param devices: list of device ids
-        :param severity: one of 'low', 'medium', 'high'
-        :param doc_url: "Learn more" URL
-        :param issue_url: Github issue URL, optional
-        """
-        self.title = title
-        self.description = markdown.markdown(description)
-        self.action_id = action_id
-        self.devices = devices
-        self.issue_url = issue_url
-        self.doc_url = doc_url
-        self.severity = severity
 
 
 def device_link(device, absolute=False):
