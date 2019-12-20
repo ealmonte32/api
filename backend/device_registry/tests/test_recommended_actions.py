@@ -226,6 +226,8 @@ class TestsMixin:
 
         # No action at the beginning.
         self.assertFalse(self.action_class.is_affected(self.device))
+        self.assertFalse(self.action_class.affected_devices(self.user, device_pk=self.device.pk).exists())
+        self.assertFalse(self.action_class.affected_devices(self.user).exists())
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
         self.assertIsNone(self.action_class.get_description(self.user))
@@ -233,6 +235,8 @@ class TestsMixin:
         # Enable the action.
         self.enable_action()
         self.assertTrue(self.action_class.is_affected(self.device))
+        self.assertTrue(self.action_class.affected_devices(self.user, device_pk=self.device.pk).exists())
+        self.assertTrue(self.action_class.affected_devices(self.user).exists())
         self.check_action(self.assertOneAction(self.common_actions_url), search_string_common_page)
         self.check_action(self.assertOneAction(self.device_actions_url), self.search_pattern_device_page)
         self.check_description()
