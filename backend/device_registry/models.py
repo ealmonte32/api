@@ -329,6 +329,8 @@ class Device(models.Model):
         Looks for open ports and known services (declared in PUBLIC_SERVICE_PORTS) listening on them.
         :return: a set of service names (keys from PUBLIC_SERVICE_PORTS) which are listening.
         """
+        if not hasattr(self, 'deviceinfo'):
+            return
         processes = self.deviceinfo.processes
         found = set()
         for p in processes.values():

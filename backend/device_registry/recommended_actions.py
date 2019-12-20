@@ -139,15 +139,17 @@ class BaseAction:
             devices = user.devices.all()
         if device_pk is not None:
             devices = devices.filter(pk=device_pk)
-        return devices
+
+        return devices.filter(pk__in=[
+            dev.pk for dev in devices if cls.is_affected(dev)
+        ])
 
     @classmethod
     def is_affected(cls, device) -> bool:
-        # raise NotImplementedError
-        return False
+        raise NotImplementedError
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None) -> dict:
+    def get_context(cls, devices_qs, device_pk=None) -> dict:
         """
         Method for producing a tuple of values used (as string formatting parameters)
          for action description text rendering.
@@ -192,7 +194,7 @@ class BaseAction:
         actions_list = []
         devices = cls.affected_devices(user, device_pk)
         if devices.exists():
-            context = cls.get_action_description_context(devices_qs=devices, device_pk=device_pk)
+            context = cls.get_context(devices_qs=devices, device_pk=device_pk)
             context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
             actions_list.append(cls._create_action(user.profile, context, list(devices.values_list('pk', flat=True))))
         return actions_list
@@ -206,7 +208,7 @@ class BaseAction:
         """
         Generate a Markdown-formatted descriptive text for this recommended action.
         Mainly used for filing Github issues. Does not exclude snoozed actions. Uses
-        cls.action_description as a template and formats it using cls.get_action_description_context().
+        cls.action_description as a template and formats it using cls.get_context().
         :param user: the owner of the processed devices.
         :param body: if given, will be used as template instead of cls.action_description.
         :param kwargs: additional context for formatting the body.
@@ -217,7 +219,7 @@ class BaseAction:
         if not affected_devices.exists():
             return
         affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
-        context = cls.get_action_description_context(affected_devices)
+        context = cls.get_context(affected_devices)
         context.update(kwargs)
         if 'subject' in context:
             # Workaround for AutoUpdatesAction three-way logic
@@ -361,6 +363,10 @@ class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(deviceinfo__default_password=True)
 
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return hasattr(device, 'deviceinfo') and device.deviceinfo.default_password is True
+
 
 # Firewall disabled action.
 class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
@@ -376,6 +382,15 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
         return super().affected_devices(user, device_pk, exclude_snoozed).exclude(
             (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
             Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        from .models import FirewallState, GlobalPolicy
+        firewallstate = getattr(device, 'firewallstate', None)
+        return firewallstate is not None and \
+               (firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK \
+                if firewallstate.global_policy is None \
+                else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
 
 
 # Vulnerable packages found action.
@@ -393,7 +408,12 @@ class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        return super().affected_devices(user, device_pk, exclude_snoozed).filter(deb_packages__vulnerabilities__isnull=False).distinct()
+        return super().affected_devices(user, device_pk, exclude_snoozed)\
+            .filter(deb_packages__vulnerabilities__isnull=False).distinct()
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return device.deb_packages.filter(vulnerabilities__isnull=False).exists()
 
 
 class InsecureServicesGroupAction(GroupedAction):
@@ -409,13 +429,17 @@ class BaseInsecureServicesAction(BaseAction):
     group_action = InsecureServicesGroupAction
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices_qs, device_pk=None):
         return {'service': cls.service_name}
 
     @classmethod
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         return super().affected_devices(user, device_pk, exclude_snoozed).exclude(deb_packages_hash='').filter(
             deb_packages__name=cls.service_name).distinct()
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return device.deb_packages.filter(name=cls.service_name).exists()
 
 
 for name, sub_id, severity in INSECURE_SERVICES:
@@ -448,22 +472,16 @@ class BaseOpensshIssueAction(BaseAction):
         'the security posture of your node, please consider changing {param_name} to "{safe_value}".'
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices_qs, device_pk=None):
         safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[cls.sshd_param]
         return dict(param_name=cls.sshd_param,
                     safe_value=safe_value,
                     doc_url=doc_url)
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        dev_ids = []
-        devices = super().affected_devices(user, device_pk, exclude_snoozed).exclude(audit_files__in=('', []))
-        for dev in devices:
-            issues = dev.sshd_issues
-            if issues and cls.sshd_param in issues:
-                dev_ids.append(dev.pk)
-        return Device.objects.filter(pk__in=dev_ids)
+    def is_affected(cls, device) -> bool:
+        issues = device.sshd_issues
+        return cls.sshd_param in issues if issues is not None else False
 
 
 for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
@@ -501,7 +519,7 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
                 return debian_url
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices_qs, device_pk=None):
         if device_pk is None:
             if devices_qs.count() > 1:
                 subject, verb = 'your nodes ', 'are'
@@ -519,6 +537,10 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(auto_upgrades=False)
 
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return device.auto_upgrades is False
+
 
 # FTP listening on port 21 action.
 class FtpServerAction(BaseAction, metaclass=ActionMeta):
@@ -531,13 +553,8 @@ class FtpServerAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.MED
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        dev_ids = []
-        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
-            if dev.is_ftp_public:
-                dev_ids.append(dev.pk)
-        return Device.objects.filter(pk__in=dev_ids)
+    def is_affected(cls, device) -> bool:
+        return device.is_ftp_public is True
 
 
 # MySQL root default password action.
@@ -558,6 +575,10 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
     def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(mysql_root_access=True)
 
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return device.mysql_root_access is True
+
 
 class PubliclyAccessibleServiceGroupAction(GroupedAction):
     group_action_title = 'Your services may be publicly accessible'
@@ -575,17 +596,13 @@ class BasePubliclyAccessibleServiceAction(BaseAction):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        dev_ids = []
-        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
-            if cls.service in dev.public_services:
-                dev_ids.append(dev.pk)
-        return Device.objects.filter(pk__in=dev_ids)
+    def get_context(cls, devices_qs, device_pk=None):
+        return dict(service=cls.service_name, port=cls.port)
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
-        return dict(service=cls.service_name, port=cls.port)
+    def is_affected(cls, device) -> bool:
+        services = device.public_services
+        return cls.service in services if services is not None else False
 
 
 for service, service_info in PUBLIC_SERVICE_PORTS.items():
@@ -605,8 +622,5 @@ class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        return Device.objects.filter(pk__in=[
-            dev.pk for dev in super().affected_devices(user, device_pk, exclude_snoozed) if dev.cpu_vulnerable
-        ])
+    def is_affected(cls, device) -> bool:
+        return device.cpu_vulnerable is True
