@@ -17,7 +17,10 @@ metadata:
 {{- end }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/server-snippet: |
+        if ($request_uri !~ "^/.well-known/acme-challenge/.*")
+        {
         return 301 https://raw.githubusercontent.com/WoTTsecurity/agent/master/bin/install.sh;
+        }
 spec:
   tls:
     - hosts:
