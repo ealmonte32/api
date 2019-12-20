@@ -1,6 +1,8 @@
 import json
 import uuid
+from collections import defaultdict
 
+from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import render
@@ -488,22 +490,34 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             if device_pk is not None:
                 dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
                 device_name = dev.get_name()
+                actions_set = dev.recommendedaction_set.all()
             else:
                 device_name = None
+                actions_set = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
+            ras = actions_set.filter(Q(status=RecommendedAction.Status.AFFECTED) |
+                                     Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
+                                       device__recommendedaction__snoozed_until__lt=timezone.now())).distinct()
+            ra_dict = defaultdict(list)
+            devices_set = set()
+            for ra in ras:
+                devices_set.add(ra.device.pk)
+                ra_dict[ra.action_id].append(ra.device.pk)
+            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=devices_set)}
 
-            for action_class in ActionMeta.all_classes():
-                actions.extend(action_class.actions(self.request.user, device_pk))
+            for ra_id, device_pks in ra_dict.items():
+                devices = [affected_devices[d] for d in device_pks]
+                a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
+                actions.append(a)
         else:  # User has no devices - display the special action.
             device_name = None
-            action = Action(
+            actions = [Action(
                 'Enroll your node(s) to unlock this feature',
                 'In order to receive recommended actions, click "Add Node" under "Dashboard" to receive instructions '
                 'on how to enroll your nodes.',
                 action_id=0,
                 devices=[],
                 severity=Severity.LO
-            )
-            actions.append(action)
+            )]
 
         context = super().get_context_data(**kwargs)
         context['actions'] = actions

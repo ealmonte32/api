@@ -184,20 +184,16 @@ class BaseAction:
         )
 
     @classmethod
-    def actions(cls, user, device_pk=None) -> List[Action]:
+    def action(cls, user, devices, device_pk=None) -> Action:
         """
         Generate a list of Action objects for the user. Excludes snoozed actions.
         :param user: the owner of the processed devices.
         :param device_pk: if given, then only one device with this pk is processed.
         :return:
         """
-        actions_list = []
-        devices = cls.affected_devices(user, device_pk)
-        if devices.exists():
-            context = cls.get_context(devices_qs=devices, device_pk=device_pk)
-            context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
-            actions_list.append(cls._create_action(user.profile, context, list(devices.values_list('pk', flat=True))))
-        return actions_list
+        context = cls.get_context(devices_qs=devices, device_pk=device_pk)
+        context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
+        return cls._create_action(user.profile, context, [d.pk for d in devices])
 
     @classmethod
     def action_blocks_count(cls, user) -> int:
@@ -346,6 +342,10 @@ class ActionMeta(type):
         :return:
         """
         return id in meta._action_classes or id in meta._ungrouped_action_classes
+
+    @classmethod
+    def get_class(meta, id):
+        return meta._action_classes.get(id) or meta._ungrouped_action_classes.get(id)
 
 
 # Below is the code for real actions classes.
@@ -509,11 +509,11 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
     def get_doc_url(cls, devices):
         debian_url = 'https://wiki.debian.org/UnattendedUpgrades'
         ubuntu_url = 'https://help.ubuntu.com/lts/serverguide/automatic-updates.html'
-        if devices.count() > 1:
+        if len(devices) > 1:
             # Provide Debian's link if more than 1 device.
             return debian_url
         else:
-            if devices.first().os_release.get('distro') == 'ubuntu':
+            if devices[0].os_release.get('distro') == 'ubuntu':
                 return ubuntu_url
             else:  # Everything besides Ubuntu is Debian.
                 return debian_url
@@ -521,7 +521,7 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
     @classmethod
     def get_context(cls, devices_qs, device_pk=None):
         if device_pk is None:
-            if devices_qs.count() > 1:
+            if len(devices_qs) > 1:
                 subject, verb = 'your nodes ', 'are'
             else:
                 subject, verb = 'your node ', 'is'

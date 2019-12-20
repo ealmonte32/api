@@ -225,6 +225,7 @@ class TestsMixin:
         search_string_common_page = self.get_search_string()
 
         # No action at the beginning.
+        self.device.generate_recommended_actions()
         self.assertFalse(self.action_class.is_affected(self.device))
         self.assertFalse(self.action_class.affected_devices(self.user, device_pk=self.device.pk).exists())
         self.assertFalse(self.action_class.affected_devices(self.user).exists())
@@ -234,6 +235,7 @@ class TestsMixin:
 
         # Enable the action.
         self.enable_action()
+        self.device.generate_recommended_actions()
         self.assertTrue(self.action_class.is_affected(self.device))
         self.assertTrue(self.action_class.affected_devices(self.user, device_pk=self.device.pk).exists())
         self.assertTrue(self.action_class.affected_devices(self.user).exists())
@@ -273,6 +275,7 @@ class TestsMixin:
         return self.search_pattern_common_page.format(url=self.device_page_url, name=self.device.get_name())
 
     def snooze_action(self):
+        # TODO: revert to POSTing the endpoint
         self.assertTrue(ActionMeta.is_action_id(self.action_class.action_id))
         self.device.snooze_action(self.action_class.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
 
