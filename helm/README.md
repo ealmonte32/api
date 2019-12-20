@@ -94,6 +94,7 @@ helm install \
   --version v0.10.0 \
   jetstack/cert-manager
 ```
+
 ## API
 
 Create the namespace and inject the secrets:

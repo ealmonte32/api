@@ -15,11 +15,14 @@ metadata:
   annotations:
 {{ toYaml . | indent 4 }}
 {{- end }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/server-snippet: |
         return 301 https://raw.githubusercontent.com/WoTTsecurity/agent/master/bin/install.sh;
 spec:
   tls:
     - hosts:
       - "install.wott.io"
-      secretName: le-secret-api
+      secretName: le-secret-install-redirect
+  rules:
+    - host: "install.wott.io"
 {{- end }}
