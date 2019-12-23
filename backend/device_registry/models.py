@@ -865,3 +865,22 @@ class RecommendedAction(models.Model):
     status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Status],
                                               default=Status.AFFECTED.value)
     snoozed_until = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def update_all_devices(cls, classes=...):
+        created = []
+        if classes is ...:
+            classes = ActionMeta.all_classes()
+        for action_class in classes:
+            qs = Device.objects.exclude(recommendedaction__action_id=action_class.action_id)
+            if not qs.exists():
+                continue
+            all_devices = set(qs)
+            affected = set(action_class.affected_devices(qs))
+            not_affected = all_devices.difference(affected)
+            created = [cls(device=d, action_id=action_class.action_id, status=cls.Status.NOT_AFFECTED)
+                       for d in not_affected] + \
+                      [cls(device=d, action_id=action_class.action_id, status=cls.Status.AFFECTED)
+                       for d in affected]
+        cls.objects.bulk_create(created)
+        return len(created)

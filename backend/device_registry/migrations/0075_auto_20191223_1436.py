@@ -4,9 +4,8 @@ from django.db import migrations
 
 
 def generate_recommended_actions(apps, schema_editor):
-    from device_registry.models import Device
-    for d in Device.objects.all():
-        d.generate_recommended_actions()
+    from device_registry.models import RecommendedAction
+    RecommendedAction.update_all_devices()
 
 
 class Migration(migrations.Migration):

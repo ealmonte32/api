@@ -118,30 +118,15 @@ class BaseAction:
     doc_url = 'https://wott.io/documentation/faq'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False) -> QuerySet:
+    def affected_devices(cls, qs) -> QuerySet:
         """
-        Select user's devices which are affected by this recommended action. May return empty queryset.
-        If device_pk is given, will select only one device with this pk.
+        Select user's devices which are affected by this recommended action.
         :param user: the owner of the processed devices.
-        :param device_pk: if given, then only one device with this pk is processed.
-        :param exclude_snoozed: if True, snoozed actions will be excluded.
-        :return:
+        :return: QuerySet
         """
-        from .models import RecommendedAction
-        if exclude_snoozed:
-            devices = user.devices.exclude(Q(recommendedaction__action_id=cls.action_id) &
-                                           (Q(recommendedaction__status__in=[
-                                               RecommendedAction.Status.SNOOZED_FOREVER,
-                                               RecommendedAction.Status.SNOOZED_UNTIL_PING]) |
-                                            Q(recommendedaction__status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
-                                              recommendedaction__snoozed_until__gte=timezone.now())))
-        else:
-            devices = user.devices.all()
-        if device_pk is not None:
-            devices = devices.filter(pk=device_pk)
-
-        return devices.filter(pk__in=[
-            dev.pk for dev in devices if cls.is_affected(dev)
+        from .models import Device
+        return Device.objects.filter(pk__in=[
+            dev.pk for dev in qs if cls.is_affected(dev)
         ])
 
     @classmethod
@@ -149,11 +134,11 @@ class BaseAction:
         raise NotImplementedError
 
     @classmethod
-    def get_context(cls, devices_qs, device_pk=None) -> dict:
+    def get_context(cls, devices, device_pk=None) -> dict:
         """
         Method for producing a tuple of values used (as string formatting parameters)
          for action description text rendering.
-        :param devices: queryset for Device model instances affected by the action;
+        :param devices: list of Device model instances affected by the action;
         :param device_pk: int/None - single affected device id;
         :return: iterable (tuple/list);
         """
@@ -191,13 +176,9 @@ class BaseAction:
         :param device_pk: if given, then only one device with this pk is processed.
         :return:
         """
-        context = cls.get_context(devices_qs=devices, device_pk=device_pk)
+        context = cls.get_context(devices=devices, device_pk=device_pk)
         context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
         return cls._create_action(user.profile, context, [d.pk for d in devices])
-
-    @classmethod
-    def action_blocks_count(cls, user) -> int:
-        return int(cls.affected_devices(user).exists())
 
     @classmethod
     def get_description(cls, user, body=..., additional_context=...) -> (str, str):
@@ -213,7 +194,7 @@ class BaseAction:
         from .models import RecommendedAction
         day_ago = timezone.now() - timedelta(hours=24)
         actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
-                                                   device__last_ping__gte=day_ago)\
+                                                   )\
                                            .exclude(status=RecommendedAction.Status.NOT_AFFECTED)
         affected_devices = [action.device for action in actions]
         if not affected_devices:
@@ -365,8 +346,8 @@ class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
-        return super().affected_devices(user, device_pk, exclude_snoozed).filter(deviceinfo__default_password=True)
+    def affected_devices(cls, qs):
+        return qs.filter(deviceinfo__default_password=True)
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -382,9 +363,9 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.MED
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
+    def affected_devices(cls, qs):
         from .models import FirewallState, GlobalPolicy
-        return super().affected_devices(user, device_pk, exclude_snoozed).exclude(
+        return qs.exclude(
             (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
             Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
 
@@ -412,9 +393,8 @@ class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.MED
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
-        return super().affected_devices(user, device_pk, exclude_snoozed)\
-            .filter(deb_packages__vulnerabilities__isnull=False).distinct()
+    def affected_devices(cls, qs):
+        return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -434,12 +414,12 @@ class BaseInsecureServicesAction(BaseAction):
     group_action = InsecureServicesGroupAction
 
     @classmethod
-    def get_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices, device_pk=None):
         return {'service': cls.service_name}
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
-        return super().affected_devices(user, device_pk, exclude_snoozed).exclude(deb_packages_hash='').filter(
+    def affected_devices(cls, qs):
+        return qs.exclude(deb_packages_hash='').filter(
             deb_packages__name=cls.service_name).distinct()
 
     @classmethod
@@ -477,7 +457,7 @@ class BaseOpensshIssueAction(BaseAction):
         'the security posture of your node, please consider changing {param_name} to "{safe_value}".'
 
     @classmethod
-    def get_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices, device_pk=None):
         safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[cls.sshd_param]
         return dict(param_name=cls.sshd_param,
                     safe_value=safe_value,
@@ -524,9 +504,9 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
                 return debian_url
 
     @classmethod
-    def get_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices, device_pk=None):
         if device_pk is None:
-            if len(devices_qs) > 1:
+            if len(devices) > 1:
                 subject, verb = 'your nodes ', 'are'
             else:
                 subject, verb = 'your node ', 'is'
@@ -535,12 +515,12 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
         return {
             'subject': subject,
             'verb': verb,
-            'doc_url': cls.get_doc_url(devices_qs)
+            'doc_url': cls.get_doc_url(devices)
         }
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
-        return super().affected_devices(user, device_pk, exclude_snoozed).filter(auto_upgrades=False)
+    def affected_devices(cls, qs):
+        return qs.filter(auto_upgrades=False)
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -577,8 +557,8 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
-        return super().affected_devices(user, device_pk, exclude_snoozed).filter(mysql_root_access=True)
+    def affected_devices(cls, qs):
+        return qs.filter(mysql_root_access=True)
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -601,7 +581,7 @@ class BasePubliclyAccessibleServiceAction(BaseAction):
     severity = Severity.HI
 
     @classmethod
-    def get_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices, device_pk=None):
         return dict(service=cls.service_name, port=cls.port)
 
     @classmethod

@@ -337,9 +337,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                     out_data.append(ports_form_data[2][port_record_index])
                 portscan.block_ports = out_data
                 firewallstate.policy = form.cleaned_data['policy']
-                # Stop snoozing 'Permissive firewall policy detected' recommended action.
-                if int(firewallstate.policy) == FirewallState.POLICY_ENABLED_ALLOW:
-                    self.object.snooze_action(FirewallDisabledAction.action_id, RecommendedAction.Status.AFFECTED)
+                self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
                     firewallstate.save(update_fields=['policy'])
@@ -521,6 +519,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             )]
 
         context = super().get_context_data(**kwargs)
+        actions.sort(key=lambda a: a.severity.value)
         context['actions'] = actions
         context['device_name'] = device_name
         return context

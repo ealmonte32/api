@@ -126,6 +126,7 @@ class GenerateActionsTest(TestCase):
                                   classes=[self.TestActionOne])
 
 
+# TODO: rewrite this using 'actions' and 'snooze_action' urls
 class SnoozeTest(TestCase):
     """
     Test snoozing functionality implemented in Device and RecommendedAction models only.
@@ -162,11 +163,15 @@ class SnoozeTest(TestCase):
         self.device.generate_recommended_actions()
 
     def _assertHasAction(self, has_action, exclude_snoozed=True):
-        if has_action:
-            self.assertQuerysetEqual(self.TestAction.affected_devices(self.user, exclude_snoozed=exclude_snoozed)
-                                     .values_list('pk', flat=True), [str(self.device.pk)])
+        qs = RecommendedAction.objects.filter(action_id=self.TestAction.action_id)
+        if exclude_snoozed:
+            qs = qs.filter(RecommendedAction.get_affected_query())
         else:
-            self.assertFalse(self.TestAction.affected_devices(self.user, exclude_snoozed=exclude_snoozed).exists())
+            qs = qs.exclude(status=RecommendedAction.Status.NOT_AFFECTED)
+        if has_action:
+            self.assertTrue(qs.exists())
+        else:
+            self.assertFalse(qs.exists())
 
     def test_exclude_snoozed(self):
         self._assertHasAction(True)
@@ -243,8 +248,7 @@ class TestsMixin:
         # No action at the beginning.
         self.device.generate_recommended_actions()
         self.assertFalse(self.action_class.is_affected(self.device))
-        self.assertFalse(self.action_class.affected_devices(self.user, device_pk=self.device.pk).exists())
-        self.assertFalse(self.action_class.affected_devices(self.user).exists())
+        self.assertFalse(self.action_class.affected_devices(self.user.devices.all()).exists())
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
         self.assertIsNone(self.action_class.get_description(self.user))
@@ -253,8 +257,7 @@ class TestsMixin:
         self.enable_action()
         self.device.generate_recommended_actions()
         self.assertTrue(self.action_class.is_affected(self.device))
-        self.assertTrue(self.action_class.affected_devices(self.user, device_pk=self.device.pk).exists())
-        self.assertTrue(self.action_class.affected_devices(self.user).exists())
+        self.assertTrue(self.action_class.affected_devices(self.user.devices.all()).exists())
         self.check_action(self.assertOneAction(self.common_actions_url), search_string_common_page)
         self.check_action(self.assertOneAction(self.device_actions_url), self.search_pattern_device_page)
         self.check_description()
@@ -263,8 +266,7 @@ class TestsMixin:
         self.snooze_action()
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
-        self.assertTrue(self.action_class.affected_devices(self.user, device_pk=self.device.pk).exists())
-        self.assertTrue(self.action_class.affected_devices(self.user).exists())
+        self.assertTrue(self.action_class.affected_devices(self.user.devices.all()).exists())
 
     def check_description(self):
         title, text = self.action_class.get_description(self.user, additional_context=dict(devices='this node'))
