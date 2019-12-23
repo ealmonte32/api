@@ -306,11 +306,7 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
-        if hasattr(self, 'firewallstate') and hasattr(self, 'portscan'):
-            action_classes = ActionMeta.all_classes()
-            return sum(
-                [action_class.affected_devices(self.owner, self.pk).exists() for action_class in action_classes]
-            )
+        return self.recommendedaction_set.filter(RecommendedAction.get_affected_query()).distinct().count()
 
     def _get_listening_sockets(self, port):
         return [r for r in self.portscan.scan_info if
@@ -476,20 +472,21 @@ class Device(models.Model):
         added = []
         for action_class in ActionMeta.all_classes() if classes is ... else classes:
             is_affected = action_class.is_affected(self)
-            if is_affected and action_class.action_id not in ra_affected:
+            if action_class.action_id not in ra_all:
+                added.append((action_class.action_id, is_affected))
+            elif is_affected and action_class.action_id not in ra_affected:
                 newly_affected.append(action_class.action_id)
             elif not is_affected and action_class.action_id in ra_affected:
                 newly_not_affected.append(action_class.action_id)
-            elif action_class.action_id not in ra_all:
-                added.append((action_class.action_id, is_affected))
-        self.recommendedaction_set.filter(action_id__in=newly_affected)\
+        n_affected = self.recommendedaction_set.filter(action_id__in=newly_affected)\
             .update(status=RecommendedAction.Status.AFFECTED)
-        self.recommendedaction_set.filter(action_id__in=newly_not_affected)\
+        n_unaffected = self.recommendedaction_set.filter(action_id__in=newly_not_affected)\
             .update(status=RecommendedAction.Status.NOT_AFFECTED)
         ra_new = [RecommendedAction(action_id=action_id, device=self,
                                     status=RecommendedAction.Status.AFFECTED if affected else
                                     RecommendedAction.Status.NOT_AFFECTED) for action_id, affected in added]
         self.recommendedaction_set.bulk_create(ra_new)
+        return n_affected, n_unaffected, len(ra_new)
 
 
 class DeviceInfo(models.Model):
@@ -853,6 +850,12 @@ class RecommendedAction(models.Model):
         SNOOZED_UNTIL_TIME = 2
         SNOOZED_FOREVER = 3
         NOT_AFFECTED = 4
+
+    @classmethod
+    def get_affected_query(cls):
+        return Q(status=RecommendedAction.Status.AFFECTED) | \
+               Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
+                 device__recommendedaction__snoozed_until__lt=timezone.now())
 
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     action_id = models.PositiveSmallIntegerField()

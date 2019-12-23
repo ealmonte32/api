@@ -338,7 +338,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 portscan.block_ports = out_data
                 firewallstate.policy = form.cleaned_data['policy']
                 # Stop snoozing 'Permissive firewall policy detected' recommended action.
-                if int(firewallstate.policy) == FirewallState.POLICY_ENABLED_BLOCK:
+                if int(firewallstate.policy) == FirewallState.POLICY_ENABLED_ALLOW:
                     self.object.snooze_action(FirewallDisabledAction.action_id, RecommendedAction.Status.AFFECTED)
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
@@ -358,6 +358,9 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                     out_data.append(connections_form_data[2][connection_record_index])
                 portscan.block_networks = out_data
                 portscan.save(update_fields=['block_networks'])
+
+        self.object.refresh_from_db()
+        self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
 
@@ -494,9 +497,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             else:
                 device_name = None
                 actions_set = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
-            ras = actions_set.filter(Q(status=RecommendedAction.Status.AFFECTED) |
-                                     Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
-                                       device__recommendedaction__snoozed_until__lt=timezone.now())).distinct()
+            ras = actions_set.filter(RecommendedAction.get_affected_query()).distinct()
             ra_dict = defaultdict(list)
             devices_set = set()
             for ra in ras:

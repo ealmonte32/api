@@ -4,12 +4,14 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
+from django.db.models import Q
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
+from device_registry.models import RecommendedAction
 from device_registry.recommended_actions import ActionMeta
 from device_registry.celery_tasks import github
 
@@ -47,7 +49,9 @@ class Profile(models.Model):
 
     @property
     def actions_count(self):
-        return sum([action_class.action_blocks_count(self.user) for action_class in ActionMeta.all_classes()])
+        return RecommendedAction.objects.filter(
+            Q(device__owner=self.user) & RecommendedAction.get_affected_query()) \
+            .values('action_id').distinct().count()
 
     @property
     def github_repos(self):
