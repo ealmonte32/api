@@ -118,7 +118,7 @@ class BaseAction:
     doc_url = 'https://wott.io/documentation/faq'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True) -> QuerySet:
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False) -> QuerySet:
         """
         Select user's devices which are affected by this recommended action. May return empty queryset.
         If device_pk is given, will select only one device with this pk.
@@ -200,27 +200,29 @@ class BaseAction:
         return int(cls.affected_devices(user).exists())
 
     @classmethod
-    def get_description(cls, user, body=None, **kwargs) -> (str, str):
+    def get_description(cls, user, body=..., affected_devices=..., additional_context=...) -> (str, str):
         """
         Generate a Markdown-formatted descriptive text for this recommended action.
         Mainly used for filing Github issues. Does not exclude snoozed actions. Uses
         cls.action_description as a template and formats it using cls.get_context().
         :param user: the owner of the processed devices.
         :param body: if given, will be used as template instead of cls.action_description.
-        :param kwargs: additional context for formatting the body.
+        :param additional_context: additional context for formatting the body.
         :return: (title, text)
         """
         day_ago = timezone.now() - timedelta(hours=24)
-        affected_devices = cls.affected_devices(user, exclude_snoozed=False).filter(last_ping__gte=day_ago)
-        if not affected_devices.exists():
-            return
+        if affected_devices is ...:
+            affected_devices = cls.affected_devices(user).filter(last_ping__gte=day_ago)
+            if not affected_devices.exists():
+                return
         affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
         context = cls.get_context(affected_devices)
-        context.update(kwargs)
+        if additional_context is not ...:
+            context.update(additional_context)
         if 'subject' in context:
             # Workaround for AutoUpdatesAction three-way logic
             context['subject'] = ''
-        body_text = cls.action_description if body is None else body
+        body_text = cls.action_description if body is ... else body
         action_text = body_text.format(**context) + f"\n\n#### Affected nodes: ####\n{affected_list}"
         return cls.action_title, action_text
 
@@ -360,7 +362,7 @@ class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(deviceinfo__default_password=True)
 
     @classmethod
@@ -377,7 +379,7 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.MED
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
         from .models import FirewallState, GlobalPolicy
         return super().affected_devices(user, device_pk, exclude_snoozed).exclude(
             (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
@@ -407,7 +409,7 @@ class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.MED
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
         return super().affected_devices(user, device_pk, exclude_snoozed)\
             .filter(deb_packages__vulnerabilities__isnull=False).distinct()
 
@@ -433,7 +435,7 @@ class BaseInsecureServicesAction(BaseAction):
         return {'service': cls.service_name}
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
         return super().affected_devices(user, device_pk, exclude_snoozed).exclude(deb_packages_hash='').filter(
             deb_packages__name=cls.service_name).distinct()
 
@@ -534,7 +536,7 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
         }
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(auto_upgrades=False)
 
     @classmethod
@@ -572,7 +574,7 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+    def affected_devices(cls, user, device_pk=None, exclude_snoozed=False):
         return super().affected_devices(user, device_pk, exclude_snoozed).filter(mysql_root_access=True)
 
     @classmethod

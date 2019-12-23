@@ -493,11 +493,11 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             if device_pk is not None:
                 dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
                 device_name = dev.get_name()
-                actions_set = dev.recommendedaction_set.all()
+                actions_qs = dev.recommendedaction_set.all()
             else:
                 device_name = None
-                actions_set = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
-            ras = actions_set.filter(RecommendedAction.get_affected_query()).distinct()
+                actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
+            ras = actions_qs.filter(RecommendedAction.get_affected_query()).distinct()
             ra_dict = defaultdict(list)
             devices_set = set()
             for ra in ras:

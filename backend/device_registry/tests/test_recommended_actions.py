@@ -248,9 +248,11 @@ class TestsMixin:
         self.snooze_action()
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
+        self.assertTrue(self.action_class.affected_devices(self.user, device_pk=self.device.pk).exists())
+        self.assertTrue(self.action_class.affected_devices(self.user).exists())
 
     def check_description(self):
-        title, text = self.action_class.get_description(self.user, devices='this node')
+        title, text = self.action_class.get_description(self.user, additional_context=dict(devices='this node'))
         self.assertIn(self.search_pattern_device_page, text)
         self.assertIn(reverse('device-detail', kwargs={'pk': self.device.pk}), text)
 
@@ -271,14 +273,17 @@ class TestsMixin:
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
         self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
+        self.snooze_url = reverse('snooze_action')
 
     def get_search_string(self):
         return self.search_pattern_common_page.format(url=self.device_page_url, name=self.device.get_name())
 
     def snooze_action(self):
-        # TODO: revert to POSTing the endpoint
-        self.assertTrue(ActionMeta.is_action_id(self.action_class.action_id))
-        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
+        response = self.client.post(self.snooze_url, data={'device_ids': [self.device.pk],
+                                                           'action_id': self.action_class.action_id,
+                                                           'duration': None},
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 200)
 
     def unsnooze_action(self):
         self.device.snooze_action(self.action_class.action_id, RecommendedAction.Status.AFFECTED)
@@ -391,7 +396,8 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
                                                     arch='amd64', os_release_codename='jessie')
             self.device.deb_packages.add(deb_package)
 
-        title, text = InsecureServicesGroupAction.get_description(self.user, devices='your nodes')
+        title, text = InsecureServicesGroupAction.get_description(self.user,
+                                                                  additional_context=dict(devices='your nodes'))
         self.assertEqual(title, 'Insecure services found')
         self.assertIn('We found insecure services installed on your nodes.', text)
         for pkg_name in services_installed:
@@ -443,7 +449,8 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
         self.device.audit_files[0]['issues'] = bad_config
         self.device.save(update_fields=['audit_files'])
 
-        title, text = OpensshIssueGroupAction.get_description(self.user, devices='your nodes')
+        title, text = OpensshIssueGroupAction.get_description(self.user,
+                                                              additional_context=dict(devices='your nodes'))
         self.assertIn('We found insecure configuration issues with OpenSSH on your nodes. To improve the '
                       'security posture of your node, please consider making the following changes:', text)
         self.assertEqual(title, 'Insecure configuration for OpenSSH found')
@@ -521,7 +528,8 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
         self.device.deviceinfo.save(update_fields=['processes'])
         self.device.portscan.save(update_fields=['scan_info'])
 
-        title, text = PubliclyAccessibleServiceGroupAction.get_description(self.user, devices='your nodes')
+        title, text = PubliclyAccessibleServiceGroupAction.get_description(self.user,
+                                                                           additional_context=dict(devices='your nodes'))
         self.assertEqual(title, 'Your services may be publicly accessible')
         for service in publicly_available:
             port, name = PUBLIC_SERVICE_PORTS[service][:2]
