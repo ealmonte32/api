@@ -208,6 +208,21 @@ class TestsMixin:
      is that otherwise the Django test runner considers the base test class as
      a regular test class and run its tests which isn't what we want from it.
     """
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, auto_upgrades=True,
+                                            mysql_root_access=False, last_ping=timezone.now())
+        FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        PortScan.objects.create(device=self.device)
+        DeviceInfo.objects.create(device=self.device, default_password=False)
+        self.client.login(username='test', password='123')
+        self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
+        self.common_actions_url = reverse('actions')
+        self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
+        self.snooze_url = reverse('snooze_action')
 
     def assertOneAction(self, url):
         self.assertEqual(self.device.actions_count, 1)
@@ -259,21 +274,6 @@ class TestsMixin:
     def check_action(self, action: Action, text, title=None):
         self.assertIn(text, action.description)
 
-    def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user('test')
-        self.user.set_password('123')
-        self.user.save()
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, auto_upgrades=True,
-                                            mysql_root_access=False, last_ping=timezone.now())
-        FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
-        PortScan.objects.create(device=self.device)
-        DeviceInfo.objects.create(device=self.device, default_password=False)
-        self.client.login(username='test', password='123')
-        self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
-        self.common_actions_url = reverse('actions')
-        self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
-        self.snooze_url = reverse('snooze_action')
 
     def get_search_string(self):
         return self.search_pattern_common_page.format(url=self.device_page_url, name=self.device.get_name())
@@ -395,6 +395,7 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
                                                     source_version='sversion1',
                                                     arch='amd64', os_release_codename='jessie')
             self.device.deb_packages.add(deb_package)
+        self.device.generate_recommended_actions()
 
         title, text = InsecureServicesGroupAction.get_description(self.user,
                                                                   additional_context=dict(devices='your nodes'))
@@ -423,6 +424,8 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
         self.device.audit_files = [{'name': '/etc/ssh/sshd_config',
                                     'issues': {},
                                     'sha256': 'abcd', 'last_modified': 1554718384.0}]
+        self.device.save()
+        self.device.generate_recommended_actions()
 
     def enable_action(self):
         self.device.audit_files[0]['issues'] = \
@@ -448,6 +451,7 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
         del(bad_config[good_config_name])
         self.device.audit_files[0]['issues'] = bad_config
         self.device.save(update_fields=['audit_files'])
+        self.device.generate_recommended_actions()
 
         title, text = OpensshIssueGroupAction.get_description(self.user,
                                                               additional_context=dict(devices='your nodes'))
@@ -527,6 +531,7 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
             dummy_pid += 1
         self.device.deviceinfo.save(update_fields=['processes'])
         self.device.portscan.save(update_fields=['scan_info'])
+        self.device.generate_recommended_actions()
 
         title, text = PubliclyAccessibleServiceGroupAction.get_description(self.user,
                                                                            additional_context=dict(devices='your nodes'))

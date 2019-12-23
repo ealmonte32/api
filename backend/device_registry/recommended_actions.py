@@ -200,7 +200,7 @@ class BaseAction:
         return int(cls.affected_devices(user).exists())
 
     @classmethod
-    def get_description(cls, user, body=..., affected_devices=..., additional_context=...) -> (str, str):
+    def get_description(cls, user, body=..., additional_context=...) -> (str, str):
         """
         Generate a Markdown-formatted descriptive text for this recommended action.
         Mainly used for filing Github issues. Does not exclude snoozed actions. Uses
@@ -210,11 +210,14 @@ class BaseAction:
         :param additional_context: additional context for formatting the body.
         :return: (title, text)
         """
+        from .models import RecommendedAction
         day_ago = timezone.now() - timedelta(hours=24)
-        if affected_devices is ...:
-            affected_devices = cls.affected_devices(user).filter(last_ping__gte=day_ago)
-            if not affected_devices.exists():
-                return
+        actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
+                                                   device__last_ping__gte=day_ago)\
+                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED)
+        affected_devices = [action.device for action in actions]
+        if not affected_devices:
+            return
         affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
         context = cls.get_context(affected_devices)
         if additional_context is not ...:
