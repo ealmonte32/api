@@ -546,11 +546,8 @@
             console.log('success');
             let title = "To add a node, simply SSH in and run the following commands:";
             let msg = bash_block(
-                     `$ sudo apt-get install -y curl\n`
-                   + `$ sudo mkdir -p /opt/wott\n`
-                   + `$ echo -e "[DEFAULT]\\\\nenroll_token = ${e.key}" | sudo tee -a /opt/wott/config.ini\n`
-                   + `$ curl -s https://packagecloud.io/install/repositories/wott/agent/script.deb.sh | sudo bash\n`
-                   + `$ sudo apt install -y wott-agent\n`);
+                     `$ export CLAIM_TOKEN="${e.key}"\n`
+                   + `$ curl -sL https://install.wott.io | sudo bash\n`);
             show_dialog(title, msg);
             document.querySelectorAll('pre code').forEach((block) => {
               hljs.highlightBlock(block);
