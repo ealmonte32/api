@@ -152,6 +152,7 @@ class MtlsPingView(APIView):
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
                                    'update_trust_score', 'os_release', 'auto_upgrades',
                                    'mysql_root_access', 'cpu', 'kernel_deb_package'])
+        device.generate_recommended_actions()
 
         if datastore_client:
             task_key = datastore_client.key('Ping')

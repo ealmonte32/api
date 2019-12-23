@@ -159,6 +159,7 @@ class SnoozeTest(TestCase):
         self.user.set_password('123')
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.device.generate_recommended_actions()
 
     def _assertHasAction(self, has_action, exclude_snoozed=True):
         if has_action:

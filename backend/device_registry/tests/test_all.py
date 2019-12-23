@@ -500,6 +500,7 @@ class DeviceDetailViewTests(TestCase):
 
     def test_actions_btn_pos(self):
         self.client.login(username='test', password='123')
+        self.device_no_logins.generate_recommended_actions()
         url = reverse('device-detail', kwargs={'pk': self.device_no_logins.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -881,6 +882,7 @@ class RootViewTests(TestCase):
         PortScan.objects.create(device=self.device1)
         FirewallState.objects.create(device=self.device0)
         FirewallState.objects.create(device=self.device1)
+        [d.generate_recommended_actions() for d in (self.device0, self.device1)]
 
     def test_wizard(self):
         self.client.login(username='test', password='123')
