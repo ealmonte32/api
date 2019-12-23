@@ -3,6 +3,12 @@
 from django.db import migrations
 
 
+def generate_recommended_actions(apps, schema_editor):
+    from device_registry.models import Device
+    for d in Device.objects.all():
+        d.generate_recommended_actions()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -14,4 +20,5 @@ class Migration(migrations.Migration):
             name='recommendedaction',
             unique_together={('device', 'action_id')},
         ),
+        migrations.RunPython(generate_recommended_actions)
     ]
