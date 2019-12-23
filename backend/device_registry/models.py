@@ -844,6 +844,9 @@ class Distro(models.Model):
 
 
 class RecommendedAction(models.Model):
+    class Meta:
+        unique_together = ['device', 'action_id']
+
     class Status(IntEnum):
         AFFECTED = 0
         SNOOZED_UNTIL_PING = 1
