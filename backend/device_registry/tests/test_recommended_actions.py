@@ -88,6 +88,8 @@ class GenerateActionsTest(TestCase):
         self.user.set_password('123')
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.TestActionOne.affected = False
+        self.TestActionTwo.affected = False
 
     def check_actions_status(self, status_one, status_two, classes=None):
         self.device.generate_recommended_actions(classes)
@@ -111,19 +113,88 @@ class GenerateActionsTest(TestCase):
         self.TestActionOne.affected = False
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
 
+    def test_snooze(self):
         self.TestActionOne.affected = True
+        self.TestActionTwo.affected = True
         self.device.snooze_action(self.TestActionOne.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
         self.check_actions_status(RecommendedAction.Status.SNOOZED_FOREVER, RecommendedAction.Status.AFFECTED)
 
         self.TestActionOne.affected = False
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
 
-        self.TestActionTwo.affected = False
+    def test_classes(self):
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
         self.TestActionOne.affected = True
         self.TestActionTwo.affected = True
         self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.NOT_AFFECTED,
                                   classes=[self.TestActionOne])
+
+    def test_resolved_at(self):
+        self.TestActionOne.affected = True
+        self.TestActionTwo.affected = True
+        self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.AFFECTED)
+        now = timezone.now()
+        with freeze_time(now):
+            self.TestActionOne.affected = False
+            self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
+        ra = RecommendedAction.objects.get(device=self.device, action_id=self.TestActionOne.action_id)
+        self.assertEquals(ra.resolved_at, now.date())
+
+
+class ResolvedTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        class TestAction(BaseAction, metaclass=ActionMeta):
+            """
+            A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
+            """
+            action_id = 9999
+            action_title = ""
+            action_description = ""
+            affected = True
+            affected_device = None
+
+            @classmethod
+            def is_affected(cls, device) -> bool:
+                return device == cls.affected_device
+
+        cls.TestAction = TestAction
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        ActionMeta.unregister(cls.TestAction)
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        # self.user.set_password('123')
+        # self.user.save()
+        # self.client.login(username='test', password='123')
+        self.device_affected = Device.objects.create(device_id='a.d.wott-dev.local', owner=self.user,
+                                                     last_ping=timezone.now(), name="Affected")
+        self.device_unaffected = Device.objects.create(device_id='u.d.wott-dev.local', owner=self.user,
+                                                       last_ping=timezone.now(), name="Unaffected")
+        # self.device.generate_recommended_actions()
+        # self.common_actions_url = reverse('actions')
+        # self.snooze_url = reverse('snooze_action')
+
+    def test_description(self):
+        self.device_affected.generate_recommended_actions(classes=[self.TestAction])
+        self.device_unaffected.generate_recommended_actions(classes=[self.TestAction])
+        self.assertIsNone(self.TestAction.get_description(self.user))
+
+        self.TestAction.affected_device = self.device_affected
+        self.device_affected.generate_recommended_actions(classes=[self.TestAction])
+        self.device_unaffected.generate_recommended_actions(classes=[self.TestAction])
+        desc = self.TestAction.get_description(self.user)
+
+        self.assertIsNotNone(desc)
+        _, body = desc
+        self.assertIn(f'- [ ] [{self.device_affected.get_name()}]', body)
+        self.assertNotIn(f'[{self.device_unaffected.get_name()}]', body)
 
 
 class SnoozeTest(TestCase):

@@ -217,7 +217,21 @@ class BaseAction:
         affected_devices = [action.device for action in actions]
         if not affected_devices:
             return
-        affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
+        affected_list = []
+        for a in actions:
+            if a.status == RecommendedAction.Status.NOT_AFFECTED:
+                if a.resolved_at is not None:
+                    # If an RA was resolved at some point in the past the device is ticked in this list
+                    x = 'x'
+                else:
+                    # Otherwise the device is not listed, meaning that this RA never affected it.
+                    x = None
+            else:
+                # RA still affects this device, no matter if it's snoozed or not.
+                x = ' '
+            if x is not None:
+                affected_list.append(f'- [{x}] {device_link(a.device, absolute=True)}')
+        resolved = '\n'.join(affected_list)
         context = cls.get_context(affected_devices)
         if additional_context is not None:
             context.update(additional_context)
@@ -225,7 +239,7 @@ class BaseAction:
             # Workaround for AutoUpdatesAction three-way logic
             context['subject'] = ''
         body_text = cls.action_description if body is None else body
-        action_text = body_text.format(**context) + f"\n\n#### Affected nodes: ####\n{affected_list}"
+        action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
         return cls.action_title, action_text
 
 
