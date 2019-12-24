@@ -524,7 +524,10 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             )]
 
         context = super().get_context_data(**kwargs)
-        actions.sort(key=lambda a: a.severity.value)
+
+        # Sort actions by severity and then by action id, effectively grouping subclasses together.
+        actions.sort(key=lambda a: (a.severity.value, a.action_id))
+
         context['actions'] = actions
         context['device_name'] = device_name
         return context
