@@ -126,10 +126,9 @@ class GenerateActionsTest(TestCase):
                                   classes=[self.TestActionOne])
 
 
-# TODO: rewrite this using 'actions' and 'snooze_action' urls
 class SnoozeTest(TestCase):
     """
-    Test snoozing functionality implemented in Device and RecommendedAction models only.
+    Test snoozing functionality.
     setUpClass() and tearDownClass() were overloaded to register and unregister TestAction only once.
     """
 
@@ -142,6 +141,8 @@ class SnoozeTest(TestCase):
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             action_id = 9999
+            action_title = ""
+            action_description = ""
 
             @classmethod
             def is_affected(cls, device) -> bool:
@@ -159,33 +160,30 @@ class SnoozeTest(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
+        self.client.login(username='test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.device.generate_recommended_actions()
+        self.common_actions_url = reverse('actions')
+        self.snooze_url = reverse('snooze_action')
 
-    def _assertHasAction(self, has_action, exclude_snoozed=True):
-        qs = RecommendedAction.objects.filter(action_id=self.TestAction.action_id)
-        if exclude_snoozed:
-            qs = qs.filter(RecommendedAction.get_affected_query())
-        else:
-            qs = qs.exclude(status=RecommendedAction.Status.NOT_AFFECTED)
+    def _assertHasAction(self, has_action):
+        self.device.generate_recommended_actions(classes=[self.TestAction])
+        response = self.client.get(self.common_actions_url)
+        self.assertEqual(response.status_code, 200)
         if has_action:
-            self.assertTrue(qs.exists())
+            self.assertEqual(len(response.context['actions']), 1)
+            self.assertEqual(response.context['actions'][0].action_id, self.TestAction.action_id)
         else:
-            self.assertFalse(qs.exists())
-
-    def test_exclude_snoozed(self):
-        self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
-        self._assertHasAction(True, exclude_snoozed=False)
+            self.assertEqual(len(response.context['actions']), 0)
 
     def test_snooze_forever(self):
         self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
+        self.snooze_action(None)
         self._assertHasAction(False)
 
     def test_snooze_until_ping(self):
         self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_UNTIL_PING)
+        self.snooze_action(None)
         self._assertHasAction(False)
         self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.AFFECTED)
         self._assertHasAction(True)
@@ -195,7 +193,8 @@ class SnoozeTest(TestCase):
 
         with freeze_time(timezone.now() - timezone.timedelta(hours=23)):
             # 23 hours ago this action had been snoozed for 24 hours
-            self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_UNTIL_TIME, 24)
+            # self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_UNTIL_TIME, 24)
+            self.snooze_action(24)
 
         # ... which means now it's still snoozed
         self._assertHasAction(False)
@@ -203,6 +202,13 @@ class SnoozeTest(TestCase):
         # ... but in an hour from now it won't be snoozed anymore
         with freeze_time(timezone.now() + timezone.timedelta(hours=1)):
             self._assertHasAction(True)
+
+    def snooze_action(self, duration):
+        response = self.client.post(self.snooze_url, data={'device_ids': [self.device.pk],
+                                                           'action_id': self.TestAction.action_id,
+                                                           'duration': duration},
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 200)
 
 
 class TestsMixin:
@@ -227,7 +233,6 @@ class TestsMixin:
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
         self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
-        self.snooze_url = reverse('snooze_action')
 
     def assertOneAction(self, url):
         self.assertEqual(self.device.actions_count, 1)
@@ -262,12 +267,6 @@ class TestsMixin:
         self.check_action(self.assertOneAction(self.device_actions_url), self.search_pattern_device_page)
         self.check_description()
 
-        # Snooze the action.
-        self.snooze_action()
-        self.assertNoAction(self.common_actions_url)
-        self.assertNoAction(self.device_actions_url)
-        self.assertTrue(self.action_class.affected_devices(self.user.devices.all()).exists())
-
     def check_description(self):
         title, text = self.action_class.get_description(self.user, additional_context=dict(devices='this node'))
         self.assertIn(self.search_pattern_device_page, text)
@@ -276,19 +275,8 @@ class TestsMixin:
     def check_action(self, action: Action, text, title=None):
         self.assertIn(text, action.description)
 
-
     def get_search_string(self):
         return self.search_pattern_common_page.format(url=self.device_page_url, name=self.device.get_name())
-
-    def snooze_action(self):
-        response = self.client.post(self.snooze_url, data={'device_ids': [self.device.pk],
-                                                           'action_id': self.action_class.action_id,
-                                                           'duration': None},
-                                    content_type='application/json')
-        self.assertEqual(response.status_code, 200)
-
-    def unsnooze_action(self):
-        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Status.AFFECTED)
 
 
 class DefaultCredentialsActionTest(TestsMixin, TestCase):
@@ -382,7 +370,6 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
             self.search_pattern_device_page = 'We found ' + self.action_class.service_name + ' installed on this node'
             self.search_pattern_common_page = 'We found ' + self.action_class.service_name + ' installed on [{name}]({url})'
             super().test_get()
-            self.unsnooze_action()
             self.disable_action()
 
     def check_description(self):
@@ -444,7 +431,6 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
             self.search_pattern_common_page = self.search_pattern_common + self.action_class.sshd_param
             self.search_pattern_device_page = self.search_pattern_device + self.action_class.sshd_param
             super().test_get()
-            self.unsnooze_action()
             self.disable_action()
 
     def test_group(self):
@@ -517,7 +503,6 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
             self.search_pattern_common_page = self.search_pattern_common.format(service=subclass.service_name)
             self.search_pattern_device_page = self.search_pattern_device.format(service=subclass.service_name)
             super().test_get()
-            self.unsnooze_action()
             self.disable_action()
 
     def test_group(self):
