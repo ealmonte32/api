@@ -170,31 +170,51 @@ class ResolvedTest(TestCase):
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test')
-        # self.user.set_password('123')
-        # self.user.save()
-        # self.client.login(username='test', password='123')
-        self.device_affected = Device.objects.create(device_id='a.d.wott-dev.local', owner=self.user,
-                                                     last_ping=timezone.now(), name="Affected")
-        self.device_unaffected = Device.objects.create(device_id='u.d.wott-dev.local', owner=self.user,
-                                                       last_ping=timezone.now(), name="Unaffected")
-        # self.device.generate_recommended_actions()
-        # self.common_actions_url = reverse('actions')
-        # self.snooze_url = reverse('snooze_action')
+        self.device_one = Device.objects.create(device_id='a.d.wott-dev.local', owner=self.user,
+                                                last_ping=timezone.now(), name="One")
+        self.device_two = Device.objects.create(device_id='u.d.wott-dev.local', owner=self.user,
+                                                last_ping=timezone.now(), name="Two")
+        self.TestAction.affected_device = None
+
+    def check_description(self, is_none):
+        self.device_one.generate_recommended_actions(classes=[self.TestAction])
+        self.device_two.generate_recommended_actions(classes=[self.TestAction])
+        desc = self.TestAction.get_description(self.user)
+        if is_none:
+            self.assertIsNone(desc)
+        else:
+            self.assertIsNotNone(desc)
+            return desc[1]
 
     def test_description(self):
-        self.device_affected.generate_recommended_actions(classes=[self.TestAction])
-        self.device_unaffected.generate_recommended_actions(classes=[self.TestAction])
-        self.assertIsNone(self.TestAction.get_description(self.user))
+        # Initially no devices are affected - no description.
+        self.check_description(is_none=True)
 
-        self.TestAction.affected_device = self.device_affected
-        self.device_affected.generate_recommended_actions(classes=[self.TestAction])
-        self.device_unaffected.generate_recommended_actions(classes=[self.TestAction])
-        desc = self.TestAction.get_description(self.user)
+        # One device gets affected - description should list it but not the second device
+        # which was never affected.
+        self.TestAction.affected_device = self.device_one
+        body = self.check_description(is_none=False)
+        self.assertIn(f'- [ ] [{self.device_one.get_name()}]', body)
+        self.assertNotIn(f'[{self.device_two.get_name()}]', body)
 
-        self.assertIsNotNone(desc)
-        _, body = desc
-        self.assertIn(f'- [ ] [{self.device_affected.get_name()}]', body)
-        self.assertNotIn(f'[{self.device_unaffected.get_name()}]', body)
+        # Second device gets affected, first gets unaffected (resolved). Description should
+        # list first device as "resolved" (ticked) and the second unticked.
+        self.TestAction.affected_device = self.device_two
+        body = self.check_description(is_none=False)
+        self.assertIn(f'- [x] [{self.device_one.get_name()}]', body)
+        self.assertIn(f'- [ ] [{self.device_two.get_name()}]', body)
+
+        # Both devices get unaffected (resolved) - no description, issue closed.
+        self.TestAction.affected_device = None
+        self.check_description(is_none=True)
+
+    def test_last_ping(self):
+        self.TestAction.affected_device = self.device_one
+
+        self.check_description(is_none=False)
+        with freeze_time(timezone.now() + timezone.timedelta(days=1)):
+            # Devices which pinged more than a day ago are ignored.
+            self.check_description(is_none=True)
 
 
 class SnoozeTest(TestCase):

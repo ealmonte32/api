@@ -213,24 +213,14 @@ class BaseAction:
         day_ago = timezone.now() - timedelta(hours=24)
         actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
                                                    device__last_ping__gte=day_ago)\
-                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED)
+                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]
-        if not affected_devices:
+        if not affected_devices or not any(a.status != RecommendedAction.Status.NOT_AFFECTED for a in actions):
             return
-        affected_list = []
-        for a in actions:
-            if a.status == RecommendedAction.Status.NOT_AFFECTED:
-                if a.resolved_at is not None:
-                    # If an RA was resolved at some point in the past the device is ticked in this list
-                    x = 'x'
-                else:
-                    # Otherwise the device is not listed, meaning that this RA never affected it.
-                    x = None
-            else:
-                # RA still affects this device, no matter if it's snoozed or not.
-                x = ' '
-            if x is not None:
-                affected_list.append(f'- [{x}] {device_link(a.device, absolute=True)}')
+        affected_list = ['- [{x}] {device}'
+                         .format(x='x' if a.status == RecommendedAction.Status.NOT_AFFECTED else ' ',
+                                 device=device_link(a.device, absolute=True))
+                         for a in actions]
         resolved = '\n'.join(affected_list)
         context = cls.get_context(affected_devices)
         if additional_context is not None:
