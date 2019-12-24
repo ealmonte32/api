@@ -872,7 +872,8 @@ class RecommendedAction(models.Model):
         if classes is ...:
             classes = ActionMeta.all_classes()
         for action_class in classes:
-            qs = Device.objects.exclude(recommendedaction__action_id=action_class.action_id)
+            qs = Device.objects.exclude(Q(recommendedaction__action_id=action_class.action_id) |
+                                        Q(owner__isnull=True))
             if not qs.exists():
                 continue
             all_devices = set(qs)
