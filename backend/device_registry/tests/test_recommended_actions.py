@@ -13,6 +13,8 @@ from device_registry.recommended_actions import DefaultCredentialsAction, Firewa
 
 from freezegun import freeze_time
 
+from profile_page.models import Profile
+
 
 class NoDevicesActionTest(TestCase):
     def test_get(self):
@@ -192,6 +194,7 @@ class SnoozeTest(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
+        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
         self.client.login(username='test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.device.generate_recommended_actions()
@@ -264,6 +267,7 @@ class TestsMixin:
         PortScan.objects.create(device=self.device)
         DeviceInfo.objects.create(device=self.device, default_password=False)
         self.client.login(username='test', password='123')
+        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
         self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})

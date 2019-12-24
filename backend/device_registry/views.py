@@ -521,7 +521,9 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 severity=Severity.LO
             )]
 
-        if not (self.request.user.profile.github_oauth_token and self.request.user.profile.github_repo_id) and \
+        if not (hasattr(self.request.user, 'profile') and
+                self.request.user.profile.github_oauth_token and
+                self.request.user.profile.github_repo_id) and \
                 not kwargs.get('device_pk'):
             actions.append(Action(
                 'Set up Github integration',
