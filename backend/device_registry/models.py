@@ -464,6 +464,16 @@ class Device(models.Model):
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
     def generate_recommended_actions(self, classes=...):
+        """
+        Generate RAs for this device and store them as RecommendedAction objects in database.
+
+        If a RecommendedAction object exists and it is in snoozed status: if the RA still affects the device
+        then it will stay snoozed, otherwise its status changes to NOT_AFFECTED.
+
+        If a RecommendedAction object for some RA does not exist it will be created.
+        :param classes: if supplied, limit the scope of this method to this list of BaseAction classes.
+        :return:
+        """
         ra_all = self.recommendedaction_set.all().values_list('action_id', flat=True)
         ra_affected = self.recommendedaction_set.exclude(Q(status=RecommendedAction.Status.NOT_AFFECTED))\
             .values_list('action_id', flat=True)
@@ -473,10 +483,13 @@ class Device(models.Model):
         for action_class in ActionMeta.all_classes() if classes is ... else classes:
             is_affected = action_class.is_affected(self)
             if action_class.action_id not in ra_all:
+                # If a RecommendedAction object for some RA does not exist it will be created.
                 added.append((action_class.action_id, is_affected))
             elif is_affected and action_class.action_id not in ra_affected:
+                # A RecommendedAction object is not in AFFECTED status, but the RA affects the device
                 newly_affected.append(action_class.action_id)
             elif not is_affected and action_class.action_id in ra_affected:
+                # A RecommendedAction object is in AFFECTED or SNOOZED_* status, but the RA doesn't affect the device
                 newly_not_affected.append(action_class.action_id)
         n_affected = self.recommendedaction_set.filter(action_id__in=newly_affected)\
             .update(status=RecommendedAction.Status.AFFECTED)
