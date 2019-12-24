@@ -53,6 +53,15 @@ class PubliclyAccessiblePort(NamedTuple):
 
 
 class Action(NamedTuple):
+    """
+    :param title: Title text
+    :param description: Body text
+    :param action_id: the value of action_id field of BaseAction subclasses
+    :param devices: list of device ids
+    :param severity: Action severity (Severity)
+    :param doc_url: "Learn more" URL, optional
+    :param issue_url: Github issue URL, optional
+    """
     title: str
     description: str
     action_id: int
@@ -118,10 +127,13 @@ class BaseAction:
     doc_url = 'https://wott.io/documentation/faq'
 
     @classmethod
-    def affected_devices(cls, qs) -> QuerySet:
+    def affected_devices(cls, qs: QuerySet) -> QuerySet:
         """
-        Select user's devices which are affected by this recommended action.
-        :param user: the owner of the processed devices.
+        Select all devices which are affected by this recommended action.
+        This method is to be used during migration when a new RA is added. It is supposed to be optimized for quick
+        selection of devices, preferably with a single request. However the default implementation provided here is
+        suboptimal because it calls is_affected() for every device.
+        :param qs: QuerySet of Device which will be additionally filtered.
         :return: QuerySet
         """
         from .models import Device
@@ -131,6 +143,11 @@ class BaseAction:
 
     @classmethod
     def is_affected(cls, device) -> bool:
+        """
+        Whether the supplied device is affected by this RA.
+        :param device: a Device
+        :return: bool
+        """
         raise NotImplementedError
 
     @classmethod
@@ -194,7 +211,7 @@ class BaseAction:
         from .models import RecommendedAction
         day_ago = timezone.now() - timedelta(hours=24)
         actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
-                                                   )\
+                                                   device__last_ping__gte=day_ago)\
                                            .exclude(status=RecommendedAction.Status.NOT_AFFECTED)
         affected_devices = [action.device for action in actions]
         if not affected_devices:

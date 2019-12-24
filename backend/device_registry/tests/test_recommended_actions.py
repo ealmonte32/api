@@ -178,8 +178,10 @@ class SnoozeTest(TestCase):
 
     def test_snooze_forever(self):
         self._assertHasAction(True)
-        self.snooze_action(None)
+        self.snooze_action(0)
         self._assertHasAction(False)
+        with freeze_time(timezone.now() + timezone.timedelta(days=10)):
+            self._assertHasAction(False)
 
     def test_snooze_until_ping(self):
         self._assertHasAction(True)

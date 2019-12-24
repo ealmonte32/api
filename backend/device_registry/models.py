@@ -868,6 +868,14 @@ class RecommendedAction(models.Model):
 
     @classmethod
     def update_all_devices(cls, classes=...):
+        """
+        Generate RAs for all devices which don't have them. Tries to do this in bulk by using .affected_devices()
+        therefore if it's written properly this method will execute quickly.
+        It is to be used during migration when a new RA is added.
+        If classes is supplied the scope of this method will be limited to this list of RA classes.
+        :param classes: a list of BaseAction child classes.
+        :return: a number of new RecommendedAction objects created.
+        """
         created = []
         if classes is ...:
             classes = ActionMeta.all_classes()

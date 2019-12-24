@@ -495,15 +495,20 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             else:
                 device_name = None
                 actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
-            ras = actions_qs.filter(RecommendedAction.get_affected_query()).distinct()
-            ra_dict = defaultdict(list)
-            devices_set = set()
-            for ra in ras:
-                devices_set.add(ra.device.pk)
-                ra_dict[ra.action_id].append(ra.device.pk)
-            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=devices_set)}
 
-            for ra_id, device_pks in ra_dict.items():
+            # Select all RAs for all user's devices which are not snoozed
+            active_actions = actions_qs.filter(RecommendedAction.get_affected_query()).distinct()
+
+            # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
+            actions_by_id = defaultdict(list)
+            affected_devices = set()
+            for ra in active_actions:
+                affected_devices.add(ra.device.pk)
+                actions_by_id[ra.action_id].append(ra.device.pk)
+            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
+
+            # Generate Action objects to be rendered on page for every affected RA.
+            for ra_id, device_pks in actions_by_id.items():
                 devices = [affected_devices[d] for d in device_pks]
                 a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
                 actions.append(a)
