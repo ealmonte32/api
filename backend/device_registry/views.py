@@ -521,6 +521,16 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 severity=Severity.LO
             )]
 
+        if not (self.request.user.profile.github_oauth_token and self.request.user.profile.github_repo_id) and \
+                not kwargs.get('device_pk'):
+            actions.append(Action(
+                'Set up Github integration',
+                'write your text here',
+                action_id=0,
+                devices=[],
+                severity=Severity.LO
+            ))
+
         context = super().get_context_data(**kwargs)
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.

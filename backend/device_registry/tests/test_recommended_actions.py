@@ -46,6 +46,38 @@ class NoDevicesActionTest(TestCase):
         self.assertContains(response, search_string)
 
 
+class GithubActionTest(TestCase):
+    def test_get(self):
+        User = get_user_model()
+        user = User.objects.create_user('test')
+        user.set_password('123')
+        user.save()
+        common_actions_url = reverse('actions')
+        self.client.login(username='test', password='123')
+
+        # The user has one device - no "Enroll your nodes" RA.
+        device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=user)
+        device_actions_url = reverse('device_actions', kwargs={'device_pk': device.pk})
+
+        # Github integration is not set up - RA is shown at the common actions page.
+        response = self.client.get(common_actions_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['actions']), 1)
+        self.assertEqual(response.context['actions'][0].title, 'Set up Github integration')
+
+        # This RA should not be shown on the per-device action page.
+        response = self.client.get(device_actions_url)
+        self.assertEqual(len(response.context['actions']), 0)
+
+        # Set up Github integration - RA should disappear.
+        user.profile.github_repo_id = 1234
+        user.profile.github_oauth_token = 'abcd'
+        user.profile.save()
+        response = self.client.get(common_actions_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['actions']), 0)
+
+
 class GenerateActionsTest(TestCase):
     @classmethod
     def setUpClass(cls):
