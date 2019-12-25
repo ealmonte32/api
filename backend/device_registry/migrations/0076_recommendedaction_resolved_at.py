@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='recommendedaction',
             name='resolved_at',
-            field=models.DateField(blank=True, null=True),
+            field=models.DateTimeField(blank=True, null=True),
         ),
     ]

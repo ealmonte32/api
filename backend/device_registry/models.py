@@ -878,7 +878,7 @@ class RecommendedAction(models.Model):
     status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Status],
                                               default=Status.AFFECTED.value)
     snoozed_until = models.DateTimeField(null=True, blank=True)
-    resolved_at = models.DateField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
 
     @classmethod
     def update_all_devices(cls, classes=None):

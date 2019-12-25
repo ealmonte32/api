@@ -138,7 +138,7 @@ class GenerateActionsTest(TestCase):
             self.TestActionOne.affected = False
             self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
         ra = RecommendedAction.objects.get(device=self.device, action_id=self.TestActionOne.action_id)
-        self.assertEquals(ra.resolved_at, now.date())
+        self.assertEquals(ra.resolved_at, now)
 
 
 class ResolvedTest(TestCase):
