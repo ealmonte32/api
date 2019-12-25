@@ -495,7 +495,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
 
             # Select all RAs for all user's devices which are not snoozed
-            active_actions = actions_qs.filter(RecommendedAction.get_affected_query()).distinct()
+            active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
 
             # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
             actions_by_id = defaultdict(list)

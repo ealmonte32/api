@@ -306,7 +306,7 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
-        return self.recommendedaction_set.filter(RecommendedAction.get_affected_query()).distinct().count()
+        return self.recommendedaction_set.filter(RecommendedAction.get_affected_query()).count()
 
     def _get_listening_sockets(self, port):
         return [r for r in self.portscan.scan_info if
@@ -871,7 +871,7 @@ class RecommendedAction(models.Model):
     def get_affected_query():
         return Q(status=RecommendedAction.Status.AFFECTED) | \
                Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
-                 device__recommendedaction__snoozed_until__lt=timezone.now())
+                 snoozed_until__lt=timezone.now())
 
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     action_id = models.PositiveSmallIntegerField()
