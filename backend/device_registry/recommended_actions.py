@@ -190,6 +190,7 @@ class BaseAction:
         """
         Generate a list of Action objects for the user. Excludes snoozed actions.
         :param user: the owner of the processed devices.
+        :param devices: a list of Device
         :param device_pk: if given, then only one device with this pk is processed.
         :return:
         """
@@ -198,7 +199,7 @@ class BaseAction:
         return cls._create_action(user.profile, context, [d.pk for d in devices])
 
     @classmethod
-    def get_description(cls, user, body=..., additional_context=...) -> (str, str):
+    def get_description(cls, user, body=None, additional_context=None) -> (str, str):
         """
         Generate a Markdown-formatted descriptive text for this recommended action.
         Mainly used for filing Github issues. Does not exclude snoozed actions. Uses
@@ -218,12 +219,12 @@ class BaseAction:
             return
         affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
         context = cls.get_context(affected_devices)
-        if additional_context is not ...:
+        if additional_context is not None:
             context.update(additional_context)
         if 'subject' in context:
             # Workaround for AutoUpdatesAction three-way logic
             context['subject'] = ''
-        body_text = cls.action_description if body is ... else body
+        body_text = cls.action_description if body is None else body
         action_text = body_text.format(**context) + f"\n\n#### Affected nodes: ####\n{affected_list}"
         return cls.action_title, action_text
 

@@ -89,7 +89,7 @@ class GenerateActionsTest(TestCase):
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
 
-    def check_actions_status(self, status_one, status_two, classes=...):
+    def check_actions_status(self, status_one, status_two, classes=None):
         self.device.generate_recommended_actions(classes)
         self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id__in=[self.TestActionOne.action_id,
                                                                                          self.TestActionTwo.action_id])

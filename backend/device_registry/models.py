@@ -463,7 +463,7 @@ class Device(models.Model):
                 self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
-    def generate_recommended_actions(self, classes=...):
+    def generate_recommended_actions(self, classes=None):
         """
         Generate RAs for this device and store them as RecommendedAction objects in database.
 
@@ -475,12 +475,12 @@ class Device(models.Model):
         :return:
         """
         ra_all = self.recommendedaction_set.all().values_list('action_id', flat=True)
-        ra_affected = self.recommendedaction_set.exclude(Q(status=RecommendedAction.Status.NOT_AFFECTED))\
-            .values_list('action_id', flat=True)
+        ra_affected = self.recommendedaction_set.exclude(status=RecommendedAction.Status.NOT_AFFECTED)\
+                                                .values_list('action_id', flat=True)
         newly_affected = []
         newly_not_affected = []
         added = []
-        for action_class in ActionMeta.all_classes() if classes is ... else classes:
+        for action_class in ActionMeta.all_classes() if classes is None else classes:
             is_affected = action_class.is_affected(self)
             if action_class.action_id not in ra_all:
                 # If a RecommendedAction object for some RA does not exist it will be created.
@@ -867,8 +867,8 @@ class RecommendedAction(models.Model):
         SNOOZED_FOREVER = 3
         NOT_AFFECTED = 4
 
-    @classmethod
-    def get_affected_query(cls):
+    @staticmethod
+    def get_affected_query():
         return Q(status=RecommendedAction.Status.AFFECTED) | \
                Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
                  device__recommendedaction__snoozed_until__lt=timezone.now())
@@ -880,7 +880,7 @@ class RecommendedAction(models.Model):
     snoozed_until = models.DateTimeField(null=True, blank=True)
 
     @classmethod
-    def update_all_devices(cls, classes=...):
+    def update_all_devices(cls, classes=None):
         """
         Generate RAs for all devices which don't have them. Tries to do this in bulk by using .affected_devices()
         therefore if it's written properly this method will execute quickly.
@@ -890,11 +890,12 @@ class RecommendedAction(models.Model):
         :return: a number of new RecommendedAction objects created.
         """
         created = []
-        if classes is ...:
+        if classes is None:
             classes = ActionMeta.all_classes()
         for action_class in classes:
+            # Select devices which were not yet processed with this RA.
             qs = Device.objects.exclude(Q(recommendedaction__action_id=action_class.action_id) |
-                                        Q(owner__isnull=True))
+                                        Q(owner__isnull=True)).only('pk')
             if not qs.exists():
                 continue
             all_devices = set(qs)
