@@ -521,8 +521,9 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 severity=Severity.LO
             )]
 
-        if not (hasattr(self.request.user, 'profile') and
-                self.request.user.profile.github_oauth_token and
+        # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
+        # and has not set up integration with any Github repo. Only shown on common actions page.
+        if not (self.request.user.profile.github_oauth_token and
                 self.request.user.profile.github_repo_id) and \
                 not kwargs.get('device_pk'):
             actions.append(Action(
