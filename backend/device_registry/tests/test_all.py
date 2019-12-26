@@ -1287,3 +1287,34 @@ class ClaimDeviceViewTests(TestCase):
             self.device.refresh_from_db()
             self.assertEqual(self.device.owner, self.user)
             mixpanel_instance.track.assert_called_once_with(self.user.email, 'First Node')
+
+
+class DasboardViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.client.login(username='test', password='123')
+        self.url = reverse('dashboard')
+        Profile.objects.create(user=self.user)
+
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user,
+            certificate=TEST_CERT,
+            name='First',
+            last_ping=timezone.now() - timezone.timedelta(days=1, hours=1)
+        )
+        DeviceInfo.objects.create(
+            device=self.device0,
+            fqdn='FirstFqdn',
+            default_password=False,
+            detected_mirai=True,
+        )
+        PortScan.objects.create(device=self.device0)
+        FirewallState.objects.create(device=self.device0)
+
+    def test_dashboard(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
