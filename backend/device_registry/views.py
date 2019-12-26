@@ -37,25 +37,40 @@ class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListV
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         avg_trust_score = average_trust_score(self.request.user)
-        context.update({
-            'avg_trust_score': avg_trust_score,
-            'avg_trust_score_percent': int(avg_trust_score * 100) if avg_trust_score is not None else None,
-            'avg_trust_score_color': get_bootstrap_color(
+        context.update(
+            avg_trust_score=avg_trust_score,
+            avg_trust_score_percent=int(avg_trust_score * 100) if avg_trust_score is not None else None,
+            avg_trust_score_color=get_bootstrap_color(
                 int(avg_trust_score * 100)) if avg_trust_score is not None else None,
-            'active_inactive': Device.get_active_inactive(self.request.user),
-            'column_names': [
+            active_inactive=Device.get_active_inactive(self.request.user),
+            column_names=[
                 'Node Name',
                 'Hostname',
                 'Last Ping',
                 'Trust Score',
                 'Recommended Actions'
             ],
-            'filter_params': [(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in
-                              self.FILTER_FIELDS.items()],
+            filter_params=[(field_name, field_desc[1], field_desc[2]) for field_name, field_desc in
+                            self.FILTER_FIELDS.items()],
 
             # TODO: convert this into a list of dicts for multiple filters
-            'filter': self.filter_dict,
-        })
+            filter=self.filter_dict
+        )
+        return context
+
+
+class DashboardView(LoginRequiredMixin, LoginTrackMixin, ListView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        next_actions = []
+        solved_history = []
+        trust_score_hostory = []
+        context.update(
+            next_actions=next_actions,
+            ra_solved_history=solved_history,
+            trust_score_hostory=trust_score_hostory,
+            trust_score=average_trust_score(self.request.user)
+        )
         return context
 
 
