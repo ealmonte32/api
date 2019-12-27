@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -736,11 +736,6 @@ class Credential(models.Model):
         super(Credential, self).save(*args, **kwargs)
 
 
-def average_trust_score(user):
-    scores = [p.trust_score for p in Device.objects.filter(owner=user, trust_score__isnull=False)]
-    return mean(scores) if scores else None
-
-
 class PairingKey(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -908,3 +903,10 @@ class RecommendedAction(models.Model):
                         for d in affected]
         cls.objects.bulk_create(created)
         return len(created)
+
+
+class HistoryRecord(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='history_records', on_delete=models.CASCADE)
+    sampled_at = models.DateTimeField()
+    recommended_actions_resolved = models.IntegerField(null=True)
+    average_trust_score = models.FloatField(null=True)

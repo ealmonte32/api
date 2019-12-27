@@ -15,7 +15,7 @@ from django.db.models import Q
 from profile_page.mixins import LoginTrackMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
-from .models import Device, average_trust_score, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
+from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
     RecommendedAction
 from .models import GlobalPolicy
 from .api_views import DeviceListFilterMixin
@@ -36,7 +36,7 @@ class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListV
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        avg_trust_score = average_trust_score(self.request.user)
+        avg_trust_score = self.request.user.profile.average_trust_score
         context.update(
             avg_trust_score=avg_trust_score,
             avg_trust_score_percent=int(avg_trust_score * 100) if avg_trust_score is not None else None,
@@ -121,7 +121,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
             next_actions=next_actions,
             ra_solved_history=solved_history,
             trust_score_history=trust_score_history,
-            trust_score=average_trust_score(self.request.user)
+            trust_score=self.request.user.profile.average_trust_score
         )
         return context
 

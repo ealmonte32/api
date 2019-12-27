@@ -17,7 +17,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
 from device_registry import ca_helper
-from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, average_trust_score, \
+from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
     GlobalPolicy, PairingKey, Vulnerability
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
@@ -261,8 +261,8 @@ class DeviceModelTest(TestCase):
         self.assertEqual(score1, 0.7)
 
     def test_empty_average_trust_score(self):
-        user = self.user0
-        avg_score = average_trust_score(user)
+        profile = Profile.objects.create(user=self.user0)
+        avg_score = profile.average_trust_score
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
@@ -311,11 +311,12 @@ class DeviceModelTest(TestCase):
                          sum(Device.COEFFICIENTS.values()))
 
     def test_average_trust_score(self):
+        profile = Profile.objects.create(user=self.user1)
         self.device0.update_trust_score_now()
         self.device1.update_trust_score_now()
-        average_score = average_trust_score(self.user1)
+        average_score = profile.average_trust_score
         real_average_score = ((self.device0.trust_score + self.device1.trust_score) / 2.0)
-        self.assertTrue(abs(average_score - real_average_score) <= sys.float_info.epsilon)  # because IEEE float
+        self.assertLessEqual(abs(average_score - real_average_score), 2*sys.float_info.epsilon)
 
     def test_heartbleed(self):
         self.assertIsNone(self.device0.heartbleed_vulnerable)
