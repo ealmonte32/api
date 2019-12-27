@@ -2,6 +2,8 @@ import json
 import uuid
 from collections import defaultdict
 
+from django.db.models.functions import ExtractWeek, ExtractYear
+from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import render
@@ -10,13 +12,13 @@ from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Sum, Avg
 
 from profile_page.mixins import LoginTrackMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction
+    RecommendedAction, HistoryRecord
 from .models import GlobalPolicy
 from .api_views import DeviceListFilterMixin
 from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
@@ -110,13 +112,18 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
 
     def get_context_data(self, **kwargs):
         NEXT_ACTIONS_COUNT = 5
+        month_ago = timezone.now() - timezone.timedelta(days=28)
 
         context = super().get_context_data(**kwargs)
 
+        history = HistoryRecord.objects\
+            .filter(owner=self.request.user, sampled_at__gte=month_ago)\
+            .annotate(year=ExtractYear('sampled_at'), week=ExtractWeek('sampled_at')).values('year', 'week')\
+            .annotate(sum_ra=Sum('recommended_actions_resolved'), avg_score=Avg('average_trust_score'))
         _, actions = self.get_actions()
         next_actions = actions[:NEXT_ACTIONS_COUNT]
-        solved_history = []
-        trust_score_history = []
+        solved_history = [h.sum_ra for h in history]
+        trust_score_history = [h.avg_score for h in history]
         context.update(
             next_actions=next_actions,
             ra_solved_history=solved_history,

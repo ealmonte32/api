@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
+from freezegun import freeze_time
 
 from device_registry import ca_helper
 from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
@@ -1298,7 +1299,7 @@ class DasboardViewTests(TestCase):
         self.user.save()
         self.client.login(username='test', password='123')
         self.url = reverse('dashboard')
-        Profile.objects.create(user=self.user)
+        self.profile = Profile.objects.create(user=self.user)
 
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
@@ -1317,5 +1318,9 @@ class DasboardViewTests(TestCase):
         FirewallState.objects.create(device=self.device0)
 
     def test_dashboard(self):
+        now = timezone.now()
+        for d in range(28):
+            with freeze_time(now - timezone.timedelta(days=d)):
+                self.profile.sample_history()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)

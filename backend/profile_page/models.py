@@ -1,5 +1,4 @@
 import logging
-from datetime import timezone
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -8,6 +7,7 @@ from django.db import models
 from django.db.models import Q, Avg
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
@@ -83,11 +83,11 @@ class Profile(models.Model):
     def sample_history(self):
         ra_resolved = RecommendedAction.objects.filter(
             status=RecommendedAction.Status.NOT_AFFECTED,
-            resolved_at__date=timezone.now().date,
+            resolved_at__date=timezone.now().date(),
             device__owner=self.user
         )
         hr = HistoryRecord.objects.create(owner=self.user,
                                           sampled_at=timezone.now(),
-                                          recommended_actions_solved=ra_resolved.count(),
+                                          recommended_actions_resolved=ra_resolved.count(),
                                           average_trust_score=self.average_trust_score)
 
