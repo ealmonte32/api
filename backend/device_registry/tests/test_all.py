@@ -1321,6 +1321,8 @@ class DasboardViewTests(TestCase):
         now = timezone.now()
         for d in range(28):
             with freeze_time(now - timezone.timedelta(days=d)):
+                self.device0.trust_score = d / 28.0
+                self.device0.save()
                 self.profile.sample_history()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)

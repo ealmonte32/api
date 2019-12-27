@@ -2,7 +2,7 @@ import json
 import uuid
 from collections import defaultdict
 
-from django.db.models.functions import ExtractWeek, ExtractYear
+from django.db.models import Sum, Case, When, IntegerField
 from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
@@ -12,7 +12,7 @@ from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import Q, Sum, Avg
+from django.db.models import Q, Sum, Avg, Value, IntegerField
 
 from profile_page.mixins import LoginTrackMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
@@ -112,18 +112,21 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
 
     def get_context_data(self, **kwargs):
         NEXT_ACTIONS_COUNT = 5
-        month_ago = timezone.now() - timezone.timedelta(days=28)
+        week = timezone.timedelta(days=7)
 
         context = super().get_context_data(**kwargs)
 
-        history = HistoryRecord.objects\
-            .filter(owner=self.request.user, sampled_at__gte=month_ago)\
-            .annotate(year=ExtractYear('sampled_at'), week=ExtractWeek('sampled_at')).values('year', 'week')\
+        now = timezone.now()
+        cases = [When(sampled_at__range=(now - week * (i + 1), now - week * i), then=i) for i in range(4)]
+        history = HistoryRecord.objects \
+            .filter(owner=self.request.user, sampled_at__gte=now - timezone.timedelta(days=28)) \
+            .annotate(week=Case(*cases,output_field=IntegerField())).values('week')\
             .annotate(sum_ra=Sum('recommended_actions_resolved'), avg_score=Avg('average_trust_score'))
+
         _, actions = self.get_actions()
         next_actions = actions[:NEXT_ACTIONS_COUNT]
-        solved_history = [h.sum_ra for h in history]
-        trust_score_history = [h.avg_score for h in history]
+        solved_history = [h['sum_ra'] for h in history]
+        trust_score_history = [h['avg_score'] for h in history]
         context.update(
             next_actions=next_actions,
             ra_solved_history=solved_history,
