@@ -117,7 +117,11 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
         context = super().get_context_data(**kwargs)
 
         now = timezone.now()
+
+        # TODO: for arbitrary intervals:
+        # SELECT CAST(EXTRACT(EPOCH FROM <date or timestamp>::timestamptz) AS INTEGER) / <nseconds>;
         cases = [When(sampled_at__range=(now - week * (i + 1), now - week * i), then=i) for i in range(4)]
+
         history = HistoryRecord.objects \
             .filter(owner=self.request.user, sampled_at__gte=now - timezone.timedelta(days=28)) \
             .annotate(week=Case(*cases,output_field=IntegerField())).values('week')\

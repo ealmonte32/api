@@ -1319,6 +1319,7 @@ class DasboardViewTests(TestCase):
 
     def test_dashboard(self):
         now = timezone.now()
+        avg_scores = [sum([d / 28.0 for d in range(w*7, (w+1)*7)]) / 7 for w in range(4)]
         for d in range(28):
             with freeze_time(now - timezone.timedelta(days=d)):
                 self.device0.trust_score = d / 28.0
@@ -1326,3 +1327,7 @@ class DasboardViewTests(TestCase):
                 self.profile.sample_history()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(all(
+            abs(a - b) <= sys.float_info.epsilon
+            for a, b in zip(avg_scores, response.context_data['trust_score_history'])
+        ))
