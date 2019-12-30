@@ -65,7 +65,7 @@ class GithubActionTest(TestCase):
         response = self.client.get(common_actions_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context['actions']), 1)
-        self.assertEqual(response.context['actions'][0].title, 'Set up Github integration')
+        self.assertEqual(response.context['actions'][0].title, 'Enable our GitHub integration for improved workflow')
 
         # This RA should not be shown on the per-device action page.
         response = self.client.get(device_actions_url)
