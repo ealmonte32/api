@@ -901,9 +901,9 @@ class RecommendedAction(models.Model):
             all_devices = set(qs)
             affected = set(action_class.affected_devices(qs))
             not_affected = all_devices.difference(affected)
-            created = [cls(device=d, action_id=action_class.action_id, status=cls.Status.NOT_AFFECTED)
-                       for d in not_affected] + \
-                      [cls(device=d, action_id=action_class.action_id, status=cls.Status.AFFECTED)
-                       for d in affected]
+            created += [cls(device=d, action_id=action_class.action_id, status=cls.Status.NOT_AFFECTED)
+                        for d in not_affected] + \
+                       [cls(device=d, action_id=action_class.action_id, status=cls.Status.AFFECTED)
+                        for d in affected]
         cls.objects.bulk_create(created)
         return len(created)
