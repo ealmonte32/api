@@ -213,11 +213,15 @@ class BaseAction:
         day_ago = timezone.now() - timedelta(hours=24)
         actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
                                                    device__last_ping__gte=day_ago)\
-                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED)
+                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]
-        if not affected_devices:
+        if not affected_devices or not any(a.status != RecommendedAction.Status.NOT_AFFECTED for a in actions):
             return
-        affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
+        affected_list = ['- [{x}] {device}'
+                         .format(x='x' if a.status == RecommendedAction.Status.NOT_AFFECTED else ' ',
+                                 device=device_link(a.device, absolute=True))
+                         for a in actions]
+        resolved = '\n'.join(affected_list)
         context = cls.get_context(affected_devices)
         if additional_context is not None:
             context.update(additional_context)
@@ -225,7 +229,7 @@ class BaseAction:
             # Workaround for AutoUpdatesAction three-way logic
             context['subject'] = ''
         body_text = cls.action_description if body is None else body
-        action_text = body_text.format(**context) + f"\n\n#### Affected nodes: ####\n{affected_list}"
+        action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
         return cls.action_title, action_text
 
 

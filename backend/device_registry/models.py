@@ -494,7 +494,7 @@ class Device(models.Model):
         n_affected = self.recommendedaction_set.filter(action_id__in=newly_affected)\
             .update(status=RecommendedAction.Status.AFFECTED)
         n_unaffected = self.recommendedaction_set.filter(action_id__in=newly_not_affected)\
-            .update(status=RecommendedAction.Status.NOT_AFFECTED)
+            .update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
         ra_new = [RecommendedAction(action_id=action_id, device=self,
                                     status=RecommendedAction.Status.AFFECTED if affected else
                                     RecommendedAction.Status.NOT_AFFECTED) for action_id, affected in added]
@@ -878,6 +878,7 @@ class RecommendedAction(models.Model):
     status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Status],
                                               default=Status.AFFECTED.value)
     snoozed_until = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
 
     @classmethod
     def update_all_devices(cls, classes=None):

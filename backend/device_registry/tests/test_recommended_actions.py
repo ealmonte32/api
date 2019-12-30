@@ -88,6 +88,8 @@ class GenerateActionsTest(TestCase):
         self.user.set_password('123')
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.TestActionOne.affected = False
+        self.TestActionTwo.affected = False
 
     def check_actions_status(self, status_one, status_two, classes=None):
         self.device.generate_recommended_actions(classes)
@@ -111,19 +113,108 @@ class GenerateActionsTest(TestCase):
         self.TestActionOne.affected = False
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
 
+    def test_snooze(self):
         self.TestActionOne.affected = True
+        self.TestActionTwo.affected = True
         self.device.snooze_action(self.TestActionOne.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
         self.check_actions_status(RecommendedAction.Status.SNOOZED_FOREVER, RecommendedAction.Status.AFFECTED)
 
         self.TestActionOne.affected = False
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
 
-        self.TestActionTwo.affected = False
+    def test_classes(self):
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
         self.TestActionOne.affected = True
         self.TestActionTwo.affected = True
         self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.NOT_AFFECTED,
                                   classes=[self.TestActionOne])
+
+    def test_resolved_at(self):
+        self.TestActionOne.affected = True
+        self.TestActionTwo.affected = True
+        self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.AFFECTED)
+        now = timezone.now()
+        with freeze_time(now):
+            self.TestActionOne.affected = False
+            self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
+        ra = RecommendedAction.objects.get(device=self.device, action_id=self.TestActionOne.action_id)
+        self.assertEquals(ra.resolved_at, now)
+
+
+class ResolvedTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        class TestAction(BaseAction, metaclass=ActionMeta):
+            """
+            A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
+            """
+            action_id = 9999
+            action_title = ""
+            action_description = ""
+            affected = True
+            affected_device = None
+
+            @classmethod
+            def is_affected(cls, device) -> bool:
+                return device == cls.affected_device
+
+        cls.TestAction = TestAction
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        ActionMeta.unregister(cls.TestAction)
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.device_one = Device.objects.create(device_id='a.d.wott-dev.local', owner=self.user,
+                                                last_ping=timezone.now(), name="One")
+        self.device_two = Device.objects.create(device_id='u.d.wott-dev.local', owner=self.user,
+                                                last_ping=timezone.now(), name="Two")
+        self.TestAction.affected_device = None
+
+    def check_description(self, is_none):
+        self.device_one.generate_recommended_actions(classes=[self.TestAction])
+        self.device_two.generate_recommended_actions(classes=[self.TestAction])
+        desc = self.TestAction.get_description(self.user)
+        if is_none:
+            self.assertIsNone(desc)
+        else:
+            self.assertIsNotNone(desc)
+            return desc[1]
+
+    def test_description(self):
+        # Initially no devices are affected - no description.
+        self.check_description(is_none=True)
+
+        # One device gets affected - description should list it but not the second device
+        # which was never affected.
+        self.TestAction.affected_device = self.device_one
+        body = self.check_description(is_none=False)
+        self.assertIn(f'- [ ] [{self.device_one.get_name()}]', body)
+        self.assertNotIn(f'[{self.device_two.get_name()}]', body)
+
+        # Second device gets affected, first gets unaffected (resolved). Description should
+        # list first device as "resolved" (ticked) and the second unticked.
+        self.TestAction.affected_device = self.device_two
+        body = self.check_description(is_none=False)
+        self.assertIn(f'- [x] [{self.device_one.get_name()}]', body)
+        self.assertIn(f'- [ ] [{self.device_two.get_name()}]', body)
+
+        # Both devices get unaffected (resolved) - no description, issue closed.
+        self.TestAction.affected_device = None
+        self.check_description(is_none=True)
+
+    def test_last_ping(self):
+        self.TestAction.affected_device = self.device_one
+
+        self.check_description(is_none=False)
+        with freeze_time(timezone.now() + timezone.timedelta(days=1)):
+            # Devices which pinged more than a day ago are ignored.
+            self.check_description(is_none=True)
 
 
 class SnoozeTest(TestCase):
