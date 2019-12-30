@@ -1,5 +1,6 @@
 import json
 import sys
+from statistics import mean
 from unittest.mock import patch
 
 from django.conf import settings
@@ -19,7 +20,7 @@ from freezegun import freeze_time
 
 from device_registry import ca_helper
 from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
-    GlobalPolicy, PairingKey, Vulnerability
+    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 from profile_page.models import Profile
@@ -1303,31 +1304,37 @@ class DasboardViewTests(TestCase):
 
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
-            owner=self.user,
-            certificate=TEST_CERT,
-            name='First',
-            last_ping=timezone.now() - timezone.timedelta(days=1, hours=1)
+            owner=self.user
         )
-        DeviceInfo.objects.create(
-            device=self.device0,
-            fqdn='FirstFqdn',
-            default_password=False,
-            detected_mirai=True,
-        )
-        PortScan.objects.create(device=self.device0)
-        FirewallState.objects.create(device=self.device0)
 
     def test_dashboard(self):
+        self.device0.generate_recommended_actions()
+
         now = timezone.now()
-        avg_scores = [sum([d / 28.0 for d in range(w*7, (w+1)*7)]) / 7 for w in range(4)]
+        scores = [d / 28.0 for d in range(28)]
+        scores_weeks = [mean(scores[w*7:(w+1)*7]) for w in range(4)]
+        solved_ra = [i // 6 for i in range(28)]
+        solved_ra_weeks = [sum(solved_ra[w*7:(w+1)*7]) for w in range(4)]
         for d in range(28):
             with freeze_time(now - timezone.timedelta(days=d)):
-                self.device0.trust_score = d / 28.0
+                self.device0.trust_score = scores[d]
                 self.device0.save()
+                solved_today = solved_ra[d]
+
+                # Can't simply update part of selected objects, will throw
+                #  "Cannot update a query once a slice has been taken". Instead I'm selecting pks, slicing them and then
+                # making a new query with them.
+                ras_list = self.device0.recommendedaction_set.all()[:solved_today].values_list('pk', flat=True)
+                ras = self.device0.recommendedaction_set.filter(pk__in=ras_list)
+                self.assertEqual(ras.count(), solved_today)
+                ras.update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
+
                 self.profile.sample_history()
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(all(
             abs(a - b) <= sys.float_info.epsilon
-            for a, b in zip(avg_scores, response.context_data['trust_score_history'])
+            for a, b in zip(scores_weeks, response.context_data['trust_score_history'])
         ))
+        self.assertListEqual(solved_ra_weeks, response.context_data['ra_solved_history'])
+        self.assertLessEqual(abs(scores[-1] - response.context_data['trust_score']), sys.float_info.epsilon * 2)
