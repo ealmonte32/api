@@ -521,6 +521,23 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 severity=Severity.LO
             )]
 
+        # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
+        # and has not set up integration with any Github repo. Only shown on common actions page.
+        if not (self.request.user.profile.github_oauth_token and
+                self.request.user.profile.github_repo_id) and \
+                not kwargs.get('device_pk'):
+            actions.append(Action(
+                'Enable our GitHub integration for improved workflow',
+                'Did you know that WoTT integrates directly with GitHub? By enabling this integration, GitHub Issues '
+                'are automatically created and updated for Recommended Actions. You can then easily assign these Issues'
+                ' to team members and integrate them into your sprint planning.\n\n'
+                'Please note that we recommend that you use a private GitHub repository for issues.\n\n'
+                'You can find the GitHub integration settings in under your profile in the upper right-hand corner.',
+                action_id=0,
+                devices=[],
+                severity=Severity.LO
+            ))
+
         context = super().get_context_data(**kwargs)
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.

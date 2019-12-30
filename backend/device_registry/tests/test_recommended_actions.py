@@ -13,6 +13,8 @@ from device_registry.recommended_actions import DefaultCredentialsAction, Firewa
 
 from freezegun import freeze_time
 
+from profile_page.models import Profile
+
 
 class NoDevicesActionTest(TestCase):
     def test_get(self):
@@ -44,6 +46,38 @@ class NoDevicesActionTest(TestCase):
         response = self.client.get(common_actions_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, search_string)
+
+
+class GithubActionTest(TestCase):
+    def test_get(self):
+        User = get_user_model()
+        user = User.objects.create_user('test')
+        user.set_password('123')
+        user.save()
+        common_actions_url = reverse('actions')
+        self.client.login(username='test', password='123')
+
+        # The user has one device - no "Enroll your nodes" RA.
+        device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=user)
+        device_actions_url = reverse('device_actions', kwargs={'device_pk': device.pk})
+
+        # Github integration is not set up - RA is shown at the common actions page.
+        response = self.client.get(common_actions_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['actions']), 1)
+        self.assertEqual(response.context['actions'][0].title, 'Enable our GitHub integration for improved workflow')
+
+        # This RA should not be shown on the per-device action page.
+        response = self.client.get(device_actions_url)
+        self.assertEqual(len(response.context['actions']), 0)
+
+        # Set up Github integration - RA should disappear.
+        user.profile.github_repo_id = 1234
+        user.profile.github_oauth_token = 'abcd'
+        user.profile.save()
+        response = self.client.get(common_actions_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['actions']), 0)
 
 
 class GenerateActionsTest(TestCase):
@@ -251,6 +285,7 @@ class SnoozeTest(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
+        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
         self.client.login(username='test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
         self.device.generate_recommended_actions()
@@ -323,6 +358,7 @@ class TestsMixin:
         PortScan.objects.create(device=self.device)
         DeviceInfo.objects.create(device=self.device, default_password=False)
         self.client.login(username='test', password='123')
+        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
         self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
