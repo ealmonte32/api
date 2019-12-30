@@ -547,7 +547,7 @@
             let title = "To add a node, simply SSH in and run the following commands:";
             let msg = bash_block(
                      `$ export CLAIM_TOKEN="${e.key}"\n`
-                   + `$ curl -sL https://install.wott.io | sudo bash\n`);
+                   + `$ curl -sL https://install.wott.io | sudo -E bash\n`);
             show_dialog(title, msg);
             document.querySelectorAll('pre code').forEach((block) => {
               hljs.highlightBlock(block);
