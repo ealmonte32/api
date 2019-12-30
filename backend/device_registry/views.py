@@ -109,9 +109,9 @@ class RecommendedActionsMixin:
 
 class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin, TemplateView):
     template_name = 'dashboard.html'
+    next_actions_count = 5
 
     def get_context_data(self, **kwargs):
-        NEXT_ACTIONS_COUNT = 5
         week = timezone.timedelta(days=7)
 
         context = super().get_context_data(**kwargs)
@@ -128,7 +128,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
             .annotate(sum_ra=Sum('recommended_actions_resolved'), avg_score=Avg('average_trust_score'))
 
         _, actions = self.get_actions()
-        next_actions = actions[:NEXT_ACTIONS_COUNT]
+        next_actions = actions[:self.next_actions_count]
         solved_history = [h['sum_ra'] for h in history]
         trust_score_history = [h['avg_score'] for h in history]
         context.update(

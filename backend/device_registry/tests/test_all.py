@@ -1307,7 +1307,7 @@ class DasboardViewTests(TestCase):
             owner=self.user
         )
 
-    def test_dashboard(self):
+    def test_history(self):
         self.device0.generate_recommended_actions()
 
         now = timezone.now()
@@ -1330,6 +1330,7 @@ class DasboardViewTests(TestCase):
                 ras.update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
 
                 self.profile.sample_history()
+
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(all(
@@ -1338,3 +1339,13 @@ class DasboardViewTests(TestCase):
         ))
         self.assertListEqual(solved_ra_weeks, response.context_data['ra_solved_history'])
         self.assertLessEqual(abs(scores[-1] - response.context_data['trust_score']), sys.float_info.epsilon * 2)
+
+    def test_incomplete(self):
+        now = timezone.now()
+        with freeze_time(now - timezone.timedelta(days=1)):
+            self.profile.sample_history()
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual([None], response.context_data['trust_score_history'])
+        self.assertListEqual([0], response.context_data['ra_solved_history'])
