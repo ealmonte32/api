@@ -52,6 +52,29 @@ class PubliclyAccessiblePort(NamedTuple):
     sub_id: int
 
 
+class Action(NamedTuple):
+    """
+    :param title: Title text
+    :param description: Body text
+    :param action_id: the value of action_id field of BaseAction subclasses
+    :param devices: list of device ids
+    :param severity: Action severity (Severity)
+    :param doc_url: "Learn more" URL, optional
+    :param issue_url: Github issue URL, optional
+    """
+    title: str
+    description: str
+    action_id: int
+    devices: List[int]
+    severity: Severity
+    doc_url: str = '/'
+    issue_url: str = None
+
+    @property
+    def html(self):
+        return markdown.markdown(self.description)
+
+
 INSECURE_SERVICES = [
     InsecureService('fingerd', 1, Severity.MED),
     InsecureService('tftpd', 2, Severity.MED),
@@ -86,33 +109,6 @@ PUBLIC_SERVICE_PORTS = {
 }
 
 
-class Action:
-    """
-    Action class.
-
-    Its only purpose is to store particular actions info and be passed from a
-     view to a template.
-    """
-    def __init__(self, title, description, action_id, devices, severity: Severity, doc_url="/", issue_url=None):
-        """
-
-        :param title: Title text
-        :param description: Body text
-        :param action_id: the value of action_id field of BaseAction subclasses
-        :param devices: list of device ids
-        :param severity: one of 'low', 'medium', 'high'
-        :param doc_url: "Learn more" URL
-        :param issue_url: Github issue URL, optional
-        """
-        self.title = title
-        self.description = markdown.markdown(description)
-        self.action_id = action_id
-        self.devices = devices
-        self.issue_url = issue_url
-        self.doc_url = doc_url
-        self.severity = severity
-
-
 def device_link(device, absolute=False):
     """Create a device's page html link code"""
     url = reverse('device-detail', kwargs={'pk': device.pk})
@@ -131,34 +127,35 @@ class BaseAction:
     doc_url = 'https://wott.io/documentation/faq'
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True) -> QuerySet:
+    def affected_devices(cls, qs: QuerySet) -> QuerySet:
         """
-        Select user's devices which are affected by this recommended action. May return empty queryset.
-        If device_pk is given, will select only one device with this pk.
-        :param user: the owner of the processed devices.
-        :param device_pk: if given, then only one device with this pk is processed.
-        :param exclude_snoozed: if True, snoozed actions will be excluded.
-        :return:
+        Select all devices which are affected by this recommended action.
+        This method is to be used during migration when a new RA is added. It is supposed to be optimized for quick
+        selection of devices, preferably with a single request. However the default implementation provided here is
+        suboptimal because it calls is_affected() for every device.
+        :param qs: QuerySet of Device which will be additionally filtered.
+        :return: QuerySet
         """
-        from .models import RecommendedAction
-        if exclude_snoozed:
-            devices = user.devices.exclude(Q(recommendedaction__action_id=cls.action_id) &
-                                           (Q(recommendedaction__snoozed__in=[RecommendedAction.Snooze.FOREVER,
-                                                                              RecommendedAction.Snooze.UNTIL_PING]) |
-                                            Q(recommendedaction__snoozed=RecommendedAction.Snooze.UNTIL_TIME,
-                                              recommendedaction__snoozed_until__gte=timezone.now())))
-        else:
-            devices = user.devices.all()
-        if device_pk is not None:
-            devices = devices.filter(pk=device_pk)
-        return devices
+        from .models import Device
+        return Device.objects.filter(pk__in=[
+            dev.pk for dev in qs if cls.is_affected(dev)
+        ])
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None) -> dict:
+    def is_affected(cls, device) -> bool:
+        """
+        Whether the supplied device is affected by this RA.
+        :param device: a Device
+        :return: bool
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def get_context(cls, devices, device_pk=None) -> dict:
         """
         Method for producing a tuple of values used (as string formatting parameters)
          for action description text rendering.
-        :param devices: queryset for Device model instances affected by the action;
+        :param devices: list of Device model instances affected by the action;
         :param device_pk: int/None - single affected device id;
         :return: iterable (tuple/list);
         """
@@ -189,43 +186,41 @@ class BaseAction:
         )
 
     @classmethod
-    def actions(cls, user, device_pk=None) -> List[Action]:
+    def action(cls, user, devices, device_pk=None) -> Action:
         """
         Generate a list of Action objects for the user. Excludes snoozed actions.
         :param user: the owner of the processed devices.
+        :param devices: a list of Device
         :param device_pk: if given, then only one device with this pk is processed.
         :return:
         """
-        actions_list = []
-        devices = cls.affected_devices(user, device_pk)
-        if devices.exists():
-            context = cls.get_action_description_context(devices_qs=devices, device_pk=device_pk)
-            context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
-            actions_list.append(cls._create_action(user.profile, context, list(devices.values_list('pk', flat=True))))
-        return actions_list
+        context = cls.get_context(devices=devices, device_pk=device_pk)
+        context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
+        return cls._create_action(user.profile, context, [d.pk for d in devices])
 
     @classmethod
-    def action_blocks_count(cls, user) -> int:
-        return int(cls.affected_devices(user).exists())
-
-    @classmethod
-    def get_description(cls, user, body=None, **kwargs) -> (str, str):
+    def get_description(cls, user, body=None, additional_context=None) -> (str, str):
         """
         Generate a Markdown-formatted descriptive text for this recommended action.
         Mainly used for filing Github issues. Does not exclude snoozed actions. Uses
-        cls.action_description as a template and formats it using cls.get_action_description_context().
+        cls.action_description as a template and formats it using cls.get_context().
         :param user: the owner of the processed devices.
         :param body: if given, will be used as template instead of cls.action_description.
-        :param kwargs: additional context for formatting the body.
+        :param additional_context: additional context for formatting the body.
         :return: (title, text)
         """
+        from .models import RecommendedAction
         day_ago = timezone.now() - timedelta(hours=24)
-        affected_devices = cls.affected_devices(user, exclude_snoozed=False).filter(last_ping__gte=day_ago)
-        if not affected_devices.exists():
+        actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
+                                                   device__last_ping__gte=day_ago)\
+                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED)
+        affected_devices = [action.device for action in actions]
+        if not affected_devices:
             return
         affected_list = '\n'.join([f'- {device_link(d, absolute=True)}' for d in affected_devices])
-        context = cls.get_action_description_context(affected_devices)
-        context.update(kwargs)
+        context = cls.get_context(affected_devices)
+        if additional_context is not None:
+            context.update(additional_context)
         if 'subject' in context:
             # Workaround for AutoUpdatesAction three-way logic
             context['subject'] = ''
@@ -352,6 +347,10 @@ class ActionMeta(type):
         """
         return id in meta._action_classes or id in meta._ungrouped_action_classes
 
+    @classmethod
+    def get_class(meta, id):
+        return meta._action_classes.get(id) or meta._ungrouped_action_classes.get(id)
+
 
 # Below is the code for real actions classes.
 # Don't forget to add metaclass=ActionMeta.
@@ -365,8 +364,12 @@ class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        return super().affected_devices(user, device_pk, exclude_snoozed).filter(deviceinfo__default_password=True)
+    def affected_devices(cls, qs):
+        return qs.filter(deviceinfo__default_password=True)
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return hasattr(device, 'deviceinfo') and device.deviceinfo.default_password is True
 
 
 # Firewall disabled action.
@@ -378,11 +381,20 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.MED
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
+    def affected_devices(cls, qs):
         from .models import FirewallState, GlobalPolicy
-        return super().affected_devices(user, device_pk, exclude_snoozed).exclude(
+        return qs.exclude(
             (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
             Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        from .models import FirewallState, GlobalPolicy
+        firewallstate = getattr(device, 'firewallstate', None)
+        return firewallstate is not None and \
+               (firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK \
+                if firewallstate.global_policy is None \
+                else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
 
 
 # Vulnerable packages found action.
@@ -399,8 +411,12 @@ class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.MED
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        return super().affected_devices(user, device_pk, exclude_snoozed).filter(deb_packages__vulnerabilities__isnull=False).distinct()
+    def affected_devices(cls, qs):
+        return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return device.deb_packages.filter(vulnerabilities__isnull=False).exists()
 
 
 class InsecureServicesGroupAction(GroupedAction):
@@ -416,13 +432,17 @@ class BaseInsecureServicesAction(BaseAction):
     group_action = InsecureServicesGroupAction
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices, device_pk=None):
         return {'service': cls.service_name}
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        return super().affected_devices(user, device_pk, exclude_snoozed).exclude(deb_packages_hash='').filter(
+    def affected_devices(cls, qs):
+        return qs.exclude(deb_packages_hash='').filter(
             deb_packages__name=cls.service_name).distinct()
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return device.deb_packages.filter(name=cls.service_name).exists()
 
 
 for name, sub_id, severity in INSECURE_SERVICES:
@@ -455,22 +475,16 @@ class BaseOpensshIssueAction(BaseAction):
         'the security posture of your node, please consider changing {param_name} to "{safe_value}".'
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices, device_pk=None):
         safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[cls.sshd_param]
         return dict(param_name=cls.sshd_param,
                     safe_value=safe_value,
                     doc_url=doc_url)
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        dev_ids = []
-        devices = super().affected_devices(user, device_pk, exclude_snoozed).exclude(audit_files__in=('', []))
-        for dev in devices:
-            issues = dev.sshd_issues
-            if issues and cls.sshd_param in issues:
-                dev_ids.append(dev.pk)
-        return Device.objects.filter(pk__in=dev_ids)
+    def is_affected(cls, device) -> bool:
+        issues = device.sshd_issues
+        return cls.sshd_param in issues if issues is not None else False
 
 
 for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
@@ -498,19 +512,19 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
     def get_doc_url(cls, devices):
         debian_url = 'https://wiki.debian.org/UnattendedUpgrades'
         ubuntu_url = 'https://help.ubuntu.com/lts/serverguide/automatic-updates.html'
-        if devices.count() > 1:
+        if len(devices) > 1:
             # Provide Debian's link if more than 1 device.
             return debian_url
         else:
-            if devices.first().os_release.get('distro') == 'ubuntu':
+            if devices[0].os_release.get('distro') == 'ubuntu':
                 return ubuntu_url
             else:  # Everything besides Ubuntu is Debian.
                 return debian_url
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
+    def get_context(cls, devices, device_pk=None):
         if device_pk is None:
-            if devices_qs.count() > 1:
+            if len(devices) > 1:
                 subject, verb = 'your nodes ', 'are'
             else:
                 subject, verb = 'your node ', 'is'
@@ -519,12 +533,16 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
         return {
             'subject': subject,
             'verb': verb,
-            'doc_url': cls.get_doc_url(devices_qs)
+            'doc_url': cls.get_doc_url(devices)
         }
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        return super().affected_devices(user, device_pk, exclude_snoozed).filter(auto_upgrades=False)
+    def affected_devices(cls, qs):
+        return qs.filter(auto_upgrades=False)
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return device.auto_upgrades is False
 
 
 # FTP listening on port 21 action.
@@ -538,13 +556,8 @@ class FtpServerAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.MED
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        dev_ids = []
-        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
-            if dev.is_ftp_public:
-                dev_ids.append(dev.pk)
-        return Device.objects.filter(pk__in=dev_ids)
+    def is_affected(cls, device) -> bool:
+        return device.is_ftp_public is True
 
 
 # MySQL root default password action.
@@ -562,8 +575,12 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        return super().affected_devices(user, device_pk, exclude_snoozed).filter(mysql_root_access=True)
+    def affected_devices(cls, qs):
+        return qs.filter(mysql_root_access=True)
+
+    @classmethod
+    def is_affected(cls, device) -> bool:
+        return device.mysql_root_access is True
 
 
 class PubliclyAccessibleServiceGroupAction(GroupedAction):
@@ -582,17 +599,13 @@ class BasePubliclyAccessibleServiceAction(BaseAction):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        dev_ids = []
-        for dev in super().affected_devices(user, device_pk, exclude_snoozed):
-            if cls.service in dev.public_services:
-                dev_ids.append(dev.pk)
-        return Device.objects.filter(pk__in=dev_ids)
+    def get_context(cls, devices, device_pk=None):
+        return dict(service=cls.service_name, port=cls.port)
 
     @classmethod
-    def get_action_description_context(cls, devices_qs, device_pk=None):
-        return dict(service=cls.service_name, port=cls.port)
+    def is_affected(cls, device) -> bool:
+        services = device.public_services
+        return cls.service in services if services is not None else False
 
 
 for service, service_info in PUBLIC_SERVICE_PORTS.items():
@@ -612,8 +625,5 @@ class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):
     severity = Severity.HI
 
     @classmethod
-    def affected_devices(cls, user, device_pk=None, exclude_snoozed=True):
-        from .models import Device
-        return Device.objects.filter(pk__in=[
-            dev.pk for dev in super().affected_devices(user, device_pk, exclude_snoozed) if dev.cpu_vulnerable
-        ])
+    def is_affected(cls, device) -> bool:
+        return device.cpu_vulnerable is True

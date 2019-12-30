@@ -46,9 +46,89 @@ class NoDevicesActionTest(TestCase):
         self.assertContains(response, search_string)
 
 
+class GenerateActionsTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        class TestActionOne(BaseAction, metaclass=ActionMeta):
+            """
+            A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
+            """
+            action_id = 9991
+            affected = False
+
+            @classmethod
+            def is_affected(cls, device) -> bool:
+                return cls.affected
+
+        class TestActionTwo(BaseAction, metaclass=ActionMeta):
+            """
+            A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
+            """
+            action_id = 9992
+            affected = False
+
+            @classmethod
+            def is_affected(cls, device) -> bool:
+                return cls.affected
+
+        cls.TestActionOne = TestActionOne
+        cls.TestActionTwo = TestActionTwo
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        ActionMeta.unregister(cls.TestActionOne)
+        ActionMeta.unregister(cls.TestActionTwo)
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+
+    def check_actions_status(self, status_one, status_two, classes=None):
+        self.device.generate_recommended_actions(classes)
+        self.assertQuerysetEqual(self.device.recommendedaction_set.filter(action_id__in=[self.TestActionOne.action_id,
+                                                                                         self.TestActionTwo.action_id])
+                                 .order_by('action_id')
+                                 .values_list('action_id', 'status'),
+                                 [(self.TestActionOne.action_id, status_one.value),
+                                  (self.TestActionTwo.action_id, status_two.value)],
+                                 transform=lambda v: v)
+
+    def test_generate_recommended_actions(self):
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
+
+        self.TestActionOne.affected = True
+        self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
+
+        self.TestActionTwo.affected = True
+        self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.AFFECTED)
+
+        self.TestActionOne.affected = False
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
+
+        self.TestActionOne.affected = True
+        self.device.snooze_action(self.TestActionOne.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
+        self.check_actions_status(RecommendedAction.Status.SNOOZED_FOREVER, RecommendedAction.Status.AFFECTED)
+
+        self.TestActionOne.affected = False
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
+
+        self.TestActionTwo.affected = False
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
+        self.TestActionOne.affected = True
+        self.TestActionTwo.affected = True
+        self.check_actions_status(RecommendedAction.Status.AFFECTED, RecommendedAction.Status.NOT_AFFECTED,
+                                  classes=[self.TestActionOne])
+
+
 class SnoozeTest(TestCase):
     """
-    Test snoozing functionality implemented in Device and RecommendedAction models only.
+    Test snoozing functionality.
     setUpClass() and tearDownClass() were overloaded to register and unregister TestAction only once.
     """
 
@@ -61,6 +141,13 @@ class SnoozeTest(TestCase):
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             action_id = 9999
+            action_title = ""
+            action_description = ""
+
+            @classmethod
+            def is_affected(cls, device) -> bool:
+                return True
+
         cls.TestAction = TestAction
 
     @classmethod
@@ -73,30 +160,34 @@ class SnoozeTest(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
+        self.client.login(username='test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.device.generate_recommended_actions()
+        self.common_actions_url = reverse('actions')
+        self.snooze_url = reverse('snooze_action')
 
-    def _assertHasAction(self, has_action, exclude_snoozed=True):
+    def _assertHasAction(self, has_action):
+        self.device.generate_recommended_actions(classes=[self.TestAction])
+        response = self.client.get(self.common_actions_url)
+        self.assertEqual(response.status_code, 200)
         if has_action:
-            self.assertQuerysetEqual(self.TestAction.affected_devices(self.user, exclude_snoozed=exclude_snoozed)
-                                     .values_list('pk', flat=True), [str(self.device.pk)])
+            self.assertEqual(len(response.context['actions']), 1)
+            self.assertEqual(response.context['actions'][0].action_id, self.TestAction.action_id)
         else:
-            self.assertFalse(self.TestAction.affected_devices(self.user, exclude_snoozed=exclude_snoozed).exists())
-
-    def test_exclude_snoozed(self):
-        self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.FOREVER)
-        self._assertHasAction(True, exclude_snoozed=False)
+            self.assertEqual(len(response.context['actions']), 0)
 
     def test_snooze_forever(self):
         self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.FOREVER)
+        self.snooze_action(0)
         self._assertHasAction(False)
+        with freeze_time(timezone.now() + timezone.timedelta(days=10)):
+            self._assertHasAction(False)
 
     def test_snooze_until_ping(self):
         self._assertHasAction(True)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.UNTIL_PING)
+        self.snooze_action(None)
         self._assertHasAction(False)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
+        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.AFFECTED)
         self._assertHasAction(True)
 
     def test_snooze_interval(self):
@@ -104,7 +195,8 @@ class SnoozeTest(TestCase):
 
         with freeze_time(timezone.now() - timezone.timedelta(hours=23)):
             # 23 hours ago this action had been snoozed for 24 hours
-            self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Snooze.UNTIL_TIME, 24)
+            # self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.SNOOZED_UNTIL_TIME, 24)
+            self.snooze_action(24)
 
         # ... which means now it's still snoozed
         self._assertHasAction(False)
@@ -112,6 +204,13 @@ class SnoozeTest(TestCase):
         # ... but in an hour from now it won't be snoozed anymore
         with freeze_time(timezone.now() + timezone.timedelta(hours=1)):
             self._assertHasAction(True)
+
+    def snooze_action(self, duration):
+        response = self.client.post(self.snooze_url, data={'device_ids': [self.device.pk],
+                                                           'action_id': self.TestAction.action_id,
+                                                           'duration': duration},
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 200)
 
 
 class TestsMixin:
@@ -122,6 +221,20 @@ class TestsMixin:
      is that otherwise the Django test runner considers the base test class as
      a regular test class and run its tests which isn't what we want from it.
     """
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, auto_upgrades=True,
+                                            mysql_root_access=False, last_ping=timezone.now())
+        FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        PortScan.objects.create(device=self.device)
+        DeviceInfo.objects.create(device=self.device, default_password=False)
+        self.client.login(username='test', password='123')
+        self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
+        self.common_actions_url = reverse('actions')
+        self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
 
     def assertOneAction(self, url):
         self.assertEqual(self.device.actions_count, 1)
@@ -140,57 +253,36 @@ class TestsMixin:
         search_string_common_page = self.get_search_string()
 
         # No action at the beginning.
+        self.device.generate_recommended_actions()
+        self.assertFalse(self.action_class.is_affected(self.device))
+        self.assertFalse(self.action_class.affected_devices(self.user.devices.all()).exists())
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
         self.assertIsNone(self.action_class.get_description(self.user))
 
         # Enable the action.
         self.enable_action()
+        self.device.generate_recommended_actions()
+        self.assertTrue(self.action_class.is_affected(self.device))
+        self.assertTrue(self.action_class.affected_devices(self.user.devices.all()).exists())
         self.check_action(self.assertOneAction(self.common_actions_url), search_string_common_page)
         self.check_action(self.assertOneAction(self.device_actions_url), self.search_pattern_device_page)
         self.check_description()
 
-        # Snooze the action.
-        self.snooze_action()
-        self.assertNoAction(self.common_actions_url)
-        self.assertNoAction(self.device_actions_url)
-
     def check_description(self):
-        title, text = self.action_class.get_description(self.user, devices='this node')
+        title, text = self.action_class.get_description(self.user, additional_context=dict(devices='this node'))
         self.assertIn(self.search_pattern_device_page, text)
         self.assertIn(reverse('device-detail', kwargs={'pk': self.device.pk}), text)
 
     def check_action(self, action: Action, text, title=None):
         self.assertIn(text, action.description)
 
-    def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user('test')
-        self.user.set_password('123')
-        self.user.save()
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, auto_upgrades=True,
-                                            mysql_root_access=False, last_ping=timezone.now())
-        FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
-        PortScan.objects.create(device=self.device)
-        DeviceInfo.objects.create(device=self.device, default_password=False)
-        self.client.login(username='test', password='123')
-        self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
-        self.common_actions_url = reverse('actions')
-        self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
-
     def get_search_string(self):
         return self.search_pattern_common_page.format(url=self.device_page_url, name=self.device.get_name())
 
-    def snooze_action(self):
-        self.assertTrue(ActionMeta.is_action_id(self.action_class.action_id))
-        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.FOREVER)
-
-    def unsnooze_action(self):
-        self.device.snooze_action(self.action_class.action_id, RecommendedAction.Snooze.NOT_SNOOZED)
-
 
 class DefaultCredentialsActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found default credentials present on <a href="{url}">{name}</a>'
+    search_pattern_common_page = 'We found default credentials present on [{name}]({url})'
     search_pattern_device_page = 'We found default credentials present on this node'
     action_class = DefaultCredentialsAction
 
@@ -200,7 +292,7 @@ class DefaultCredentialsActionTest(TestsMixin, TestCase):
 
 
 class FirewallDisabledActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found permissive firewall policy present on <a href="{url}">{name}</a>'
+    search_pattern_common_page = 'We found permissive firewall policy present on [{name}]({url})'
     search_pattern_device_page = 'We found permissive firewall policy present on this node'
     action_class = FirewallDisabledAction
 
@@ -222,7 +314,7 @@ class FirewallPolicyActionTest(FirewallDisabledActionTest):
 
 
 class VulnerablePackagesActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found vulnerable packages on <a href="{url}">{name}</a>'
+    search_pattern_common_page = 'We found vulnerable packages on [{name}]({url})'
     search_pattern_device_page = 'We found vulnerable packages on this node'
     action_class = VulnerablePackagesAction
 
@@ -238,7 +330,7 @@ class VulnerablePackagesActionTest(TestsMixin, TestCase):
 
 
 class AutoUpdatesActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found that your node <a href="{url}">{name}</a> is not configured to automatically ' \
+    search_pattern_common_page = 'We found that your node [{name}]({url}) is not configured to automatically ' \
                                  'install security updates'
     search_pattern_device_page = 'We found that this node is not configured to automatically install security updates'
     action_class = AutoUpdatesAction
@@ -250,7 +342,7 @@ class AutoUpdatesActionTest(TestsMixin, TestCase):
 
 class MySQLDefaultRootPasswordActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We detected that there is no root password set for MySQL/MariaDB on ' \
-                                 '<a href="{url}">{name}</a>'
+                                 '[{name}]({url})'
     search_pattern_device_page = 'We detected that there is no root password set for MySQL/MariaDB on this node'
     action_class = MySQLDefaultRootPasswordAction
 
@@ -278,9 +370,8 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
         for subclass in InsecureServicesGroupAction.subclasses:
             self.action_class = subclass
             self.search_pattern_device_page = 'We found ' + self.action_class.service_name + ' installed on this node'
-            self.search_pattern_common_page = 'We found ' + self.action_class.service_name + ' installed on <a href="{url}">{name}</a>'
+            self.search_pattern_common_page = 'We found ' + self.action_class.service_name + ' installed on [{name}]({url})'
             super().test_get()
-            self.unsnooze_action()
             self.disable_action()
 
     def check_description(self):
@@ -295,8 +386,10 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
                                                     source_version='sversion1',
                                                     arch='amd64', os_release_codename='jessie')
             self.device.deb_packages.add(deb_package)
+        self.device.generate_recommended_actions()
 
-        title, text = InsecureServicesGroupAction.get_description(self.user, devices='your nodes')
+        title, text = InsecureServicesGroupAction.get_description(self.user,
+                                                                  additional_context=dict(devices='your nodes'))
         self.assertEqual(title, 'Insecure services found')
         self.assertIn('We found insecure services installed on your nodes.', text)
         for pkg_name in services_installed:
@@ -307,7 +400,7 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
 
 
 class OpensshIssueActionTest(TestsMixin, TestCase):
-    search_pattern_common = 'We found insecure configuration issue with OpenSSH on <a href="{url}">{name}</a>: ' \
+    search_pattern_common = 'We found insecure configuration issue with OpenSSH on [{name}]({url}): ' \
                             'insecure parameter '
     search_pattern_device = 'We found insecure configuration issue with OpenSSH on this node: ' \
                             'insecure parameter '
@@ -322,6 +415,8 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
         self.device.audit_files = [{'name': '/etc/ssh/sshd_config',
                                     'issues': {},
                                     'sha256': 'abcd', 'last_modified': 1554718384.0}]
+        self.device.save()
+        self.device.generate_recommended_actions()
 
     def enable_action(self):
         self.device.audit_files[0]['issues'] = \
@@ -338,7 +433,6 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
             self.search_pattern_common_page = self.search_pattern_common + self.action_class.sshd_param
             self.search_pattern_device_page = self.search_pattern_device + self.action_class.sshd_param
             super().test_get()
-            self.unsnooze_action()
             self.disable_action()
 
     def test_group(self):
@@ -347,8 +441,10 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
         del(bad_config[good_config_name])
         self.device.audit_files[0]['issues'] = bad_config
         self.device.save(update_fields=['audit_files'])
+        self.device.generate_recommended_actions()
 
-        title, text = OpensshIssueGroupAction.get_description(self.user, devices='your nodes')
+        title, text = OpensshIssueGroupAction.get_description(self.user,
+                                                              additional_context=dict(devices='your nodes'))
         self.assertIn('We found insecure configuration issues with OpenSSH on your nodes. To improve the '
                       'security posture of your node, please consider making the following changes:', text)
         self.assertEqual(title, 'Insecure configuration for OpenSSH found')
@@ -363,7 +459,7 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
 
 
 class FtpServerActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'There appears to be an FTP server running on <a href="{url}">{name}</a>'
+    search_pattern_common_page = 'There appears to be an FTP server running on [{name}]({url})'
     search_pattern_device_page = 'There appears to be an FTP server running on this node'
     action_class = FtpServerAction
 
@@ -375,13 +471,13 @@ class FtpServerActionTest(TestsMixin, TestCase):
 
 
 class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
-    search_pattern_common = 'We detected that a {service} instance on <a href="{{url}}">{{name}}</a> may be ' \
+    search_pattern_common = 'We detected that a {service} instance on [{{name}}]({{url}}) may be ' \
                                  'accessible remotely'
     search_pattern_device = 'We detected that a {service} instance on this node may be accessible remotely'
 
     def enable_action(self):
         dummy_pid = 34568
-        self.device.deviceinfo.processes = {dummy_pid: (self.action_class.service, '', '', None)}
+        self.device.deviceinfo.processes = {str(dummy_pid): (self.action_class.service, '', '', None)}
         self.device.deviceinfo.save(update_fields=['processes'])
         self.device.portscan.scan_info = [
             {'ip_version': 4, 'proto': 'tcp', 'state': 'LISTEN', 'host': '0.0.0.0',
@@ -404,12 +500,11 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
         pass
 
     def test_get(self):
-        for subclass in PubliclyAccessibleServiceGroupAction.subclasses:
+        for subclass in [PubliclyAccessibleServiceGroupAction.subclasses[0]]:
             self.action_class = subclass
             self.search_pattern_common_page = self.search_pattern_common.format(service=subclass.service_name)
             self.search_pattern_device_page = self.search_pattern_device.format(service=subclass.service_name)
             super().test_get()
-            self.unsnooze_action()
             self.disable_action()
 
     def test_group(self):
@@ -417,7 +512,7 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
         publicly_available = ['mongod', 'mysqld', 'memcached']
         not_publicly_available = 'redis-server'
         for service in publicly_available:
-            self.device.deviceinfo.processes[dummy_pid] = (service, '', '', None)
+            self.device.deviceinfo.processes[str(dummy_pid)] = (service, '', '', None)
             self.device.portscan.scan_info.append(
                 {'ip_version': 4, 'proto': 'tcp', 'state': 'LISTEN', 'host': '0.0.0.0',
                  'port': PUBLIC_SERVICE_PORTS[service][0], 'pid': dummy_pid}
@@ -425,8 +520,10 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
             dummy_pid += 1
         self.device.deviceinfo.save(update_fields=['processes'])
         self.device.portscan.save(update_fields=['scan_info'])
+        self.device.generate_recommended_actions()
 
-        title, text = PubliclyAccessibleServiceGroupAction.get_description(self.user, devices='your nodes')
+        title, text = PubliclyAccessibleServiceGroupAction.get_description(self.user,
+                                                                           additional_context=dict(devices='your nodes'))
         self.assertEqual(title, 'Your services may be publicly accessible')
         for service in publicly_available:
             port, name = PUBLIC_SERVICE_PORTS[service][:2]
@@ -444,7 +541,7 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
 
 
 class CpuVulnerableActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We detected that <a href="{url}">{name}</a> is vulnerable to Meltdown/Spectre'
+    search_pattern_common_page = 'We detected that [{name}]({url}) is vulnerable to Meltdown/Spectre'
     search_pattern_device_page = 'We detected that this node is vulnerable to Meltdown/Spectre'
     action_class = CpuVulnerableAction
 

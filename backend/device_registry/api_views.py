@@ -106,9 +106,6 @@ class MtlsPingView(APIView):
         device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
-        # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
-        device.recommendedaction_set.filter(snoozed=RecommendedAction.Snooze.UNTIL_PING)\
-            .update(snoozed=RecommendedAction.Snooze.NOT_SNOOZED)
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = data.get('device_operating_system_version')
@@ -152,6 +149,10 @@ class MtlsPingView(APIView):
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
                                    'update_trust_score', 'os_release', 'auto_upgrades',
                                    'mysql_root_access', 'cpu', 'kernel_deb_package'])
+        # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
+        device.recommendedaction_set.filter(status=RecommendedAction.Status.SNOOZED_UNTIL_PING) \
+            .update(status=RecommendedAction.Status.AFFECTED)
+        device.generate_recommended_actions()
 
         if datastore_client:
             task_key = datastore_client.key('Ping')
@@ -1028,10 +1029,10 @@ class SnoozeActionView(APIView):
             action_id = serializer.validated_data['action_id']
             duration = serializer.validated_data['duration']
             if duration is None:
-                snoozed = RecommendedAction.Snooze.UNTIL_PING
+                snoozed = RecommendedAction.Status.SNOOZED_UNTIL_PING
             elif duration == 0:
-                snoozed = RecommendedAction.Snooze.FOREVER
+                snoozed = RecommendedAction.Status.SNOOZED_FOREVER
             else:
-                snoozed = RecommendedAction.Snooze.UNTIL_TIME
+                snoozed = RecommendedAction.Status.SNOOZED_UNTIL_TIME
             dev.snooze_action(action_id, snoozed, duration)
         return Response(status=status.HTTP_200_OK)

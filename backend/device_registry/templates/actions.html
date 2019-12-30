@@ -25,13 +25,15 @@
                 <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
               {% endif %}
             </h3>
-            <p>{{ action.description|safe }}</p>
+            <p>{{ action.html|safe }}</p>
 
             <span><a class="mb-0" href="{{ action.doc_url }}">Learn More</a></span>
             {% ifnotequal action.action_id 0 %}
-            {% with action_id=action.action_id action_devices=action.devices %}
             <div class="btn-group float-right wott-alert-btn-group"
-                 wott-action wott-action-id="{{ action_id }}" wott-action-devices="{{ action_devices }}" wott-action-title="{{ action.title }}">
+                 wott-action
+                 wott-action-id="{{ action.action_id }}"
+                 wott-action-devices="{{ action.devices }}"
+                 wott-action-title="{{ action.title }}">
               <button type="button" class="btn btn-success mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="null">Resolve</button>
               <button type="button" class="btn btn-danger mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="0">Ignore</button>
               <button type="button" class="btn btn-secondary mr-1 dropdown-toggle" data-toggle="dropdown">Snooze</button>
@@ -40,7 +42,6 @@
                 <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24*7">7 days</a>
               </div>
             </div>
-            {% endwith %}
             {% endifnotequal %}
           </div>
         </div>
