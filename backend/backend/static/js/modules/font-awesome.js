@@ -1,8 +1,23 @@
 import {dom, library} from '@fortawesome/fontawesome-svg-core'
 
-import {faBan, faCheckCircle, faCopy, faCheck, faQuestionCircle, faExclamationCircle, faEdit, faSave, faEye, faInfoCircle} from '@fortawesome/free-solid-svg-icons'
+import {
+    faBan,
+    faCheck,
+    faCheckCircle,
+    faCopy,
+    faEdit,
+    faExclamationCircle,
+    faEye,
+    faInfoCircle,
+    faQuestionCircle,
+    faSave,
+    faTrash
+} from '@fortawesome/free-solid-svg-icons'
+import {
+    faCheckSquare,
+    faSquare
+} from '@fortawesome/free-regular-svg-icons'
 import {faGithub} from '@fortawesome/free-brands-svg-icons'
-import {faSquare, faCheckSquare} from '@fortawesome/free-regular-svg-icons'
 
 
 library.add([
@@ -18,6 +33,7 @@ library.add([
     faInfoCircle,
     faQuestionCircle,
     faSave,
-    faSquare
+    faSquare,
+    faTrash
 ]);
 dom.watch();
