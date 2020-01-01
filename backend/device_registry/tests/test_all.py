@@ -1315,6 +1315,11 @@ class DasboardViewTests(TestCase):
         scores_weeks = [mean(scores[w*7:(w+1)*7]) for w in range(4)]
         solved_ra = [i // 6 for i in range(28)]
         solved_ra_weeks = [sum(solved_ra[w*7:(w+1)*7]) for w in range(4)]
+
+        # For each day of 4 weeks set trust score provided by "scores" array
+        # and set the number of resolved RAs provided by "solved_ra" array. Then
+        # compare the per-week trust score average and RA sum calculated by the view
+        # with the simple calculations provided here (scores_weeks and solved_ra_weeks)
         for d in range(28):
             with freeze_time(now - timezone.timedelta(days=d)):
                 self.device0.trust_score = scores[d]
@@ -1340,12 +1345,44 @@ class DasboardViewTests(TestCase):
         self.assertListEqual(solved_ra_weeks, response.context_data['ra_solved_history'])
         self.assertLessEqual(abs(scores[-1] - response.context_data['trust_score']), sys.float_info.epsilon * 2)
 
-    def test_incomplete(self):
+    def test_empty(self):
         now = timezone.now()
-        with freeze_time(now - timezone.timedelta(days=1)):
+        self.device0.generate_recommended_actions()
+
+        # Trust score will be None here. We want to make sure it doesn't
+        # break per-week calculation
+        with freeze_time(now - timezone.timedelta(days=3)):
             self.profile.sample_history()
 
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual([None], response.context_data['trust_score_history'])
         self.assertListEqual([0], response.context_data['ra_solved_history'])
+
+    def test_incomplete(self):
+        now = timezone.now()
+        self.device0.generate_recommended_actions()
+
+        # We want to make sure incomplete data, such as empty (None) trust score
+        # combined with complete data doesn't break per-week calculation.
+        with freeze_time(now - timezone.timedelta(days=2)):
+            # Trust score is None, RAs count is 1
+            ra0 = self.device0.recommendedaction_set.all()[0]
+            ra0.resolved_at = timezone.now()
+            ra0.save()
+            self.profile.sample_history()
+        with freeze_time(now - timezone.timedelta(days=1)):
+            # Trust score is 0.5, RAs count is 0
+            self.device0.trust_score = 0.5
+            self.device0.save()
+            self.profile.sample_history()
+        with freeze_time(now):
+            # Trust score is 0.4, RAs count is 0
+            self.device0.trust_score = 0.4
+            self.device0.save()
+            self.profile.sample_history()
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual([(0.4 + 0.5) / 2], response.context_data['trust_score_history'])
+        self.assertListEqual([1], response.context_data['ra_solved_history'])
