@@ -24,7 +24,6 @@
     "bootstrap-markdown": "2.10.0",
     "chart.js": "2.7.3",
     "clipboard-polyfill": "^2.8.6",
-    "copy-webpack-plugin": "^4.6.0",
     "cross-env": "5.2.0",
     "css-loader": "2.1.0",
     "datatables.net": "1.10.19",
@@ -40,7 +39,6 @@
     "expose-loader": "0.7.5",
     "feather-icons": "4.17.0",
     "file-loader": "3.0.1",
-    "filemanager-webpack-plugin": "^2.0.5",
     "fullcalendar": "^3.10.0",
     "hard-source-webpack-plugin": "0.13.1",
     "highlight.js": "9.15.10",
@@ -78,5 +76,6 @@
   },
   "scripts": {
     "build": "webpack --config webpack.config.js --progress --colors --stats"
-  }
+  },
+  "dependencies": {}
 }
