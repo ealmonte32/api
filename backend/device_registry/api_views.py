@@ -106,6 +106,7 @@ class MtlsPingView(APIView):
         device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
+        device.default_password_users = data.get('default_password_users')
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = data.get('device_operating_system_version')

@@ -369,11 +369,12 @@ class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
 
     @classmethod
     def affected_devices(cls, qs):
-        return qs.filter(deviceinfo__default_password=True)
+        return qs.filter(Q(deviceinfo__default_password=True) |
+                         Q(default_password_users__len__gt=0))
 
     @classmethod
     def is_affected(cls, device) -> bool:
-        return hasattr(device, 'deviceinfo') and device.deviceinfo.default_password is True
+        return device.default_password
 
 
 # Firewall disabled action.
