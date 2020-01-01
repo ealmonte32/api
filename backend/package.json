@@ -4,7 +4,7 @@
   "description": "",
   "author": "Artem Martynovich",
   "license": "MIT",
-  "devDependencies": {
+  "dependencies": {
     "@babel/core": "7.2.2",
     "@babel/plugin-syntax-dynamic-import": "7.2.0",
     "@babel/preset-env": "7.3.1",
@@ -76,6 +76,5 @@
   },
   "scripts": {
     "build": "webpack --config webpack.config.js --progress --colors --stats"
-  },
-  "dependencies": {}
+  }
 }
