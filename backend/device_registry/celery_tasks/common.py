@@ -7,6 +7,7 @@ from django.db.models import Q
 import redis
 
 from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
+from profile_page.models import Profile
 
 logger = logging.getLogger('django')
 
@@ -109,3 +110,11 @@ def send_packages_to_vulns_update(task):
         # another instance of the same job or by the `fetch_vulnerabilities` job.
         # In both cases this job instance shouldn't do anything.
         return -1
+
+
+def sample_history():
+    logger.info('started.')
+    profiles = Profile.objects.filter(user__devices__isnull=False).only('user')
+    for profile in profiles:
+        profile.sample_history()
+    return profiles.count()
