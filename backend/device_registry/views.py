@@ -2,25 +2,25 @@ import json
 import uuid
 from collections import defaultdict
 
-from django.db.models import Sum, Case, When, IntegerField
-from django.utils import timezone
-from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
-from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
-from django.shortcuts import render
-from django.shortcuts import get_object_or_404
-from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import Q, Sum, Avg, Value, IntegerField
+from django.db.models import Case, When
+from django.db.models import Q, Sum, Avg, IntegerField
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.shortcuts import get_object_or_404
+from django.shortcuts import render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views.generic import DetailView, ListView, TemplateView, View, UpdateView, CreateView, DeleteView
 
 from profile_page.mixins import LoginTrackMixin
+from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
     RecommendedAction, HistoryRecord
 from .models import GlobalPolicy
-from .api_views import DeviceListFilterMixin
 from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
 
 

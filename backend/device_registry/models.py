@@ -907,6 +907,6 @@ class RecommendedAction(models.Model):
 
 class HistoryRecord(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='history_records', on_delete=models.CASCADE)
-    sampled_at = models.DateTimeField()
+    sampled_at = models.DateTimeField(auto_now_add=True)
     recommended_actions_resolved = models.IntegerField(null=True)
     average_trust_score = models.FloatField(null=True)

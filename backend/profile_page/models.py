@@ -81,13 +81,16 @@ class Profile(models.Model):
         return devices.aggregate(Avg('trust_score'))['trust_score__avg']
 
     def sample_history(self):
+        """
+        Count the number of newly resolved user's RAs, save it together with the user's average trust score into
+        a new HistoryRecord.
+        """
         ra_resolved = RecommendedAction.objects.filter(
             status=RecommendedAction.Status.NOT_AFFECTED,
             resolved_at__date=timezone.now().date(),
             device__owner=self.user
         )
-        hr = HistoryRecord.objects.create(owner=self.user,
-                                          sampled_at=timezone.now(),
-                                          recommended_actions_resolved=ra_resolved.count(),
-                                          average_trust_score=self.average_trust_score)
+        HistoryRecord.objects.create(owner=self.user,
+                                     recommended_actions_resolved=ra_resolved.count(),
+                                     average_trust_score=self.average_trust_score)
 

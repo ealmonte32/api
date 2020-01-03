@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             name='HistoryRecord',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('sampled_at', models.DateTimeField()),
+                ('sampled_at', models.DateTimeField(auto_now_add=True)),
                 ('recommended_actions_resolved', models.IntegerField(null=True)),
                 ('average_trust_score', models.FloatField(null=True)),
                 ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='history_records', to=settings.AUTH_USER_MODEL)),
