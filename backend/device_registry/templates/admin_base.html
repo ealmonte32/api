@@ -13,55 +13,124 @@
 {% block content %}
   <div class="wrapper">
     <nav class="sidebar sidebar-sticky">
-      <div class="sidebar-content  js-simplebar">
+      <div class="sidebar-content">
         <a class="sidebar-brand" href="{% url 'root' %}">
-          <img src="{% static '/logo-small.png' %}" width="190" alt="WoTT">
+          <img class="logo-image" src="{% static '/media/logo.png' %}" alt="wott">
         </a>
+        <button type="button" class="btn btn-wott-primary btn-lg btn-block" id="admin-inst-btn">
+          Add A Node
+          <img src="{% static '/media/plus.png' %}" alt="plus">
+        </button>
 
         {% with url_name=request.resolver_match.url_name %}
-            <ul class="sidebar-nav">
-                <li class="sidebar-item {% if url_name|is_menu_highlight_id:'root' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-root" href="{% url 'root' %}">Dashboard </a>
-                </li>
-                <li class="sidebar-item {% if url_name|is_menu_highlight_id:'global_policies' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-policies" href="{% url 'global_policies' %}">Global Policies</a>
-                </li>
-                <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-claim-device" href="{% url 'claim-device' %}">Claim Node</a>
-                </li>
-                <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
-                    <a class="sidebar-link" id="sidebar-recommended-actions" href="{% url 'actions' %}">
-                      Recommended Actions
-                      {% with user.profile.actions_count as actions_count %}
-                      {% if actions_count %}
-                        <span class="badge badge-pill badge-danger ml-2">{{ actions_count }}</span>
-                      {% endif %}
-                      {% endwith %}
-                    </a>
-                </li>
-            </ul>
+          <ul class="sidebar-nav">
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'root' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-root" href="{% url 'root' %}">
+                {% if url_name|is_menu_highlight_id:'root' %}
+                <img src="{% static '/media/dashboard-selected.png' %}" alt="dashboard">
+                {% else %}
+                <img src="{% static '/media/dashboard.png' %}" alt="dashboard">
+                {% endif %}
+                <h4>Dashboard</h4>
+              </a>
+            </li>
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'cve' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-cve" href="#">
+                {% if url_name|is_menu_highlight_id:'cve' %}
+                <img src="{% static '/media/cve-selected.png' %}" alt="cve">
+                {% else %}
+                <img src="{% static '/media/cve.png' %}" alt="cve">
+                {% endif %}
+                <h4>CVE</h4>
+              </a>
+            </li>
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'nodes' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-nodes" href="#">
+                {% if url_name|is_menu_highlight_id:'nodes' %}
+                <img src="{% static '/media/nodes-selected.png' %}" alt="nodes">
+                {% else %}
+                <img id="nodes-image" src="{% static '/media/nodes.png' %}" alt="nodes">
+                {% endif %}
+                <h4>Nodes</h4>
+              </a>
+            </li>
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-claim-device" href="{% url 'claim-device' %}">
+                {% if url_name|is_menu_highlight_id:'claim-device' %}
+                <img src="{% static '/media/add-node-selected.png' %}" alt="claim device">
+                {% else %}
+                <img src="{% static '/media/add-node.png' %}" alt="claim device">
+                {% endif %}
+                <h4>Claim Node</h4>
+              </a>
+            </li>
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-recommended-actions" href="{% url 'actions' %}">
+                {% if url_name|is_menu_highlight_id:'actions' %}
+                <img src="{% static '/media/verified-selected.png' %}" alt="recommended actions">
+                {% else %}
+                <img id="actions-image" src="{% static '/media/verified.png' %}" alt="recommended actions">
+                {% endif %}
+                <h4>Recommended Actions</h4>
+                {% with user.profile.actions_count as actions_count %}
+                {% if actions_count %}
+                <div class="badge wott-badge-pill">
+                  <span id="actions-sidebar" class="wott-badge-text">{{ actions_count }}</span>
+                </div>
+                {% endif %}
+                {% endwith %}
+              </a>
+            </li>
+            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'global_policies' %}active{% endif %}">
+              <a class="sidebar-link" id="sidebar-policies" href="{% url 'global_policies' %}">
+                {% if url_name|is_menu_highlight_id:'global_policies' %}
+                <img src="{% static '/media/policies-selected.png' %}" alt="globalpolicies">
+                {% else %}
+                <img src="{% static '/media/policies.png' %}" alt="global policies">
+                {% endif %}
+                <h4>Global Policies</h4>
+              </a>
+            </li>
+          </ul>
         {% endwith %}
 
       </div>
+
+      <div class="sidebar-bottom">
+        <h2>Status Overview</h2>
+        <div class="sidebar-bottom-box">
+          <div class="sidebar-bottom-item">
+            <p>Current Trust Score</p>
+            <p id="trust-score">75%</p>
+          </div>
+          <div id="trust-graph-100">
+            <span id="trust-graph-var"></span>
+          </div>
+          <div id="action-solved-block" class="sidebar-bottom-item">
+            <p>Actions Solved</p>
+            <p id="action-solved">29/50</p>
+          </div>
+          <div id="action-solved-graph">
+            <span id="action-solved-var"></span>
+          </div>
+        </div>
+      </div>
+
     </nav>
 
     <div class="main">
-      <nav class="navbar navbar-expand navbar-light bg-white">
-        <a class="sidebar-toggle d-flex mr-2">
-          <i class="hamburger align-self-center"></i>
-        </a>
+      <nav class="navbar navbar-expand navbar-light">
         <div class="navbar-collapse collapse">
           {% block dashboard_title %}
           {% endblock dashboard_title %}
-          <ul class="navbar-nav ml-auto">
+          <ul class="navbar-nav">
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
-                <i data-feather="settings"></i>
-                <span class="text-dark">{{ user.username }}</span>
-              </a>
+              <a class="nav-linkq" href="#" data-toggle="dropdown">
+              <div id="username-box" class="text-dark">{{ user.username }}</div>
+              <div class="icon-container"><span class="dropdown-toggle"></span></div>
+            </a>
               <div class="dropdown-menu dropdown-menu-right">
-                <a class="dropdown-item" href="{% url 'profile' %}"><i class="align-middle mr-1"
-                                                                       data-feather="user"></i>Profile</a>
+                <a class="dropdown-item" href="{% url 'profile' %}"><i class="align-middle mr-1" data-feather="user"></i>Profile</a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="{% url 'auth_logout' %}">Sign out</a>
               </div>
@@ -80,19 +149,6 @@
         {% block admin_content %}
         {% endblock admin_content %}
       </main>
-      <footer class="footer">
-        <div class="container-fluid">
-          <div class="row text-muted">
-            <div class="col-6 text-left">
-            </div>
-            <div class="col-6 text-right">
-              <p class="mb-0">
-                &copy; 2019 - <a href="https://www.wott.io" class="text-muted">Web of Secure Things, Ltd</a>
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   </div>
 {% endblock %}
@@ -111,7 +167,6 @@
       $('#logout').click(() => {
           mixpanel.reset();
       });
-
       {% if signed_up %}
       mixpanel.alias("{{ user.email }}");
       mixpanel.track("Signed Up");
@@ -125,6 +180,20 @@
           "$email": "{{ user.email }}",
           "$phone": "{{ user.profile.phone }}"
       });
+      
     {% endif %}
+    // Side graphics & Recommended Actions Badge
+    let trustScore = $('#trust-score').text();
+    let actionSolved = $('#action-solved').text();
+    let solved = parseInt(actionSolved.split('/')[0]);
+    let actions = parseInt(actionSolved.split('/')[1]);
+    let actionSolvedPercentage = (solved / actions * 100) + '%';
+    let recomdActions = $('#actions-sidebar'); 
+    
+    $(window).on('load', function() {
+      document.getElementById('action-solved-var').style.width =  actionSolvedPercentage;
+      document.getElementById('trust-graph-var').style.width = trustScore;
+      parseInt(recomdActions.text()) > 99 ? recomdActions.text('99+'): null;
+    })
   </script>
 {% endblock %}
