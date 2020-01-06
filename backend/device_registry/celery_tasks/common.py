@@ -117,4 +117,5 @@ def sample_history():
     profiles = Profile.objects.filter(user__devices__isnull=False).only('user')
     for profile in profiles:
         profile.sample_history()
+    logger.info('finished.')
     return profiles.count()

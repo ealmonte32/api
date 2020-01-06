@@ -86,14 +86,10 @@ class Profile(models.Model):
         score into a new HistoryRecord.
         """
         now = timezone.now()
-
-        # This is 24 hours minus 1 microsecond ago. We try to avoid counting an RA which was resolved exactly 24h ago,
-        # which may happen if the history gets sampled at exactly 24h interval (see DasboardViewTests.test_incomplete).
-        day_ago = now - timezone.timedelta(hours=24) + timezone.timedelta(microseconds=1)
-
+        day_ago = now - timezone.timedelta(hours=24)
         ra_resolved = RecommendedAction.objects.filter(
             status=RecommendedAction.Status.NOT_AFFECTED,
-            resolved_at__range=[day_ago, now],
+            resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
         )
         HistoryRecord.objects.create(owner=self.user,
