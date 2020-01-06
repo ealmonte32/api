@@ -36,3 +36,11 @@
   @include button-color($gray-800);
   @include button-color-hover($gray-800);
 }
+
+.wott-btn {
+  font-size: 1rem;
+  width: 50%;
+  height: 50px;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}

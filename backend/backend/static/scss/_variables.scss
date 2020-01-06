@@ -1,11 +1,13 @@
 // Fonts
-$font-family-sans-serif: 'Open Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+$font-family-sans-serif: 'Muli', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 $font-weight-light: 300;
 $font-weight-normal: 400;
 $font-weight-bold: 600;
 $font-size-base: .875rem;
-$font-size-lg: 1rem;
 $font-size-sm: .75rem;
+$font-size-lg: .9rem;
+$font-size-xl: 1.2rem;
+$font-size-xxl:2rem;
 $headings-font-weight: 400;
 
 // Spacer
@@ -29,10 +31,15 @@ $container-max-widths: (
   xl: 1280px
 );
 
+// Broswer width
+$browser-width-md: 1300px;
+
 // Transitions
 $transition-base: all .4s ease-in-out;
 
 // Theme colors
+$wott-blue: #2460C8;
+$wott-dark-gray: #646D7F;
 $blue:    #5b7dff;
 $red:     #f44455;
 $yellow:  #fcc100;
@@ -52,7 +59,9 @@ $gray-800: #343a40;
 $gray-900: #212529;
 $black: #000;
 
-$primary:       $cyan;
+$wott-primary: $wott-blue;
+$wott-nav: $wott-dark-gray;
+$primary:       $blue;
 $secondary:     $pink;
 $success:       $green;
 $info:          $blue;
@@ -61,7 +70,9 @@ $danger:        $red;
 $light:         $gray-100;
 $dark:          #354052;
 
+
 $theme-colors: (
+	"wott-primary":$wott-primary,
 	"primary": $primary,
 	"secondary": $secondary,
 	"success": $success,
@@ -69,7 +80,7 @@ $theme-colors: (
 	"warning": $warning,
 	"danger": $danger,
 	"light": $light,
-	"dark": $dark
+	"dark": $dark,
 );
 
 // Social colors
@@ -88,7 +99,7 @@ $social-colors: (
 );
 
 // Body
-$body-bg: #F5F9FC;
+$body-bg: #F7F9FF;
 $body-color: $gray-700;
 
 // Common
@@ -120,8 +131,9 @@ $box-shadow-lg:    0 0.2rem 0.2rem rgba(0, 0, 0, .05);
 
 // Border radius
 $border-radius-sm: .1rem;
-$border-radius:    .2rem;
+$border-radius:     8px;
 $border-radius-lg: .3rem;
+$border-radius-xl: .6rem;
 
 // Navbar
 $navbar-padding-y: $spacer*0.875;
@@ -129,7 +141,7 @@ $navbar-padding-x: $spacer*1.25;
 $navbar-nav-link-padding-x: .5rem;
 $navbar-brand-font-weight: 500;
 $navbar-brand-font-size: 1.1rem;
-$navbar-border-bottom: 1px solid #E5E9F2;
+$navbar-border-bottom: 1px solid #CDDEF7;
 
 // Alerts
 $alert-padding-y: .95rem;
@@ -178,24 +190,24 @@ $card-cap-bg: $white;
 $table-accent-bg: $gray-100;
 
 // Sidebar general
-$sidebar-width: 250px;
+$sidebar-width: 20%;
 $sidebar-transition: margin-left .4s ease-in-out, left .4s ease-in-out;
-$sidebar-bg: $dark;
+$sidebar-bg: transparent;
 
 // Sidebar brand
-$sidebar-brand-padding-y: 1.15rem;
-$sidebar-brand-padding-x: 1.5rem;
+$sidebar-brand-padding-y: 2.8rem;
+$sidebar-brand-padding-x: 1rem;
 $sidebar-brand-color: $gray-100;
 $sidebar-brand-font-weight: $navbar-brand-font-weight;
 $sidebar-brand-font-size: 1.15rem;
 
 // Sidebar link
-$sidebar-link-padding-y: .75rem;
+$sidebar-link-padding-y: 1.7vh;
 $sidebar-link-padding-x: 1.5rem;
-$sidebar-link-color: $gray-400;
-$sidebar-link-bg: $dark;
+$sidebar-link-color: #646D7F;
+$sidebar-link-bg: transparent;
 $sidebar-link-hover-color: $gray-400;
-$sidebar-link-hover-bg: darken($dark, 4);
+$sidebar-link-hover-bg: $white;
 $sidebar-link-active-color: $gray-400;
 $sidebar-link-active-bg: $dark;
 
@@ -204,8 +216,8 @@ $sidebar-link-child-color: $gray-500;
 $sidebar-link-child-bg: darken($dark, 2);
 $sidebar-link-child-hover-color: $gray-200;
 $sidebar-link-child-hover-bg: darken($dark, 4);
-$sidebar-link-child-active-color: $gray-500;
-$sidebar-link-child-active-bg: darken($dark, 2);
+$sidebar-link-child-active-color: #2460C8;
+$sidebar-link-child-active-bg: $white;
 
 // Transitions
 $transition-appearance: background .4s ease-in-out, color .4s ease-in-out;
