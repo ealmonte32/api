@@ -21,7 +21,6 @@
     "babel-loader": "8.0.5",
     "bootstrap": "^4.3.1",
     "bootstrap-daterangepicker": "3.0.3",
-    "bootstrap-markdown": "2.10.0",
     "chart.js": "2.7.3",
     "clipboard-polyfill": "^2.8.6",
     "cross-env": "5.2.0",
