@@ -151,6 +151,17 @@
       </main>
     </div>
   </div>
+  <!-- Hardcoded style for graphic -->
+  <style>
+    #action-solved-var {
+      width: 58%;
+    }
+
+    #trust-graph-var {
+      width: 75%;
+    }
+    
+  </style>
 {% endblock %}
 
 {% block scripts %}
@@ -182,18 +193,5 @@
       });
       
     {% endif %}
-    // Side graphics & Recommended Actions Badge
-    let trustScore = $('#trust-score').text();
-    let actionSolved = $('#action-solved').text();
-    let solved = parseInt(actionSolved.split('/')[0]);
-    let actions = parseInt(actionSolved.split('/')[1]);
-    let actionSolvedPercentage = (solved / actions * 100) + '%';
-    let recomdActions = $('#actions-sidebar'); 
-    
-    $(window).on('load', function() {
-      document.getElementById('action-solved-var').style.width =  actionSolvedPercentage;
-      document.getElementById('trust-graph-var').style.width = trustScore;
-      parseInt(recomdActions.text()) > 99 ? recomdActions.text('99+'): null;
-    })
   </script>
 {% endblock %}
