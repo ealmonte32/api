@@ -37,3 +37,8 @@ def fetch_vulnerabilities_debian():
 @shared_task(soft_time_limit=60 * 60, time_limit=60 * 60 + 5)  # Should live 60m max.
 def file_github_issues():
     return github.file_issues()
+
+
+@shared_task(soft_time_limit=60 * 10, time_limit=60 * 10 + 5)  # Should live 10m max.
+def sample_history():
+    return common.sample_history()

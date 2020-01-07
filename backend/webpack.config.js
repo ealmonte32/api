@@ -39,7 +39,19 @@ module.exports = {
   module: {
     rules: [
       {test: /\.js$/,exclude: /(node_modules)/,loader: ['babel-loader']},
-      {test: /\.scss$/,use: [MiniCssExtractPlugin.loader,'css-loader','postcss-loader','sass-loader']},
+      {
+        test: /\.scss$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+          'postcss-loader',
+          {
+            loader: 'sass-loader',
+            options: {
+              implementation: require('sass'),
+            },
+          },
+        ]},
       {test   : /\.(ttf|eot|svg|woff(2)?)(\?[a-z0-9=&.]+)?$/,loader : 'url-loader',options: {limit: 100000}},
       {test   : /\.(png|jpg|jpeg|gif?)(\?[a-z0-9=&.]+)?$/,loader : 'url-loader',options: {limit: 100000}},
       {test: require.resolve('jquery'),use: [{loader: 'expose-loader',options: 'jQuery'},{loader: 'expose-loader',options: '$'}]}
