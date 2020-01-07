@@ -149,7 +149,7 @@ class MtlsPingView(APIView):
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
                                    'update_trust_score', 'os_release', 'auto_upgrades',
-                                   'mysql_root_access', 'cpu', 'kernel_deb_package'])
+                                   'mysql_root_access', 'cpu', 'kernel_deb_package', 'default_password_users'])
         # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
         device.recommendedaction_set.filter(status=RecommendedAction.Status.SNOOZED_UNTIL_PING) \
             .update(status=RecommendedAction.Status.AFFECTED)
