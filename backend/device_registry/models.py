@@ -112,9 +112,19 @@ class Device(models.Model):
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
     mysql_root_access = models.BooleanField(null=True, blank=True)
+    default_password_users = ArrayField(models.CharField(max_length=32), null=True, blank=True)
 
     class Meta:
         ordering = ('created',)
+
+    @property
+    def default_password(self):
+        if not hasattr(self, 'deviceinfo'):
+            return None
+        if self.default_password_users:
+            return True
+        elif self.deviceinfo.default_password is not None:
+            return self.deviceinfo.default_password
 
     @property
     def eol_info(self):
@@ -421,7 +431,7 @@ class Device(models.Model):
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
             port_score=self.portscan.get_score(),
-            default_password=not self.deviceinfo.default_password,
+            default_password=not self.default_password,
             cve_score=cve_score
         )
 

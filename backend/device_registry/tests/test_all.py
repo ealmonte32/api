@@ -820,6 +820,28 @@ class DeviceDetailViewTests(TestCase):
         self.assertInHTML('<td id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
                           '</i></span>May 31, 2018</td>', response.rendered_content)
 
+    def test_default_credentials(self):
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+        self.client.login(username='test', password='123')
+
+        self.device.deviceinfo.default_password = False
+        self.device.deviceinfo.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No default credentials detected.")
+
+        self.device.deviceinfo.default_password = True
+        self.device.deviceinfo.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Default credentials detected!")
+
+        self.device.default_password_users = ['pi', 'root']
+        self.device.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Users with default credentials: pi, root")
+
 
 class PairingKeysView(TestCase):
     def setUp(self):

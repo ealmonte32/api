@@ -418,6 +418,12 @@ class DefaultCredentialsActionTest(TestsMixin, TestCase):
         self.device.deviceinfo.save(update_fields=['default_password'])
 
 
+class DefaultCredentialsUsersTest(DefaultCredentialsActionTest):
+    def enable_action(self):
+        self.device.default_password_users = ['pi']
+        self.device.save(update_fields=['default_password_users'])
+
+
 class FirewallDisabledActionTest(TestsMixin, TestCase):
     search_pattern_common_page = 'We found permissive firewall policy present on [{name}]({url})'
     search_pattern_device_page = 'We found permissive firewall policy present on this node'
