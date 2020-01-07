@@ -989,8 +989,8 @@ class RootViewTests(TestCase):
         self.assertEqual(self.device1.actions_count, 2)
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">2</span></a>',
+        self.assertInHTML('<div class="badge wott-badge-pill">'
+                          '<span id="actions-sidebar" class="wott-badge-text">2</span></div>',
                           response.rendered_content)
 
     def test_recommended_actions_zero(self):
@@ -999,8 +999,8 @@ class RootViewTests(TestCase):
         self.assertEqual(self.user.profile.actions_count, 0)
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">0</span></a>',
+        self.assertInHTML('<div class="badge wott-badge-pill">'
+                          '<span id="actions-sidebar" class="wott-badge-text">0</span></div>',
                           response.rendered_content, count=0)  # check that there is NO badge
 
 
