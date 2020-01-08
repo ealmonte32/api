@@ -1408,3 +1408,28 @@ class DasboardViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual([(0.4 + 0.5) / 2], response.context_data['trust_score_history'])
         self.assertListEqual([1], response.context_data['ra_solved_history'])
+
+
+class CVEViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.client.login(username='test', password='123')
+        self.url = reverse('dashboard')
+        self.profile = Profile.objects.create(user=self.user)
+
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user
+        )
+        self.url = reverse('cve')
+        self.device_url = reverse('device_cve', kwargs={'device_pk': self.device0.pk})
+
+    def test_empty(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(self.device_url)
+        self.assertEqual(response.status_code, 200)

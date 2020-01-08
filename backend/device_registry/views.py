@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import json
 import uuid
 from collections import defaultdict
+from typing import NamedTuple, List
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import Case, When
+from django.db.models import Case, When, Count, F
 from django.db.models import Q, Sum, Avg, IntegerField
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
@@ -19,7 +22,7 @@ from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, HistoryRecord
+    RecommendedAction, HistoryRecord, Vulnerability, DebPackage
 from .models import GlobalPolicy
 from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
 
@@ -584,4 +587,29 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, RecommendedAct
         context = super().get_context_data(**kwargs)
         context['actions'] = actions
         context['device_name'] = device_name
+        return context
+
+
+class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
+    template_name = 'dashboard.html'
+
+    class AffectedPackage(NamedTuple):
+        name: str
+        hosts_affected: int
+
+    class TableRow(NamedTuple):
+        cve_name: str
+        cve_url: str
+        cve_date: timezone.datetime
+        severity: str
+        packages: List[AffectedPackage]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        DebPackage.objects.filter(vulnerabilities__isnull=False)\
+            .annotate(cve_name=F('vulnerabilities__name'),
+                      cve_severity=F('vulnerabilities__urgency'),
+                      hosts_affected=Count('device'))
+
         return context
