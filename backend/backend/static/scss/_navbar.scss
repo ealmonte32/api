@@ -7,7 +7,7 @@
 
   h1 {
     font-size: 2.1rem; 
-    font-weight: bolder;
+    font-weight: 600;
     margin-top: 5px;
     @include mQ($browser-width-md) {
       font-size: 1.8rem;
@@ -36,7 +36,7 @@
 
   #username-box {
     color: #252B36 !important;
-    font-weight: 700;
+    font-weight: 600;
     padding: 1rem 1.5rem;
   }
   
@@ -50,12 +50,11 @@
     justify-content: center;
 
     .dropdown-toggle:after {
-        border-width: 2px 2px 0px 0px;
+        border-width: 0px 2px 2px 0px;
         display: inline-block;
         padding: 2.5px;
         transform: rotate(45deg);
         color: #1751B7;
-        vertical-align: .1em !important;
     }
   }
 
