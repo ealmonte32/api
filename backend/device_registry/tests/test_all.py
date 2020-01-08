@@ -23,6 +23,7 @@ from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState
     GlobalPolicy, PairingKey, Vulnerability, RecommendedAction
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
+from device_registry.views import CVEView
 from profile_page.models import Profile
 
 
@@ -1424,12 +1425,64 @@ class CVEViewTests(TestCase):
             device_id='device0.d.wott-dev.local',
             owner=self.user
         )
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            owner=self.user
+        )
         self.url = reverse('cve')
         self.device_url = reverse('device_cve', kwargs={'device_pk': self.device0.pk})
 
     def test_empty(self):
+        packages = [
+            DebPackage(name='one_first', version='version_one', source_name='one_source', source_version='one_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='one_second', version='version_one', source_name='one_source', source_version='one_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_first', version='version_two', source_name='two_source', source_version='two_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_second', version='version_two', source_name='two_source', source_version='two_version',
+                       arch=DebPackage.Arch.i386),
+        ]
+        vulns = [
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW.value, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-2', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW.value, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-3', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW.value, fix_available=False)
+        ]
+        DebPackage.objects.bulk_create(packages)
+        Vulnerability.objects.bulk_create(vulns)
+        packages[0].vulnerabilities.set(vulns)
+        packages[1].vulnerabilities.set(vulns[1:])
+
+        self.device0.deb_packages.set(packages)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.LOW, [
+                CVEView.AffectedPackage('one_first', 1),
+                CVEView.AffectedPackage('one_second', 1)
+            ]),
+            CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
+                CVEView.AffectedPackage('one_first', 1),
+                # CVEView.AffectedPackage('one_second', 1)
+            ]),
+        ])
+
+        self.device1.deb_packages.set(packages[1:])
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.LOW, [
+                CVEView.AffectedPackage('one_first', 1),
+                CVEView.AffectedPackage('one_second', 2)
+            ]),
+            CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
+                CVEView.AffectedPackage('one_first', 1),
+                # CVEView.AffectedPackage('one_second', 0)
+            ]),
+        ])
 
         response = self.client.get(self.device_url)
         self.assertEqual(response.status_code, 200)
