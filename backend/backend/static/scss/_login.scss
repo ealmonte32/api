@@ -1,0 +1,121 @@
+.container-centered {
+  width: 70vw;
+  display: flex;
+  position: relative;
+  white-space: nowrap;
+  min-width: 0;
+  @-webkit-keyframes autofill {
+    to {
+        background: white;
+    }
+  }
+  
+  input:-webkit-autofill {
+    -webkit-animation-name: autofill;
+    -webkit-animation-fill-mode: both;
+  }
+}
+
+.box-left, .box-right {
+  border-radius: $border-radius;
+  width: 50%;
+  border-right: none;
+}
+
+.box-left {
+  padding: 8.8vh 5.45rem;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  @include media-breakpoint-down(lg) {
+      padding: 8vh 3.45rem;
+  }
+  p {
+    font-size: 1.2rem;
+    margin-bottom: 0;
+    color: #5C667A;
+    @include media-breakpoint-down(lg) {
+      font-size: .8rem;
+    }
+  }
+}
+
+.box-right {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 1vh 4rem;
+  background-color: #f4f6fb;
+  @include media-breakpoint-down(lg) {
+    padding: 1vh 2rem;
+  }
+  .wott-label {
+    font-size: .8rem;
+  }
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+}
+
+#wott-logo-login {
+  @include media-breakpoint-down(lg) {
+    width: 65%;
+  }
+}
+
+#login-greetings {
+  padding-top: 1.3vh;
+  padding-bottom: 3.4vh;
+  font-weight: 600;
+  font-size: 2rem;
+  @include media-breakpoint-down(lg) {
+      font-size: 1.5rem
+  }
+}
+
+.wott-btn-full {
+  width : 100%;
+}
+
+.btn-margin-top {
+  margin-top: 1.25rem;
+}
+
+#login-question {
+  font-size: 2.7rem;
+  font-weight: 600;
+  @include media-breakpoint-down(lg) {
+    font-size: 2rem;
+  }
+}
+
+#forgot-password-link {
+  text-decoration-line: underline;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2460c8;
+  @include media-breakpoint-down(lg) {
+      font-size: .8rem;
+  }
+}
+
+#server-image-container {
+  overflow: hidden;
+  position: absolute;
+  bottom: -95px;
+  right: -210px;
+  z-index: 2;
+  @include media-breakpoint-down(lg) {
+    bottom: -70px;
+  }
+  @include mQMaxHeight(800px) {
+    bottom: -70px;
+  }
+}
+
+#server-image-content {
+  @include media-breakpoint-down(lg) {
+    width: 80%;
+  }
+  @include mQMaxHeight(800px) {
+    width: 80%;
+  }
+}
