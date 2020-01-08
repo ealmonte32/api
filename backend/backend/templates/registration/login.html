@@ -10,226 +10,83 @@
     <div class="container h-100">
       <div class="row h-100">
         <div class="mx-auto d-flex align-items-center">
-          <!-- <div class="align-middle"> -->
-            {% if messages %}
-              {% for message in messages %}
-                <div class="alert alert-success" role="alert">
-                  <div class="alert alert-success text-center" role="alert"><h4><br>{{ message }}</h4></div>
-                </div>
-              {% endfor %}
-            {% endif %}
-            <div class="container-centered">
-              <!-- <div id="server-image-container"> -->
-                <picture id="server-image-content" src="{% static 'media/server.png' %}" alt="server"></picture> 
-              <!-- </div> -->
-              <div class="card box-left">
-                <div class="card-body">
-                  <div class="form-group text-center">
-                    <img id="wott-logo-login" class="pb-5" src="{% static 'media/logo.png' %}" alt="Wott">
-                    <h1 class="pt-3 pb-1 mb-4" id="login-question">New to Wott?</h1>
-                    <div class="mb-2">
-                      <p>Register for free!</p>
-                      <p>Create your account today.</p>
-                    </div>
-                    <div class="mt-5">
-                      <a href="{% url 'registration_register' %}">
-                        <input class="btn wott-btn wott-btn-full btn-wott-primary" value="Register">
-                      </a> 
-                    </div>  
+         
+          <div class="container-centered">
+            <div id="server-image-container">
+              <img id="server-image-content" src="{% static 'media/server.png' %}" alt="server"/>
+            </div>
+            <div class="card box-left">
+              <div class="card-body">
+                <div class="form-group text-center">
+                  <img id="wott-logo-login" class="pb-5" src="{% static 'media/logo.png' %}" alt="Wott">
+                  <h1 class="pt-3 pb-1 mb-4" id="login-question">New to Wott?</h1>
+                  <div class="mb-3">
+                    <p>Register for free!</p>
+                    <p>Create your account today.</p>
                   </div>
-                </div>
-              </div>
-              <div class="card box-right">
-                <div class="card-body">
-                  <div class="m-xl-4 m-sm-3">
-                    <h1 class="text-center" id="login-greetings">Welcome Back!</h1>
-                    <form method="POST" action="">
-                      {% csrf_token %}
-                      <div class="form-group">
-                        <label class="wott-label" for="username">Email</label>
-                        <input class="form-control wott-form-control form-control-lg" type="text" name="username"
-                              placeholder="Your email" id="username"/>
-                        {% if form.username.errors %}
-                          {% for error in form.username.errors %}
-                            <label class="error form-text invalid-feedback small"
-                                  style="display: block">{{ error | escape }}</label>
-                          {% endfor %}
-                        {% endif %}
-                      </div>
-                      <div class="form-group">
-                        <label class="wott-label">Password</label>
-                        <input style="background-color: white;" class="form-control wott-form-control form-control-lg" type="password" name="password"
-                              placeholder="Your password"/>
-                        {% if form.password.errors %}
-                          {% for error in form.password.errors %}
-                            <label class="error form-text invalid-feedback small"
-                                  style="display: block">{{ error | escape }}</label>
-                          {% endfor %}
-                        {% endif %}
-                      </div>
-                      <div class="form-group">
-                          {% if form.non_field_errors %}
-                              {% for error in form.non_field_errors %}
-                                  <div class="alert alert-warning">{{ error }}</div>
-                              {% endfor %}
-                          {% endif %}
-                        <div class="text-center btn-margin-top">
-                          <input type="submit" class="btn wott-btn wott-btn-full btn-wott-primary" value="Log In"/>
-                        </div>
-                      </div>
-                      <div class="form-group text-center mt-4">
-                        <a id="forgot-password-link" href="{% url 'auth_password_reset' %}">Forgot Password?</a>
-                      </div>
-                    </form>
-                  </div>
+                  <div class="mt-5">
+                    <a href="{% url 'registration_register' %}">
+                      <input class="btn wott-btn wott-btn-full btn-wott-primary" value="Register">
+                    </a> 
+                  </div>  
                 </div>
               </div>
             </div>
-          <!-- </div> -->
+            <div class="card box-right">
+              <div class="card-body">
+                <div class="m-xl-4 m-sm-3">
+                  <h1 class="text-center" id="login-greetings">Welcome Back!</h1>
+                  <form method="POST" action="">
+                    {% csrf_token %}
+                    <div class="form-group">
+                      <label class="wott-label" for="username">Email</label>
+                      <input class="form-control wott-form-control form-control-lg" type="text" name="username"
+                            placeholder="Your email" id="username"/>
+                      {% if form.username.errors %}
+                        {% for error in form.username.errors %}
+                          <label class="error form-text invalid-feedback small"
+                                style="display: block">{{ error | escape }}</label>
+                        {% endfor %}
+                      {% endif %}
+                    </div>
+                    <div class="form-group">
+                      <label class="wott-label">Password</label>
+                      <input style="background-color: white;" class="form-control wott-form-control form-control-lg" type="password" name="password"
+                            placeholder="Your password"/>
+                      {% if form.password.errors %}
+                        {% for error in form.password.errors %}
+                          <label class="error form-text invalid-feedback small"
+                                style="display: block">{{ error | escape }}</label>
+                        {% endfor %}
+                      {% endif %}
+                    </div>
+                    <div class="form-group">
+                      {% if form.non_field_errors %}
+                          {% for error in form.non_field_errors %}
+                              <div class="alert alert-warning wott-alert-full">{{ error }}</div>
+                          {% endfor %}
+                      {% endif %}
+                      {% if messages %}
+                      {% for message in messages %}
+                        <div class="alert alert-success" role="alert">
+                          <div class="alert alert-success wott-alert-full text-center" role="alert"><h4><br>{{ message }}</h4></div>
+                        </div>
+                      {% endfor %}
+                    {% endif %}
+                      <div class="text-center btn-margin-top">
+                        <input type="submit" class="btn wott-btn wott-btn-full btn-wott-primary" value="Log In"/>
+                      </div>
+                    </div>
+                    <div class="form-group text-center mt-4">
+                      <a id="forgot-password-link" href="{% url 'auth_password_reset' %}">Forgot Password?</a>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </main>
-  <style>
-
-
-    /* @-webkit-keyframes autofill {
-        to {
-            background: white;
-        }
-    }
-
-    input:-webkit-autofill {
-        -webkit-animation-name: autofill;
-        -webkit-animation-fill-mode: both;
-    } */
-
-    .container-centered {
-      width: 70vw;
-      display: flex;
-      position: relative;
-      white-space: normal;
-      min-width: 0;
-    }
-
-    /* .box-left {
-      border-radius: 8px;
-      width: 50%;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-      border-right: none;
-      padding: 8.8vh 5.45rem;
-    } */
-
-    /* .box-right {
-      width: 50%;
-      border-radius: 8px;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-      border-right: none;
-      padding: 1vh 4rem;
-      background-color: #f4f6fb;
-    } */
-
-    /* #login-greetings {
-      padding-top: 1.3vh;
-      padding-bottom: 3.4vh;
-      font-weight: 600;
-      font-size: 2rem;
-    } */
-
-    /* .wott-btn-full {
-      width : 100%;
-    } */
-
-    /* .btn-margin-top {
-      margin-top: 1.25rem;
-    } */
-
-    /* #login-question {
-      font-size: 2.7rem;
-      font-weight: 600;
-    } */
-
-    /* p {
-      font-size: 1.2rem;
-      margin-bottom: 0;
-      color: #5C667A;
-    } */
-    
-    /* #forgot-password-link {
-      text-decoration-line: underline;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #2460c8;
-    } */
-/* 
-    #server-image-container {
-      overflow: hidden;
-      position: absolute;
-      bottom: -95px;
-      right: -210px;
-      z-index: 2;
-      white-space: nowrap;
-    } */
-
-   
-    /* .form-group {
-      margin-bottom: 1.5rem;
-      font-size: 1rem;
-    } */
-    
-    /* @media screen and (max-width: 1200px) {
-      #login-greetings {
-        font-size: 1.5rem
-      }
-
-      .box-right {
-        padding: 1vh 2rem;
-      }
-
-      .box-left {
-        padding: 8vh 3.45rem;
-      }
-
-      .wott-label {
-        font-size: .8rem;
-      }
-
-      #forgot-password-link {
-        font-size: .8rem;
-      }
-
-      #login-question {
-        font-size: 2rem;
-      }
-
-      p {
-        font-size: .8rem;
-      }
-
-      #server-image-content{
-        width: 80%;
-      }
-
-      #server-image-container{
-        bottom: -70px;
-      }
-
-      #wott-logo-login {
-        width: 65%;
-      }
-    }
-
-    @media screen and (max-height: 800px) {
-      #server-image-container{
-        bottom: -70px;
-      }
-
-      #server-image-content{
-        width: 80%;
-      }
-    } */
-
-    </style>
 {% endblock content %}
