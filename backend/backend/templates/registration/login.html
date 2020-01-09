@@ -16,15 +16,15 @@
               <img id="server-image-content" src="{% static 'media/server.png' %}" alt="server"/>
             </div>
             <div class="card box-left">
-              <div class="card-body">
+              <div class="wott-card-body">
                 <div class="form-group text-center">
                   <img id="wott-logo-login" class="pb-5" src="{% static 'media/logo.png' %}" alt="Wott">
                   <h1 class="pt-3 pb-1 mb-4" id="login-question">New to Wott?</h1>
-                  <div class="mb-3">
+                  <div class="mb-5">
                     <p>Register for free!</p>
                     <p>Create your account today.</p>
                   </div>
-                  <div class="mt-5">
+                  <div class="pt-3">
                     <a href="{% url 'registration_register' %}">
                       <input class="btn wott-btn wott-btn-full btn-wott-primary" value="Register">
                     </a> 
@@ -33,7 +33,7 @@
               </div>
             </div>
             <div class="card box-right">
-              <div class="card-body">
+              <div class="wott-card-body">
                 <div class="m-xl-4 m-sm-3">
                   <h1 class="text-center" id="login-greetings">Welcome Back!</h1>
                     {% if form.non_field_errors %}
@@ -63,7 +63,7 @@
                         {% endfor %}
                       {% endif %}
                     </div>
-                    <div class="form-group">
+                    <div class="form-group mb-4">
                       <label class="wott-label">Password</label>
                       <input style="background-color: white;" class="form-control wott-rounded-lg wott-form-control form-control-lg" type="password" name="password"
                             placeholder="Your password"/>
