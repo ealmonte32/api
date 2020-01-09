@@ -38,13 +38,15 @@
                   <h1 class="text-center" id="login-greetings">Welcome Back!</h1>
                     {% if form.non_field_errors %}
                         {% for error in form.non_field_errors %}
-                          <div class="alert alert-warning wott-alert-full"><h4>{{ error }}</h4></div>
+                        <!-- Password or email incorrect message -->
+                          <div class="alert alert-warning wott-rounded-lg wott-alert-full"><h4>{{ error }}</h4></div>
                         {% endfor %}
                     {% endif %}
                     {% if messages %}
                         {% for message in messages %}
+                         <!-- Logout success message -->
                           <div class="alert" role="alert">
-                            <div class="alert wott-alert-full text-center" role="alert"><h4><br>{{ message }}</h4></div>
+                            <div class="alert wott-alert-full wott-rounded-lg text-center" role="alert"><h4>{{ message }}</h4></div>
                           </div>
                         {% endfor %}
                     {% endif %}
@@ -52,7 +54,7 @@
                     {% csrf_token %}
                     <div class="form-group">
                       <label class="wott-label" for="username">Email</label>
-                      <input class="form-control wott-form-control form-control-lg" type="text" name="username"
+                      <input class="form-control wott-form-control wott-rounded-lg form-control-lg" type="text" name="username"
                             placeholder="Your email" id="username"/>
                       {% if form.username.errors %}
                         {% for error in form.username.errors %}
@@ -63,7 +65,7 @@
                     </div>
                     <div class="form-group">
                       <label class="wott-label">Password</label>
-                      <input style="background-color: white;" class="form-control wott-form-control form-control-lg" type="password" name="password"
+                      <input style="background-color: white;" class="form-control wott-rounded-lg wott-form-control form-control-lg" type="password" name="password"
                             placeholder="Your password"/>
                       {% if form.password.errors %}
                         {% for error in form.password.errors %}
