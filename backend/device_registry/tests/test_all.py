@@ -1441,11 +1441,12 @@ class CVEViewTests(TestCase):
             DebPackage(name='two_second', version='version_two', source_name='two_source', source_version='two_version',
                        arch=DebPackage.Arch.i386),
         ]
+        self.today = timezone.now().date()
         self.vulns = [
             Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='one_source', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
-            Vulnerability(os_release_codename='stretch', name='CVE-2018-2', package='one_source', is_binary=False,
-                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='buster', name='CVE-2018-2', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True, pub_date=self.today),
             Vulnerability(os_release_codename='stretch', name='CVE-2018-3', package='one_source', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
         ]
@@ -1465,7 +1466,7 @@ class CVEViewTests(TestCase):
                 # These two AffectedPackage's should be sorted by hosts_affected
                 CVEView.AffectedPackage('one_second', [self.device0, self.device1]),
                 CVEView.AffectedPackage('one_first', [self.device0])
-            ]),
+            ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 CVEView.AffectedPackage('one_first', [self.device0])
             ])
@@ -1483,7 +1484,7 @@ class CVEViewTests(TestCase):
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.HIGH, packages=[
                 CVEView.AffectedPackage('one_first', [self.device0]),
                 CVEView.AffectedPackage('one_second', [self.device0])
-            ]),
+            ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 CVEView.AffectedPackage('one_first', [self.device0]),
                 CVEView.AffectedPackage('one_second', [self.device0])
@@ -1502,7 +1503,7 @@ class CVEViewTests(TestCase):
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 CVEView.AffectedPackage('one_first', [self.device0]),
                 CVEView.AffectedPackage('one_second', [self.device0])
-            ]),
+            ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 CVEView.AffectedPackage('one_first', [self.device0])
             ])
