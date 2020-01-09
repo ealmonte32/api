@@ -14,6 +14,7 @@
 @import "mixins/switch";
 @import "mixins/tabs";
 @import "mixins/wizard";
+@import "mixins/mediaQ";
 
 // 3rd party plugins
 @import "~apexcharts/src/assets/apexcharts";
@@ -61,10 +62,12 @@
 @import "footer";
 @import "forms";
 @import "hamburger";
+@import "label";
 @import "modal";
 @import "navbar";
 @import "reboot";
 @import "progress";
+@import "shadow";
 @import "sidebar";
 @import "tables";
 @import "tabs";
