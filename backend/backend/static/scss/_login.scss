@@ -1,0 +1,132 @@
+.container-centered {
+  width: 70vw;
+  display: flex;
+  position: relative;
+  white-space: nowrap;
+  @-webkit-keyframes autofill {
+    to {
+        background: white;
+    }
+  }
+  
+  input:-webkit-autofill {
+    -webkit-animation-name: autofill;
+    -webkit-animation-fill-mode: both;
+  }
+}
+
+.box-left, .box-right {
+  border-radius: $wott-border-radius-lg;
+  width: 50%;
+  border-right: none;
+}
+
+.box-left {
+  padding: 8.8vh 5.45rem;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  @include media-breakpoint-down(lg) {
+      padding: 8vh 3.45rem;
+  }
+  p {
+    font-size: 1.2rem;
+    margin-bottom: 0;
+    color: #5C667A;
+    line-height: 1.7rem;
+    @include media-breakpoint-down(lg) {
+      font-size: 1rem;
+    }
+  }
+}
+
+.box-right {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 1vh 4rem;
+  background-color: #f4f6fb;
+  @include media-breakpoint-down(lg) {
+    padding: 1vh 2rem;
+  }
+  .wott-label {
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .form-group {
+    margin-bottom: 1.4rem;
+  }
+  input[type="submit"] {
+    padding-top: 14px;
+  }
+}
+
+#wott-logo-login {
+  @include media-breakpoint-down(lg) {
+    width: 65%;
+  }
+}
+
+#login-greetings {
+  padding-top: 1.3vh;
+  padding-bottom: 3.4vh;
+  font-weight: 600;
+  font-size: 2rem;
+  @include media-breakpoint-down(lg) {
+      font-size: 1.5rem
+  }
+}
+
+.wott-btn-full {
+  width : 100%;
+}
+
+.btn-margin-top {
+  margin-top: 1.25rem;
+}
+
+#login-question {
+  font-size: 2.6rem;
+  font-weight: 600;
+  white-space: nowrap;
+  @include mQ(1300px) {
+    font-size: 2.5rem;
+  }
+  @include media-breakpoint-down(lg) {
+    font-size: 2.2rem;
+  }
+}
+
+#forgot-password-link {
+  text-decoration-line: underline;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2460c8;
+  @include media-breakpoint-down(lg) {
+      font-size: .8rem;
+  }
+}
+
+#server-image-container {
+  position: absolute;
+  bottom: -12%;
+  right: -18%;
+  z-index: 2;
+  width: 25%;
+  @include media-breakpoint-down(lg) {
+    right: -17%;
+    bottom: -9%;
+  }
+  @include mQMaxHeight(800px) {
+    right: -17%;
+    bottom: -9%;
+  }
+}
+
+#server-image-content {
+  width:100%;
+}
+
+
+.wott-alert-full h4 {
+  color: white;
+}
