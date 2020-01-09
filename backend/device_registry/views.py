@@ -593,7 +593,18 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
     class AffectedPackage(NamedTuple):
         name: str
-        devices: List[int]
+        devices: List[Device]
+
+        @property
+        def device_urls(self):
+            return [(
+                d.get_name(),
+                reverse('device_cve', kwargs={'device_pk': d.pk})
+            ) for d in self.devices]
+
+        @property
+        def upgrade_command(self):
+            return f'apt-get update && apt-get install -y {self.name}'
 
     class TableRow(NamedTuple):
         cve_name: str
@@ -635,7 +646,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         table_rows = []
         for cve_name, cve_packages in packages_by_cve.items():
-            plist = sorted([self.AffectedPackage(p.name, list(p.device_set.values_list('pk', flat=True)))
+            plist = sorted([self.AffectedPackage(p.name, list(p.device_set.filter(owner=self.request.user)))
                             for p in cve_packages],
                            key=lambda p: len(p.devices), reverse=True)
             urgency, cve_date = vuln_info[cve_name]
