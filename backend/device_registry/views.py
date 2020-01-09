@@ -593,7 +593,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
     class AffectedPackage(NamedTuple):
         name: str
-        hosts_affected: int
+        devices: List[int]
 
     class TableRow(NamedTuple):
         cve_name: str
@@ -611,7 +611,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         @property
         def key(self):
-            return self.urgency, sum([p.hosts_affected for p in self.packages])
+            return self.urgency, sum([len(p.devices) for p in self.packages])
         
         @property
         def severity(self):
@@ -623,11 +623,11 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         vulns = Vulnerability.objects.filter(debpackage__device__owner=self.request.user, fix_available=True) \
                                      .values('name').distinct().annotate(max_urgency=Max('urgency'),
                                                                          pubdate=Max('pub_date'))
-        vuln_urgencies = {v['name']: (v['max_urgency'], v['pubdate']) for v in vulns}
+        vuln_info = {v['name']: (v['max_urgency'], v['pubdate']) for v in vulns}
         packages = DebPackage.objects.filter(device__owner=self.request.user,
                                              vulnerabilities__isnull=False,
                                              vulnerabilities__fix_available=True)\
-                                     .annotate(cve_name=F('vulnerabilities__name'), hosts_affected=Count('device'))
+                                     .annotate(cve_name=F('vulnerabilities__name'))
 
         packages_by_cve = defaultdict(set)
         for p in packages:
@@ -635,9 +635,10 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         table_rows = []
         for cve_name, cve_packages in packages_by_cve.items():
-            plist = sorted([self.AffectedPackage(p.name, p.hosts_affected) for p in cve_packages],
-                           key=lambda p: p.hosts_affected, reverse=True)
-            urgency, cve_date = vuln_urgencies[cve_name]
+            plist = sorted([self.AffectedPackage(p.name, list(p.device_set.values_list('pk', flat=True)))
+                            for p in cve_packages],
+                           key=lambda p: len(p.devices), reverse=True)
+            urgency, cve_date = vuln_info[cve_name]
             table_rows.append(self.TableRow(cve_name=cve_name, cve_url='', urgency=urgency,
                                             cve_date=cve_date, packages=plist))
 
