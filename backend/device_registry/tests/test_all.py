@@ -1418,7 +1418,6 @@ class CVEViewTests(TestCase):
         self.user.set_password('123')
         self.user.save()
         self.client.login(username='test', password='123')
-        self.url = reverse('dashboard')
         self.profile = Profile.objects.create(user=self.user)
 
         self.device0 = Device.objects.create(
@@ -1432,8 +1431,7 @@ class CVEViewTests(TestCase):
         self.url = reverse('cve')
         self.device_url = reverse('device_cve', kwargs={'device_pk': self.device0.pk})
 
-    def test_empty(self):
-        packages = [
+        self.packages = [
             DebPackage(name='one_first', version='version_one', source_name='one_source', source_version='one_version',
                        arch=DebPackage.Arch.i386),
             DebPackage(name='one_second', version='version_one', source_name='one_source', source_version='one_version',
@@ -1443,7 +1441,7 @@ class CVEViewTests(TestCase):
             DebPackage(name='two_second', version='version_two', source_name='two_source', source_version='two_version',
                        arch=DebPackage.Arch.i386),
         ]
-        vulns = [
+        self.vulns = [
             Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='one_source', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW.value, fix_available=True),
             Vulnerability(os_release_codename='stretch', name='CVE-2018-2', package='one_source', is_binary=False,
@@ -1451,38 +1449,64 @@ class CVEViewTests(TestCase):
             Vulnerability(os_release_codename='stretch', name='CVE-2018-3', package='one_source', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW.value, fix_available=False)
         ]
-        DebPackage.objects.bulk_create(packages)
-        Vulnerability.objects.bulk_create(vulns)
-        packages[0].vulnerabilities.set(vulns)
-        packages[1].vulnerabilities.set(vulns[1:])
+        DebPackage.objects.bulk_create(self.packages)
+        Vulnerability.objects.bulk_create(self.vulns)
+        self.device0.deb_packages.set(self.packages)
 
-        self.device0.deb_packages.set(packages)
+    def test_sort_package_hosts_affected(self):
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns[1:])
+        self.device1.deb_packages.set(self.packages[1:])
+
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.context_data['table_rows'], [
+            CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.LOW, [
+                # These two AffectedPackage's should be sorted by hosts_affected
+                CVEView.AffectedPackage('one_second', 2),
+                CVEView.AffectedPackage('one_first', 1)
+            ]),
+            CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
+                CVEView.AffectedPackage('one_first', 1),
+            ])
+        ])
+
+    def test_sort_urgency(self):
+        self.vulns[1].urgency = Vulnerability.Urgency.HIGH.value
+        self.vulns[1].save()
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            # These two TableRow's should be sorted by urgency
+            CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.HIGH, [
+                CVEView.AffectedPackage('one_first', 1),
+                CVEView.AffectedPackage('one_second', 1)
+            ]),
+            CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
+                CVEView.AffectedPackage('one_first', 1),
+                CVEView.AffectedPackage('one_second', 1)
+            ])
+        ])
+
+    def test_sort_total_hosts_affected(self):
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns[1:])
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            # These two TableRow's should be sorted by the sum of hosts_affected
             CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.LOW, [
                 CVEView.AffectedPackage('one_first', 1),
                 CVEView.AffectedPackage('one_second', 1)
             ]),
             CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
                 CVEView.AffectedPackage('one_first', 1),
-                # CVEView.AffectedPackage('one_second', 1)
-            ]),
+            ])
         ])
 
-        self.device1.deb_packages.set(packages[1:])
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertListEqual(response.context_data['table_rows'], [
-            CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.LOW, [
-                CVEView.AffectedPackage('one_first', 1),
-                CVEView.AffectedPackage('one_second', 2)
-            ]),
-            CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
-                CVEView.AffectedPackage('one_first', 1),
-                # CVEView.AffectedPackage('one_second', 0)
-            ]),
-        ])
-
+    def test_empty(self):
         response = self.client.get(self.device_url)
         self.assertEqual(response.status_code, 200)
