@@ -624,7 +624,9 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                                      .values('name').distinct().annotate(max_urgency=Max('urgency'),
                                                                          pubdate=Max('pub_date'))
         vuln_urgencies = {v['name']: (v['max_urgency'], v['pubdate']) for v in vulns}
-        packages = DebPackage.objects.filter(vulnerabilities__isnull=False, vulnerabilities__fix_available=True)\
+        packages = DebPackage.objects.filter(device__owner=self.request.user,
+                                             vulnerabilities__isnull=False,
+                                             vulnerabilities__fix_available=True)\
                                      .annotate(cve_name=F('vulnerabilities__name'), hosts_affected=Count('device'))
 
         packages_by_cve = defaultdict(set)
