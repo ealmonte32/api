@@ -826,11 +826,11 @@ class Vulnerability(models.Model):
         def __eq__(self, other):
             return apt_pkg.version_compare(self.__asString, other.__asString) == 0
 
-    class Urgency(Enum):
-        NONE = ' '
-        LOW = 'L'
-        MEDIUM = 'M'
-        HIGH = 'H'
+    class Urgency(IntEnum):
+        NONE = 0
+        LOW = 1
+        MEDIUM = 2
+        HIGH = 3
 
     os_release_codename = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=64)
@@ -838,9 +838,10 @@ class Vulnerability(models.Model):
     is_binary = models.BooleanField()
     unstable_version = models.CharField(max_length=64, blank=True)
     other_versions = ArrayField(models.CharField(max_length=64), blank=True)
-    urgency = models.CharField(max_length=64, choices=[(tag, tag.value) for tag in Urgency])
+    urgency = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Urgency])
     remote = models.BooleanField(null=True)
     fix_available = models.BooleanField()
+    pub_date = models.DateField(null=True)
 
     def is_vulnerable(self, src_ver):
         if self.unstable_version:

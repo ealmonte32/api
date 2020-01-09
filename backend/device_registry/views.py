@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Case, When, Count, F
-from django.db.models import Q, Sum, Avg, IntegerField
+from django.db.models import Q, Sum, Avg, IntegerField, Max
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
@@ -597,30 +597,33 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
     class TableRow(NamedTuple):
         cve_name: str
-        cve_url: str
-        # cve_date: timezone.datetime
         urgency: Vulnerability.Urgency
         packages: List[NamedTuple]  # Actually it's List[AffectedPackage]
+        cve_url: str
+        cve_date: timezone.datetime = None
+
         urgencies = {
-            Vulnerability.Urgency.HIGH: (3, 'High'),
-            Vulnerability.Urgency.MEDIUM: (2, 'Medium'),
-            Vulnerability.Urgency.LOW: (1, 'Low'),
-            Vulnerability.Urgency.NONE: (0, '')
+            Vulnerability.Urgency.HIGH: 'High',
+            Vulnerability.Urgency.MEDIUM: 'Medium',
+            Vulnerability.Urgency.LOW: 'Low',
+            Vulnerability.Urgency.NONE: ' '
         }
 
         @property
         def key(self):
-            return self.urgencies[self.urgency][0], sum([p.hosts_affected for p in self.packages])
+            return self.urgency, sum([p.hosts_affected for p in self.packages])
         
         @property
         def severity(self):
-            return self.urgencies[self.urgency][1]
+            return self.urgencies[self.urgency]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        vulns = Vulnerability.objects.filter(debpackage__device__owner=self.request.user, fix_available=True)
-        vulns = {v.name: v for v in vulns}
+        vulns = Vulnerability.objects.filter(debpackage__device__owner=self.request.user, fix_available=True) \
+                                     .values('name').distinct().annotate(max_urgency=Max('urgency'),
+                                                                         pubdate=Max('pub_date'))
+        vuln_urgencies = {v['name']: (v['max_urgency'], v['pubdate']) for v in vulns}
         packages = DebPackage.objects.filter(vulnerabilities__isnull=False, vulnerabilities__fix_available=True)\
                                      .annotate(cve_name=F('vulnerabilities__name'), hosts_affected=Count('device'))
 
@@ -629,10 +632,12 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             packages_by_cve[p.cve_name].add(p)
 
         table_rows = []
-        for cve_name, package in packages_by_cve.items():
-            plist = sorted([self.AffectedPackage(p.name, p.hosts_affected) for p in package],
+        for cve_name, cve_packages in packages_by_cve.items():
+            plist = sorted([self.AffectedPackage(p.name, p.hosts_affected) for p in cve_packages],
                            key=lambda p: p.hosts_affected, reverse=True)
-            table_rows.append(self.TableRow(cve_name, '', Vulnerability.Urgency(vulns[cve_name].urgency), plist))
+            urgency, cve_date = vuln_urgencies[cve_name]
+            table_rows.append(self.TableRow(cve_name=cve_name, cve_url='', urgency=urgency,
+                                            cve_date=cve_date, packages=plist))
 
         context['table_rows'] = sorted(table_rows,
                                        key=lambda r: r.key, reverse=True)

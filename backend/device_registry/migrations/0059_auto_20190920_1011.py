@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('is_binary', models.BooleanField()),
                 ('unstable_version', models.CharField(blank=True, max_length=64)),
                 ('other_versions', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=64), blank=True, size=None)),
-                ('urgency', models.CharField(choices=[(device_registry.models.Vulnerability.Urgency(' '), ' '), (device_registry.models.Vulnerability.Urgency('L'), 'L'), (device_registry.models.Vulnerability.Urgency('M'), 'M'), (device_registry.models.Vulnerability.Urgency('H'), 'H')], max_length=64)),
+                ('urgency', models.CharField(max_length=64)),
                 ('remote', models.BooleanField(null=True)),
                 ('fix_available', models.BooleanField()),
             ],

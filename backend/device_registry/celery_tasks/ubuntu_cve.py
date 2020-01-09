@@ -291,6 +291,7 @@ def fetch_vulnerabilities():
                             'medium': Vulnerability.Urgency.MEDIUM,
                             'high': Vulnerability.Urgency.HIGH,
                         }.get(header['Priority'], Vulnerability.Urgency.NONE),
+                        pub_date=header['PublicDate'],
                         remote=None,
                         fix_available=(status == 'fixed'),
                         os_release_codename=codename

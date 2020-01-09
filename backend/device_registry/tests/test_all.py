@@ -1443,11 +1443,11 @@ class CVEViewTests(TestCase):
         ]
         self.vulns = [
             Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='one_source', is_binary=False,
-                          other_versions=[], urgency=Vulnerability.Urgency.LOW.value, fix_available=True),
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
             Vulnerability(os_release_codename='stretch', name='CVE-2018-2', package='one_source', is_binary=False,
-                          other_versions=[], urgency=Vulnerability.Urgency.LOW.value, fix_available=True),
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
             Vulnerability(os_release_codename='stretch', name='CVE-2018-3', package='one_source', is_binary=False,
-                          other_versions=[], urgency=Vulnerability.Urgency.LOW.value, fix_available=False)
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
         ]
         DebPackage.objects.bulk_create(self.packages)
         Vulnerability.objects.bulk_create(self.vulns)
@@ -1461,18 +1461,18 @@ class CVEViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.context_data['table_rows'], [
-            CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.LOW, [
+            CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 # These two AffectedPackage's should be sorted by hosts_affected
                 CVEView.AffectedPackage('one_second', 2),
                 CVEView.AffectedPackage('one_first', 1)
             ]),
-            CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
-                CVEView.AffectedPackage('one_first', 1),
+            CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', 1)
             ])
         ])
 
     def test_sort_urgency(self):
-        self.vulns[1].urgency = Vulnerability.Urgency.HIGH.value
+        self.vulns[1].urgency = Vulnerability.Urgency.HIGH
         self.vulns[1].save()
         self.packages[0].vulnerabilities.set(self.vulns)
         self.packages[1].vulnerabilities.set(self.vulns)
@@ -1480,11 +1480,11 @@ class CVEViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.context_data['table_rows'], [
             # These two TableRow's should be sorted by urgency
-            CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.HIGH, [
+            CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.HIGH, packages=[
                 CVEView.AffectedPackage('one_first', 1),
                 CVEView.AffectedPackage('one_second', 1)
             ]),
-            CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
+            CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 CVEView.AffectedPackage('one_first', 1),
                 CVEView.AffectedPackage('one_second', 1)
             ])
@@ -1498,12 +1498,12 @@ class CVEViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.context_data['table_rows'], [
             # These two TableRow's should be sorted by the sum of hosts_affected
-            CVEView.TableRow('CVE-2018-2', '', Vulnerability.Urgency.LOW, [
+            CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 CVEView.AffectedPackage('one_first', 1),
                 CVEView.AffectedPackage('one_second', 1)
             ]),
-            CVEView.TableRow('CVE-2018-1', '', Vulnerability.Urgency.LOW, [
-                CVEView.AffectedPackage('one_first', 1),
+            CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', 1)
             ])
         ])
 
