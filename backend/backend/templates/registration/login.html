@@ -36,6 +36,18 @@
               <div class="card-body">
                 <div class="m-xl-4 m-sm-3">
                   <h1 class="text-center" id="login-greetings">Welcome Back!</h1>
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                          <div class="alert alert-warning wott-alert-full"><h4>{{ error }}</h4></div>
+                        {% endfor %}
+                    {% endif %}
+                    {% if messages %}
+                        {% for message in messages %}
+                          <div class="alert" role="alert">
+                            <div class="alert wott-alert-full text-center" role="alert"><h4><br>{{ message }}</h4></div>
+                          </div>
+                        {% endfor %}
+                    {% endif %}
                   <form method="POST" action="">
                     {% csrf_token %}
                     <div class="form-group">
@@ -61,18 +73,6 @@
                       {% endif %}
                     </div>
                     <div class="form-group">
-                      {% if form.non_field_errors %}
-                          {% for error in form.non_field_errors %}
-                              <div class="alert alert-warning wott-alert-full">{{ error }}</div>
-                          {% endfor %}
-                      {% endif %}
-                      {% if messages %}
-                      {% for message in messages %}
-                        <div class="alert alert-success" role="alert">
-                          <div class="alert alert-success wott-alert-full text-center" role="alert"><h4><br>{{ message }}</h4></div>
-                        </div>
-                      {% endfor %}
-                    {% endif %}
                       <div class="text-center btn-margin-top">
                         <input type="submit" class="btn wott-btn wott-btn-full btn-wott-primary" value="Log In"/>
                       </div>
