@@ -1,5 +1,6 @@
 import json
 import sys
+from statistics import mean
 from unittest.mock import patch
 
 from django.conf import settings
@@ -15,10 +16,11 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
+from freezegun import freeze_time
 
 from device_registry import ca_helper
-from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, average_trust_score, \
-    GlobalPolicy, PairingKey, Vulnerability
+from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
+    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 from profile_page.models import Profile
@@ -261,8 +263,8 @@ class DeviceModelTest(TestCase):
         self.assertEqual(score1, 0.7)
 
     def test_empty_average_trust_score(self):
-        user = self.user0
-        avg_score = average_trust_score(user)
+        profile = Profile.objects.create(user=self.user0)
+        avg_score = profile.average_trust_score
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
@@ -311,11 +313,12 @@ class DeviceModelTest(TestCase):
                          sum(Device.COEFFICIENTS.values()))
 
     def test_average_trust_score(self):
+        profile = Profile.objects.create(user=self.user1)
         self.device0.update_trust_score_now()
         self.device1.update_trust_score_now()
-        average_score = average_trust_score(self.user1)
+        average_score = profile.average_trust_score
         real_average_score = ((self.device0.trust_score + self.device1.trust_score) / 2.0)
-        self.assertTrue(abs(average_score - real_average_score) <= sys.float_info.epsilon)  # because IEEE float
+        self.assertLessEqual(abs(average_score - real_average_score), 2*sys.float_info.epsilon)
 
     def test_heartbleed(self):
         self.assertIsNone(self.device0.heartbleed_vulnerable)
@@ -817,6 +820,28 @@ class DeviceDetailViewTests(TestCase):
         self.assertInHTML('<td id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
                           '</i></span>May 31, 2018</td>', response.rendered_content)
 
+    def test_default_credentials(self):
+        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
+        self.client.login(username='test', password='123')
+
+        self.device.deviceinfo.default_password = False
+        self.device.deviceinfo.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No default credentials detected.")
+
+        self.device.deviceinfo.default_password = True
+        self.device.deviceinfo.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Default credentials detected!")
+
+        self.device.default_password_users = ['pi', 'root']
+        self.device.save()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Users with default credentials: pi, root")
+
 
 class PairingKeysView(TestCase):
     def setUp(self):
@@ -1287,3 +1312,99 @@ class ClaimDeviceViewTests(TestCase):
             self.device.refresh_from_db()
             self.assertEqual(self.device.owner, self.user)
             mixpanel_instance.track.assert_called_once_with(self.user.email, 'First Node')
+
+
+class DasboardViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.client.login(username='test', password='123')
+        self.url = reverse('dashboard')
+        self.profile = Profile.objects.create(user=self.user)
+
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user
+        )
+
+    def test_history(self):
+        self.device0.generate_recommended_actions()
+
+        now = timezone.now()
+        scores = [d / 28.0 for d in range(28)]
+        scores_weeks = [mean(scores[w*7:(w+1)*7]) for w in range(4)]
+        solved_ra = [i // 6 for i in range(28)]
+        solved_ra_weeks = [sum(solved_ra[w*7:(w+1)*7]) for w in range(4)]
+
+        # For each day of 4 weeks set trust score provided by "scores" array
+        # and set the number of resolved RAs provided by "solved_ra" array. Then
+        # compare the per-week trust score average and RA sum calculated by the view
+        # with the simple calculations provided here (scores_weeks and solved_ra_weeks)
+        for d in range(28):
+            with freeze_time(now - timezone.timedelta(days=d)):
+                self.device0.trust_score = scores[d]
+                self.device0.save()
+                solved_today = solved_ra[d]
+
+                # Can't simply update part of selected objects, will throw
+                #  "Cannot update a query once a slice has been taken". Instead I'm selecting pks, slicing them and then
+                # making a new query with them.
+                ras_list = self.device0.recommendedaction_set.all()[:solved_today].values_list('pk', flat=True)
+                ras = self.device0.recommendedaction_set.filter(pk__in=ras_list)
+                self.assertEqual(ras.count(), solved_today)
+                ras.update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
+
+                self.profile.sample_history()
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(all(
+            abs(a - b) <= sys.float_info.epsilon
+            for a, b in zip(scores_weeks, response.context_data['trust_score_history'])
+        ))
+        self.assertListEqual(solved_ra_weeks, response.context_data['ra_solved_history'])
+        self.assertLessEqual(abs(scores[-1] - response.context_data['trust_score']), sys.float_info.epsilon * 2)
+
+    def test_empty(self):
+        now = timezone.now()
+        self.device0.generate_recommended_actions()
+
+        # Trust score will be None here. We want to make sure it doesn't
+        # break per-week calculation
+        with freeze_time(now - timezone.timedelta(days=3)):
+            self.profile.sample_history()
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual([None], response.context_data['trust_score_history'])
+        self.assertListEqual([0], response.context_data['ra_solved_history'])
+
+    def test_incomplete(self):
+        now = timezone.now()
+        self.device0.generate_recommended_actions()
+
+        # We want to make sure incomplete data, such as empty (None) trust score
+        # combined with complete data doesn't break per-week calculation.
+        with freeze_time(now - timezone.timedelta(days=2)):
+            # Trust score is None, RAs count is 1
+            ra0 = self.device0.recommendedaction_set.all()[0]
+            ra0.resolved_at = timezone.now()
+            ra0.save()
+            self.profile.sample_history()
+        with freeze_time(now - timezone.timedelta(days=1)):
+            # Trust score is 0.5, RAs count is 0
+            self.device0.trust_score = 0.5
+            self.device0.save()
+            self.profile.sample_history()
+        with freeze_time(now):
+            # Trust score is 0.4, RAs count is 0
+            self.device0.trust_score = 0.4
+            self.device0.save()
+            self.profile.sample_history()
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual([(0.4 + 0.5) / 2], response.context_data['trust_score_history'])
+        self.assertListEqual([1], response.context_data['ra_solved_history'])
