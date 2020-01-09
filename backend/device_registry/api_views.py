@@ -106,6 +106,7 @@ class MtlsPingView(APIView):
         device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
+        device.default_password_users = data.get('default_password_users')
         device_info_object, _ = DeviceInfo.objects.get_or_create(device=device)
         device_info_object.device__last_ping = timezone.now()
         device_info_object.device_operating_system_version = data.get('device_operating_system_version')
@@ -148,7 +149,7 @@ class MtlsPingView(APIView):
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
                                    'update_trust_score', 'os_release', 'auto_upgrades',
-                                   'mysql_root_access', 'cpu', 'kernel_deb_package'])
+                                   'mysql_root_access', 'cpu', 'kernel_deb_package', 'default_password_users'])
         # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
         device.recommendedaction_set.filter(status=RecommendedAction.Status.SNOOZED_UNTIL_PING) \
             .update(status=RecommendedAction.Status.AFFECTED)

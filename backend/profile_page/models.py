@@ -4,14 +4,15 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction
+from device_registry.models import RecommendedAction, Device, HistoryRecord
 from device_registry.celery_tasks import github
 
 logger = logging.getLogger(__name__)
@@ -71,4 +72,27 @@ class Profile(models.Model):
                 mp.track(self.user.email, 'First Node')
             except MixpanelException:
                 logger.exception('Failed to send First Device event')
+
+    @property
+    def average_trust_score(self):
+        devices = Device.objects.filter(owner=self.user, trust_score__isnull=False)
+        if not devices.exists():
+            return None
+        return devices.aggregate(Avg('trust_score'))['trust_score__avg']
+
+    def sample_history(self):
+        """
+        Count the number of newly resolved user's RAs in the last 24h, save it together with the user's average trust
+        score into a new HistoryRecord.
+        """
+        now = timezone.now()
+        day_ago = now - timezone.timedelta(hours=24)
+        ra_resolved = RecommendedAction.objects.filter(
+            status=RecommendedAction.Status.NOT_AFFECTED,
+            resolved_at__gt=day_ago, resolved_at__lte=now,
+            device__owner=self.user
+        )
+        HistoryRecord.objects.create(owner=self.user,
+                                     recommended_actions_resolved=ra_resolved.count(),
+                                     average_trust_score=self.average_trust_score)
 

@@ -3,6 +3,8 @@ FROM python-base as build
 # This is such that we can override it during build
 ARG DJANGO_SETTINGS_MODULE=backend.settings.prod
 ENV DJANGO_SETTINGS_MODULE ${DJANGO_SETTINGS_MODULE}
+ARG NODE_ENV=production
+ENV NODE_ENV ${NODE_ENV}
 
 RUN python3 manage.py collectstatic --noinput
 
