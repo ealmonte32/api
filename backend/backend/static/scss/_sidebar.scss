@@ -60,7 +60,7 @@
       padding: 13px;
       margin: auto;
       font-size: $font-size-lg;
-      border-radius: $border-radius; 
+      border-radius: $wott-border-radius-lg; 
 
       img {
         margin-left: 15px;
@@ -81,7 +81,7 @@
     h2 {
       font-size:$font-size-xl;
       padding: 0 25px;
-      font-weight: 700;
+      font-weight: 600;
       margin-bottom: 0;
       @include mQ($browser-width-md) {
         font-size: 1rem;
