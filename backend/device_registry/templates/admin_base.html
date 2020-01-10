@@ -151,6 +151,11 @@
       </main>
     </div>
   </div>
+  
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
   <!-- Hardcoded style for graphic -->
   <style>
     #action-solved-var {
@@ -162,10 +167,6 @@
     }
     
   </style>
-{% endblock %}
-
-{% block scripts %}
-  {{ block.super }}
   <script src="{% static '/js/csrf.js' %}"></script>
   <script type="text/javascript">
       $(() => {
