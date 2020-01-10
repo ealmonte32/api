@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -112,9 +112,19 @@ class Device(models.Model):
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
     mysql_root_access = models.BooleanField(null=True, blank=True)
+    default_password_users = ArrayField(models.CharField(max_length=32), null=True, blank=True)
 
     class Meta:
         ordering = ('created',)
+
+    @property
+    def default_password(self):
+        if not hasattr(self, 'deviceinfo'):
+            return None
+        if self.default_password_users:
+            return True
+        elif self.deviceinfo.default_password is not None:
+            return self.deviceinfo.default_password
 
     @property
     def eol_info(self):
@@ -421,7 +431,7 @@ class Device(models.Model):
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
             port_score=self.portscan.get_score(),
-            default_password=not self.deviceinfo.default_password,
+            default_password=not self.default_password,
             cve_score=cve_score
         )
 
@@ -736,11 +746,6 @@ class Credential(models.Model):
         super(Credential, self).save(*args, **kwargs)
 
 
-def average_trust_score(user):
-    scores = [p.trust_score for p in Device.objects.filter(owner=user, trust_score__isnull=False)]
-    return mean(scores) if scores else None
-
-
 class PairingKey(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -908,3 +913,10 @@ class RecommendedAction(models.Model):
                         for d in affected]
         cls.objects.bulk_create(created)
         return len(created)
+
+
+class HistoryRecord(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='history_records', on_delete=models.CASCADE)
+    sampled_at = models.DateTimeField(auto_now_add=True)
+    recommended_actions_resolved = models.IntegerField(null=True)
+    average_trust_score = models.FloatField(null=True)

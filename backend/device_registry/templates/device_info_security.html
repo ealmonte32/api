@@ -86,13 +86,16 @@
                        target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
                   </th>
                   <td>
-                    {% if object.deviceinfo.default_password is None %}N/A{% else %}
-                      {% if not object.deviceinfo.default_password %}
-                        {% include "badge.html" with icon="check" color="success" %}
-                        No default credentials detected.
-                      {% else %}
+                    {% if object.default_password is None %}N/A{% else %}
+                      {% if object.default_password_users %}
+                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                        Users with default credentials: {{ object.default_password_users|join:", " }}
+                      {% elif object.deviceinfo.default_password is True %}
                         {% include "badge.html" with icon="exclamation-circle" color="danger" %}
                         Default credentials detected!
+                      {% else %}
+                        {% include "badge.html" with icon="check" color="success" %}
+                        No default credentials detected.
                       {% endif %}
                     {% endif %}
                   </td>
