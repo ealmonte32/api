@@ -1417,6 +1417,7 @@ class CVEViewTests(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
+        self.user_unrelated = User.objects.create_user('unrelated')
         self.client.login(username='test', password='123')
         self.profile = Profile.objects.create(user=self.user)
 
@@ -1427,6 +1428,10 @@ class CVEViewTests(TestCase):
         self.device1 = Device.objects.create(
             device_id='device1.d.wott-dev.local',
             owner=self.user
+        )
+        self.device_unrelated = Device.objects.create(
+            device_id='device-unrelated.d.wott-dev.local',
+            owner=self.user_unrelated
         )
         self.url = reverse('cve')
         self.device_url = reverse('device_cve', kwargs={'device_pk': self.device0.pk})
@@ -1453,6 +1458,7 @@ class CVEViewTests(TestCase):
         DebPackage.objects.bulk_create(self.packages)
         Vulnerability.objects.bulk_create(self.vulns)
         self.device0.deb_packages.set(self.packages)
+        self.device_unrelated.deb_packages.set(self.packages)
 
     def test_sort_package_hosts_affected(self):
         self.packages[0].vulnerabilities.set(self.vulns)
@@ -1509,6 +1515,21 @@ class CVEViewTests(TestCase):
             ])
         ])
 
-    def test_empty(self):
+    def test_filter_device(self):
+        # The setup is the same as in test_sort_package_hosts_affected.
+        # The result should also be the same except without device1.
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns[1:])
+        self.device1.deb_packages.set(self.packages[1:])
+
         response = self.client.get(self.device_url)
         self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0]),
+                CVEView.AffectedPackage('one_second', [self.device0])
+            ], cve_date=self.today),
+            CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0])
+            ])
+        ])

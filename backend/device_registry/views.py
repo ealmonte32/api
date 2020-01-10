@@ -589,7 +589,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, RecommendedAct
 
 
 class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
-    template_name = 'dashboard.html'
+    template_name = 'cve.html'
 
     class AffectedPackage(NamedTuple):
         name: str
@@ -630,12 +630,22 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user = self.request.user
 
-        vulns = Vulnerability.objects.filter(debpackage__device__owner=self.request.user, fix_available=True) \
+        device_pk = kwargs.get('device_pk')
+        if device_pk is not None:
+            device = get_object_or_404(Device, pk=device_pk, owner=user)
+            vuln_query = Q(debpackage__device__pk=device_pk)
+            packages_query = Q(device__pk=device_pk)
+        else:
+            vuln_query = Q(debpackage__device__owner=user)
+            packages_query = Q(device__owner=user)
+
+        vulns = Vulnerability.objects.filter(vuln_query, fix_available=True) \
                                      .values('name').distinct().annotate(max_urgency=Max('urgency'),
                                                                          pubdate=Max('pub_date'))
         vuln_info = {v['name']: (v['max_urgency'], v['pubdate']) for v in vulns}
-        packages = DebPackage.objects.filter(device__owner=self.request.user,
+        packages = DebPackage.objects.filter(packages_query,
                                              vulnerabilities__isnull=False,
                                              vulnerabilities__fix_available=True)\
                                      .annotate(cve_name=F('vulnerabilities__name'))
@@ -646,7 +656,8 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         table_rows = []
         for cve_name, cve_packages in packages_by_cve.items():
-            plist = sorted([self.AffectedPackage(p.name, list(p.device_set.filter(owner=self.request.user)))
+            plist = sorted([self.AffectedPackage(p.name,
+                                                 [device] if device_pk else list(p.device_set.filter(owner=user)))
                             for p in cve_packages],
                            key=lambda p: len(p.devices), reverse=True)
             urgency, cve_date = vuln_info[cve_name]
