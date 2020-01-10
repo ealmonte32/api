@@ -591,13 +591,17 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, RecommendedAct
 class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'cve.html'
 
+    class Hyperlink(NamedTuple):
+        text: str
+        href: str
+
     class AffectedPackage(NamedTuple):
         name: str
         devices: List[Device]
 
         @property
         def device_urls(self):
-            return [(
+            return [CVEView.Hyperlink(
                 d.get_name(),
                 reverse('device_cve', kwargs={'device_pk': d.pk})
             ) for d in self.devices]
@@ -617,7 +621,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             Vulnerability.Urgency.HIGH: 'High',
             Vulnerability.Urgency.MEDIUM: 'Medium',
             Vulnerability.Urgency.LOW: 'Low',
-            Vulnerability.Urgency.NONE: ' '
+            Vulnerability.Urgency.NONE: 'N/A'
         }
 
         @property
@@ -627,6 +631,10 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         @property
         def severity(self):
             return self.urgencies[self.urgency]
+
+        @property
+        def cve_link(self):
+            return CVEView.Hyperlink(self.cve_name, 'http://cve.mitre.org/cgi-bin/cvename.cgi?name='+self.cve_name)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -638,6 +646,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             vuln_query = Q(debpackage__device__pk=device_pk)
             packages_query = Q(device__pk=device_pk)
         else:
+            device = None
             vuln_query = Q(debpackage__device__owner=user)
             packages_query = Q(device__owner=user)
 
@@ -657,7 +666,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         table_rows = []
         for cve_name, cve_packages in packages_by_cve.items():
             plist = sorted([self.AffectedPackage(p.name,
-                                                 [device] if device_pk else list(p.device_set.filter(owner=user)))
+                                                 [device] if device else list(p.device_set.filter(owner=user)))
                             for p in cve_packages],
                            key=lambda p: len(p.devices), reverse=True)
             urgency, cve_date = vuln_info[cve_name]
@@ -666,5 +675,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         context['table_rows'] = sorted(table_rows,
                                        key=lambda r: r.key, reverse=True)
+        if device:
+            context['device_name'] = device.get_name()
 
         return context
