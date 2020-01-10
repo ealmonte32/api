@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
 
-{% block title %}WoTT - Claim Node{% endblock title %}
+{% block title %}WoTT - CVE list{% endblock title %}
 
 {% block dashboard_title %}
   <h1 style="margin-bottom: 0">CVE list{% if device_name %} for {{ device_name }}{% endif %}</h1>
@@ -8,59 +8,67 @@
 
 {% block admin_content %}
   <!-- cve.html -->
-  <table class="table table-striped table-responsive-xs" >
-    <thead>
-      <th>CVE</th>
-      <th>Date</th>
-      <th>Severity</th>
-      <th>Packages Affected</th>
-      {% if not device_name %}
-      <th>Nodes Affected</th>
-      {% endif %}
-      <th>Solve</th>
-    </thead>
-    <tbody>
-    {% for row in table_rows %}
-    <tr>
-      <td>
-        <a href="{{ row.cve_link.href }}">{{ row.cve_link.text }}</a>
-      </td>
-      <td>{{ row.cve_date|default_if_none:"N/A" }}</td>
-      <td>{{ row.severity }}</td>
-      <td>
-        {% for p in row.packages %}
-          {{ p.name }}
-          <br>
-        {% endfor %}
-      </td>
-      {% if not device_name %}
-      <td>
-        {% for p in row.packages %}
-          <a href="#">
-            {{ p.device_urls|length }}
-            <template>
-              {% for du in p.device_urls %}
-                <a href="{{ du.href }}">{{  du.text }}</a>,
+  <div class="container-fluid p-0">
+    <div class="card">
+      <div class="card-body">
+        <table class="table table-striped table-responsive-xs" >
+          <thead>
+            <th>CVE</th>
+            <th>Date</th>
+            <th>Severity</th>
+            <th>Packages Affected</th>
+            {% if not device_name %}
+            <th>Nodes Affected</th>
+            {% endif %}
+            <th>Solve</th>
+          </thead>
+          <tbody>
+          {% for row in table_rows %}
+          <tr>
+            <td>
+              <a href="{{ row.cve_link.href }}">{{ row.cve_link.text }}</a>
+            </td>
+            <td>{{ row.cve_date|date:"Y-m-d"|default:"N/A" }}</td>
+            <td>{{ row.severity }}</td>
+            <td>
+              {% for p in row.packages %}
+                {{ p.name }}
+                <br>
               {% endfor %}
-            </template>
-          </a>
-          <br>
-        {% endfor %}
-      </td>
-      {% endif %}
-      <td>
-        {% for p in row.packages %}
-          <a href="#">Instructions</a>
-          <template>
-            {{ p.upgrade_command }}
-          </template>
-          <br>
-        {% endfor %}
-      </td>
-    </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+            </td>
+            {% if not device_name %}
+            <td>
+              {% for p in row.packages %}
+                <a href="#">
+                  {{ p.device_urls|length }}
+                  <template>
+                    {% for du in p.device_urls %}
+                      <a href="{{ du.href }}">{{  du.text }}</a>,
+                    {% endfor %}
+                  </template>
+                </a>
+                <br>
+              {% endfor %}
+            </td>
+            {% endif %}
+            <td>
+              {% for p in row.packages %}
+                <a href="#">
+                  Instructions
+                  <template>
+                    {{ p.upgrade_command }}
+                  </template>
+                </a>
+                <br>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 {% endblock admin_content %}
 
 {% block scripts %}
