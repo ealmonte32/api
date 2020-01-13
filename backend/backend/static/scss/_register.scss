@@ -1,0 +1,78 @@
+
+#register-form {
+
+  .box-right {
+    padding: 7vh 3.98rem;
+    padding-right: 7.5rem;
+    background-color: #f4f6fb;
+    border-bottom-right-radius: $wott-border-radius-lg;
+    z-index: 1;
+    @include media-breakpoint-down(lg) {
+      padding-right: 3.5rem;
+    }
+  }
+
+  .box-left .wott-label{
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+
+  .box-left {
+    background-color: #f4f6fb;
+    padding: 7vh 3.98rem;
+    padding-left: 7.5rem;
+    border-bottom-left-radius: $wott-border-radius-lg;
+    @include media-breakpoint-down(lg) {
+      padding-left: 3.5rem;
+    }
+  } 
+}
+
+.wott-blue {
+  color: $wott-blue;
+}
+
+#register-title {
+  margin-bottom: 0;
+  font-size: 2.25rem;
+  font-weight: 600;
+  padding-left: 6.75rem;
+  @include media-breakpoint-down(lg) {
+    padding-left: 2.75rem;
+  }
+} 
+
+#server-container-register {
+  position: absolute;
+  top: 45%;
+  right: -160px; 
+  width: 24%;
+  @include mQ(1300px) {
+    right: -147px;
+    width: 25%;
+  }
+  @include mQ(1120px) {
+    right: -121px;
+    width: 25%;
+  }
+}
+
+#register-head {
+  padding: 2.95rem 1.25rem;
+  border-top-right-radius: $wott-border-radius-lg;
+  border-top-left-radius: $wott-border-radius-lg;
+  justify-content: space-between;
+
+  picture {
+    margin-right: 5%;
+  }
+}
+
+
+#register-container {
+  
+  .main {
+      overflow-y: visible;
+  }
+}

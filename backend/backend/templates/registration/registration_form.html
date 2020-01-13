@@ -1,105 +1,76 @@
 {% extends "registration/registration_base.html" %}
 
 {% load i18n %}
-
 {% load static %}
+
+{% load bootstrap4 %}
 
 {% block title %}WoTT - {% trans "Register for an account" %}{% endblock %}
 
 {% block content %}
-  <main class="main w-75 wott-rounded-lg m-auto d-flex align-items-center">
-    <div class="container h-100">
-      <!-- <div class="row h-100">
-        <div class="col-sm-10 col-md-8 col-lg-6 mx-auto d-table h-100"> -->
-          <!-- <div class="d-table-cell align-middle"> -->
+  <div id="register-container" style="background-image: url({% static 'media/login-bg.png' %});">
+    <main class="main w-75 wott-rounded-lg m-auto d-flex align-items-center position-relative">
+      <div id="server-container-register">
+        <img id="server-image-content" src="{% static 'media/server.png' %}" alt="server"/>
+      </div>
+      <div class="container h-100">
+    
+        <div id="register-head" class="d-flex bg-white">
+          <h1 id="register-title">Register</h1>
+          <picture class="d-flex align-items-center align-items-end">
+            <img src="{% static '/media/logo.png' %}" alt=""/>
+          </picture> 
+        </div>
 
-            <div class="d-flex bg-white py-5 px-3 no-gutters row">
-              <div class="col-1"></div>
-              <h1 id="register-title" class="col-3 pl-4">Register</h1>
-              <div class="col-5"></div>
-              <picture class="col-3 d-flex align-items-center align-items-end">
-                <img class="w-75" src="{% static '/media/logo.png' %}" alt=""/>
-              </picture>
-              <!-- <div class="col-1"></div> -->
-            </div>
-
-            <div class="card p-0 mb-0">
-              <div>
-                <div class="">
-                  <form class="d-flex" method="post" action="">
-                    {% csrf_token %}
-                    <div class="box-left">
-                      <div class="form-group required">
-                        <label class="wott-label" for="id_email">Your Email Address <span class="wott-blue">(*)</span></label>
-                        <input type="email" name="email" required class="form-control wott-form-control wott-rounded-lg" placeholder="E-mail" required id="id_email">
-                      </div>
-                      <div class="form-group required">
-                        <label class="wott-label" for="id_password1">Password <span class="wott-blue">(*)</span></label>
-                        <input type="password" name="password1" required class="form-control wott-form-control wott-rounded-lg" placeholder="Password" required id="id_password1">
-                      </div>
-                      <div class="form-group required">
-                        <label class="wott-label" for="id_password2">Password confirmation</label>
-                        <input type="password" name="password2" required class="form-control wott-form-control wott-rounded-lg" placeholder="Password confirmation" required id="id_password2"> 
-                      </div>
-                      <div class="form-group required">
-                        <label class="wott-label" for="id_payment_plan">Payment plan</label>
-                        <select name="payment_plan" class="form-control wott-form-control wott-rounded-lg" title="" id="id_payment_plan">
-                        <option value="1">Free</option>                 
-                        <option value="2">Standard</option>                 
-                        <option value="3">Professional</option>                  
-                        <option value="4">Enterprise</option>                
-                        </select>
-                      </div>
-                    </div>
-                    <div class="box-right">
-                      <div class="form-group">
-                        <label class="wott-label" for="id_name">Your Name</label>
-                        <input type="text" name="name" maxlength="30" class="form-control wott-form-control wott-rounded-lg" placeholder="Name (optional)" title="" id="id_name">
-                      </div>
-                      <div class="form-group">
-                        <label class="wott-label" for="id_company">Company</label>
-                        <input type="text" name="company" maxlength="128" class="form-control wott-form-control wott-rounded-lg" placeholder="Company (optional)" title="" id="id_company">
-                      </div>
-                      <div class="form-group pb-2">
-                        <label class="wott-label" for="id_phone">Phone (optional)</label>
-                        <input type="tel" name="phone" class="form-control wott-form-control wott-rounded-lg" placeholder="Phone (optional)" title="" id="id_phone">
-                      </div>
-                      <div class="form-group mt-5">
-                        <button type="submit" class="btn wott-btn wott-btn-full btn-wott-primary">Submit</button>
-                      </div>
-                    </div>
-                  </form>
-                </div>
+        <div class="p-0 mb-0">
+          <form id="register-form" class="d-flex" method="post" action="">
+            {% csrf_token %}
+            <div class="box-left">
+              <div class="form-group required">
+                <label class="wott-label" for="id_email">Your Email Address <span class="wott-blue">(*)</span></label>
+                <input type="email" name="email" required class="form-control wott-form-control wott-rounded-lg" placeholder="E-mail" title id="id_email">
+              </div>
+              <div class="form-group required">
+                <label class="wott-label" for="id_password1">Password <span class="wott-blue">(*)</span></label>
+                <input type="password" name="password1" required class="form-control wott-form-control wott-rounded-lg" placeholder="Password" title id="id_password1">
+              </div>
+              <div class="form-group required">
+                <label class="wott-label" for="id_password2">Password Confirmation</label>
+                <input type="password" name="password2" required class="form-control wott-form-control wott-rounded-lg" placeholder="Password confirmation" title id="id_password2"> 
+              </div>
+              <div class="form-group required">
+                <label class="wott-label" for="id_payment_plan">Select your Payment Plan</label>
+                <select name="payment_plan" class="form-control wott-form-control wott-rounded-lg custom-select" title="" id="id_payment_plan">
+                <option value="1">Free</option>                 
+                <option value="2">Standard</option>                 
+                <option value="3">Professional</option>                  
+                <option value="4">Enterprise</option>                
+                </select>
               </div>
             </div>
-          </div>
-        <!-- </div> -->
-      <!-- </div>
-    </div> -->
-  </main>
-  <style>
-    .box-right {
-      padding: 8.98vh 3.98rem;
-      padding-right: 7.5rem;
-      background-color: #f4f6fb;
-    }
-    .box-left .wott-label{
-      font-size: 1.1rem;
-      margin-bottom: 14px;
-      font-weight: 600;
-    }
-    .box-left {
-      background-color: #f4f6fb;
-      padding: 8.98vh 3.98rem;
-      padding-left: 7.5rem;
-    }
-    .wott-blue {
-      color: #2460c8;
-    }
-    #register-title {
-      font-size: 2.5rem;
-      font-weight: 600;
-    }
+            <div class="box-right">
+              <div class="form-group">
+                <label class="wott-label" for="id_name">Your Name</label>
+                <input type="text" name="name" maxlength="30" class="form-control wott-form-control wott-rounded-lg" placeholder="Name (optional)" title id="id_name">
+              </div>
+              <div class="form-group">
+                <label class="wott-label" for="id_company">Company</label>
+                <input type="text" name="company" maxlength="128" class="form-control wott-form-control wott-rounded-lg" placeholder="Company (optional)" title id="id_company">
+              </div>
+              <div class="form-group pb-2">
+                <label class="wott-label" for="id_phone">Your Phone</label>
+                <input type="tel" name="phone" class="form-control wott-form-control wott-rounded-lg" placeholder="Phone Number (optional)" title id="id_phone">
+              </div>
+              <div class="form-group mt-5">
+                {% buttons %}
+                  <button type="submit" class="btn btn-lg btn-primary wott-btn wott-btn-full btn-wott-primary">{% trans 'Get Started' %}</button>
+                {% endbuttons %}
+              </div>
+            </div>
+          </form>
+        </div>
 
-  </style>
+      </div>
+    </main>
+  </div>
 {% endblock content %}
