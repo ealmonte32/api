@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Avg
+from django.db.models import Q, Avg, Count
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -472,6 +472,22 @@ class Device(models.Model):
         if self.deb_packages_hash and self.deb_packages.exists() and self.os_release and \
                 self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
+
+    @property
+    def cve_count(self):
+        if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release and \
+                self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
+            return
+        pks = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW,
+                                           debpackage__device__owner=self.owner).distinct().values('pk')
+        urgencies = Vulnerability.objects.filter(pk__in=pks).values('urgency')\
+                                                            .annotate(urg_count=Count('urgency'))
+        severities = {
+            Vulnerability.Urgency.HIGH: 'high',
+            Vulnerability.Urgency.MEDIUM: 'med',
+            Vulnerability.Urgency.LOW: 'low'
+        }
+        return {severities[u['urgency']]: u['urg_count'] for u in urgencies}
 
     def generate_recommended_actions(self, classes=None):
         """

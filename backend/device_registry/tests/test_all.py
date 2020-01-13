@@ -1423,7 +1423,9 @@ class CVEViewTests(TestCase):
 
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
-            owner=self.user
+            owner=self.user,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'stretch'}
         )
         self.device1 = Device.objects.create(
             device_id='device1.d.wott-dev.local',
@@ -1533,3 +1535,25 @@ class CVEViewTests(TestCase):
                 CVEView.AffectedPackage('one_first', [self.device0])
             ])
         ])
+
+    def test_cve_count(self):
+        vulns = [
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.HIGH, fix_available=True),
+            Vulnerability(os_release_codename='buster', name='CVE-2018-2', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.MEDIUM, fix_available=True,
+                          pub_date=self.today),
+            Vulnerability(os_release_codename='buster', name='CVE-2018-3', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.MEDIUM, fix_available=True,
+                          pub_date=self.today),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-4', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-5', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-6', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
+        ]
+        Vulnerability.objects.bulk_create(vulns)
+        self.packages[0].vulnerabilities.set(vulns)
+        self.packages[1].vulnerabilities.set(vulns)
+        self.assertDictEqual(self.device0.cve_count, {'high': 1, 'med': 2, 'low': 3})
