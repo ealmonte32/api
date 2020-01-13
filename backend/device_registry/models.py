@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Avg, Count
+from django.db.models import Q
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -475,19 +475,19 @@ class Device(models.Model):
 
     @property
     def cve_count(self):
-        if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release and \
-                self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
+        if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
+               and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
             return
-        pks = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW,
-                                           debpackage__device__owner=self.owner).distinct().values('pk')
-        urgencies = Vulnerability.objects.filter(pk__in=pks).values('urgency')\
-                                                            .annotate(urg_count=Count('urgency'))
+
+        vuln_qs = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW, debpackage__device=self,
+                                               fix_available=True)
         severities = {
             Vulnerability.Urgency.HIGH: 'high',
             Vulnerability.Urgency.MEDIUM: 'med',
             Vulnerability.Urgency.LOW: 'low'
         }
-        return {severities[u['urgency']]: u['urg_count'] for u in urgencies}
+        return {severities[urgency]: vuln_qs.filter(urgency=urgency).values('name').distinct().count()
+                for urgency in severities}
 
     def generate_recommended_actions(self, classes=None):
         """

@@ -1538,19 +1538,21 @@ class CVEViewTests(TestCase):
 
     def test_cve_count(self):
         vulns = [
-            Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='one_source', is_binary=False,
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.HIGH, fix_available=True),
-            Vulnerability(os_release_codename='buster', name='CVE-2018-2', package='one_source', is_binary=False,
+            Vulnerability(os_release_codename='buster', name='CVE-2018-2', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.MEDIUM, fix_available=True,
                           pub_date=self.today),
-            Vulnerability(os_release_codename='buster', name='CVE-2018-3', package='one_source', is_binary=False,
+            Vulnerability(os_release_codename='buster', name='CVE-2018-3', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.MEDIUM, fix_available=True,
                           pub_date=self.today),
-            Vulnerability(os_release_codename='stretch', name='CVE-2018-4', package='one_source', is_binary=False,
-                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False),
-            Vulnerability(os_release_codename='stretch', name='CVE-2018-5', package='one_source', is_binary=False,
-                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False),
-            Vulnerability(os_release_codename='stretch', name='CVE-2018-6', package='one_source', is_binary=False,
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-4', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-5', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-6', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-6', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
         ]
         Vulnerability.objects.bulk_create(vulns)

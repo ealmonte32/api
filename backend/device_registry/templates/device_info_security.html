@@ -27,9 +27,9 @@
                     {% if cve_count is None %}
                       N/A
                     {% else %}
-                      High: {{  cve_count.high|default:"0" }}<br>
-                      Medium: {{ cve_count.med|default:"0" }}<br>
-                      Low: {{ cve_count.low|default:"0" }}<br>
+                      High: {{  cve_count.high }}<br>
+                      Medium: {{ cve_count.med }}<br>
+                      Low: {{ cve_count.low }}<br>
                     {% endif %}
                     {% endwith %}
                     <a href="{% url 'device_cve' object.pk %}">Detailed View</a>
