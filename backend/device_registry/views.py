@@ -666,6 +666,8 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         table_rows = []
         for cve_name, cve_packages in packages_by_cve.items():
             plist = sorted([self.AffectedPackage(p.name,
+                                                 # FIXME: this line may need additional optimisation to avoid calling
+                                                 # device_set.filter() every time.
                                                  [device] if device else list(p.device_set.filter(owner=user)))
                             for p in cve_packages],
                            key=lambda p: len(p.devices), reverse=True)
