@@ -4,6 +4,7 @@
 {% load static %}
 
 {% load bootstrap4 %}
+{% load widget_tweaks %}
 
 {% block title %}WoTT - {% trans "Register for an account" %}{% endblock %}
 
@@ -28,38 +29,33 @@
             <div class="box-left">
               <div class="form-group required">
                 <label class="wott-label" for="id_email">Your Email Address <span class="wott-blue">(*)</span></label>
-                <input type="email" name="email" required class="form-control wott-form-control wott-rounded-lg" placeholder="E-mail" title id="id_email">
+                {% render_field form.email class+="form-control wott-form-control wott-rounded-lg" placeholder="E-mail" %}
               </div>
               <div class="form-group required">
                 <label class="wott-label" for="id_password1">Password <span class="wott-blue">(*)</span></label>
-                <input type="password" name="password1" required class="form-control wott-form-control wott-rounded-lg" placeholder="Password" title id="id_password1">
+                {% render_field form.password1 class+="form-control wott-form-control wott-rounded-lg" placeholder="Password" %}
               </div>
               <div class="form-group required">
                 <label class="wott-label" for="id_password2">Password Confirmation</label>
-                <input type="password" name="password2" required class="form-control wott-form-control wott-rounded-lg" placeholder="Password confirmation" title id="id_password2"> 
+                {% render_field form.password2 class+="form-control wott-form-control wott-rounded-lg" placeholder="Password confirmation" %}
               </div>
               <div class="form-group required">
                 <label class="wott-label" for="id_payment_plan">Select your Payment Plan</label>
-                <select name="payment_plan" class="form-control wott-form-control wott-rounded-lg custom-select" title="" id="id_payment_plan">
-                <option value="1">Free</option>                 
-                <option value="2">Standard</option>                 
-                <option value="3">Professional</option>                  
-                <option value="4">Enterprise</option>                
-                </select>
+                {% render_field form.payment_plan class+="form-control wott-form-control wott-rounded-lg custom-select" %}
               </div>
             </div>
             <div class="box-right">
               <div class="form-group">
                 <label class="wott-label" for="id_name">Your Name</label>
-                <input type="text" name="name" maxlength="30" class="form-control wott-form-control wott-rounded-lg" placeholder="Name (optional)" title id="id_name">
+                {% render_field form.first_name class+="form-control wott-form-control wott-rounded-lg" placeholder="Name (optional)" %}
               </div>
               <div class="form-group">
                 <label class="wott-label" for="id_company">Company</label>
-                <input type="text" name="company" maxlength="128" class="form-control wott-form-control wott-rounded-lg" placeholder="Company (optional)" title id="id_company">
+                {% render_field form.company class+="form-control wott-form-control wott-rounded-lg" placeholder="Company (optional)" %}
               </div>
               <div class="form-group pb-2">
                 <label class="wott-label" for="id_phone">Your Phone</label>
-                <input type="tel" name="phone" class="form-control wott-form-control wott-rounded-lg" placeholder="Phone Number (optional)" title id="id_phone">
+                {% render_field form.phone class+="form-control wott-form-control wott-rounded-lg" placeholder="Phone Number (optional)" %}
               </div>
               <div class="form-group mt-5">
                 {% buttons %}

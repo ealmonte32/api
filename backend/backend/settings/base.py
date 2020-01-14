@@ -70,7 +70,8 @@ INSTALLED_APPS = [
     'profile_page.apps.ProfilePageConfig',
     'monitoring.apps.MonitoringConfig',
     'bootstrap4',
-    'phonenumber_field'
+    'phonenumber_field',
+    'widget_tweaks'
 ]
 
 MIDDLEWARE = [
