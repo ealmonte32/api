@@ -39,11 +39,11 @@
             {% if not device_name %}
             <td>
               {% for p in row.packages %}
-                <a href="#">
+                <a href="#" class="wott-popover">
                   {{ p.device_urls|length }}
                   <template>
                     {% for du in p.device_urls %}
-                      <a href="{{ du.href }}">{{  du.text }}</a>,
+                      <a href="{{ du.href }}">{{  du.text }}</a><br>
                     {% endfor %}
                   </template>
                 </a>
@@ -53,10 +53,11 @@
             {% endif %}
             <td>
               {% for p in row.packages %}
-                <a href="#">
+                <a href="#" class="wott-popover">
                   Instructions
                   <template>
-                    {{ p.upgrade_command }}
+                    Run the following command:
+                    <pre>{{ p.upgrade_command }}</pre>
                   </template>
                 </a>
                 <br>
@@ -74,4 +75,18 @@
 {% block scripts %}
 {{ block.super }}
 
+  <script>
+  $(function () {
+    $('[data-toggle="popover"]').popover()
+  });
+
+  $('.wott-popover').popover({
+    html: true,
+    trigger: 'click',
+    title: 'Details',
+    content: function() {
+        return $(this).children('template').html();
+    }
+  })
+  </script>
 {% endblock scripts %}
