@@ -28,37 +28,37 @@
             {% csrf_token %}
             <div class="box-left">
               <div class="form-group required">
-                <label class="wott-label" for="id_email">Your Email Address <span class="wott-blue">(*)</span></label>
+                <label class="wott-label" for="{{ form.email.id_for_label }}">Your Email Address <span class="wott-blue">(*)</span></label>
                 {% render_field form.email class+="form-control wott-form-control wott-rounded-lg" placeholder="E-mail" %}
               </div>
               <div class="form-group required">
-                <label class="wott-label" for="id_password1">Password <span class="wott-blue">(*)</span></label>
+                <label class="wott-label" for="{{ form.password1.id_for_label }}">Password <span class="wott-blue">(*)</span></label>
                 {% render_field form.password1 class+="form-control wott-form-control wott-rounded-lg" placeholder="Password" %}
               </div>
               <div class="form-group required">
-                <label class="wott-label" for="id_password2">Password Confirmation</label>
+                <label class="wott-label" for="{{ form.password2.id_for_label }}">Password Confirmation</label>
                 {% render_field form.password2 class+="form-control wott-form-control wott-rounded-lg" placeholder="Password confirmation" %}
               </div>
               <div class="form-group required">
-                <label class="wott-label" for="id_payment_plan">Select your Payment Plan</label>
+                <label class="wott-label" for="{{ form.payment_plan.id_for_label }}">Select your Payment Plan</label>
                 {% render_field form.payment_plan class+="form-control wott-form-control wott-rounded-lg custom-select" %}
               </div>
             </div>
             <div class="box-right">
               <div class="form-group">
-                <label class="wott-label" for="id_name">First Name</label>
+                <label class="wott-label" for="{{ form.first_name.id_for_label }}">First Name</label>
                 {% render_field form.first_name class+="form-control wott-form-control wott-rounded-lg" placeholder="First Name (optional)" %}
               </div>
               <div class="form-group">
-                <label class="wott-label" for="id_name">Last Name</label>
+                <label class="wott-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
                 {% render_field form.last_name class+="form-control wott-form-control wott-rounded-lg" placeholder="Last Name (optional)" %}
               </div>
               <div class="form-group">
-                <label class="wott-label" for="id_company">Company</label>
+                <label class="wott-label" for="{{ form.company.id_for_label }}">Company</label>
                 {% render_field form.company class+="form-control wott-form-control wott-rounded-lg" placeholder="Company (optional)" %}
               </div>
               <div class="form-group pb-2">
-                <label class="wott-label" for="id_phone">Your Phone</label>
+                <label class="wott-label" for="{{ form.phone.id_for_label }}">Your Phone</label>
                 {% render_field form.phone class+="form-control wott-form-control wott-rounded-lg" placeholder="Phone Number (optional)" %}
               </div>
               <div class="form-group mt-5">
