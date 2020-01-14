@@ -46,8 +46,12 @@
             </div>
             <div class="box-right">
               <div class="form-group">
-                <label class="wott-label" for="id_name">Your Name</label>
-                {% render_field form.first_name class+="form-control wott-form-control wott-rounded-lg" placeholder="Name (optional)" %}
+                <label class="wott-label" for="id_name">First Name</label>
+                {% render_field form.first_name class+="form-control wott-form-control wott-rounded-lg" placeholder="First Name (optional)" %}
+              </div>
+              <div class="form-group">
+                <label class="wott-label" for="id_name">Last Name</label>
+                {% render_field form.last_name class+="form-control wott-form-control wott-rounded-lg" placeholder="Last Name (optional)" %}
               </div>
               <div class="form-group">
                 <label class="wott-label" for="id_company">Company</label>
