@@ -30,22 +30,47 @@
               <div class="form-group required">
                 <label class="wott-label" for="{{ form.email.id_for_label }}">Your Email Address <span class="wott-blue">(*)</span></label>
                 {% render_field form.email class+="form-control wott-form-control wott-rounded-lg" placeholder="E-mail" %}
-                {{ form.email.errors }}
+                {% if form.email.errors %}
+                <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+                  <h4 class="p-0 pt-3">{{ form.email.errors }}</h4>
+                </div>
+                {% endif %}
               </div>
               <div class="form-group required">
                 <label class="wott-label" for="{{ form.password1.id_for_label }}">Password <span class="wott-blue">(*)</span></label>
                 {% render_field form.password1 class+="form-control wott-form-control wott-rounded-lg" placeholder="Password" %}
-                {{ form.password1.errors }}
+                {% if form.password1.errors %}
+                <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+                  <h4 class="p-0 pt-3">{{ form.password1.errors }}</h4>
+                </div>
+                {% endif %}
               </div>
               <div class="form-group required">
                 <label class="wott-label" for="{{ form.password2.id_for_label }}">Password Confirmation</label>
                 {% render_field form.password2 class+="form-control wott-form-control wott-rounded-lg" placeholder="Password confirmation" %}
-                {{ form.password2.errors }}
+                {% if form.password2.errors %}
+                <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+                  <h4 class="p-0 pt-3">{{ form.password2.errors }}</h4>
+                </div>
+                {% endif %}
               </div>
               <div class="form-group required">
                 <label class="wott-label" for="{{ form.payment_plan.id_for_label }}">Select your Payment Plan</label>
                 {% render_field form.payment_plan class+="form-control wott-form-control wott-rounded-lg custom-select" %}
-                {{ form.payment_plan.errors }}
+                {% if form.payment_plan.errors %}
+                <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+                  <h4 class="p-0 pt-3">{{ form.payment_plan.errors }}</h4>
+                </div>
+                {% endif %}
+              </div>
+              <div class="form-group">
+                <label class="wott-label" for="{{ form.company.id_for_label }}">Company</label>
+                {% render_field form.company class+="form-control wott-form-control wott-rounded-lg" placeholder="Company (optional)" %}
+                {% if form.company.errors %}
+                <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+                  <h4 class="p-0 pt-3">{{ form.company.errors }}</h4>
+                </div>
+                {% endif %}
               </div>
             </div>
             <div class="box-right">
@@ -53,22 +78,30 @@
               <div class="form-group">
                 <label class="wott-label" for="{{ form.first_name.id_for_label }}">First Name</label>
                 {% render_field form.first_name class+="form-control wott-form-control wott-rounded-lg" placeholder="First Name (optional)" %}
-                {{ form.first_name.errors }}
+                {% if form.first_name.errors %}
+                <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+                  <h4 class="p-0 pt-3">{{ form.first_name.errors }}</h4>
+                </div>
+                {% endif %}
               </div>
               <div class="form-group">
                 <label class="wott-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
                 {% render_field form.last_name class+="form-control wott-form-control wott-rounded-lg" placeholder="Last Name (optional)" %}
-                {{ form.last_name.errors }}
+                {% if form.last_name.errors %}
+                <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+                  <h4 class="p-0 pt-3">{{ form.last_name.errors }}</h4>
+                </div>
+                {% endif %}
               </div>
-              <div class="form-group">
-                <label class="wott-label" for="{{ form.company.id_for_label }}">Company</label>
-                {% render_field form.company class+="form-control wott-form-control wott-rounded-lg" placeholder="Company (optional)" %}
-                {{ form.company.errors }}
-              </div>
+
               <div class="form-group pb-2">
                 <label class="wott-label" for="{{ form.phone.id_for_label }}">Your Phone</label>
                 {% render_field form.phone class+="form-control wott-form-control wott-rounded-lg" placeholder="Phone Number (optional)" %}
-                {{ form.phone.errors }}
+                {% if form.phone.errors %}
+                <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+                  <h4 class="p-0 pt-3">{{ form.phone.errors }}</h4>
+                </div>
+                {% endif %}
               </div>
               <div class="form-group mt-5">
                 {% buttons %}
