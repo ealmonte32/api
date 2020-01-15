@@ -27,6 +27,19 @@
       padding-left: 3.5rem;
     }
   } 
+
+  .box-bottom {
+    background-color:#f4f6fb;
+    border-radius: $wott-border-radius-lg;
+  }
+
+  .input-fields-box li {
+    list-style: none;
+  }
+
+  .wott-btn {
+    border: 0;
+  }
 }
 
 .wott-blue {
