@@ -447,7 +447,6 @@
               type: 'GET',
               data: data,
               success: (d) => {
-                  console.log(d);
                   table.rows.add(d.data).draw(false);
                   data_timestamp = d.timestamp;
               }

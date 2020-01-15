@@ -967,13 +967,12 @@ class DeviceListFilterMixin:
             if set_filter_dict:
                 self.filter_dict = None
 
-        try:
-            if since:
+        if since:
+            try:
                 since_timestamp = dateutil.parser.parse(since)
-        except ValueError:
-            raise ValidationError('"since" is invalid.')
-        else:
-            if since_timestamp:
+            except ValueError:
+                raise ValidationError('"since" is invalid.')
+            else:
                 query = Q(created__gt=since_timestamp) & query
 
         return query
@@ -1011,7 +1010,7 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         query = self.get_filter_q(*args, **kwargs)  # our filters
         devices = queryset.filter(query).distinct()
         self.ajax_info['recordsFiltered'] = devices.count()  # total filtered records count
-        self.ajax_info['timestamp'] = timezone.now()
+        self.ajax_info['timestamp'] = timezone.now()  # timestamp to be used by UI in "since" param to receive new nodes
         if length == -1:  # currently we have only 2 "modes":
             if start == 0:  # - with length = -1, then returns all records
                 return devices
