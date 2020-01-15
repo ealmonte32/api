@@ -302,7 +302,9 @@
     }
   </style>
   <script>
-  var table;
+  var table, data_timestamp, data_timer;
+  const UPDATE_INTERVAL = 5000;
+
   $(() => {
 
       // last-ping sorting
@@ -394,6 +396,16 @@
       {
           serializeUrlParams(data); // add url params (fiter) to payload
           let orig_data = data;
+          function set_timestamp_callback(d, cb) {
+              data_timestamp = d.timestamp;
+              if(data_timer) {
+                  clearInterval(data_timer);
+              }
+              data_timer = setInterval(() => {
+                  dt_ajax_update();
+              }, UPDATE_INTERVAL);
+              cb(d);
+          }
           $.ajax({
               url: '/ajax-devices/list?length=100',
               type: 'GET',
@@ -401,19 +413,19 @@
               success: function (data) {
                   if(data.recordsFiltered > 100)
                   {
-                      callback(data);
+                      set_timestamp_callback(data, callback);
                       $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).show();
                       $.ajax({
                           url: '/ajax-devices/list?start=100',
                           type: 'GET',
                           data: orig_data,
                           success: function (data) {
-                              callback(data);
+                              set_timestamp_callback(data, callback);
                           },
                           error: dt_ajax_fail
                       });
                   }
-                  else callback(data);
+                  else set_timestamp_callback(data, callback);
               },
               error: dt_ajax_fail
           });
@@ -424,6 +436,24 @@
           $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).hide();
           show_dialog(`${textStatus} ${jqXHR.status}`, errorThrown, jqXHR.responseText, 'Data retrieving error');
       }
+
+      function dt_ajax_update()
+      {
+          let data = {};
+          serializeUrlParams(data);
+          data['since'] = data_timestamp;
+          $.ajax({
+              url: '/ajax-devices/list?',
+              type: 'GET',
+              data: data,
+              success: (d) => {
+                  console.log(d);
+                  table.rows.add(d.data).draw(false);
+                  data_timestamp = d.timestamp;
+              }
+          });
+      }
+
       /**
        * DataTable footerCallback. Place batch action control to footer
        */
