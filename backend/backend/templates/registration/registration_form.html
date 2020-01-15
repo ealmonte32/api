@@ -28,119 +28,20 @@
             {% csrf_token %}
             
             <div class="input-fields-box d-flex">
-              
               <div class="box-left pb-2">
-                <div class="form-group required">
-                  <label class="wott-label" for="{{ form.email.id_for_label }}">Your Email Address <span class="wott-blue">(*)</span></label>
-                  {% render_field form.email class+="form-control wott-form-control wott-rounded-lg" placeholder="E-mail" %}
-                  {% if form.email.errors %}
-                    <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
-                      <ul class="py-1 px-1 mb-0">
-                        {% for error in form.email.errors %}
-                          <li><h4>{{ error }}</h4></li>
-                        {% endfor %}
-                      </ul>
-                    </div>
-                  {% endif %}
-                </div>
-                <div class="form-group required">
-                  <label class="wott-label" for="{{ form.password1.id_for_label }}">Password <span class="wott-blue">(*)</span></label>
-                  {% render_field form.password1 class+="form-control wott-form-control wott-rounded-lg" placeholder="Password" %}
-                  {% if form.password1.errors %}
-                    <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
-                      <ul class="py-1 px-1 mb-0">
-                      {% for error in form.password1.errors %}
-                        <li><h4>{{ error }}</h4></li>
-                      {% endfor %}
-                      </ul>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="form-group required">
-                  <label class="wott-label" for="{{ form.password2.id_for_label }}">Password Confirmation</label>
-                  {% render_field form.password2 class+="form-control wott-form-control wott-rounded-lg" placeholder="Password confirmation" %}
-                  {% if form.password2.errors %}
-                  <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
-                    <ul class="py-1 px-1 mb-0">
-                      {% for error in form.password2.errors %}
-                        <li><h4>{{ error }}</h4></li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                  {% endif %}
-                </div>
-                <div class="form-group required">
-                  <label class="wott-label" for="{{ form.payment_plan.id_for_label }}">Select your Payment Plan</label>
-                  {% render_field form.payment_plan class+="form-control wott-form-control wott-rounded-lg custom-select" %}
-                  {% if form.payment_plan.errors %}
-                  <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
-                    <ul class="py-1 px-1 mb-0">
-                      {% for error in payment_plan.errors %}
-                      <li><h4>{{ error }}</h4></li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                  {% endif %}
-                </div>
+                {% include "registration_form_field.html" with field=form.email asterisk=True %}
+                {% include "registration_form_field.html" with field=form.password1 asterisk=True %}
+                {% include "registration_form_field.html" with field=form.password2 %}
+                {% include "registration_form_field.html" with field=form.payment_plan %}
               </div>
 
               <div class="box-right pb-2">
-                <div class="form-group">
-                  <label class="wott-label" for="{{ form.first_name.id_for_label }}">First Name</label>
-                  {% render_field form.first_name class+="form-control wott-form-control wott-rounded-lg" placeholder="First Name (optional)" %}
-                  {% if form.first_name.errors %}
-                  <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
-                    <ul class="py-1 px-1 mb-0">
-                      {% for error in first_name.errors %}
-                        <li><h4>{{ error }}</h4></li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                  {% endif %}
-                </div>
-                <div class="form-group">
-                  <label class="wott-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
-                  {% render_field form.last_name class+="form-control wott-form-control wott-rounded-lg" placeholder="Last Name (optional)" %}
-                  {% if form.last_name.errors %}
-                  <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
-                    <ul class="py-1 px-1 mb-0">
-                      {% for error in form.last_name.errors %}
-                        <li><h4>{{ error }}</h4></li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                  {% endif %}
-                </div>
-                <div class="form-group">
-                  <label class="wott-label" for="{{ form.company.id_for_label }}">Company</label>
-                  {% render_field form.company class+="form-control wott-form-control wott-rounded-lg" placeholder="Company (optional)" %}
-                  {% if form.company.errors %}
-                  <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
-                    <ul class="py-1 px-1 mb-0">
-                      {% for error in form.company.errors %}
-                        <li><h4>{{ error }}</h4></li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                  {% endif %}
-                </div>
-                <div class="form-group pb-2 box-bottom">
-                  <label class="wott-label" for="{{ form.phone.id_for_label }}">Your Phone</label>
-                  {% render_field form.phone class+="form-control wott-form-control wott-rounded-lg" placeholder="Phone Number (optional)" %}
-                  {% if form.phone.errors %}
-                  <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
-                    <ul class="py-1 px-1 mb-0">
-                      {% for error in form.phone.errors %}
-                        <li><h4>{{ error }}</h4></li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                  {% endif %}
-                </div>
+                {% include "registration_form_field.html" with field=form.first_name %}
+                {% include "registration_form_field.html" with field=form.last_name %}
+                {% include "registration_form_field.html" with field=form.company %}
+                {% include "registration_form_field.html" with field=form.phone %}
               </div>
-
             </div>
-
 
             <div class="form-group box-bottom text-center mb-0 pb-4">
               {% buttons %}
