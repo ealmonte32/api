@@ -634,7 +634,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         @property
         def cve_link(self):
-            return CVEView.Hyperlink(self.cve_name, 'http://cve.mitre.org/cgi-bin/cvename.cgi?name='+self.cve_name)
+            return CVEView.Hyperlink(self.cve_name, 'http://cve.mitre.org/cgi-bin/cvename.cgi?name=' + self.cve_name)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -665,12 +665,12 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         table_rows = []
         for cve_name, cve_packages in packages_by_cve.items():
-            plist = sorted([self.AffectedPackage(p.name,
+            plist = sorted([self.AffectedPackage(package.name,
                                                  # FIXME: this line may need additional optimisation to avoid calling
                                                  # device_set.filter() every time.
-                                                 [device] if device else list(p.device_set.filter(owner=user)))
-                            for p in cve_packages],
-                           key=lambda p: len(p.devices), reverse=True)
+                                                 [device] if device else list(package.device_set.filter(owner=user)))
+                            for package in cve_packages],
+                           key=lambda package: len(package.devices), reverse=True)
             urgency, cve_date = vuln_info[cve_name]
             table_rows.append(self.TableRow(cve_name=cve_name, cve_url='', urgency=urgency,
                                             cve_date=cve_date, packages=plist))

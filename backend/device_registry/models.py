@@ -1,6 +1,5 @@
 from enum import Enum, IntEnum
 import datetime
-from statistics import mean
 import json
 import uuid
 from typing import NamedTuple
@@ -475,10 +474,15 @@ class Device(models.Model):
 
     @property
     def cve_count(self):
+        """
+        Count the number of high, medium and low severity CVEs for the device.
+        :return: A dict of {'high': N1, 'med': N2, 'low': N3} or None if no deb packages or unsupported OS.
+        """
+
+        # We have no vulnerability data for OS other than Debian and Ubuntu flavors.
         if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
                and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
             return
-
         vuln_qs = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW, debpackage__device=self,
                                                fix_available=True)
         severities = {
@@ -822,6 +826,9 @@ class GlobalPolicy(models.Model):
 
 
 class Vulnerability(models.Model):
+    class Meta:
+        unique_together = ['os_release_codename', 'name', 'package']
+
     class Version:
         """Version class which uses the original APT comparison algorithm."""
 
