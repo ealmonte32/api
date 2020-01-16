@@ -969,7 +969,7 @@ class DeviceListFilterMixin:
         if since:
             try:
                 since_timestamp = dateutil.parser.parse(since)
-                if since_timestamp.tzinfo is None:
+                if not timezone.is_aware(since_timestamp):
                     raise ValueError
             except ValueError:
                 raise ValidationError('"since" is invalid.')

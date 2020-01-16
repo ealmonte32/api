@@ -1238,7 +1238,8 @@ class DeviceListAjaxViewTest(APITestCase):
         self.client.login(username='test', password='123')
         self.device0.created = timezone.now() - datetime.timedelta(days=1)
         self.device0.save(update_fields=['created'])
-        url = reverse('ajax_device_list') + '?since='+(timezone.now() - timezone.timedelta(hours=1)).isoformat()
+        url = reverse('ajax_device_list') + '?' + urlencode({
+            'since': str((timezone.now() - timezone.timedelta(hours=1)))})
 
         with freeze_time(timezone.now() - datetime.timedelta(minutes=1)):
             response = self.client.get(url)
