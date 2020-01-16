@@ -5,9 +5,9 @@ from pathlib import Path
 from itertools import chain
 import time
 
-import dateutil.parser
 from django.conf import settings
 
+import dateutil.parser
 import redis
 from git import Repo
 
