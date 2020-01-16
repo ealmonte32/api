@@ -1503,7 +1503,7 @@ class CVEViewTests(TestCase):
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
             Vulnerability(os_release_codename='stretch', name='CVE-2018-6', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
-            Vulnerability(os_release_codename='stretch', name='CVE-2018-6', package='', is_binary=False,
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-7', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
         ]
         Vulnerability.objects.bulk_create(vulns)

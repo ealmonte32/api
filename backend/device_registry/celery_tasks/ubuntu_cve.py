@@ -5,6 +5,7 @@ from pathlib import Path
 from itertools import chain
 import time
 
+import dateutil.parser
 from django.conf import settings
 
 import redis
@@ -291,7 +292,7 @@ def fetch_vulnerabilities():
                             'medium': Vulnerability.Urgency.MEDIUM,
                             'high': Vulnerability.Urgency.HIGH,
                         }.get(header['Priority'], Vulnerability.Urgency.NONE),
-                        pub_date=header['PublicDate'],
+                        pub_date=dateutil.parser.parse(header['PublicDate']),
                         remote=None,
                         fix_available=(status == 'fixed'),
                         os_release_codename=codename
