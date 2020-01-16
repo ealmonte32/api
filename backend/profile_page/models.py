@@ -9,6 +9,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
+from dateutil.relativedelta import relativedelta, MO
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -51,6 +52,12 @@ class Profile(models.Model):
     def actions_count(self):
         return RecommendedAction.objects.filter(
             Q(device__owner=self.user) & RecommendedAction.get_affected_query()) \
+            .values('action_id').distinct().count()
+
+    @property
+    def actions_resolved_since_monday(self):
+        monday = (timezone.now() - relativedelta(weekday=MO(-1))).date()
+        return RecommendedAction.objects.filter(device__owner=self.user, resolved_at__gte=monday)\
             .values('action_id').distinct().count()
 
     @property
