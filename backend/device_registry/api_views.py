@@ -904,7 +904,6 @@ class DeviceListFilterMixin:
         filter_predicate = self.request.GET.get('filter_predicate')
         filter_value = self.request.GET.get('filter_value')
         since = self.request.GET.get('since')
-        since_timestamp = None
 
         if filter_by and filter_predicate:
             if filter_by not in self.FILTER_FIELDS:
@@ -970,6 +969,8 @@ class DeviceListFilterMixin:
         if since:
             try:
                 since_timestamp = dateutil.parser.parse(since)
+                if since_timestamp.tzinfo is None:
+                    raise ValueError
             except ValueError:
                 raise ValidationError('"since" is invalid.')
             else:
