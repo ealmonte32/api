@@ -3,6 +3,8 @@ import logging
 import uuid
 import datetime
 
+import dateutil
+import dateutil.parser
 from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
@@ -901,6 +903,7 @@ class DeviceListFilterMixin:
         filter_by = self.request.GET.get('filter_by')
         filter_predicate = self.request.GET.get('filter_predicate')
         filter_value = self.request.GET.get('filter_value')
+        since = self.request.GET.get('since')
 
         if filter_by and filter_predicate:
             if filter_by not in self.FILTER_FIELDS:
@@ -962,6 +965,17 @@ class DeviceListFilterMixin:
         else:
             if set_filter_dict:
                 self.filter_dict = None
+
+        if since:
+            try:
+                since_timestamp = dateutil.parser.parse(since)
+                if not timezone.is_aware(since_timestamp):
+                    raise ValueError
+            except ValueError:
+                raise ValidationError('"since" is invalid.')
+            else:
+                query = Q(created__gt=since_timestamp) & query
+
         return query
 
 
@@ -997,6 +1011,7 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         query = self.get_filter_q(*args, **kwargs)  # our filters
         devices = queryset.filter(query).distinct()
         self.ajax_info['recordsFiltered'] = devices.count()  # total filtered records count
+        self.ajax_info['timestamp'] = timezone.now()  # timestamp to be used by UI in "since" param to receive new nodes
         if length == -1:  # currently we have only 2 "modes":
             if start == 0:  # - with length = -1, then returns all records
                 return devices

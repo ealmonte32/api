@@ -457,7 +457,8 @@ class VulnerablePackagesActionTest(TestsMixin, TestCase):
         deb_package = DebPackage.objects.create(name='package', version='version1', source_name='package',
                                                 source_version='sversion1', arch='amd64', os_release_codename='jessie')
         vulnerability = Vulnerability.objects.create(name='name', package='package', is_binary=True, other_versions=[],
-                                                     urgency='L', fix_available=True, os_release_codename='jessie')
+                                                     urgency=Vulnerability.Urgency.LOW, fix_available=True,
+                                                     os_release_codename='jessie')
         deb_package.vulnerabilities.add(vulnerability)
         self.device.deb_packages.add(deb_package)
 

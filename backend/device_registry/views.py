@@ -1,12 +1,13 @@
 import json
 import uuid
 from collections import defaultdict
+from typing import NamedTuple, List
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import Case, When
-from django.db.models import Q, Sum, Avg, IntegerField
+from django.db.models import Case, When, Count, F
+from django.db.models import Q, Sum, Avg, IntegerField, Max
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
@@ -19,7 +20,7 @@ from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, HistoryRecord
+    RecommendedAction, HistoryRecord, Vulnerability, DebPackage
 from .models import GlobalPolicy
 from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
 
@@ -584,4 +585,99 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, RecommendedAct
         context = super().get_context_data(**kwargs)
         context['actions'] = actions
         context['device_name'] = device_name
+        return context
+
+
+class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
+    template_name = 'cve.html'
+
+    class Hyperlink(NamedTuple):
+        text: str
+        href: str
+
+    class AffectedPackage(NamedTuple):
+        name: str
+        devices: List[Device]
+
+        @property
+        def device_urls(self):
+            return [CVEView.Hyperlink(
+                d.get_name(),
+                reverse('device_cve', kwargs={'device_pk': d.pk})
+            ) for d in self.devices]
+
+        @property
+        def upgrade_command(self):
+            return f'apt-get update && apt-get install -y {self.name}'
+
+    class TableRow(NamedTuple):
+        cve_name: str
+        urgency: Vulnerability.Urgency
+        packages: List[NamedTuple]  # Actually it's List[AffectedPackage]
+        cve_url: str
+        cve_date: timezone.datetime = None
+
+        urgencies = {
+            Vulnerability.Urgency.HIGH: 'High',
+            Vulnerability.Urgency.MEDIUM: 'Medium',
+            Vulnerability.Urgency.LOW: 'Low',
+            Vulnerability.Urgency.NONE: 'N/A'
+        }
+
+        @property
+        def key(self):
+            return self.urgency, sum([len(p.devices) for p in self.packages])
+        
+        @property
+        def severity(self):
+            return self.urgencies[self.urgency]
+
+        @property
+        def cve_link(self):
+            return CVEView.Hyperlink(self.cve_name, 'http://cve.mitre.org/cgi-bin/cvename.cgi?name=' + self.cve_name)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        device_pk = kwargs.get('device_pk')
+        if device_pk is not None:
+            device = get_object_or_404(Device, pk=device_pk, owner=user)
+            vuln_query = Q(debpackage__device__pk=device_pk)
+            packages_query = Q(device__pk=device_pk)
+        else:
+            device = None
+            vuln_query = Q(debpackage__device__owner=user)
+            packages_query = Q(device__owner=user)
+
+        vulns = Vulnerability.objects.filter(vuln_query, fix_available=True) \
+                                     .values('name').distinct().annotate(max_urgency=Max('urgency'),
+                                                                         pubdate=Max('pub_date'))
+        vuln_info = {v['name']: (v['max_urgency'], v['pubdate']) for v in vulns}
+        packages = DebPackage.objects.filter(packages_query,
+                                             vulnerabilities__isnull=False,
+                                             vulnerabilities__fix_available=True)\
+                                     .annotate(cve_name=F('vulnerabilities__name'))
+
+        packages_by_cve = defaultdict(set)
+        for p in packages:
+            packages_by_cve[p.cve_name].add(p)
+
+        table_rows = []
+        for cve_name, cve_packages in packages_by_cve.items():
+            plist = sorted([self.AffectedPackage(package.name,
+                                                 # FIXME: this line may need additional optimisation to avoid calling
+                                                 # device_set.filter() every time.
+                                                 [device] if device else list(package.device_set.filter(owner=user)))
+                            for package in cve_packages],
+                           key=lambda package: len(package.devices), reverse=True)
+            urgency, cve_date = vuln_info[cve_name]
+            table_rows.append(self.TableRow(cve_name=cve_name, cve_url='', urgency=urgency,
+                                            cve_date=cve_date, packages=plist))
+
+        context['table_rows'] = sorted(table_rows,
+                                       key=lambda r: r.key, reverse=True)
+        if device:
+            context['device_name'] = device.get_name()
+
         return context

@@ -7,6 +7,7 @@ import time
 
 from django.conf import settings
 
+import dateutil.parser
 import redis
 from git import Repo
 
@@ -291,6 +292,7 @@ def fetch_vulnerabilities():
                             'medium': Vulnerability.Urgency.MEDIUM,
                             'high': Vulnerability.Urgency.HIGH,
                         }.get(header['Priority'], Vulnerability.Urgency.NONE),
+                        pub_date=dateutil.parser.parse(header['PublicDate']),
                         remote=None,
                         fix_available=(status == 'fixed'),
                         os_release_codename=codename
