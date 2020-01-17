@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.http import urlencode
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from freezegun import freeze_time
 
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -1215,7 +1216,8 @@ class DeviceListAjaxViewTest(APITestCase):
     def _dev_list_data(self, lst, total=3, draw='-', length=None):
         data = [self._dev_list_item(dev) for dev in lst]
         return {'data': data, 'draw': draw, 'recordsTotal': total,
-                'recordsFiltered': len(lst) if length is None else length}
+                'recordsFiltered': len(lst) if length is None else length,
+                'timestamp': timezone.now()}
 
     def _filter_url(self, by, predicate, value):
         return reverse('ajax_device_list') + '?' + urlencode({
@@ -1227,65 +1229,81 @@ class DeviceListAjaxViewTest(APITestCase):
     def test_no_filter(self):
         self.client.login(username='test', password='123')
         url = reverse('ajax_device_list')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2]))
+
+        with freeze_time(timezone.now()):
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2]))
+
+    def test_since(self):
+        self.client.login(username='test', password='123')
+        self.device0.created = timezone.now() - datetime.timedelta(days=1)
+        self.device0.save(update_fields=['created'])
+        url = reverse('ajax_device_list') + '?' + urlencode({
+            'since': str((timezone.now() - timezone.timedelta(hours=1)))})
+
+        with freeze_time(timezone.now() - datetime.timedelta(minutes=1)):
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
 
     def test_filter_date(self):
         self.client.login(username='test', password='123')
 
-        url = self._filter_url('last-ping', 'eq', '1,days')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+        with freeze_time(timezone.now()):
+            url = self._filter_url('last-ping', 'eq', '1,days')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
-        url = self._filter_url('last-ping', 'eq', '2,days')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+            url = self._filter_url('last-ping', 'eq', '2,days')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
 
-        url = self._filter_url('last-ping', 'lt', '1,days')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2]))
+            url = self._filter_url('last-ping', 'lt', '1,days')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1, self.device2]))
 
-        url = self._filter_url('last-ping', 'gt', '1,days')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([]))
+            url = self._filter_url('last-ping', 'gt', '1,days')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([]))
 
     def test_filter_name(self):
         self.client.login(username='test', password='123')
 
-        url = self._filter_url('device-name', 'eq', 'first')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+        with freeze_time(timezone.now()):
+            url = self._filter_url('device-name', 'eq', 'first')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
-        url = self._filter_url('device-name', 'eq', 'firstfqdn')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+            url = self._filter_url('device-name', 'eq', 'firstfqdn')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
-        url = self._filter_url('device-name', 'neq', 'firstfqdn')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+            url = self._filter_url('device-name', 'neq', 'firstfqdn')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
 
-        url = self._filter_url('device-name', 'c', 'fir')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
+            url = self._filter_url('device-name', 'c', 'fir')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
-        url = self._filter_url('device-name', 'nc', 'fir')
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+            url = self._filter_url('device-name', 'nc', 'fir')
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
 
     def test_datatables(self):
         self.client.login(username='test', password='123')
 
-        url = reverse('ajax_device_list') + '?' + urlencode({'length': 2})
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1], length=3))
+        with freeze_time(timezone.now()):
+            url = reverse('ajax_device_list') + '?' + urlencode({'length': 2})
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0, self.device1], length=3))
 
-        url = reverse('ajax_device_list') + '?' + urlencode({'start': 1})
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2], length=3))
+            url = reverse('ajax_device_list') + '?' + urlencode({'start': 1})
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2], length=3))
 
-        url = reverse('ajax_device_list') + '?' + urlencode({'start': 1, 'length': 1})
-        response = self.client.get(url)
-        self.assertDictEqual(response.data, self._dev_list_data([self.device1], length=3))
+            url = reverse('ajax_device_list') + '?' + urlencode({'start': 1, 'length': 1})
+            response = self.client.get(url)
+            self.assertDictEqual(response.data, self._dev_list_data([self.device1], length=3))
 
 
 class PolicyDeviceNumberViewTests(APITestCase):
