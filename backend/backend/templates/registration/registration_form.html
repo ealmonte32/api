@@ -1,40 +1,58 @@
 {% extends "registration/registration_base.html" %}
 
 {% load i18n %}
+{% load static %}
 
 {% load bootstrap4 %}
+{% load widget_tweaks %}
 
 {% block title %}WoTT - {% trans "Register for an account" %}{% endblock %}
 
 {% block content %}
-  <main class="main h-100 w-100">
-    <div class="container h-100">
-      <div class="row h-100">
-        <div class="col-sm-10 col-md-8 col-lg-6 mx-auto d-table h-100">
-          <div class="d-table-cell align-middle">
+  <div id="register-container" style="background-image: url({% static 'media/login-bg.png' %});">
+    <main class="main w-75 wott-rounded-lg m-auto d-flex align-items-center position-relative">
+      <div id="server-container-register">
+        <img id="server-image-content" src="{% static 'media/server.png' %}" alt="server"/>
+      </div>
+      <div class="container h-100">
+    
+        <div id="register-head" class="d-flex bg-white">
+          <h1 id="register-title">Register</h1>
+          <picture class="d-flex align-items-center align-items-end">
+            <img src="{% static '/media/logo.png' %}" alt=""/>
+          </picture> 
+        </div>
 
-            <div class="text-center mt-4">
-              <h1 class="h2">Register</h1>
-              <p class="lead">
-                Enter your details below
-              </p>
-            </div>
-            <div class="card">
-              <div class="card-body">
-                <div class="m-sm-4">
-                  <form method="post" action="">
-                    {% csrf_token %}
-                    {% bootstrap_form form %}
-                    {% buttons %}
-                      <button type="submit" class="btn btn-lg btn-primary">{% trans 'Submit' %}</button>
-                    {% endbuttons %}
-                  </form>
-                </div>
+        <div class="p-0 mb-0">
+          <form id="register-form" method="post" action="">
+            {% csrf_token %}
+            
+            <div class="input-fields-box d-flex">
+              <div class="box-left pb-2">
+                {% include "registration_form_field.html" with field=form.email asterisk=True %}
+                {% include "registration_form_field.html" with field=form.password1 asterisk=True %}
+                {% include "registration_form_field.html" with field=form.password2 %}
+                {% include "registration_form_field.html" with field=form.payment_plan %}
+              </div>
+
+              <div class="box-right pb-2">
+                {% include "registration_form_field.html" with field=form.first_name %}
+                {% include "registration_form_field.html" with field=form.last_name %}
+                {% include "registration_form_field.html" with field=form.company %}
+                {% include "registration_form_field.html" with field=form.phone %}
               </div>
             </div>
-          </div>
+
+            <div class="form-group box-bottom text-center mb-0 pb-4">
+              {% buttons %}
+                <button type="submit" class="wott-btn btn-wott-primary w-25">{% trans 'Get Started' %}</button>
+              {% endbuttons %}
+            </div>
+          </form>
         </div>
       </div>
-    </div>
-  </main>
+        
+      
+    </main>
+  </div>
 {% endblock content %}
