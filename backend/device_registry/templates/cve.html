@@ -13,7 +13,7 @@
   <div class="overlay"></div>
   <div class="cve-tab">
     <section class="top-section background-blue">
-  
+
       <div class="left-container wott-rounded-lg wott-box-shadow">
         <div class="inner-left-box">
           <h3 class="title-left-box">CVE Overview</h3>
@@ -40,18 +40,18 @@
           </div>
         </div>
         <div class="inner-right-box wott-rounded-lg">
-  
+
           <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
             <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="#fff"></circle>
             <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#d2d3d4" stroke-width="3"></circle>
-          
+
             <circle id="high-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF2F20" stroke-width="3" stroke-dasharray="50 50" stroke-dashoffset="35"></circle>
             <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF2F20" stroke-width="3" stroke-dasharray="<percentage1, (100 - percentage1)>" stroke-dashoffset="<initialValue>"></circle> -->
             <circle id="medium-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="20 80" stroke-dashoffset="85"></circle>
             <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="<percentage2, (100 - percentage2)>" stroke-dashoffset="<secondValue = 100 - percentage1 + initialValue>"></circle> -->
             <circle id="low-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#23BED6" stroke-width="3" stroke-dasharray="30 70" stroke-dashoffset="165"></circle>
             <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="<percentage3, (100 - percentage3)>" stroke-dashoffset="<100 - percentage2 + secondValue>"></circle> -->
-  
+
             <g class="chart-text">
               <text id="cve-priority" x="50%" y="50%" class="chart-number">
                 96 <!--HARDCODE-->
@@ -71,10 +71,10 @@
       </div>
       <!-- The container bellow will be used in further layout improvements -->
       <!-- <div class="right-container"></div> -->
-      
+
     </section>
-  
-  
+
+
     <section class="my-4">
           <table class="container-fluid wott-rounded-lg wott-box-shadow" >
             <div class="table-header">
@@ -113,7 +113,7 @@
                     {{ p.device_urls|length }}
                     <template>
                       <div class="popover-box">
-                        <div class="popover-title"> 
+                        <div class="popover-title">
                           <h1 class="mb-0">All Affected Nodes</h1>
                           <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
                         </div>
@@ -177,7 +177,7 @@
 // Change the small text [low, high, medium] inside the circle
 // COlORS: HIGH = #EF2F20 | MEDIUM = #EF8F20 | LOW = #23BED6;
 // When clicking in other circle segment the previous one has to come back to strokeWidht = 3;
-    
+
  $('#high-circle-segment').on('click', function() {
   document.getElementById('high-circle-segment').style.strokeWidth = 4;
   document.getElementById('cve-priority').textContent = "123";
@@ -188,6 +188,6 @@
  // Popover JS require 2 functions
  // ## When opening the popover we should do => document.getElementById(.overlay).style.display = block;
  // ## When we close the popover we should do => document.getElementById('.overlay').style.display = hidden;
- 
+
   </script>
 {% endblock scripts %}
