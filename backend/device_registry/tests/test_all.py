@@ -1423,11 +1423,11 @@ class CVEViewTests(TestCase):
         self.assertListEqual(response.context_data['table_rows'], [
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 # These two AffectedPackage's should be sorted by hosts_affected
-                CVEView.AffectedPackage('one_second', [self.device0, self.device1]),
-                CVEView.AffectedPackage('one_first', [self.device0])
+                CVEView.AffectedPackage('one_second', 2),
+                CVEView.AffectedPackage('one_first', 1)
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0])
+                CVEView.AffectedPackage('one_first', 1)
             ])
         ])
 
@@ -1441,15 +1441,14 @@ class CVEViewTests(TestCase):
         self.assertListEqual(response.context_data['table_rows'], [
             # These two TableRow's should be sorted by urgency
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.HIGH, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0]),
-                CVEView.AffectedPackage('one_second', [self.device0])
+                CVEView.AffectedPackage('one_first', 1),
+                CVEView.AffectedPackage('one_second', 1)
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0]),
-                CVEView.AffectedPackage('one_second', [self.device0])
+                CVEView.AffectedPackage('one_first', 1),
+                CVEView.AffectedPackage('one_second', 1)
             ])
         ])
-        self.assertEqual(len(response.context_data['table_rows'][0].packages[0].device_urls), 1)
 
     def test_sort_total_hosts_affected(self):
         self.packages[0].vulnerabilities.set(self.vulns)
@@ -1460,11 +1459,11 @@ class CVEViewTests(TestCase):
         self.assertListEqual(response.context_data['table_rows'], [
             # These two TableRow's should be sorted by the sum of hosts_affected
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0]),
-                CVEView.AffectedPackage('one_second', [self.device0])
+                CVEView.AffectedPackage('one_first', 1),
+                CVEView.AffectedPackage('one_second', 1)
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0])
+                CVEView.AffectedPackage('one_first', 1)
             ])
         ])
 
@@ -1479,11 +1478,11 @@ class CVEViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.context_data['table_rows'], [
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0]),
-                CVEView.AffectedPackage('one_second', [self.device0])
+                CVEView.AffectedPackage('one_first', 1),
+                CVEView.AffectedPackage('one_second', 1)
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0])
+                CVEView.AffectedPackage('one_first', 1)
             ])
         ])
 

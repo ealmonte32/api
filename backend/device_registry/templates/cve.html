@@ -40,7 +40,7 @@
             <td>
               {% for p in row.packages %}
                 <a href="#" class="wott-popover">
-                  {{ p.device_urls|length }}
+                  {{ p.devices_count }}
                   <template>
                     {% for du in p.device_urls %}
                       <a href="{{ du.href }}">{{  du.text }}</a><br>
