@@ -288,4 +288,4 @@ GITHUB_APP_CLIENT_ID = os.getenv('GITHUB_APP_CLIENT_ID')  # Github app Client ID
 GITHUB_APP_CLIENT_SECRET = os.getenv('GITHUB_APP_CLIENT_SECRET')    # Github App Client Secret
 GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')    # Github App Redirect URL
 
-MAX_WEEKLY_RA = 5
+MAX_WEEKLY_RA = 5  # The number of RAs for the user to resolve in a week (starting this Monday)
