@@ -1,13 +1,12 @@
 from enum import Enum, IntEnum
 import datetime
-from statistics import mean
 import json
 import uuid
 from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Avg
+from django.db.models import Q
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -473,6 +472,27 @@ class Device(models.Model):
                 self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
+    @property
+    def cve_count(self):
+        """
+        Count the number of high, medium and low severity CVEs for the device.
+        :return: A dict of {'high': N1, 'med': N2, 'low': N3} or None if no deb packages or unsupported OS.
+        """
+
+        # We have no vulnerability data for OS other than Debian and Ubuntu flavors.
+        if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
+               and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
+            return
+        vuln_qs = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW, debpackage__device=self,
+                                               fix_available=True)
+        severities = {
+            Vulnerability.Urgency.HIGH: 'high',
+            Vulnerability.Urgency.MEDIUM: 'med',
+            Vulnerability.Urgency.LOW: 'low'
+        }
+        return {severities[urgency]: vuln_qs.filter(urgency=urgency).values('name').distinct().count()
+                for urgency in severities}
+
     def generate_recommended_actions(self, classes=None):
         """
         Generate RAs for this device and store them as RecommendedAction objects in database.
@@ -806,6 +826,9 @@ class GlobalPolicy(models.Model):
 
 
 class Vulnerability(models.Model):
+    class Meta:
+        unique_together = ['os_release_codename', 'name', 'package']
+
     class Version:
         """Version class which uses the original APT comparison algorithm."""
 
@@ -826,11 +849,11 @@ class Vulnerability(models.Model):
         def __eq__(self, other):
             return apt_pkg.version_compare(self.__asString, other.__asString) == 0
 
-    class Urgency(Enum):
-        NONE = ' '
-        LOW = 'L'
-        MEDIUM = 'M'
-        HIGH = 'H'
+    class Urgency(IntEnum):
+        NONE = 0
+        LOW = 1
+        MEDIUM = 2
+        HIGH = 3
 
     os_release_codename = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=64)
@@ -838,9 +861,10 @@ class Vulnerability(models.Model):
     is_binary = models.BooleanField()
     unstable_version = models.CharField(max_length=64, blank=True)
     other_versions = ArrayField(models.CharField(max_length=64), blank=True)
-    urgency = models.CharField(max_length=64, choices=[(tag, tag.value) for tag in Urgency])
+    urgency = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Urgency])
     remote = models.BooleanField(null=True)
     fix_available = models.BooleanField()
+    pub_date = models.DateField(null=True)
 
     def is_vulnerable(self, src_ver):
         if self.unstable_version:

@@ -23,22 +23,16 @@
                 <tr>
                   <th scope="row">Vulnerable Packages</th>
                   <td>
-                    {% with object.vulnerable_packages as vulnerable_packages %}
-                    {% if vulnerable_packages is None %}
+                    {% with object.cve_count as cve_count %}
+                    {% if cve_count is None %}
                       N/A
-                    {% elif vulnerable_packages.exists %}
-                      <ul>
-                        {% for package in vulnerable_packages %}
-                          <li>{{ package.name }} / {{ package.version }}
-                            ({% for v in package.vulnerabilities.all %}<a href="https://security-tracker.debian.org/tracker/{{ v.name }}"
-                               target="_blank">{{ v.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %})
-                          </li>
-                        {% endfor %}
-                      </ul>
                     {% else %}
-                     {% include "badge.html" with icon="check" color="success" %}
+                      High: {{  cve_count.high }}<br>
+                      Medium: {{ cve_count.med }}<br>
+                      Low: {{ cve_count.low }}<br>
                     {% endif %}
                     {% endwith %}
+                    <a href="{% url 'device_cve' object.pk %}">Detailed View</a>
                   </td>
                 </tr>
                 {% with object.heartbleed_vulnerable as heartbleed_vulnerable %}

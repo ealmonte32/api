@@ -23,6 +23,7 @@ from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState
     GlobalPolicy, PairingKey, Vulnerability, RecommendedAction
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
+from device_registry.views import CVEView
 from profile_page.models import Profile
 
 
@@ -683,55 +684,6 @@ class DeviceDetailViewTests(TestCase):
                                'os_release_codename': 'jessie'},
                               {'name': 'fingerd', 'version': 'VERSION', 'arch': 'i386',
                                'os_release_codename': 'jessie'}])
-
-    def test_vulnerable_packages_render(self):
-        self.client.login(username='test', password='123')
-        url = reverse('device-detail-security', kwargs={'pk': self.device.pk})
-        # No packages - should render N/A
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertInHTML('''
-            <th scope="row">
-                Vulnerable Packages
-            </th>
-            <td>
-                N/A
-            </td>''', response.rendered_content)
-
-        self.device.deb_packages_hash = 'aabbccdd'
-        self.device.save()
-        self.device.set_deb_packages([
-            {'name': 'python2', 'version': 'VERSION', 'source_name': 'python2', 'source_version': 'abcd',
-             'arch': 'i386'},
-            {'name': 'python3', 'version': 'VERSION', 'source_name': 'python3', 'source_version': 'abcd',
-             'arch': 'i386'}
-        ], os_info={'codename': 'stretch'})
-        # No vulnerable packages - green check mark
-        self.device.os_release = {'distro': 'debian', 'version': '9', 'codename': 'stretch', 'distro_root': 'debian',
-                                  'full_version': '9 (stretch)'}
-        self.device.save(update_fields=['os_release'])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertInHTML('''
-            <th scope="row">
-                Vulnerable Packages
-            </th>
-            <td>
-                <span class="p-1 text-success">
-                    <i class="fas fa-check" ></i>
-                </span>
-            </td>
-                ''', response.rendered_content)
-
-        v = Vulnerability.objects.create(name='CVE-123', package='python2', is_binary=False, other_versions=[],
-                                         urgency=Vulnerability.Urgency.NONE, fix_available=True)
-        self.device.deb_packages.get(name='python2').vulnerabilities.add(v)
-
-        # Has vulnerable packages - should render them
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'python2')
-        self.assertContains(response, 'CVE-123')
 
     def test_heartbleed_render(self):
         self.device.deb_packages_hash = 'aabbccdd'
@@ -1408,3 +1360,153 @@ class DasboardViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual([(0.4 + 0.5) / 2], response.context_data['trust_score_history'])
         self.assertListEqual([1], response.context_data['ra_solved_history'])
+
+
+class CVEViewTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.user_unrelated = User.objects.create_user('unrelated')
+        self.client.login(username='test', password='123')
+        self.profile = Profile.objects.create(user=self.user)
+
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'stretch'}
+        )
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            owner=self.user
+        )
+        self.device_unrelated = Device.objects.create(
+            device_id='device-unrelated.d.wott-dev.local',
+            owner=self.user_unrelated
+        )
+        self.url = reverse('cve')
+        self.device_url = reverse('device_cve', kwargs={'device_pk': self.device0.pk})
+
+        self.packages = [
+            DebPackage(name='one_first', version='version_one', source_name='one_source', source_version='one_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='one_second', version='version_one', source_name='one_source', source_version='one_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_first', version='version_two', source_name='two_source', source_version='two_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_second', version='version_two', source_name='two_source', source_version='two_version',
+                       arch=DebPackage.Arch.i386),
+        ]
+        self.today = timezone.now().date()
+        self.vulns = [
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='buster', name='CVE-2018-2', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True, pub_date=self.today),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-3', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
+        ]
+        DebPackage.objects.bulk_create(self.packages)
+        Vulnerability.objects.bulk_create(self.vulns)
+        self.device0.deb_packages.set(self.packages)
+        self.device_unrelated.deb_packages.set(self.packages)
+
+    def test_sort_package_hosts_affected(self):
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns[1:])
+        self.device1.deb_packages.set(self.packages[1:])
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                # These two AffectedPackage's should be sorted by hosts_affected
+                CVEView.AffectedPackage('one_second', [self.device0, self.device1]),
+                CVEView.AffectedPackage('one_first', [self.device0])
+            ], cve_date=self.today),
+            CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0])
+            ])
+        ])
+
+    def test_sort_urgency(self):
+        self.vulns[1].urgency = Vulnerability.Urgency.HIGH
+        self.vulns[1].save()
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            # These two TableRow's should be sorted by urgency
+            CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.HIGH, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0]),
+                CVEView.AffectedPackage('one_second', [self.device0])
+            ], cve_date=self.today),
+            CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0]),
+                CVEView.AffectedPackage('one_second', [self.device0])
+            ])
+        ])
+        self.assertEqual(len(response.context_data['table_rows'][0].packages[0].device_urls), 1)
+
+    def test_sort_total_hosts_affected(self):
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns[1:])
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            # These two TableRow's should be sorted by the sum of hosts_affected
+            CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0]),
+                CVEView.AffectedPackage('one_second', [self.device0])
+            ], cve_date=self.today),
+            CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0])
+            ])
+        ])
+
+    def test_filter_device(self):
+        # The setup is the same as in test_sort_package_hosts_affected.
+        # The result should also be the same except without device1.
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns[1:])
+        self.device1.deb_packages.set(self.packages[1:])
+
+        response = self.client.get(self.device_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.context_data['table_rows'], [
+            CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0]),
+                CVEView.AffectedPackage('one_second', [self.device0])
+            ], cve_date=self.today),
+            CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
+                CVEView.AffectedPackage('one_first', [self.device0])
+            ])
+        ])
+
+    def test_cve_count(self):
+        vulns = [
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.HIGH, fix_available=True),
+            Vulnerability(os_release_codename='buster', name='CVE-2018-2', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.MEDIUM, fix_available=True,
+                          pub_date=self.today),
+            Vulnerability(os_release_codename='buster', name='CVE-2018-3', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.MEDIUM, fix_available=True,
+                          pub_date=self.today),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-4', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-5', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-6', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2018-7', package='', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
+        ]
+        Vulnerability.objects.bulk_create(vulns)
+        self.packages[0].vulnerabilities.set(vulns)
+        self.packages[1].vulnerabilities.set(vulns)
+        self.assertDictEqual(self.device0.cve_count, {'high': 1, 'med': 2, 'low': 3})
