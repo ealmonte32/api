@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load highlight_selector %}
+{% load misc %}
 
 {% block css %}
 {% endblock %}
@@ -101,14 +102,14 @@
         <div class="sidebar-bottom-box">
           <div class="sidebar-bottom-item">
             <p>Current Trust Score</p>
-            <p id="trust-score">75%</p>
+            <p id="trust-score">{% widthratio user.profile.average_trust_score 1 100 %}</p>
           </div>
           <div id="trust-graph-100">
             <span id="trust-graph-var"></span>
           </div>
           <div id="action-solved-block" class="sidebar-bottom-item">
             <p>Actions Solved</p>
-            <p id="action-solved">29/50</p>
+            <p id="action-solved">{{ user.profile.actions_resolved_since_monday }}/{% settings_value "MAX_WEEKLY_RA" %}</p>
           </div>
           <div id="action-solved-graph">
             <span id="action-solved-var"></span>
@@ -151,26 +152,17 @@
       </main>
     </div>
   </div>
-  
+
 {% endblock %}
 
 {% block scripts %}
   {{ block.super }}
-  <!-- Hardcoded style for graphic -->
-  <style>
-    #action-solved-var {
-      width: 58%;
-    }
-
-    #trust-graph-var {
-      width: 75%;
-    }
-    
-  </style>
   <script src="{% static '/js/csrf.js' %}"></script>
   <script type="text/javascript">
       $(() => {
           feather.replace();
+          $('#action-solved-var').width("{% widthratio user.profile.actions_resolved_since_monday 5 100 %}%");
+          $('#trust-graph-var').width("{% widthratio user.profile.average_trust_score 1 100 %}%");
       });
     {% if MIXPANEL_TOKEN %}
       $('.sidebar-link').click((e) => {
@@ -192,7 +184,7 @@
           "$email": "{{ user.email }}",
           "$phone": "{{ user.profile.phone }}"
       });
-      
+
     {% endif %}
   </script>
 {% endblock %}
