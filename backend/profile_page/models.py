@@ -57,8 +57,8 @@ class Profile(models.Model):
     @property
     def actions_resolved_since_monday(self):
         monday = (timezone.now() - relativedelta(weekday=MO(-1))).date()
-        return RecommendedAction.objects.filter(device__owner=self.user, resolved_at__gte=monday)\
-            .values('action_id').distinct().count()
+        return min(RecommendedAction.objects.filter(device__owner=self.user, resolved_at__gte=monday)\
+            .values('action_id').distinct().count(), settings.MAX_WEEKLY_RA)
 
     @property
     def github_repos(self):
