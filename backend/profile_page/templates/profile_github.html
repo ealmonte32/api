@@ -2,27 +2,32 @@
 {% load bootstrap4 %}
 
 {% block profile_content %}
-  <div class="card">
-    <div class="card-header">
-      <h5 class="card-title mb-0">GitHub Repository</h5>
-    </div>
-    <div class="card-body">
-      {% if github_authorized %}
-      <form method="POST" action="">
-        {% csrf_token %}
-        {% bootstrap_form form %}
-        {% buttons %}
-          <button type="submit" class="btn btn-primary">Save changes</button>
-          <button type="button" class="btn btn-secondary" onclick="installGithub()">Install App</button>
-        {% endbuttons %}
-      </form>
-      {% elif github_authorized is False %}
-        <button onclick="authorizeGithub()" class="btn btn-primary">Authorize GitHub</button>
-      {% else %}
-        GitHub Integration is not available.
-      {% endif %}
-    </div>
+
+  <div class="inner-profile-tab">
+    {% if github_authorized %}
+    <form method="POST" action="">
+      {% csrf_token %}
+      <!-- {% bootstrap_form form %} -->
+      <div class="form-group is-valid">
+        <label class="wott-label" for="id_repo">Choose your GitHub Repository</label>
+        <select name="repo" class="custom-select form-control wott-form-control wott-rounded-lg" title="" id="id_repo">
+          <option value="" selected=""></option>
+          <option value="1">fake/fake</option>
+        </select>
+      </div>
+      {% buttons %}
+        <button type="submit" class="btn wott-btn btn-wott-primary mr-3">Save changes</button>
+        <button type="button" class="btn wott-btn btn-wott-secondary" onclick="installGithub()">Install App</button>
+      {% endbuttons %}
+    </form>
+    {% elif github_authorized is False %}
+      <h2 class="mb-4 api-title font-weight-bold py-2">Authorize access to GitHub</h2>
+      <button onclick="authorizeGithub()" class="btn wott-btn btn-wott-primary">Authorize</button>
+    {% else %}
+      <h2 class="mb-4 api-title font-weight-bold py-2">GitHub Integration is not available.</h2>
+    {% endif %}
   </div>
+
 {% endblock %}
 
 {% block scripts %}

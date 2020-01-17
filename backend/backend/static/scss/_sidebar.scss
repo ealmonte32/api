@@ -41,9 +41,6 @@
 
       img {
         margin-right: 15px;
-        @include mQ($browser-width-md) {
-          width: 8%;
-        }
       }
     }
   }
@@ -77,6 +74,7 @@
     bottom: 0;
     width: $sidebar-width;
     padding: 4.5vh 0;
+    border-right: .5px solid #cddef7;
     
     h2 {
       font-size:$font-size-xl;
