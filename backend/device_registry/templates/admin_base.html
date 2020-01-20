@@ -36,7 +36,7 @@
               </a>
             </li>
             <li class="sidebar-item {% if url_name|is_menu_highlight_id:'cve' %}active{% endif %}">
-              <a class="sidebar-link" id="sidebar-cve" href="#">
+              <a class="sidebar-link" id="sidebar-cve" href="{% url 'cve' %}">
                 {% if url_name|is_menu_highlight_id:'cve' %}
                 <img src="{% static '/media/cve-selected.png' %}" alt="cve">
                 {% else %}
