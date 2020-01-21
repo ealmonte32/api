@@ -674,7 +674,10 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             if not current_package or current_package.name != package_name:
                 current_package = self.AffectedPackage(package_name, devices_count, [])
                 current_row.packages.append(current_package)
-            device_pretty_name = device_name or device_fqdn[:36]
+            if device_name or device_fqdn:
+                device_pretty_name = device_name or device_fqdn[:36]
+            else:
+                device_pretty_name = f"device_{device_pk}"
             current_package.devices.append(self.Hyperlink(href=reverse('device_cve', kwargs={'device_pk': device_pk}),
                                                           text=device_pretty_name))
 

@@ -42,7 +42,7 @@
                 <a href="#" class="wott-popover">
                   {{ p.devices_count }}
                   <template>
-                    {% for du in p.device_urls %}
+                    {% for du in p.devices %}
                       <a href="{{ du.href }}">{{  du.text }}</a><br>
                     {% endfor %}
                   </template>
