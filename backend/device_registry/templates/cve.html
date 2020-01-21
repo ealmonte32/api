@@ -10,146 +10,67 @@
 
 {% block admin_content %}
   <!-- cve.html -->
-  <div class="overlay"></div>
-  <div class="cve-tab">
-    <section class="top-section background-blue">
-
-      <div class="left-container wott-rounded-lg wott-box-shadow">
-        <div class="inner-left-box">
-          <h3 class="title-left-box">CVE Overview</h3>
-          <div class="cards-container">
-            <div class="mini-card wott-rounded-lg d-flex flex-column">
-              <span class="title-mini-card High font-strong">HIGH</span>
-              <h1>123</h1> <!--HARDCODE DATA-->
-              <!-- Need data to make an if to choose between sort-up and sort-down arrow. -->
-              <!-- Need to import both icons from fontawesome [fa-sort-up, fa-sort-down ] -->
-              <p class="legend-mini-card wott-blue"><i class="fas fa-sort-down"></i> 34% LAST WEEK</p>
-            </div>
-            <div class="mini-card wott-rounded-lg d-flex flex-column">
-              <span class="title-mini-card Medium font-strong">MEDIUM</span>
-              <h1>78</h1> <!--HARDCODE DATA-->
-              <!-- Need data to make an if to choose between sort-up and sort-down arrow -->
-              <p class="legend-mini-card wott-blue"><i class="fas fa-sort-down"></i> 34% LAST WEEK</p>
-            </div>
-            <div class="mini-card wott-rounded-lg d-flex flex-column">
-              <span class="title-mini-card Low font-strong">LOW</span>
-              <h1>96</h1> <!--HARDCODE DATA-->
-              <!-- Need data to make an if to choose between sort-up and sort-down arrow -->
-              <p class="legend-mini-card wott-blue"><i class="fas fa-sort-down"></i> 34% LAST WEEK</p>
-            </div>
-          </div>
-        </div>
-        <div class="inner-right-box wott-rounded-lg">
-
-          <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
-            <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="#fff"></circle>
-            <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#d2d3d4" stroke-width="3"></circle>
-
-            <circle id="high-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF2F20" stroke-width="3" stroke-dasharray="50 50" stroke-dashoffset="35"></circle>
-            <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF2F20" stroke-width="3" stroke-dasharray="<percentage1, (100 - percentage1)>" stroke-dashoffset="<initialValue>"></circle> -->
-            <circle id="medium-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="20 80" stroke-dashoffset="85"></circle>
-            <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="<percentage2, (100 - percentage2)>" stroke-dashoffset="<secondValue = 100 - percentage1 + initialValue>"></circle> -->
-            <circle id="low-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#23BED6" stroke-width="3" stroke-dasharray="30 70" stroke-dashoffset="165"></circle>
-            <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="<percentage3, (100 - percentage3)>" stroke-dashoffset="<100 - percentage2 + secondValue>"></circle> -->
-
-            <g class="chart-text">
-              <text id="cve-priority" x="50%" y="50%" class="chart-number">
-                96 <!--HARDCODE-->
-              </text>
-              <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
-                low <!--HARDCODE-->
-              </text>
-              <text x="50%" y="50%" class="chart-label2">
-                priority
-              </text>
-              <text x="50%" y="50%" class="chart-label3">
-                cve
-              </text>
-            </g>
-          </svg>
-        </div>
+  <div class="container-fluid p-0">
+    <div class="card">
+      <div class="card-body">
+        <table class="table table-striped table-responsive-xs" >
+          <thead>
+            <th>CVE</th>
+            <th>Date</th>
+            <th>Severity</th>
+            <th>Packages Affected</th>
+            {% if not device_name %}
+            <th>Nodes Affected</th>
+            {% endif %}
+            <th>Solve</th>
+          </thead>
+          <tbody>
+          {% for row in table_rows %}
+          <tr>
+            <td>
+              <a href="{{ row.cve_link.href }}">{{ row.cve_link.text }}</a>
+            </td>
+            <td>{{ row.cve_date|date:"Y-m-d"|default:"N/A" }}</td>
+            <td>{{ row.severity }}</td>
+            <td>
+              {% for p in row.packages %}
+                {{ p.name }}
+                <br>
+              {% endfor %}
+            </td>
+            {% if not device_name %}
+            <td>
+              {% for p in row.packages %}
+                <a href="#" class="wott-popover">
+                  {{ p.devices_count }}
+                  <template>
+                    {% for du in p.devices %}
+                      <a href="{{ du.href }}">{{  du.text }}</a><br>
+                    {% endfor %}
+                  </template>
+                </a>
+                <br>
+              {% endfor %}
+            </td>
+            {% endif %}
+            <td>
+              {% for p in row.packages %}
+                <a href="#" class="wott-popover">
+                  Instructions
+                  <template>
+                    Run the following command:
+                    <pre>{{ p.upgrade_command }}</pre>
+                  </template>
+                </a>
+                <br>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <!-- The container bellow will be used in further layout improvements -->
-      <!-- <div class="right-container"></div> -->
-
-    </section>
-
-
-    <section class="my-4">
-          <table class="container-fluid wott-rounded-lg wott-box-shadow" >
-            <div class="table-header">
-              <thead>
-                <tr class="row">
-                  <th class="col-2 wott-blue pl-5 pr-0">CVE NAME</th>
-                  <th class="col-2 px-0 text-center">DATE</th>
-                  <th class="col-1 px-0">SEVERITY</th>
-                  <th class="col-4 pl-3 pr-0">PACKAGE AFFECTED</th>
-                  {% if not device_name %}
-                  <th class="col-sm-auto text-center px-0">NODES AFFECTED</th>
-                  {% endif %}
-                  <th id="solve-header" class="col-sm-auto">SOLVE</th>
-                </tr>
-              </thead>
-            </div>
-            <tbody>
-            {% for row in table_rows %}
-            <tr class="row border-table">
-              <td class="col-2 pl-3 pr-0 d-flex align-items-center medium-text font-weight-bold">
-                <span class="pr-3 bullet-lg {{ row.severity }} pb-1">&#8226</span>
-                <a href="{{ row.cve_link.href }}">{{ row.cve_link.text }}</a>
-              </td>
-              <td class="col-2 d-flex align-items-center justify-content-center px-0 medium-text">{{ row.cve_date|date:"Y-m-d"|default:"N/A" }}</td>
-              <td class="col-1 d-flex align-items-center font-strong {{ row.severity }} medium-text px-0">{{ row.severity }}</td>
-              <td class="col-4 d-flex align-items-center pl-3 pr-0 small-text">
-                {% for p in row.packages %}
-                 {{ p.name }}
-                  <br>
-                {% endfor %}
-              </td>
-              {% if not device_name %}
-              <td class="col-1 text-center small-text">
-                {% for p in row.packages %}
-                  <a href="#" id="device-url" class="wott-popover">
-                    {{ p.device_urls|length }}
-                    <template>
-                      <div class="popover-box">
-                        <div class="popover-title">
-                          <h1 class="mb-0">All Affected Nodes</h1>
-                          <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
-                        </div>
-                        <hr class="popover-title-line">
-                      {% for du in p.device_urls %}
-                        <a class="wott-blue" href="{{ du.href }}">{{  du.text }}</a>
-                      {% endfor %}
-                      </div>
-                    </template>
-                  </a>
-                  <br>
-                {% endfor %}
-              </td>
-              {% endif %}
-              <td id="solve-cel" class="col-2 small-text">
-                {% for p in row.packages %}
-                  <a href="#" class="wott-popover">
-                    Instructions
-                    <template>
-                      <div class="popover-box instructions-box">
-                        <h4>Run the following command:</h4>
-                        <hr class="popover-title-line">
-                        <div>
-                          <pre class="wott-blue">{{ p.upgrade_command }}</pre>
-                        </div>
-                      </div>
-                    </template>
-                  </a>
-                  <br>
-                {% endfor %}
-              </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-          </table>
-    </section>
+    </div>
   </div>
 {% endblock admin_content %}
 
