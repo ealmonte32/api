@@ -157,16 +157,36 @@
 {{ block.super }}
 
   <script>
+  let popoverShown = null;
+
   $(function () {
     $('[data-toggle="popover"]').popover()
   });
 
-  $('.wott-popover').popover({
+  $('.wott-popover').click((e) => {
+    e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
+    if(popoverShown)  // hide previous popover
+      $(popoverShown).popover('hide');
+    $(e.target).popover('show');
+    popoverShown = e.target;
+  }).popover({
     html: true,
     title: "",
     trigger: 'click',
     content: function() {
-        return $(this).children('template').html();
+      return $(this).children('template').html();
+    }
+  });
+
+  $('body').click((e) => {
+    if(e.target == popoverShown || $(e.target).parents('.popover').length) {
+      // clicked on popover link or inside popover
+      return;
+    }
+    if(popoverShown) {
+      // clicked anywhere outside the popover while it's shown -> hide it
+      $(popoverShown).popover('hide');
+      popoverShown = null;
     }
   })
 

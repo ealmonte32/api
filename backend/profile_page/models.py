@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models import Q, Avg
+from django.db.models import Q, Avg, Max
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -13,7 +13,7 @@ from dateutil.relativedelta import relativedelta, MO
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction, Device, HistoryRecord
+from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability
 from device_registry.celery_tasks import github
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,35 @@ class Profile(models.Model):
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
         )
+
+        cve_hi, cve_med, cve_lo = self.cve_count
         HistoryRecord.objects.create(owner=self.user,
                                      recommended_actions_resolved=ra_resolved.count(),
-                                     average_trust_score=self.average_trust_score)
+                                     average_trust_score=self.average_trust_score,
+                                     cve_high_count=cve_hi, cve_medium_count=cve_med, cve_low_count=cve_lo)
 
+    @property
+    def cve_count(self):
+        # FIXME: this should be grouped by name and maxed by urgency
+        vuln_qs = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW,
+                                               debpackage__device__owner=self.user,
+                                               fix_available=True)
+        return (vuln_qs.filter(urgency=urgency).values('name').distinct().count()
+                                   for urgency in [Vulnerability.Urgency.HIGH,
+                                                   Vulnerability.Urgency.MEDIUM,
+                                                   Vulnerability.Urgency.LOW])
+    
+    @property
+    def cve_count_last_week(self):
+        now = timezone.now()
+        last_monday = (now - relativedelta(weekday=MO(-2))).date()  # Find last week's monday
+        this_monday = (now - relativedelta(weekday=MO(-1))).date()  # Find this week's monday
+        cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__gt=last_monday, sampled_at__lt=this_monday)\
+            .values('cve_high_count', 'cve_medium_count', 'cve_low_count')\
+            .annotate(cve_high=Max('cve_high_count'), cve_med=Max('cve_medium_count'), cve_lo=Max('cve_low_count'))\
+            .values('cve_high', 'cve_med', 'cve_lo')
+        if cve_history.exists():
+            cve_history = cve_history.first()
+            return cve_history['cve_high'], cve_history['cve_med'], cve_history['cve_lo']
+        else:
+            return 0, 0, 0

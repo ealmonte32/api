@@ -1,46 +1,20 @@
 {% extends "profile_base.html" %}
 {% load bootstrap4 %}
+{% load widget_tweaks %}
 
 {% block profile_content %}
   <div id="profile-tab" class="border-left-0 inner-profile-tab">
-    <form method="POST" action="">
+    <form method="POST">
     {% csrf_token %}
-      <div class="form-group">
-        <label class="wott-label" for="id_username">Username <span class="wott-blue">(*)</span></label>
-        <input class="form-control wott-form-control wott-rounded-lg" type="text" name="username" value="danilovidotti@gmail.com" placeholder="Username" title="" required="" disabled="" id="id_username">
-      </div>
-      <div class="form-group">
-        <label class="wott-label" for="id_payment_plan">Payment plan</label>
-        <select name="payment_plan" class="form-control wott-form-control wott-rounded-lg custom-select" title="" id="id_payment_plan">
-          <option value="1">Free</option>                 
-          <option value="2">Standard</option>                 
-          <option value="3">Professional</option>                  
-          <option value="4">Enterprise</option>                
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="wott-label" for="id_email">Email</label>
-        <input class="form-control wott-form-control wott-rounded-lg" type="email" name="email" value="danilovidotti@gmail.com" placeholder="Email" title="" required="" id="id_email">
+      {% include "form_field.html" with field=form.username asterisk=True %}
+      {% include "form_field.html" with field=form.payment_plan field_class="custom-select" %}
+      <div class="d-flex">
+        {% include "form_field.html" with field=form.first_name form_group_class="w-50 pr-3" %}
+        {% include "form_field.html" with field=form.last_name form_group_class="w-50 pl-3" %}
       </div>
       <div class="d-flex">
-        <div class="form-group w-50 pr-3">
-          <label class="wott-label" for="id_first_name">First name</label>
-          <input class="form-control wott-form-control wott-rounded-lg" type="text" name="first_name" value="Danilo" maxlength="30" placeholder="First name" title="" id="id_first_name">
-        </div>
-        <div class="form-group w-50 pl-3">
-          <label class="wott-label" for="id_last_name">Last name</label>
-          <input class="form-control wott-form-control wott-rounded-lg" type="text" name="last_name" value="Vidotti" maxlength="150" placeholder="Last name" title="" id="id_last_name">
-        </div>
-      </div>
-      <div class="d-flex">
-        <div class="form-group w-50 pr-3">
-          <label class="wott-label" for="id_company">Company</label>
-          <input class="form-control wott-form-control wott-rounded-lg" type="text" name="company" maxlength="128" placeholder="Company" title="" id="id_company">
-        </div>
-        <div class="form-group w-50 pl-3">
-          <label class="wott-label" for="id_phone">Phone</label>
-          <input class="form-control wott-form-control wott-rounded-lg" type="tel" name="phone" placeholder="Phone" title="" id="id_phone">
-        </div> 
+        {% include "form_field.html" with field=form.company form_group_class="w-50 pr-3" %}
+        {% include "form_field.html" with field=form.phone form_group_class="w-50 pl-3" %}
       </div>
       {% buttons %}
         <button id="btn-profile-update" type="submit" class="wott-btn btn-wott-primary mb-0 py-0">Save changes</button>

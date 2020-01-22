@@ -29,17 +29,17 @@
             
             <div class="input-fields-box d-flex">
               <div class="box-left pb-2">
-                {% include "registration_form_field.html" with field=form.email asterisk=True %}
-                {% include "registration_form_field.html" with field=form.password1 asterisk=True %}
-                {% include "registration_form_field.html" with field=form.password2 %}
-                {% include "registration_form_field.html" with field=form.payment_plan %}
+                {% include "form_field.html" with field=form.email asterisk=True %}
+                {% include "form_field.html" with field=form.password1 asterisk=True %}
+                {% include "form_field.html" with field=form.password2 %}
+                {% include "form_field.html" with field=form.payment_plan %}
               </div>
 
               <div class="box-right pb-2">
-                {% include "registration_form_field.html" with field=form.first_name %}
-                {% include "registration_form_field.html" with field=form.last_name %}
-                {% include "registration_form_field.html" with field=form.company %}
-                {% include "registration_form_field.html" with field=form.phone %}
+                {% include "form_field.html" with field=form.first_name %}
+                {% include "form_field.html" with field=form.last_name %}
+                {% include "form_field.html" with field=form.company %}
+                {% include "form_field.html" with field=form.phone %}
               </div>
             </div>
 

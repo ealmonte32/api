@@ -25,73 +25,12 @@
 
         {% with url_name=request.resolver_match.url_name %}
           <ul class="sidebar-nav">
-            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'root' %}active{% endif %}">
-              <a class="sidebar-link" id="sidebar-root" href="{% url 'root' %}">
-                {% if url_name|is_menu_highlight_id:'root' %}
-                <img src="{% static '/media/dashboard-selected.png' %}" alt="dashboard">
-                {% else %}
-                <img src="{% static '/media/dashboard.png' %}" alt="dashboard">
-                {% endif %}
-                <h4>Dashboard</h4>
-              </a>
-            </li>
-            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'cve' %}active{% endif %}">
-              <a class="sidebar-link" id="sidebar-cve" href="{% url 'cve' %}">
-                {% if url_name|is_menu_highlight_id:'cve' %}
-                <img src="{% static '/media/cve-selected.png' %}" alt="cve">
-                {% else %}
-                <img src="{% static '/media/cve.png' %}" alt="cve">
-                {% endif %}
-                <h4>CVE</h4>
-              </a>
-            </li>
-            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'nodes' %}active{% endif %}">
-              <a class="sidebar-link" id="sidebar-nodes" href="#">
-                {% if url_name|is_menu_highlight_id:'nodes' %}
-                <img src="{% static '/media/nodes-selected.png' %}" alt="nodes">
-                {% else %}
-                <img id="nodes-image" src="{% static '/media/nodes.png' %}" alt="nodes">
-                {% endif %}
-                <h4>Nodes</h4>
-              </a>
-            </li>
-            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'claim-device' %}active{% endif %}">
-              <a class="sidebar-link" id="sidebar-claim-device" href="{% url 'claim-device' %}">
-                {% if url_name|is_menu_highlight_id:'claim-device' %}
-                <img src="{% static '/media/add-node-selected.png' %}" alt="claim device">
-                {% else %}
-                <img src="{% static '/media/add-node.png' %}" alt="claim device">
-                {% endif %}
-                <h4>Claim Node</h4>
-              </a>
-            </li>
-            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'actions' %}active{% endif %}">
-              <a class="sidebar-link" id="sidebar-recommended-actions" href="{% url 'actions' %}">
-                {% if url_name|is_menu_highlight_id:'actions' %}
-                <img src="{% static '/media/verified-selected.png' %}" alt="recommended actions">
-                {% else %}
-                <img id="actions-image" src="{% static '/media/verified.png' %}" alt="recommended actions">
-                {% endif %}
-                <h4>Recommended Actions</h4>
-                {% with user.profile.actions_count as actions_count %}
-                {% if actions_count %}
-                <div class="badge wott-badge-pill">
-                  <span id="actions-sidebar" class="wott-badge-text">{{ actions_count }}</span>
-                </div>
-                {% endif %}
-                {% endwith %}
-              </a>
-            </li>
-            <li class="sidebar-item {% if url_name|is_menu_highlight_id:'global_policies' %}active{% endif %}">
-              <a class="sidebar-link" id="sidebar-policies" href="{% url 'global_policies' %}">
-                {% if url_name|is_menu_highlight_id:'global_policies' %}
-                <img src="{% static '/media/policies-selected.png' %}" alt="globalpolicies">
-                {% else %}
-                <img src="{% static '/media/policies.png' %}" alt="global policies">
-                {% endif %}
-                <h4>Global Policies</h4>
-              </a>
-            </li>
+            {% include "sidebar_item.html" with url='root' id='sidebar-root' label="Dashboard" image='/media/dashboard.png' image_selected='/media/dashboard-selected.png' %}
+            {% include "sidebar_item.html" with url='cve' id='sidebar-cve' label="CVE" image='/media/cve.png' image_selected='/media/cve-selected.png' %}
+            {% include "sidebar_item.html" with url='nodes' id='sidebar-nodes' label="Nodes" image='/media/nodes.png' image_selected='/media/nodes-selected.png' %}
+            {% include "sidebar_item.html" with url='claim-device' id='sidebar-claim-device' label="Claim Node" image='/media/add-node.png' image_selected='/media/add-node-selected.png' %}
+            {% include "sidebar_item.html" with url='actions' id='sidebar-recommended-actions' label="Recommended Actions" image='/media/verified.png' image_selected='/media/verified-selected.png' badge=user.profile.actions_count %}
+            {% include "sidebar_item.html" with url='global_policies' id='sidebar-policies' label="Global Policies" image='/media/policies.png' image_selected='/media/policies-selected.png' %}
           </ul>
         {% endwith %}
 
@@ -150,6 +89,19 @@
         {% block admin_content %}
         {% endblock admin_content %}
       </main>
+      <footer class="footer">
+        <div class="container-fluid">
+          <div class="row text-muted">
+            <div class="col-6 text-left">
+            </div>
+            <div class="col-6 text-right">
+              <p class="mb-0">
+                &copy; 2020 - <a href="https://www.wott.io" class="text-muted">Web of Secure Things, Ltd</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   </div>
 
