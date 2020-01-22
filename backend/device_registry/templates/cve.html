@@ -3,10 +3,8 @@
 {% block title %}WoTT - CVE list{% endblock title %}
 
 {% block dashboard_title %}
-  <h1 style="margin-bottom: 0">VULNERABILITIES{% if device_name %} for {{ device_name }}{% endif %}</h1>
+  <h1 style="margin-bottom: 0">CVE list{% if device_name %} for {{ device_name }}{% endif %}</h1>
 {% endblock dashboard_title %}
-
-{% load static %}
 
 {% block admin_content %}
   <!-- cve.html -->
@@ -78,37 +76,37 @@
 {{ block.super }}
 
   <script>
+  let popoverShown = null;
+
   $(function () {
     $('[data-toggle="popover"]').popover()
   });
 
-  $('.wott-popover').popover({
+  $('.wott-popover').click((e) => {
+    e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
+    if(popoverShown)  // hide previous popover
+      $(popoverShown).popover('hide');
+    $(e.target).popover('show');
+    popoverShown = e.target;
+  }).popover({
     html: true,
-    title: "",
-    trigger: 'click',
+    trigger: 'manual',
+    title: 'Details',
     content: function() {
-        return $(this).children('template').html();
+      return $(this).children('template').html();
+    }
+  });
+
+  $('body').click((e) => {
+    if(e.target == popoverShown || $(e.target).parents('.popover').length) {
+      // clicked on popover link or inside popover
+      return;
+    }
+    if(popoverShown) {
+      // clicked anywhere outside the popover while it's shown -> hide it
+      $(popoverShown).popover('hide');
+      popoverShown = null;
     }
   })
-
-// Bellow we have just a reference of how we could style the graph with JS, the JS needs to be full builted
-// The JS will need to:
-// Change the clicked tag styleWidth to 4.
-// Change the number inside the graph and its color
-// Change the small text [low, high, medium] inside the circle
-// COlORS: HIGH = #EF2F20 | MEDIUM = #EF8F20 | LOW = #23BED6;
-// When clicking in other circle segment the previous one has to come back to strokeWidht = 3;
-
- $('#high-circle-segment').on('click', function() {
-  document.getElementById('high-circle-segment').style.strokeWidth = 4;
-  document.getElementById('cve-priority').textContent = "123";
-  document.getElementById('cve-priority').style.fill = "#EF2F20";
-  document.getElementById('severity-inner-text').textContent = "high";
- })
-
- // Popover JS require 2 functions
- // ## When opening the popover we should do => document.getElementById(.overlay).style.display = block;
- // ## When we close the popover we should do => document.getElementById('.overlay').style.display = hidden;
-
   </script>
 {% endblock scripts %}
