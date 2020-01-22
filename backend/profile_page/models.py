@@ -129,3 +129,5 @@ class Profile(models.Model):
         if cve_history.exists():
             cve_history = cve_history.first()
             return cve_history['cve_high'], cve_history['cve_med'], cve_history['cve_lo']
+        else:
+            return 0, 0, 0
