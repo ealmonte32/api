@@ -483,6 +483,7 @@ class Device(models.Model):
         if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
                and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
             return
+        # FIXME: this should be grouped by name and maxed by urgency
         vuln_qs = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW, debpackage__device=self,
                                                fix_available=True)
         severities = {
@@ -944,3 +945,6 @@ class HistoryRecord(models.Model):
     sampled_at = models.DateTimeField(auto_now_add=True)
     recommended_actions_resolved = models.IntegerField(null=True)
     average_trust_score = models.FloatField(null=True)
+    cve_high_count = models.IntegerField(null=True)
+    cve_medium_count = models.IntegerField(null=True)
+    cve_low_count = models.IntegerField(null=True)
