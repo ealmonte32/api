@@ -44,7 +44,6 @@ class ProfileAccountView(LoginRequiredMixin, LoginTrackMixin, View):
     def post(self, request, *args, **kwargs):
         form = ProfileForm(request.POST, initial=self.initial_form_data)
         if form.is_valid():
-            self.user.email = form.cleaned_data['email']
             self.user.first_name = form.cleaned_data['first_name']
             self.user.last_name = form.cleaned_data['last_name']
             self.profile.company_name = form.cleaned_data['company']
