@@ -686,4 +686,26 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         if device:
             context['device_name'] = device.get_name()
 
+        cve_hi, cve_med, cve_lo = self.request.user.profile.cve_count
+        cve_hi_last, cve_med_last, cve_lo_last = self.request.user.profile.cve_count_last_week
+
+        def delta(current, last):
+            if current is None or last is None:
+                return
+            if last == 0:
+                # Actually this is zero division and the result is infinity
+                d = 1
+            else:
+                d = (current - last) / last
+            return int(d * 100)
+
+        context['cve_count'] = {
+            'cve_high': cve_hi,
+            'cve_high_delta': delta(cve_hi, cve_hi_last),
+            'cve_medium': cve_med,
+            'cve_medium_delta': delta(cve_med, cve_med_last),
+            'cve_low': cve_lo,
+            'cve_low_delta': delta(cve_lo, cve_lo_last),
+        }
+
         return context
