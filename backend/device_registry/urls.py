@@ -58,6 +58,7 @@ if settings.IS_DASH or settings.IS_CELERY:
         path('',
              views.RootView.as_view(),
              name='root'),
+        path('', views.RootView.as_view(), name='nodes'),
         path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
         path('policies/', views.GlobalPoliciesListView.as_view(), name='global_policies'),
         path('policies/add/', views.GlobalPolicyCreateView.as_view(), name='create_global_policy'),

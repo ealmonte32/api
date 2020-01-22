@@ -20,7 +20,7 @@
           {% include "menu_item.html" with tab=tab_account url='profile' image='/media/account-unselected.png' image_selected='/media/account.png' label="Account" %}
           {% include "menu_item.html" with tab=tab_password url='profile_password' image='/media/password.png' image_selected='/media/password-selected.png' label="Password" %}
           {% include "menu_item.html" with tab=tab_api_token url='profile_token' image='/media/api-token.png' image_selected='/media/api-selected.png' label="API Token" %}
-          {% include "menu_item.html" with tab=tab_github_integration url='github_integration' image='/media/github.png' image_selected='/media/github-selected.png' label="GitHub Integration"%}
+          {% include "menu_item.html" with tab=tab_github_integration url='github_integration' image='/media/github.png' image_selected='/media/github-selected.png' label="GitHub Integration" beta_badge=True %}
           {% include "menu_item.html" with tab=tab_slack_integration url='slack_integration' image='/media/slack.png' image_selected='/media/slack-selected-blue.png' label="Slack Integration"%}
           {% include "menu_item.html" with tab=tab_payment_plan url='payment_plan' image='/media/payment.png' image_selected='/media/payment-selected.png' label="Payment Plan" %}
         </div>
