@@ -6,7 +6,7 @@ from typing import NamedTuple, List
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import Case, When, Count, F
+from django.db.models import Case, When, Count, Window
 from django.db.models import Q, Sum, Avg, IntegerField, Max
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
@@ -597,14 +597,8 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
     class AffectedPackage(NamedTuple):
         name: str
-        devices: List[Device]
-
-        @property
-        def device_urls(self):
-            return [CVEView.Hyperlink(
-                d.get_name(),
-                reverse('device_cve', kwargs={'device_pk': d.pk})
-            ) for d in self.devices]
+        devices_count: int
+        devices: List[NamedTuple]
 
         @property
         def upgrade_command(self):
@@ -626,7 +620,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         @property
         def key(self):
-            return self.urgency, sum([len(p.devices) for p in self.packages])
+            return self.urgency, sum([p.devices_count for p in self.packages])
         
         @property
         def severity(self):
@@ -644,36 +638,48 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         if device_pk is not None:
             device = get_object_or_404(Device, pk=device_pk, owner=user)
             vuln_query = Q(debpackage__device__pk=device_pk)
-            packages_query = Q(device__pk=device_pk)
         else:
             device = None
             vuln_query = Q(debpackage__device__owner=user)
-            packages_query = Q(device__owner=user)
 
-        vulns = Vulnerability.objects.filter(vuln_query, fix_available=True) \
-                                     .values('name').distinct().annotate(max_urgency=Max('urgency'),
-                                                                         pubdate=Max('pub_date'))
-        vuln_info = {v['name']: (v['max_urgency'], v['pubdate']) for v in vulns}
-        packages = DebPackage.objects.filter(packages_query,
-                                             vulnerabilities__isnull=False,
-                                             vulnerabilities__fix_available=True)\
-                                     .annotate(cve_name=F('vulnerabilities__name'))
+        vuln_names = Vulnerability.objects.only('name').filter(debpackage__device__owner=user,
+                                                  fix_available=True).values('name')
+        vuln_pub_dates_qs = Vulnerability.objects.only('name').filter(name__in=vuln_names) \
+            .values('name').annotate(pubdate=Max('pub_date')).distinct()
+        vuln_pub_dates = {v['name']: v['pubdate'] for v in vuln_pub_dates_qs}
 
-        packages_by_cve = defaultdict(set)
-        for p in packages:
-            packages_by_cve[p.cve_name].add(p)
+        qs0 = Vulnerability.objects.filter(fix_available=True) \
+            .values('name').annotate(max_urgency=Max('urgency')) \
+            .filter(vuln_query) \
+            .values('name',  'max_urgency', 'debpackage__pk', 'debpackage__device__pk', 'debpackage__name', 'debpackage__device__name',  'debpackage__device__deviceinfo__fqdn')
+        qs1 = qs0.annotate(devcnt=Window(expression=Count('debpackage__name'),
+                                         partition_by=['name', 'debpackage__name']),
+                           cvecnt=Window(expression=Count('debpackage__name'),
+                                         partition_by=['name'])) \
+            .order_by('-max_urgency', '-cvecnt', 'name', '-devcnt', 'debpackage__name')
 
         table_rows = []
-        for cve_name, cve_packages in packages_by_cve.items():
-            plist = sorted([self.AffectedPackage(package.name,
-                                                 # FIXME: this line may need additional optimisation to avoid calling
-                                                 # device_set.filter() every time.
-                                                 [device] if device else list(package.device_set.filter(owner=user)))
-                            for package in cve_packages],
-                           key=lambda package: len(package.devices), reverse=True)
-            urgency, cve_date = vuln_info[cve_name]
-            table_rows.append(self.TableRow(cve_name=cve_name, cve_url='', urgency=urgency,
-                                            cve_date=cve_date, packages=plist))
+        current_row = None
+        current_package = None
+        for device_package_cve in qs1:
+            cve_name, package_name, urgency, devices_count,\
+                device_pk, device_name, device_fqdn = (device_package_cve[k] for k in [
+                                                            'name', 'debpackage__name', 'max_urgency', 'devcnt',
+                                                            'debpackage__device__pk', 'debpackage__device__name',
+                                                            'debpackage__device__deviceinfo__fqdn'])
+            if not current_row or current_row.cve_name != cve_name:
+                current_row = self.TableRow(cve_name, urgency, [], '', vuln_pub_dates[cve_name])
+                table_rows.append(current_row)
+                current_package = None
+            if not current_package or current_package.name != package_name:
+                current_package = self.AffectedPackage(package_name, devices_count, [])
+                current_row.packages.append(current_package)
+            if device_name or device_fqdn:
+                device_pretty_name = device_name or device_fqdn[:36]
+            else:
+                device_pretty_name = f"device_{device_pk}"
+            current_package.devices.append(self.Hyperlink(href=reverse('device_cve', kwargs={'device_pk': device_pk}),
+                                                          text=device_pretty_name))
 
         context['table_rows'] = sorted(table_rows,
                                        key=lambda r: r.key, reverse=True)

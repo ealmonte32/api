@@ -40,9 +40,9 @@
             <td>
               {% for p in row.packages %}
                 <a href="#" class="wott-popover">
-                  {{ p.device_urls|length }}
+                  {{ p.devices_count }}
                   <template>
-                    {% for du in p.device_urls %}
+                    {% for du in p.devices %}
                       <a href="{{ du.href }}">{{  du.text }}</a><br>
                     {% endfor %}
                   </template>
@@ -76,16 +76,36 @@
 {{ block.super }}
 
   <script>
+  let popoverShown = null;
+
   $(function () {
     $('[data-toggle="popover"]').popover()
   });
 
-  $('.wott-popover').popover({
+  $('.wott-popover').click((e) => {
+    e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
+    if(popoverShown)  // hide previous popover
+      $(popoverShown).popover('hide');
+    $(e.target).popover('show');
+    popoverShown = e.target;
+  }).popover({
     html: true,
-    trigger: 'click',
+    trigger: 'manual',
     title: 'Details',
     content: function() {
-        return $(this).children('template').html();
+      return $(this).children('template').html();
+    }
+  });
+
+  $('body').click((e) => {
+    if(e.target == popoverShown || $(e.target).parents('.popover').length) {
+      // clicked on popover link or inside popover
+      return;
+    }
+    if(popoverShown) {
+      // clicked anywhere outside the popover while it's shown -> hide it
+      $(popoverShown).popover('hide');
+      popoverShown = null;
     }
   })
   </script>
