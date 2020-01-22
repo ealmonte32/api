@@ -17,7 +17,7 @@ class ProfileViewsTest(TestCase):
     def test_get(self):
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Profile Settings')
+        self.assertContains(response, 'Settings')
         self.assertEqual(self.user0.profile.last_active, timezone.localdate())
 
     def test_post(self):
