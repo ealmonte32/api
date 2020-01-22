@@ -3,6 +3,7 @@ import sys
 from statistics import mean
 from unittest.mock import patch
 
+from dateutil.relativedelta import relativedelta, TU
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -20,7 +21,7 @@ from freezegun import freeze_time
 
 from device_registry import ca_helper
 from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
-    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction
+    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 from device_registry.views import CVEView
@@ -1266,7 +1267,7 @@ class ClaimDeviceViewTests(TestCase):
             mixpanel_instance.track.assert_called_once_with(self.user.email, 'First Node')
 
 
-class DasboardViewTests(TestCase):
+class DashboardViewTests(TestCase):
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test')
@@ -1514,3 +1515,23 @@ class CVEViewTests(TestCase):
         self.packages[0].vulnerabilities.set(vulns)
         self.packages[1].vulnerabilities.set(vulns)
         self.assertDictEqual(self.device0.cve_count, {'high': 1, 'med': 2, 'low': 3})
+
+    def test_cve_count_history(self):
+        self.test_cve_count()
+        self.profile.sample_history()
+        ho = HistoryRecord.objects.get()
+        self.assertEquals(ho.cve_high_count, 1)
+        self.assertEquals(ho.cve_medium_count, 2)
+        self.assertEquals(ho.cve_low_count, 3)
+
+    def test_cve_count_last_week(self):
+        now = timezone.now()
+        last_tuesday = (now - relativedelta(weekday=TU(-2))).date()  # Find last week's tuesday
+
+        self.test_cve_count()
+        with freeze_time(last_tuesday):
+            self.profile.sample_history()
+        with freeze_time(last_tuesday + timezone.timedelta(days=1)):
+            self.profile.sample_history()
+
+        self.assertTupleEqual(self.profile.cve_count_last_week, (1, 2, 3))
