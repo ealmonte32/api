@@ -14,82 +14,17 @@
 {% block admin_content %}
   <div class="container-fluid">
 
-
     <div id="inner-settings" class="row wott-box-shadow">
-      
       <div id="settings-nav" class="card mb-0 border-0 h-auto col-md-3 pr-0">
         <div class="border-0 bg-white pl-2 py-2 my-2">
-          {% with url_name=request.resolver_match.url_name %}
-            <div class="sidebar-item my-2 {% if url_name|is_menu_highlight_id:'profile' %}active{% endif %}">
-              <a class="sidebar-link py-3 px-0 d-flex border-0 {{ tab_account }}"
-              href="{% url 'profile' %}" role="tab">
-                {% if url_name|is_menu_highlight_id:'profile' %}
-                <img src="{% static '/media/account.png' %}" alt="account">
-                {% else %}
-                <img src="{% static '/media/account-unselected.png' %}" alt="account">
-                {% endif %}
-                <h4>Account</h4>
-              </a>
-            </div>
-            <div class="sidebar-item my-2 {% if url_name|is_menu_highlight_id:'profile_password' %}active{% endif %}">
-              <a class="sidebar-link py-3 px-0 d-flex border-0 {{ tab_password }}"
-                href="{% url 'profile_password' %}" role="tab">
-                {% if url_name|is_menu_highlight_id:'profile_password' %}
-                <img src="{% static '/media/password-selected.png' %}" alt="password">
-                {% else %}
-                <img src="{% static '/media/password.png' %}" alt="password">
-                {% endif %}
-                <h4>Password</h4>
-              </a>
-            </div>
-            <div class="sidebar-item my-2 {% if url_name|is_menu_highlight_id:'profile_token' %}active{% endif %}">
-              <a class="sidebar-link py-3 px-0 d-flex border-0  {{ tab_api_token }}"
-                href="{% url 'profile_token' %}" role="tab">
-                {% if url_name|is_menu_highlight_id:'profile_token' %}
-                <img src="{% static '/media/api-selected.png' %}" alt="api">
-                {% else %}
-                <img src="{% static '/media/api-token.png' %}" alt="api">
-                {% endif %}
-                <h4>API Token</h4>
-              </a>
-            </div>
-            <div class="sidebar-item my-2 {% if url_name|is_menu_highlight_id:'github_integration' %}active{% endif %}">
-              <a class="sidebar-link px-0 py-3 d-flex border-0 {{ tab_github_integration }}"
-                href="{% url 'github_integration' %}" role="tab">
-                {% if url_name|is_menu_highlight_id:'github_integration' %}
-                <img src="{% static '/media/github-selected.png' %}" alt="github">
-                {% else %}
-                <img src="{% static '/media/github.png' %}" alt="github">
-                {% endif %}
-                <h4>GitHub Integration</h4>
-                <span class="badge badge-danger wott-badge-position">Beta</span>
-              </a>
-            </div>
-            <div class="sidebar-item my-2 {% if url_name|is_menu_highlight_id:'slack_integration' %}active{% endif %}">
-              <a class="sidebar-link py-3 px-0 d-flex border-0 {{ tab_slack_integration }}"
-                href="{% url 'slack_integration' %}" role="tab">
-                {% if url_name|is_menu_highlight_id:'slack_integration' %}
-                <img src="{% static '/media/slack-selected-blue.png' %}" alt="github">
-                {% else %}
-                <img src="{% static '/media/slack.png' %}" alt="slack">
-                {% endif %}
-                <h4>Slack Integration</h4>
-              </a>
-            </div>
-            <div class="sidebar-item my-2 {% if url_name|is_menu_highlight_id:'payment_plan' %}active{% endif %}">
-              <a class="sidebar-link py-3 px-0 d-flex border-0 {{ tab_payment_plan }}"
-                href="{% url 'payment_plan' %}" role="tab">
-                {% if url_name|is_menu_highlight_id:'payment_plan' %}
-                <img src="{% static '/media/payment-selected.png' %}" alt="github">
-                {% else %}
-                <img src="{% static '/media/payment.png' %}" alt="github">
-                {% endif %}
-                <h4>Payment Plan</h4>
-              </a>
-            </div>
+          {% include "menu_item.html" with tab=tab_account url='profile' image='/media/account-unselected.png' image_selected='/media/account.png' label="Account" %}
+          {% include "menu_item.html" with tab=tab_password url='profile_password' image='/media/password.png' image_selected='/media/password-selected.png' label="Password" %}
+          {% include "menu_item.html" with tab=tab_api_token url='profile_token' image='/media/api-token.png' image_selected='/media/api-selected.png' label="API Token" %}
+          {% include "menu_item.html" with tab=tab_github_integration url='github_integration' image='/media/github.png' image_selected='/media/github-selected.png' label="GitHub Integration" beta_badge=True %}
+          {% include "menu_item.html" with tab=tab_slack_integration url='slack_integration' image='/media/slack.png' image_selected='/media/slack-selected-blue.png' label="Slack Integration"%}
+          {% include "menu_item.html" with tab=tab_payment_plan url='payment_plan' image='/media/payment.png' image_selected='/media/payment-selected.png' label="Payment Plan" %}
         </div>
       </div>
-      {% endwith %}
 
       <div class="col-md-9 py-0">
         <div class="tab-content">
@@ -100,5 +35,6 @@
         </div>
       </div>
     </div>
+
   </div>
 {% endblock %}
