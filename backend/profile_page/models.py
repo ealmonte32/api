@@ -13,7 +13,7 @@ from dateutil.relativedelta import relativedelta, MO
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction, Device, HistoryRecord
+from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability
 from device_registry.celery_tasks import github
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,16 @@ class Profile(models.Model):
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
         )
+        # FIXME: this should be grouped by name and maxed by urgency
+        vuln_qs = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW,
+                                               debpackage__device__owner=self.user,
+                                               fix_available=True)
+        cve_hi, cve_med, cve_lo = (vuln_qs.filter(urgency=urgency).values('name').distinct().count()
+                                   for urgency in [Vulnerability.Urgency.HIGH,
+                                                   Vulnerability.Urgency.MEDIUM,
+                                                   Vulnerability.Urgency.LOW])
         HistoryRecord.objects.create(owner=self.user,
                                      recommended_actions_resolved=ra_resolved.count(),
-                                     average_trust_score=self.average_trust_score)
+                                     average_trust_score=self.average_trust_score,
+                                     cve_high_count=cve_hi, cve_medium_count=cve_med, cve_low_count=cve_lo)
 
