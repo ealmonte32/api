@@ -697,15 +697,30 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 d = 1
             else:
                 d = (current - last) / last
-            return int(d * 100)
+            return {
+                'count': current,
+                'delta': int(abs(d * 100)),
+                'arrow': f"fa-sort-{'up' if d > 0 else 'down'}"
+            }
+        def percent(a, b):
+            return int(a/b*100)
 
-        context['cve_count'] = {
-            'cve_high': cve_hi,
-            'cve_high_delta': delta(cve_hi, cve_hi_last),
-            'cve_medium': cve_med,
-            'cve_medium_delta': delta(cve_med, cve_med_last),
-            'cve_low': cve_lo,
-            'cve_low_delta': delta(cve_lo, cve_lo_last),
+        cve_sum = sum((cve_hi, cve_med, cve_lo))
+        percent_hi = percent(cve_hi, cve_sum)
+        percent_med = percent(cve_med, cve_sum)
+        percent_lo = percent(cve_lo, cve_sum)
+        initial_hi = 35
+        initial_med = 100 - percent_hi + initial_hi
+        initial_lo = 100 - percent_med + initial_med
+        context['cve'] = {
+            'high': delta(cve_hi, cve_hi_last),
+            'medium': delta(cve_med, cve_med_last),
+            'low': delta(cve_lo, cve_lo_last),
+            'circle': {
+                'high': (percent_hi, 100 - percent_hi, initial_hi),
+                'medium': (percent_med, 100 - percent_med, initial_med),
+                'low': (percent_lo, 100 - percent_lo, initial_lo),
+            }
         }
 
         return context
