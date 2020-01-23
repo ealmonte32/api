@@ -1,6 +1,7 @@
 import json
 import uuid
 from collections import defaultdict
+from math import ceil
 from typing import NamedTuple, List
 
 from django.contrib.auth.decorators import login_required
@@ -702,8 +703,9 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 'delta': int(abs(d * 100)),
                 'arrow': f"fa-sort-{'up' if d > 0 else 'down'}"
             }
+
         def percent(a, b):
-            return int(a/b*100)
+            return a/b*100
 
         cve_sum = sum((cve_hi, cve_med, cve_lo))
         percent_hi = percent(cve_hi, cve_sum)

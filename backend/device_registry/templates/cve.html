@@ -47,19 +47,17 @@
             <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="#fff"></circle>
             <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#d2d3d4" stroke-width="3"></circle>
 
-            <circle id="high-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF2F20" stroke-width="3" stroke-dasharray="{{ cve.circle.high.0 }} {{ cve.circle.high.1 }}" stroke-dashoffset="{{ cve.circle.high.2 }}"></circle>
-            <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF2F20" stroke-width="3" stroke-dasharray="<percentage1, (100 - percentage1)>" stroke-dashoffset="<initialValue>"></circle> -->
-            <circle id="medium-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="{{ cve.circle.medium.0 }} {{ cve.circle.medium.1 }}" stroke-dashoffset="{{ cve.circle.medium.2 }}"></circle>
-            <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="<percentage2, (100 - percentage2)>" stroke-dashoffset="<secondValue = 100 - percentage1 + initialValue>"></circle> -->
-            <circle id="low-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#23BED6" stroke-width="3" stroke-dasharray="{{ cve.circle.low.0 }} {{ cve.circle.low.1 }}" stroke-dashoffset="{{ cve.circle.low.2 }}"></circle>
-            <!-- <circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#EF8F20" stroke-width="3" stroke-dasharray="<percentage3, (100 - percentage3)>" stroke-dashoffset="<100 - percentage2 + secondValue>"></circle> -->
+            <circle id="high-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent"
+                    stroke="#EF2F20" stroke-width="3" stroke-dasharray="{{ cve.circle.high.0 }} {{ cve.circle.high.1 }}" stroke-dashoffset="{{ cve.circle.high.2 }}"></circle>
+            <circle id="medium-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent"
+                    stroke="#EF8F20" stroke-width="3" stroke-dasharray="{{ cve.circle.medium.0 }} {{ cve.circle.medium.1 }}" stroke-dashoffset="{{ cve.circle.medium.2 }}"></circle>
+            <circle id="low-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent"
+                    stroke="#23BED6" stroke-width="3" stroke-dasharray="{{ cve.circle.low.0 }} {{ cve.circle.low.1 }}" stroke-dashoffset="{{ cve.circle.low.2 }}"></circle>
 
             <g class="chart-text">
               <text id="cve-priority" x="50%" y="50%" class="chart-number">
-                96 <!--HARDCODE-->
               </text>
               <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
-                low <!--HARDCODE-->
               </text>
               <text x="50%" y="50%" class="chart-label2">
                 priority
@@ -161,10 +159,6 @@
   <script>
   let popoverShown = null;
 
-  $(function () {
-    $('[data-toggle="popover"]').popover()
-  });
-
   $('.wott-popover').click((e) => {
     e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
     if(popoverShown)  // hide previous popover
@@ -193,19 +187,38 @@
   });
 
   let selectedSector = null;
+  const sectorValues = {
+      high: {{ cve.high.count }},
+      medium: {{ cve.medium.count }},
+      low: {{ cve.low.count }}
+  };
   function selectSector(sector, text) {
-      colors = {
-          high: '#EF2F20',
-          medium: '#EF8F20',
-          low: '#23BED6'
-      };
-      if(selectedSector)
-          $(`#${selectedSector}-circle-segment`).css({strokeWidth: 3});
-      $(`#${sector}-circle-segment`).css({strokeWidth: 4});
-      $('#cve-priority').css({fill: colors[sector]}).text(text);
-      $('#severity-inner-text').text(text);
-      selectedSector = sector;
+    const colors = {
+      high: '#EF2F20',
+      medium: '#EF8F20',
+      low: '#23BED6'
+    };
+    if(selectedSector)
+        $(`#${selectedSector}-circle-segment`).css({strokeWidth: 3});
+    $(`#${sector}-circle-segment`).css({strokeWidth: 4});
+    $('#cve-priority').css({fill: colors[sector]}).text(text);
+    $('#severity-inner-text').text(sector);
+    selectedSector = sector;
   }
+  $('.donut-segment').hover((e) => {
+    const sectors = {
+      'high-circle-segment': 'high',
+      'medium-circle-segment': 'medium',
+      'low-circle-segment': 'low',
+    };
+    let sector = sectors[e.target.id];
+    if(sector && e.type=='mouseenter') {
+        console.log(e.target, e);
+        selectSector(sector, sectorValues[sector]);
+    }
+  });
+
+  selectSector('high', sectorValues.high);
 
  // TODO: Popover JS require 2 functions
  // ## When opening the popover we should do => document.getElementById(.overlay).style.display = block;
