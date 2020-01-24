@@ -234,13 +234,14 @@ transform: translateY(3.2em);
 .popover-box {
   padding: 2rem 1.5rem;
   color: #495057;
-  position: absolute !important;
-  width: 800px !important;
+  position: fixed !important;
+  width: 60% !important;
   max-height: 510px !important;
   overflow-y: scroll !important;
   overflow-x: hidden;
   top: 0px !important;
   left: 0px !important;
+  transform: translate(40%,45%);
   background-color: white !important;
   border-radius: 8px !important;
   display: flex;
@@ -250,6 +251,7 @@ transform: translateY(3.2em);
   pointer-events: none;
   z-index: 0;
 }
+
 
 .popover-box a {
 font-size: .8rem;
