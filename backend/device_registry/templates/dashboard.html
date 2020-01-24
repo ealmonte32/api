@@ -11,7 +11,20 @@
 {% block admin_content %}
  
 <div class="dashboard-tab">
-  
+  <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});">
+    <div class="left-box py-4">
+      <h1 class="big-text text-center">Welcome User</h1>
+      <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p>
+      <p class="text-center pb-4 close-text">You can start your journey by adding a node.</p>
+      <button type="button" class="btn wott-btn btn-wott-primary d-block m-auto">
+        Add A Node
+        <img src="{% static '/media/plus.png' %}" alt="plus">
+      </button>
+    </div>
+    <div>
+      <img src="{% static '/media/server.png'%}" alt="server">
+    </div>
+  </div>
   <section class="top-section pt-2">
     <div class="left-box card mb-0 wott-box-shadow">
       <div class="card-header d-flex justify-content-between align-items-center">
@@ -125,6 +138,33 @@
     </section>
   </section>
 </div>
+<style>
+  .big-text {
+    font-size: 2rem;
+    font-weight: 600;
+  }
+
+  .close-text {
+    margin-bottom: 0;
+    font-size: 1.2rem;
+  }
+
+  #onboard-container {
+    display: flex !important;
+    padding: 2rem;
+    overflow: visible;
+    background-size: 120%;
+    width: 120%;
+    margin-left: -10%;
+    height: 326%;
+    margin-top: -24px;
+    margin-bottom: -56px;
+  }
+
+  .content {
+    padding-top: 1.5rem;  
+  }
+</style>
 {% endblock admin_content %}
 
 {% block scripts %}
