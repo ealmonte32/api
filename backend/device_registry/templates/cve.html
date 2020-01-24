@@ -214,17 +214,24 @@
       'low-circle-segment': 'low',
     };
     let sector = sectors[e.target.id];
-    if(sector && e.type=='mouseenter') {
-        console.log(e.target, e);
+    if(sector) {
+        console.log(e.target, e.type);
         selectSector(sector, sectorValues[sector]);
     }
   });
 
   selectSector('high', sectorValues.high);
 
- // TODO: Popover JS require 2 functions
- // ## When opening the popover we should do => document.getElementById(.overlay).style.display = block;
- // ## When we close the popover we should do => document.getElementById('.overlay').style.display = hidden;
+  function modal(show) {
+      $('.overlay').css({display: show? 'block': 'none'});
+      $('.popover-box').css({
+          visibility: show? 'visible': 'hidden',
+          pointerEvents: show? 'bounding-box': 'none',
+          zIndex: show? 999: 0
+      });
+  }
+
+  modal(false);
  
   </script>
 {% endblock scripts %}

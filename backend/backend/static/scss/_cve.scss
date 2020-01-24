@@ -232,20 +232,23 @@ transform: translateY(3.2em);
 // POPOVER
 
 .popover-box {
-padding: 2rem 1.5rem;
-color: #495057;
-position: absolute !important;
-width: 800px !important;
-max-height: 510px !important;
-overflow-y: scroll !important;
-overflow-x: hidden;
-top: 0px !important;
-left: 0px !important;
-background-color: white !important;
-border-radius: 8px !important;
-display: flex;
-flex-direction: row;
-flex-wrap: wrap;
+  padding: 2rem 1.5rem;
+  color: #495057;
+  position: absolute !important;
+  width: 800px !important;
+  max-height: 510px !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden;
+  top: 0px !important;
+  left: 0px !important;
+  background-color: white !important;
+  border-radius: 8px !important;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .popover-box a {
