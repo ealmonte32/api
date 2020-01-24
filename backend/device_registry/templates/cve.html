@@ -112,16 +112,9 @@
                   <a href="#" id="device-url" class="wott-popover">
                     {{ p.devices_count }}
                     <template>
-                      <div class="popover-box">
-                        <div class="popover-title"> 
-                          <h1 class="mb-0">All Affected Nodes</h1>
-                          <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
-                        </div>
-                        <hr class="popover-title-line">
                       {% for du in p.devices %}
                         <a class="wott-blue" href="{{ du.href }}">{{  du.text }}</a>
                       {% endfor %}
-                      </div>
                     </template>
                   </a>
                   <br>
@@ -150,6 +143,15 @@
             </tbody>
           </table>
     </section>
+  </div>
+
+  <div class="popover-box">
+    <div class="popover-title">
+      <h1 class="mb-0">TITLE GOES HERE</h1>
+      <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
+    </div>
+    <hr class="popover-title-line">
+    TEXT GOES HERE
   </div>
 {% endblock admin_content %}
 
