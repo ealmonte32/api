@@ -20,6 +20,7 @@
     padding: 1rem;
     font-size: .9rem;
     margin: 0;
+    background-color: white;
   }
   
   .bullet-lg {
@@ -138,8 +139,20 @@
 
 #solve-header {
   padding-left: 3rem;
-  @include mQ(1350px) {
-    padding-left: 2.5rem;
+  @include mQ(1850px) {
+    padding-left: 5rem;
+  }
+  @include mQ(1750px) {
+    padding-left: 4.5rem;
+  }
+  @include mQ(1650px) {
+    padding-left: 4rem;
+  }
+  @include mQ(1650px) {
+    padding-left: 4rem;
+  }
+  @include mQ(1550px) {
+    padding-left: 3.5rem;
   }
   @include mQ(1250px) {
     padding-left: 1.7rem;
@@ -180,53 +193,53 @@
 /* GRAPH CLASSES */
 
 .chart-text {
-font: 14px/1.2em "Muli", Arial, sans-serif;
-fill: black;
--moz-transform: translateY(0.25em);
--ms-transform: translateY(0.25em);
--webkit-transform: translateY(0.25em);
-transform: translateY(0.25em);
+  font: 14px/1.2em "Muli", Arial, sans-serif;
+  fill: black;
+  -moz-transform: translateY(0.25em);
+  -ms-transform: translateY(0.25em);
+  -webkit-transform: translateY(0.25em);
+  transform: translateY(0.25em);
 }
 
 .chart-number {
-font-size: 0.6em;
-line-height: 1;
-text-anchor: middle;
--moz-transform: translateY(-0.45em);
--ms-transform: translateY(-0.45em);
--webkit-transform: translateY(-0.45em);
-transform: translateY(-0.45em);
+  font-size: 0.6em;
+  line-height: 1;
+  text-anchor: middle;
+  -moz-transform: translateY(-0.45em);
+  -ms-transform: translateY(-0.45em);
+  -webkit-transform: translateY(-0.45em);
+  transform: translateY(-0.45em);
 }
 
 .chart-label {
-font-size: 0.12em;
-text-transform: uppercase;
-text-anchor: middle;
--moz-transform: translateY(.5em);
--ms-transform: translateY(5em);
--webkit-transform: translateY(.5em);
-transform: translateY(.5em);
+  font-size: 0.12em;
+  text-transform: uppercase;
+  text-anchor: middle;
+  -moz-transform: translateY(.5em);
+  -ms-transform: translateY(5em);
+  -webkit-transform: translateY(.5em);
+  transform: translateY(.5em);
 }
 
 
 .chart-label2 {
-font-size: 0.12em;
-text-transform: uppercase;
-text-anchor: middle;
--moz-transform: translateY(1.8em);
--ms-transform: translateY(1.8em);
--webkit-transform: translateY(1.8em);
-transform: translateY(1.8em);
+  font-size: 0.12em;
+  text-transform: uppercase;
+  text-anchor: middle;
+  -moz-transform: translateY(1.8em);
+  -ms-transform: translateY(1.8em);
+  -webkit-transform: translateY(1.8em);
+  transform: translateY(1.8em);
 }
 
 .chart-label3 {
-font-size: 0.12em;
-text-transform: uppercase;
-text-anchor: middle;
--moz-transform: translateY(3.2em);
--ms-transform: translateY(3.2em);
--webkit-transform: translateY(3.2em);
-transform: translateY(3.2em);
+  font-size: 0.12em;
+  text-transform: uppercase;
+  text-anchor: middle;
+  -moz-transform: translateY(3.2em);
+  -ms-transform: translateY(3.2em);
+  -webkit-transform: translateY(3.2em);
+  transform: translateY(3.2em);
 }
 
 // POPOVER
@@ -241,7 +254,7 @@ transform: translateY(3.2em);
   overflow-x: hidden;
   top: 0px !important;
   left: 0px !important;
-  transform: translate(40%,45%);
+  transform: translate(40%,100%);
   background-color: white !important;
   border-radius: 8px !important;
   display: flex;
@@ -254,47 +267,44 @@ transform: translateY(3.2em);
 
 
 .popover-box a {
-font-size: .8rem;
-font-weight: 700;
-padding: 0.5rem 3.9rem 0.5rem 2.1rem;
+  font-size: .8rem;
+  font-weight: 700;
+  padding: 0.5rem 3.9rem 0.5rem 2.1rem;
 }
 
 .popover-title {
-width: 100%;
-padding: 0.5rem 2.1rem;
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 10px;
+  width: 100%;
+  padding: 0.5rem 2.1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .popover-title-line {
-width: 100vw;
-margin-left: -30px;
-margin-right: -30px;
-margin-top: 8px;
-margin-bottom: 25px;
+  width: 100vw;
+  margin-left: -30px;
+  margin-right: -30px;
+  margin-top: 8px;
+  margin-bottom: 25px;
 }
 
 .overlay {
-position: fixed;
-display: none;
-width: 100vw;
-height: 100vh;
-top: 0;
-left: 0;
-right: 0;
-bottom: 0;
-background-color: rgba(0, 0, 0, 0.5);
-z-index: 999;
-cursor: pointer;
+  position: fixed;
+  display: none;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  cursor: pointer;
 }
 
 
 .instructions-box {
-  width: 560px !important;
-  top: 0px !important;
-  left: -645px !important;
   overflow-x: scroll;
 }
 
