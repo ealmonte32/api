@@ -111,7 +111,7 @@
                 {% for p in row.packages %}
                   <a href="#" id="device-url" class="wott-popover">
                     {{ p.devices_count }}
-                    <template>
+                    <template title="Nodes Affected">
                       {% for du in p.devices %}
                         <a class="wott-blue" href="{{ du.href }}">{{  du.text }}</a>
                       {% endfor %}
@@ -125,14 +125,8 @@
                 {% for p in row.packages %}
                   <a href="#" class="wott-popover">
                     Instructions
-                    <template>
-                      <div class="popover-box instructions-box">
-                        <h4>Run the following command:</h4>
-                        <hr class="popover-title-line">
-                        <div>
-                          <pre class="wott-blue">{{ p.upgrade_command }}</pre>
-                        </div>
-                      </div>
+                    <template title="Instructions">
+                      <pre class="wott-blue">{{ p.upgrade_command }}</pre>
                     </template>
                   </a>
                   <br>
@@ -144,119 +138,16 @@
           </table>
     </section>
   </div>
-  
-  <!-- <div class="popover-box instructions-box" style="visibility: visible;">
-    <div class="popover-title">
-      <h1 class="mb-0">Run the following command:</h1>
-      <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
-    </div>
-    <hr class="popover-title-line">
-    <div>
-      <pre class="wott-blue">{{ p.upgrade_command }}</pre>
-    </div>
-  </div> -->
 
-  <div class="popover-box" style="visibility: visible;">
+  <div class="popover-box">
     <div class="popover-title">
-      <h1 class="mb-0">TITLE GOES HERE</h1>
+      <h1 class="mb-0" id="wott-popover-title">TITLE GOES HERE</h1>
       <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
     </div>
     <hr class="popover-title-line">
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
-      <a class="wott-blue" href="#">wott-device</a>
+    <div class="wott-popover-body">
+      BODY GOES HERE
+    </div>
   </div>
 {% endblock admin_content %}
 
@@ -264,34 +155,52 @@
 {{ block.super }}
 
   <script>
-  let popoverShown = null;
+  /*
+   *** Modal interaction
+   */
+
+  let modalShown = null;
 
   $('.wott-popover').click((e) => {
     e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
-    if(popoverShown)  // hide previous popover
-      $(popoverShown).popover('hide');
-    $(e.target).popover('show');
-    popoverShown = e.target;
-  }).popover({
-    html: true,
-    title: "",
-    trigger: 'click',
-    content: function() {
-      return $(this).children('template').html();
-    }
+    e.stopPropagation(); // prevent $body.click handler - it will catch "outside click"
+    modalShown = $('.popover-box')[0];
+    modal(true, $(e.target).children('template').attr('title'), $(e.target).children('template').html());
   });
 
   $('body').click((e) => {
-    if(e.target == popoverShown || $(e.target).parents('.popover').length) {
+    if(e.target == modalShown || $(e.target).parents('.popover-box').length) {
       // clicked on popover link or inside popover
+      console.log('clicked inside modal');
       return;
     }
-    if(popoverShown) {
+    if(modalShown) {
       // clicked anywhere outside the popover while it's shown -> hide it
-      $(popoverShown).popover('hide');
-      popoverShown = null;
+      console.log('clicked outside modal');
+      modal(false);
+      modalShown = null;
     }
   });
+
+  $('#close-popover-buttton').click(() => {
+      modal(false);
+      modalShown = null;
+  });
+
+  function modal(show, title, html) {
+      $('.overlay').css({display: show? 'block': 'none'});
+      $('.popover-box').css({
+          visibility: (show? 'visible': 'hidden'),
+          pointerEvents: (show? 'all': 'none'),
+          zIndex: (show? 999: 0)
+      });
+      $('.wott-popover-body').html(html);
+      $('#wott-popover-title').text(title);
+  }
+
+  /*
+   *** Colored circle interaction
+   */
 
   let selectedSector = null;
   const sectorValues = {
@@ -327,20 +236,5 @@
 
   selectSector('high', sectorValues.high);
 
-  function modal(show) {
-      $('.overlay').css({display: show? 'block': 'none'});
-      $('.popover-box').css({
-          visibility: (show? 'visible': 'hidden'),
-          pointerEvents: (show? 'all': 'none'),
-          zIndex: (show? 999: 0)
-      });
-  }
-
-  modal(true);
-
-  $('#close-popover-buttton').click(() => {
-      modal(false);
-  });
- 
   </script>
 {% endblock scripts %}
