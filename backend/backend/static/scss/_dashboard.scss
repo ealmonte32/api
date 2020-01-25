@@ -4,17 +4,22 @@
     border-radius: 8px;
   }
 
-  .left-box .card-header {
+  .weekly-card-container {
+    width: calc(100% - 332px);
+  }
+
+  .weekly-card-container .card-header {
     border-top-right-radius: 8px;
     border-top-left-radius: 8px;
   }
 
-  .left-box .title-left-box {
+  .weekly-card-container .title-left-box {
     font-size: 1.2rem;
     padding: .8rem;
     margin-top: 0px;
     @include mQ(1200px) {
-      font-size: 1rem;
+      font-size: .9rem;
+      width: 50%;
     }
   }
 
@@ -32,7 +37,7 @@
     font-weight: 400;
     color: #9298A5;
     @include mQ(1200px) {
-      font-size: .8rem;
+      font-size: .7rem;
     }
   }
 }
@@ -106,11 +111,11 @@
 /* SMALL GRAPH WEEKLY PROGRESS */
 
 .weekly-progress {
-  width: 35%;
+  width: 40%;
   display: flex;
   align-items: center;
-  @include mQ(1200px) {
-    width: 40%;
+  @include mQ(1250px) {
+    width: 50%;
   }
 }
 
@@ -177,6 +182,7 @@
   background-color: #2460C8;
   margin-left: 3.5%;
   border-radius: 8px;
+  width: 332px;
 }
 
 .graph-title {
@@ -218,5 +224,93 @@
 }
 
 .graph-half-moon {
-  width: 120%;
+  width: 100%;
+}
+
+
+
+// WELCOME DASHBOARD
+
+.big-text {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.close-text {
+  margin-bottom: 0;
+  font-size: 1.2rem;
+}
+
+#onboard-container {
+  display: flex !important;
+  padding: 2.7rem 2rem 4.7rem;
+  margin: -39px -4% -56px;
+  @include mQ(1200px) {
+    margin: -24px -4% -56px;
+  }
+
+  button {
+    width: 215px;
+    height: 50px;
+  }
+
+  p {
+    font-size: 1.15rem;
+    margin-bottom: 0;
+    color: gray;
+  }
+
+  .left-box {
+    padding-right: 5%;
+    @include mQ(1250px) {
+      margin-left: 5%;
+      margin-right: 5%;
+    }
+  }
+  
+  .content {
+    @include mQ(1197px) {
+      padding: 2.5rem 1.5rem !important;
+    }
+  }
+}
+
+#server-welcome-dashboard {
+  padding-top: 2rem;
+  width: 25%;
+  img {
+    width: 100%;
+  }
+  @include mQ(1250px) {
+    width: 32%;
+  }
+}
+
+#welcome-overlay {
+  -webkit-filter: saturate(60%) opacity(0.7) grayscale(8%);
+  filter: saturate(60%) opacity(0.7) grayscale(8%); 
+}
+
+.wott-bg-blue {
+  background-color: #2460c8;
+}
+
+.wott-font-light-blue {
+  color:#7cacff;
+}
+
+.wott-bg-light-blue {
+  background-color:#7cacff;
+}
+
+#week-progress-var-fake {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+  background-color: #2460c8;
+  width: 75%;
+  height: 15px;
 }
