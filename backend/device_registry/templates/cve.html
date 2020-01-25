@@ -21,21 +21,21 @@
               <span class="title-mini-card High font-strong">HIGH</span>
               <h1>{{ cve.high.count }}</h1>
             {% if cve.high.delta %}
-              <p class="legend-mini-card wott-blue"><i class="fas {{ cve.high.arrow }}"></i> {{ cve.high.delta }}% LAST WEEK</p>
+              <p class="legend-mini-card wott-list-blue"><i class="fas {{ cve.high.arrow }}"></i> {{ cve.high.delta }}% LAST WEEK</p>
             {% endif %}
             </div>
             <div class="mini-card wott-rounded-lg d-flex flex-column">
               <span class="title-mini-card Medium font-strong">MEDIUM</span>
               <h1>{{ cve.medium.count }}</h1>
             {% if cve.medium.delta %}
-              <p class="legend-mini-card wott-blue"><i class="fas {{ cve.medium.arrow }}"></i> {{ cve.medium.delta }}% LAST WEEK</p>
+              <p class="legend-mini-card wott-list-blue"><i class="fas {{ cve.medium.arrow }}"></i> {{ cve.medium.delta }}% LAST WEEK</p>
             {% endif %}
             </div>
             <div class="mini-card wott-rounded-lg d-flex flex-column">
               <span class="title-mini-card Low font-strong">LOW</span>
               <h1>{{ cve.low.count }}</h1>
             {% if cve.low.delta %}
-              <p class="legend-mini-card wott-blue"><i class="fas {{ cve.low.arrow }}"></i> {{ cve.low.delta }}% LAST WEEK</p>
+              <p class="legend-mini-card wott-list-blue"><i class="fas {{ cve.low.arrow }}"></i> {{ cve.low.delta }}% LAST WEEK</p>
             {% endif %}
             </div>
           </div>
@@ -108,7 +108,7 @@
                     {{ p.devices_count }}
                     <template title="Nodes Affected">
                       {% for du in p.devices %}
-                        <a class="wott-blue" href="{{ du.href }}">{{  du.text }}</a>
+                        <a class="wott-list-blue" href="{{ du.href }}">{{  du.text }}</a>
                       {% endfor %}
                     </template>
                   </a>
@@ -121,7 +121,7 @@
                   <a href="#" class="wott-popover">
                     Instructions
                     <template title="Instructions">
-                      <pre class="wott-blue">{{ p.upgrade_command }}</pre>
+                      <pre class="wott-list-blue">{{ p.upgrade_command }}</pre>
                     </template>
                   </a>
                   <br>
@@ -134,14 +134,17 @@
     </section>
   </div>
 
-  <div class="popover-box">
-    <div class="popover-title">
-      <h1 class="mb-0" id="wott-popover-title">TITLE GOES HERE</h1>
-      <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
+  <div class="popover-box wott-scroll-y"> <!--use wott-scroll-y for nodelist and wott-scroll-x for instructions-->
+    <div class="wott-popover-header"> 
+      <div class="wott-popover-header-box">
+        <h1 class="mb-0" id="wott-popover-title">TEXT GO HERE</h1>
+        <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
+      </div>
+      <hr class="popover-title-line">
     </div>
-    <hr class="popover-title-line">
-    <div class="wott-popover-body">
-      BODY GOES HERE
+    <div class="wott-popover-body w-100"><!--nodeList include w-100 | instructions include w-auto-->
+      <a class="wott-node-list wott-list-blue" href="#">wott-device</a>
+      <!-- <p class="wott-intructions wott-list-blue">sudo apt-get ipsun cors socket asdasdaasdasdasdasdasdasdassjnvjkdbfwekfjclsa;kflaksdmf;lskdfmlasdkfjasfdnskjfansdj</p> -->
     </div>
   </div>
 {% endblock admin_content %}
