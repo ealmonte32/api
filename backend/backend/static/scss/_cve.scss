@@ -254,22 +254,53 @@
   overflow-x: hidden;
   top: 0px !important;
   left: 0px !important;
-  transform: translate(40%,100%);
+  transform: translate(40%, 25%);
   background-color: white !important;
   border-radius: 8px !important;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   visibility: hidden;
-  pointer-events: none;
+  pointer-events: all;
   z-index: 0;
+  word-wrap: break-word;
 }
 
 
 .popover-box a {
-  font-size: .8rem;
+  font-size: 1rem;
   font-weight: 700;
-  padding: 0.5rem 3.9rem 0.5rem 2.1rem;
+  max-width: 100px;
+  width: 100px;
+  white-space: normal;
+  margin: 1em 9.4rem 0.5rem 2.1rem;
+  @include mQ(1850px) {
+    margin: 1rem 8.7rem .8rem 2rem;
+  }
+  @include mQ(1750px) {
+    margin: 1rem 6rem .8rem 2rem;
+  }
+  @include mQ(1550px) {
+    margin: 1rem 5.5rem .8rem 2rem;
+  }
+  @include mQ(1440px) {
+    margin: .8rem 4.4rem .8rem 2rem;
+  }
+  @include mQ(1400px) {
+    margin: .8rem 4.8rem .8rem 2rem;
+  }
+  @include mQ(1300px) {
+    margin: .8rem 3.4rem .8rem 2rem;
+  }
+  @include mQ(1200px) {
+    margin: .8rem 2rem .8rem 2rem;
+  }
+  @include mQ(1150px) {
+    margin: .8rem 4.2rem .8rem 2rem;
+  }
+  @include mQ(1090px) {
+    margin: .8rem 2rem .8rem 2rem;
+  }
 }
 
 .popover-title {
@@ -305,6 +336,7 @@
 
 .instructions-box {
   overflow-x: scroll;
+  transform: translate(40%,93%)
 }
 
 .instructions-box {
