@@ -42,6 +42,7 @@
         </div>
         <div class="inner-right-box wott-rounded-lg">
           <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
+          {% if cve.circle %}
             <circle id="high-circle-segment" class="donut-segment" cx="21" cy="21" r={{ radius }} fill="transparent"
                     stroke={{ high_color }} stroke-width="3" stroke-dasharray="{{ cve.circle.high.0 }} {{ cve.circle.high.1 }}" stroke-dashoffset="{{ cve.circle.high.2 }}"></circle>
             <circle id="medium-circle-segment" class="donut-segment" cx="21" cy="21" r={{ radius }} fill="transparent"
@@ -49,6 +50,9 @@
             <circle id="low-circle-segment" class="donut-segment" cx="21" cy="21" r={{ radius }} fill="transparent"
                     stroke={{ low_color }} stroke-width="3" stroke-dasharray="{{ cve.circle.low.0 }} {{ cve.circle.low.1 }}" stroke-dashoffset="{{ cve.circle.low.2 }}"></circle>
             <circle class="donut-hole" cx="21" cy="21" r={{ radius }} fill="transparent"></circle>
+          {% else %}
+            <circle class="donut-ring" cx="21" cy="21" r={{ radius }} fill="transparent" stroke="#d2d3d4" stroke-width="3"></circle>
+          {% endif %}
             <g class="chart-text">
               <text id="cve-priority" x="50%" y="50%" class="chart-number">
               </text>

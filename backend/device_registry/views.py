@@ -693,7 +693,9 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         def delta(current, last):
             if current is None or last is None:
                 return
-            if last == 0:
+            if current == last == 0:
+                d = 0
+            elif last == 0 and current != 0:
                 # Actually this is zero division and the result is infinity
                 d = 1
             else:
@@ -705,30 +707,32 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             }
 
         def percent(a, b):
-            return a/b*100
+            return a / b * 100
 
-        cve_sum = sum((cve_hi, cve_med, cve_lo))
-        percent_hi = percent(cve_hi, cve_sum)
-        percent_med = percent(cve_med, cve_sum)
-        percent_lo = percent(cve_lo, cve_sum)
-        initial_hi = 35
-        initial_med = 100 - percent_hi + initial_hi
-        initial_lo = 100 - percent_med + initial_med
         context.update({
+            'radius': "15.91549430918954",
+            'high_color': "#EF2F20",
+            'med_color': "#EF8F20",
+            'low_color': "#23BED6",
             'cve': {
                 'high': delta(cve_hi, cve_hi_last),
                 'medium': delta(cve_med, cve_med_last),
                 'low': delta(cve_lo, cve_lo_last),
-                'circle': {
-                    'high': (percent_hi, 100 - percent_hi, initial_hi),
-                    'medium': (percent_med, 100 - percent_med, initial_med),
-                    'low': (percent_lo, 100 - percent_lo, initial_lo),
-                }
-            },
-            'radius': "15.91549430918954",
-            'high_color': "#EF2F20",
-            'med_color': "#EF8F20",
-            'low_color': "#23BED6"
+            }
         })
+
+        cve_sum = sum((cve_hi, cve_med, cve_lo))
+        if cve_sum:
+            percent_hi = percent(cve_hi, cve_sum)
+            percent_med = percent(cve_med, cve_sum)
+            percent_lo = percent(cve_lo, cve_sum)
+            initial_hi = 35
+            initial_med = 100 - percent_hi + initial_hi
+            initial_lo = 100 - percent_med + initial_med
+            context['cve']['circle'] = {
+                'high': (percent_hi, 100 - percent_hi, initial_hi),
+                'medium': (percent_med, 100 - percent_med, initial_med),
+                'low': (percent_lo, 100 - percent_lo, initial_lo),
+            }
 
         return context
