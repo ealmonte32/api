@@ -106,9 +106,9 @@
                 {% for p in row.packages %}
                   <a href="#" id="device-url" class="wott-popover">
                     {{ p.devices_count }}
-                    <template title="Nodes Affected">
+                    <template title="Nodes Affected" data-type="nodes">
                       {% for du in p.devices %}
-                        <a class="wott-list-blue" href="{{ du.href }}">{{  du.text }}</a>
+                        <a class="wott-node-list wott-list-blue" href="{{ du.href }}">{{  du.text }}</a>
                       {% endfor %}
                     </template>
                   </a>
@@ -120,8 +120,10 @@
                 {% for p in row.packages %}
                   <a href="#" class="wott-popover">
                     Instructions
-                    <template title="Instructions">
-                      <pre class="wott-list-blue">{{ p.upgrade_command }}</pre>
+                    <template title="Instructions" data-type="instructions">
+                      <p class="wott-intructions wott-list-blue">
+                        {{ p.upgrade_command }}
+                      </p>
                     </template>
                   </a>
                   <br>
@@ -134,7 +136,7 @@
     </section>
   </div>
 
-  <div class="popover-box wott-scroll-y"> <!--use wott-scroll-y for nodelist and wott-scroll-x for instructions-->
+  <div class="popover-box"> <!--use wott-scroll-y for nodelist and wott-scroll-x for instructions-->
     <div class="wott-popover-header"> 
       <div class="wott-popover-header-box">
         <h1 class="mb-0" id="wott-popover-title">TEXT GO HERE</h1>
@@ -142,9 +144,7 @@
       </div>
       <hr class="popover-title-line">
     </div>
-    <div class="wott-popover-body w-100"><!--nodeList include w-100 | instructions include w-auto-->
-      <a class="wott-node-list wott-list-blue" href="#">wott-device</a>
-      <!-- <p class="wott-intructions wott-list-blue">sudo apt-get ipsun cors socket asdasdaasdasdasdasdasdasdassjnvjkdbfwekfjclsa;kflaksdmf;lskdfmlasdkfjasfdnskjfansdj</p> -->
+    <div class="wott-popover-body"><!--nodeList include w-100 | instructions include w-auto-->
     </div>
   </div>
 {% endblock admin_content %}
@@ -163,7 +163,10 @@
     e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
     e.stopPropagation(); // prevent $body.click handler - it will catch "outside click"
     modalShown = $('.popover-box')[0];
-    modal(true, $(e.target).children('template').attr('title'), $(e.target).children('template').html());
+    //s = 'sudo apt-get ipsun cors socket asdasdaasdasdasdasdasdasdassjnvjkdbfwekfjclsa;kflaksdmf;lskdfmlasdkfjasfdnskjfansdj';
+    let template = $(e.target).children('template');
+    let is_nodes = template.attr('data-type') == 'nodes';
+    modal(true, template.attr('title'), template.html(), !is_nodes, is_nodes, is_nodes);
   });
 
   $('body').click((e) => {
@@ -185,14 +188,17 @@
       modalShown = null;
   });
 
-  function modal(show, title, html) {
+  function modal(show, title, html, box_scroll_x, box_scroll_y, body_w100) {
       $('.overlay').css({display: show? 'block': 'none'});
       $('.popover-box').css({
           visibility: (show? 'visible': 'hidden'),
           pointerEvents: (show? 'all': 'none'),
           zIndex: (show? 999: 0)
       });
-      $('.wott-popover-body').html(html);
+      if(!show)
+          return;
+      $('.popover-box').toggleClass('wott-scroll-x', box_scroll_x).toggleClass('wott-scroll-y', box_scroll_y);
+      $('.wott-popover-body').html(html).toggleClass('w-100', body_w100).toggleClass('w-auto', !body_w100);
       $('#wott-popover-title').text(title);
   }
 
