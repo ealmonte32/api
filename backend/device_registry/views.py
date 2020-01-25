@@ -714,15 +714,21 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         initial_hi = 35
         initial_med = 100 - percent_hi + initial_hi
         initial_lo = 100 - percent_med + initial_med
-        context['cve'] = {
-            'high': delta(cve_hi, cve_hi_last),
-            'medium': delta(cve_med, cve_med_last),
-            'low': delta(cve_lo, cve_lo_last),
-            'circle': {
-                'high': (percent_hi, 100 - percent_hi, initial_hi),
-                'medium': (percent_med, 100 - percent_med, initial_med),
-                'low': (percent_lo, 100 - percent_lo, initial_lo),
-            }
-        }
+        context.update({
+            'cve': {
+                'high': delta(cve_hi, cve_hi_last),
+                'medium': delta(cve_med, cve_med_last),
+                'low': delta(cve_lo, cve_lo_last),
+                'circle': {
+                    'high': (percent_hi, 100 - percent_hi, initial_hi),
+                    'medium': (percent_med, 100 - percent_med, initial_med),
+                    'low': (percent_lo, 100 - percent_lo, initial_lo),
+                }
+            },
+            'radius': "15.91549430918954",
+            'high_color': "#EF2F20",
+            'med_color': "#EF8F20",
+            'low_color': "#23BED6"
+        })
 
         return context
