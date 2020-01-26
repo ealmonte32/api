@@ -1,0 +1,46 @@
+.wott-table {
+  width: 100%;
+  border-radius: $wott-border-radius-lg;
+  background-color: white;
+}
+
+.wott-card {
+  background-color: white;
+  border-radius: $wott-border-radius-lg;
+}
+
+.wott-table tr {
+  padding: 1rem;
+  font-size: .9rem;
+  margin: 0;
+}
+
+.wott-table thead {
+  border-radius: $wott-border-radius-lg;
+  background-color: #edf1fe;
+}
+
+.wott-card-title {
+  border-top-left-radius: $wott-border-radius-lg;
+  border-top-right-radius: $wott-border-radius-lg;
+  padding: 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border-bottom: 1px solid #edf1fe;
+  color: black;
+}
+
+.hr-create-policy {
+  border: 1px solid transparent;
+  border-top: 1px solid rgba(0,0,0,.1);
+}
+
+.btn-wott-secondary:hover {
+  background-color: #28a9bd;
+  color: white;
+}
+
+.btn-wott-tertiary:hover {
+  background: #111f37;
+  color: white;
+}
