@@ -11,20 +11,90 @@
 {% block admin_content %}
   <div class="row">
     <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">{{ object }}</h5>
+      <div class="wott-card  wott-box-shadow">
+        <div class="">
+          <h5 class="wott-card-title">{{ object }}</h5>
         </div>
-        <div class="card-body">
+        <div class="wott-card-body px-5 pb-5">
+
           <form method="POST" action="" id="edit-policy-form">
             {% csrf_token %}
-            {% bootstrap_form form %}
+            <!-- {% bootstrap_form form %} -->
+
+            <div class="form-group">
+              <label class="wott-label" for="id_name">Name</label>
+              <input type="text" name="name" value="AllowingPolicy" maxlength="32" class="form-control wott-form-control wott-rounded-lg" placeholder="Name" title="" required="" id="id_name">
+            </div>
+            <div class="form-group">
+              <label class="wott-label" for="id_policy">Firewall ports policy</label>
+              <select name="policy" class="form-control wott-form-control wott-rounded-lg custom-select" title="" required="" id="id_policy">
+                <option value="">---------</option>
+                <option value="1" selected="">Allow by default</option>
+                <option value="2">Block by default</option>
+              </select>
+            </div>
+            <div class="form-group mb-4">
+              <label class="wott-label" for="id_ports">Ports</label>
+              <textarea name="ports" cols="40" rows="10" class="form-control form-control wott-form-control wott-rounded-lg" placeholder="Ports" title="" id="id_ports">[{"address": "0.0.0.0", "protocol": "udp", "port": 0, "ip_version": false}]</textarea>
+              <div id="ports-table_wrapper" class="dataTables_wrapper dt-bootstrap4 no-footer">
+                <div class="row">
+                  <div class="col-sm-12 col-md-6"></div>
+                  <div class="col-sm-12 col-md-6"></div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-12">
+                    <table id="ports-table" class="table table-striped table-responsive-xs dataTable no-footer wott-table " style="width: 100%;" role="grid">
+                      <thead>
+                        <tr role="row">
+                          <th width="5%" class="sorting_disabled" rowspan="1" colspan="1" aria-label=" " style="width: 14px;"></th>
+                          <th width="30%" class="sorting_asc" tabindex="0" aria-controls="ports-table" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Address: activate to sort column descending" style="width: 185px;">Address</th>
+                          <th width="10%" class="sorting" tabindex="0" aria-controls="ports-table" rowspan="1" colspan="1" aria-label="Protocol: activate to sort column ascending" style="width: 56px;">Protocol</th>
+                          <th width="20%" class="sorting" tabindex="0" aria-controls="ports-table" rowspan="1" colspan="1" aria-label="Port: activate to sort column ascending" style="width: 110px;">Port</th>
+                          <th width="20%" class="sorting" tabindex="0" aria-controls="ports-table" rowspan="1" colspan="1" aria-label="IP version: activate to sort column ascending" style="width: 112px;">IP version</th>
+                          <th width="20%" class="wott-kv-btns sorting_disabled" rowspan="1" colspan="1" aria-label="" style="width: 90px;"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr role="row" class="odd">
+                          <td><svg class="svg-inline--fa fa-ban fa-w-16 wott-rule-icon text-danger" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="ban" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-fa-i2svg=""><path fill="currentColor" d="M256 8C119.034 8 8 119.033 8 256s111.034 248 248 248 248-111.034 248-248S392.967 8 256 8zm130.108 117.892c65.448 65.448 70 165.481 20.677 235.637L150.47 105.216c70.204-49.356 170.226-44.735 235.638 20.676zM125.892 386.108c-65.448-65.448-70-165.481-20.677-235.637L361.53 406.784c-70.203 49.356-170.226 44.736-235.638-20.676z"></path></svg><!-- <i class="wott-rule-icon fas fa-ban text-danger"></i> --></td>
+                          <td class="sorting_1">0.0.0.0</td><td>udp</td>
+                          <td>0</td>
+                          <td>v4</td>
+                          <td class=" wott-kv-btns">
+                            <button type="button" class="btn btn-success  wott-port-edit-btn" aria-label="Left Align">
+                              <svg class="svg-inline--fa fa-edit fa-w-18 fa-lg" aria-hidden="true" data-toggle="popover" data-placement="top" title="Edit policy port rule." aria-labelledby="svg-inline--fa-title-65pe0v7NgmbA" data-prefix="fas" data-icon="edit" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" data-fa-i2svg="">
+                              <title id="svg-inline--fa-title-65pe0v7NgmbA">Edit policy port rule.</title>
+                              <path fill="currentColor" d="M402.6 83.2l90.2 90.2c3.8 3.8 3.8 10 0 13.8L274.4 405.6l-92.8 10.3c-12.4 1.4-22.9-9.1-21.5-21.5l10.3-92.8L388.8 83.2c3.8-3.8 10-3.8 13.8 0zm162-22.9l-48.8-48.8c-15.2-15.2-39.9-15.2-55.2 0l-35.4 35.4c-3.8 3.8-3.8 10 0 13.8l90.2 90.2c3.8 3.8 10 3.8 13.8 0l35.4-35.4c15.2-15.3 15.2-40 0-55.2zM384 346.2V448H64V128h229.8c3.2 0 6.2-1.3 8.5-3.5l40-40c7.6-7.6 2.2-20.5-8.5-20.5H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V306.2c0-10.7-12.9-16-20.5-8.5l-40 40c-2.2 2.3-3.5 5.3-3.5 8.5z"></path></svg><!-- <span class="fas fa-edit fa-lg" aria-hidden="true" data-toggle="popover" data-placement="top" title="Edit policy port rule."></span> -->
+                            </button>
+                            <button type="button" class="btn btn-danger wott-port-del-btn" aria-label="Left Align">
+                              <svg class="svg-inline--fa fa-trash fa-w-14 fa-lg" aria-hidden="true" data-toggle="popover" data-placement="top" title="Remove policy port rule." aria-labelledby="svg-inline--fa-title-AcqCY3vyPTWU" data-prefix="fas" data-icon="trash" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" data-fa-i2svg="">
+                                <title id="svg-inline--fa-title-AcqCY3vyPTWU">Remove policy port rule.</title>
+                                <path fill="currentColor" d="M432 32H312l-9.4-18.7A24 24 0 0 0 281.1 0H166.8a23.72 23.72 0 0 0-21.4 13.3L136 32H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16zM53.2 467a48 48 0 0 0 47.9 45h245.8a48 48 0 0 0 47.9-45L416 128H32z"></path>
+                              </svg><!-- <span class="fas fa-trash fa-lg" aria-hidden="true" data-toggle="popover" data-placement="top" title="Remove policy port rule."></span> -->
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-12 col-md-5"></div>
+                  <div class="col-sm-12 col-md-7"></div>
+                </div>
+              </div>
+              <button type="button" class="btn wott-btn-small btn-wott-secondary mt-0 pr-4" id="add-port-btn">＋ Add Port</button>
+            </div>
             <hr>
-            <button class="btn btn-primary" id="save-button" type="button">Save changes</button>
-            <button class="btn btn-danger" id="delete-button" style="float: right;" type="button">Delete</button>
-            <a href="{% url 'global_policies' %}" class="btn btn-secondary mr-1" role="button"
-               style="float: right;">Cancel</a>
+              <div class="box-btns d-flex justify-content-between mt-4">
+              <button class="btn wott-btn-medium btn-wott-primary" id="save-button" type="button">Save changes</button>
+              <div class="d-flex">
+                <a href="{% url 'global_policies' %}" class="btn wott-btn-medium btn-wott-tertiary mr-2" role="button">Cancel</a>
+                <button class="btn wott-btn-medium btn-danger" id="delete-button" type="button">Delete</button>
+              </div>
+            </div>
           </form>
+
         </div>
       </div>
     </div>

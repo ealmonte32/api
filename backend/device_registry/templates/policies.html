@@ -7,36 +7,31 @@
 {% endblock dashboard_title %}
 
 {% block admin_content %}
-  <div class="row">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-header">
-            <h5 class="card-title">Policies</h5>
-          </div>
-          <div class="card-body">
-            <table id="datatables-basic" class="table table-striped table-responsive-xs" style="width:100%">
-              <thead>
-              <tr>
-                <th>Name</th>
-                <th>Created</th>
-                <th>Firewall Ports Policy</th>
-                <th>Nodes number</th>
-              </tr>
-              </thead>
-              <tbody>
-              {% for object in object_list %}
-                  <tr>
-                  <td><a href="{% url 'edit_global_policy' object.pk %}">{{ object }}</a></td>
-                  <td>{{ object.created }}</td>
-                  <td>{{ object.get_policy_display }}</td>
-                  <td>{{ object.get_devices_nr }}</td>
-                  </tr>
-              {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+ 
+      
+
+<table id="datatables-basic" class="wott-table container-fluid wott-rounded-lg wott-box-shadow" style="width:100%">
+  <div class="table-header">
+    <thead>
+    <tr class="row">
+      <th class="col-3 wott-blue">Name</th>
+      <th class="col-4">Created</th>
+      <th class="col-3">Firewall Ports Policy</th>
+      <th class="col-2 text-center">Nodes number</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for object in object_list %}
+        <tr class="row border-table">
+        <td class="col-3  wott-font-light-blue  d-flex align-items-center medium-text font-weight-bold"><a href="{% url 'edit_global_policy' object.pk %}">{{ object }}</a></td>
+        <td class="col-4 d-flex align-items-center medium-text">{{ object.created }}</td>
+        <td class="col-3 d-flex align-items-center medium-text">{{ object.get_policy_display }}</td>
+        <td class="col-2 d-flex align-items-center justify-content-center small-text">{{ object.get_devices_nr }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
   </div>
-  <a href="{% url 'create_global_policy' %}" class="btn btn-success" role="button">＋ Add Policy</a>
+</table>
+<a href="{% url 'create_global_policy' %}" class="btn wott-btn-medium btn-wott-secondary mt-3" role="button">＋ Add Policy</a>
 {% endblock admin_content %}
+ 
