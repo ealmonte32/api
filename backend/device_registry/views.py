@@ -693,17 +693,9 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         def delta(current, last):
             if current is None or last is None:
                 return
-            if current == last == 0:
-                d = 0
-            elif last == 0 and current != 0:
-                # Actually this is zero division and the result is infinity
-                d = 1
-            else:
-                d = (current - last) / last
             return {
                 'count': current,
-                'delta': int(abs(d * 100)),
-                'arrow': f"fa-sort-{'up' if d > 0 else 'down'}"
+                'delta': f'{current - last:+d}'
             }
 
         def percent(a, b):

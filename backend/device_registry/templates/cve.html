@@ -21,21 +21,21 @@
               <span class="title-mini-card High font-strong">HIGH</span>
               <h1>{{ cve.high.count }}</h1>
             {% if cve.high.delta %}
-              <p class="legend-mini-card wott-list-blue"><i class="fas {{ cve.high.arrow }}"></i> {{ cve.high.delta }}% LAST WEEK</p>
+              <p class="legend-mini-card wott-list-blue">{{ cve.high.delta }} LAST WEEK</p>
             {% endif %}
             </div>
             <div class="mini-card wott-rounded-lg d-flex flex-column">
               <span class="title-mini-card Medium font-strong">MEDIUM</span>
               <h1>{{ cve.medium.count }}</h1>
             {% if cve.medium.delta %}
-              <p class="legend-mini-card wott-list-blue"><i class="fas {{ cve.medium.arrow }}"></i> {{ cve.medium.delta }}% LAST WEEK</p>
+              <p class="legend-mini-card wott-list-blue">{{ cve.medium.delta }} LAST WEEK</p>
             {% endif %}
             </div>
             <div class="mini-card wott-rounded-lg d-flex flex-column">
               <span class="title-mini-card Low font-strong">LOW</span>
               <h1>{{ cve.low.count }}</h1>
             {% if cve.low.delta %}
-              <p class="legend-mini-card wott-list-blue"><i class="fas {{ cve.low.arrow }}"></i> {{ cve.low.delta }}% LAST WEEK</p>
+              <p class="legend-mini-card wott-list-blue">{{ cve.low.delta }} LAST WEEK</p>
             {% endif %}
             </div>
           </div>
