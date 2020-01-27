@@ -120,9 +120,9 @@ class Profile(models.Model):
     @property
     def cve_count_last_week(self):
         now = timezone.now()
-        last_monday = (now - relativedelta(weekday=MO(-2))).date()  # Find last week's monday
-        this_monday = (now - relativedelta(weekday=MO(-1))).date()  # Find this week's monday
-        cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__gt=last_monday, sampled_at__lt=this_monday)\
+        last_monday = (now + relativedelta(days=-1, weekday=MO(-1))).date()  # Find last week's monday
+        this_monday = (now + relativedelta(weekday=MO(-1))).date()  # Find this week's monday
+        cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__gte=last_monday, sampled_at__lt=this_monday)\
             .values('cve_high_count', 'cve_medium_count', 'cve_low_count')\
             .annotate(cve_high=Max('cve_high_count'), cve_med=Max('cve_medium_count'), cve_lo=Max('cve_low_count'))\
             .values('cve_high', 'cve_med', 'cve_lo')

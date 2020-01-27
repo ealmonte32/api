@@ -1526,7 +1526,7 @@ class CVEViewTests(TestCase):
 
     def test_cve_count_last_week(self):
         now = timezone.now()
-        last_tuesday = (now - relativedelta(weekday=TU(-2))).date()  # Find last week's tuesday
+        last_tuesday = (now + relativedelta(weekday=TU(-1))).date()  # Find last week's tuesday
 
         self.test_cve_count()
         with freeze_time(last_tuesday):
