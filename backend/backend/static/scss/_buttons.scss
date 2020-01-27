@@ -77,3 +77,13 @@
   background-color: #33D3EC;
   color: white;
 }
+
+.wott-btn-danger {
+  background-color: $wott-red;
+  color: white;
+}
+ 
+.wott-btn-danger:hover { 
+  background-color: rgb(244, 61, 47);
+  color: white;
+}
