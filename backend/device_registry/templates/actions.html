@@ -2,47 +2,116 @@
 
 {% block title %}WoTT - Recommended Actions{% endblock title %}
 
+{% load static %}
+
 {% block dashboard_title %}
   <h1>Recommended Actions{% if device_name %} for {{ device_name }}{% endif %}</h1>
 {% endblock dashboard_title %}
 
 {% block admin_content %}
-  <div class="row">
-    <div class="mb-3 mt-3 w-100" id="alert-container">
+  <div id="actions-tab" class="">
+    <div class="mb-3 w-100" id="alert-container">
       {% for action in actions %}
-        <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
-          <div class="close" style="opacity: initial">
-            {% with action.severity.value as action_severity %}
-            <span class="badge badge-{{ action_severity.1 }} font-weight-light wott-alert-severity">
-              Severity: {{ action_severity.0 }}
-            </span>
-            {% endwith %}
-          </div>
-          <div class="alert-message">
-            <h3 class="alert-heading">
-              {{ action.title|safe }}
-              {% if action.issue_url %}
-                <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
-              {% endif %}
-            </h3>
-            <p>{{ action.html|safe }}</p>
-
-            <span><a class="mb-0" href="{{ action.doc_url }}">Learn More</a></span>
-            {% ifnotequal action.action_id 0 %}
-            <div class="btn-group float-right wott-alert-btn-group"
-                 wott-action
-                 wott-action-id="{{ action.action_id }}"
-                 wott-action-devices="{{ action.devices }}"
-                 wott-action-title="{{ action.title }}">
-              <button type="button" class="btn btn-success mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="null">Resolve</button>
-              <button type="button" class="btn btn-danger mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="0">Ignore</button>
-              <button type="button" class="btn btn-secondary mr-1 dropdown-toggle" data-toggle="dropdown">Snooze</button>
-              <div class="dropdown-menu">
-                <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24">24 hours</a>
-                <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24*7">7 days</a>
+        <div class="" role="alert">
+          <div class="full-alert-box mb-4 wott-box-shadow">
+            
+            <div class="d-flex wott-closed-box align-items-center">
+              <div class="recommendation-left-box">
+                <div class="round pl-5">
+                  <input type="checkbox" id="alert-ra-{{forloop.counter}}"/> <!--include checked atribute to check the input-->
+                  <label for="alert-ra-{{forloop.counter}}"></label>
+                </div>
+                <div class="alert-box-text">
+                  <div class="d-flex align-items-center mb-0">
+                    <span class="alert-title"> <!--include solved-dash to linetrough the title-->
+                      {{ action.title|safe }}
+                      
+                      {% if action.issue_url %}
+                        <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
+                      {% endif %}
+                    </span>
+                    {% with action.severity.value as action_severity %}
+                    <div class="badge mr-4 mb-1 text-uppercase wott-rect-badge-{{ action_severity.1 }}">
+                      {{ action_severity.0 }}
+                    </div>
+                    {% endwith %}
+                  </div>
+                  <h5 class="alert-instruction mb-0">Consider changing them as soon as possible</h5> <!--message from DB-->
+                </div>
+              
+                
+                <div class="dropdown">
+                  <button id="toogle-ra" class="btn wott-btn-dropdown">VIEW DETAILS <i class=" ml-1 fas fa-sort-down"></i></button>
+                </div>
               </div>
+              
+              {% ifnotequal action.action_id 0 %}
+              <div class="btn-group-box">
+                <div class="btn-group wott-alert-btn-group"
+                    wott-action
+                    wott-action-id="{{ action.action_id }}"
+                    wott-action-devices="{{ action.devices }}"
+                    wott-action-title="{{ action.title }}">
+                  <button type="button" class="mr-4" data-dismiss="alert" wott-snooze wott-snooze-duration="0">
+                    <span><img src="{% static '/media/ignore-icon.png' %}"></span>
+                    <div class="btn-img-text">IGNORE</div>
+                  </button>
+                  <button type="button" class="mr-4" data-toggle="dropdown">
+                    <span><img src="{% static '/media/snooze-icon.png' %}"></span>
+                    <div class="btn-img-text">SNOOZE</div>
+                  </button>
+                  <button type="button" class="" data-dismiss="alert" wott-snooze wott-snooze-duration="null">
+                    <span id="close-btn"><img src="{% static '/media/resolve-icon.png' %}"></span>
+                    <div class="btn-img-text">RESOLVE</div>
+                  </button>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24">24 hours</a>
+                    <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24*7">7 days</a>
+                  </div>
+                </div>
+              </div>
+              {% endifnotequal %}
             </div>
-            {% endifnotequal %}
+            
+            <section class="wott-open-box mb-4">
+              <div class="wott-inner-open-box">
+                <div class="open-box-header d-flex align-items-center justify-content-between">
+                  <h4 class="mb-0 open-box-header-text">Affected Nodes:</h4>
+                  <a href="#" class="wott-node">WOTT-1</a>
+                  <a href="#" class="wott-node">WOTT-2</a>
+                  <a href="#" class="wott-node">WOTT-3</a>
+                  <a href="#" class="wott-node">WOTT-4</a>
+                  <a href="#" class="wott-node">WOTT-5</a>
+                  <button id="" class="btn wott-btn-header">VIEW ALL NODES +</button>
+                </div>
+                <!-- <p class="actions-safe">{{ action.html|safe }}</p> -->
+                <p class="actions-safe">We found insecure configuration issue with OpenSSH on <a href="/devices/1/">artem-linux-gf</a>, <a href="/devices/9/">clone</a>: insecure parameter PermitRootLogin. To improve the security posture of your node, please consider changing PermitRootLogin to "no".</p>
+                <p class="actions-safe">We found insecure configuration issue with OpenSSH on.</p>
+                <div class="inner-open-box d-flex align-items-center">
+                  <a href="#" class="nav-open-box">MANUAL</a>
+                  <a href="#" class="nav-open-box2">ANSIBLE</a>
+                </div>
+                <div class="open-box-tab">
+                  <p class="">Run the following command to bring your system up to date</p>
+                  <div class="terminal-box">
+                    <div class="terminal-header">
+                      <h5>Terminal</h5>
+                    </div>
+                    <div class="terminal-body">
+                      <div class="terminal-text">
+                        <span class="terminal-instructions">$ dotnet add package Wott.io</span>
+                        <span class="terminal-instructions">> dotnet restore</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+               
+                <h4 class="line-box"><a class="mb-0" href="{{ action.doc_url }}">Learn More</a></h4>
+                
+                
+              </div>
+            </section>
+
           </div>
         </div>
       {% endfor %}
@@ -72,8 +141,13 @@
   .wott-alert-btn-group button {
     font-size: small;
   }
+
   </style>
   <script>
+   
+    $('.wott-open-box').css("display", "none") // change to block/none to see/hide the open box
+
+
 
     /**
      * Snooze an action. Used by the close icon on the alerts.
@@ -144,6 +218,7 @@
     observer.observe(targetNode, config);
     // Initial count on load
     countAlerts();
+
+  
   </script>
 {% endblock scripts %}
-
