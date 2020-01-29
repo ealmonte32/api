@@ -6,7 +6,7 @@ from typing import NamedTuple
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q
+from django.db.models import Q, Max, Window, Count
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -483,16 +483,26 @@ class Device(models.Model):
         if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
                and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
             return
-        # FIXME: this should be grouped by name and maxed by urgency
-        vuln_qs = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW, debpackage__device=self,
-                                               fix_available=True)
+
+        # For every CVE name detected for this device, find its maximal urgency among the whole CVE database.
+        # This will include CVEs with the same name from different sources (Denian and Ubuntu trackers currently).
+        # Then count the number of distinct CVE names grouped by urgency.
+        vuln_names = Vulnerability.objects.filter(debpackage__device=self, fix_available=True) \
+            .values('name').distinct()
+        urgency_counts = Vulnerability.objects.filter(name__in=vuln_names) \
+            .values('name').distinct() \
+            .annotate(max_urgency=Max('urgency')) \
+            .annotate(urg_cnt=Window(expression=Count('name'), partition_by='max_urgency')).order_by()\
+            .values('max_urgency', 'urg_cnt')
+
         severities = {
             Vulnerability.Urgency.HIGH: 'high',
             Vulnerability.Urgency.MEDIUM: 'med',
             Vulnerability.Urgency.LOW: 'low'
         }
-        return {severities[urgency]: vuln_qs.filter(urgency=urgency).values('name').distinct().count()
-                for urgency in severities}
+        result = {s: 0 for s in severities.values()}
+        result.update({severities[s['max_urgency']]: s['urg_cnt'] for s in urgency_counts})
+        return result
 
     def generate_recommended_actions(self, classes=None):
         """

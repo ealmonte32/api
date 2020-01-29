@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models import Q, Avg, Max
+from django.db.models import Q, Avg, Max, Window, Count
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -108,15 +108,21 @@ class Profile(models.Model):
 
     @property
     def cve_count(self):
-        # FIXME: this should be grouped by name and maxed by urgency
-        vuln_qs = Vulnerability.objects.filter(urgency__gte=Vulnerability.Urgency.LOW,
-                                               debpackage__device__owner=self.user,
-                                               fix_available=True)
-        return (vuln_qs.filter(urgency=urgency).values('name').distinct().count()
-                                   for urgency in [Vulnerability.Urgency.HIGH,
-                                                   Vulnerability.Urgency.MEDIUM,
-                                                   Vulnerability.Urgency.LOW])
-    
+        # For every CVE name detected on all user's devices, find its maximal urgency among the whole CVE database.
+        # This will include CVEs with the same name from different sources (Denian and Ubuntu trackers currently).
+        # Then count the number of distinct CVE names grouped by urgency.
+        vuln_names = Vulnerability.objects.filter(debpackage__device__owner=self.user, fix_available=True) \
+            .values('name').distinct()
+        urgency_counts = Vulnerability.objects.filter(name__in=vuln_names) \
+            .values('name').distinct() \
+            .annotate(max_urgency=Max('urgency')) \
+            .annotate(urg_cnt=Window(expression=Count('name'), partition_by='max_urgency')).order_by() \
+            .values('max_urgency', 'urg_cnt')
+        counts_by_urgency = {s['max_urgency']: s['urg_cnt'] for s in urgency_counts}
+        return (counts_by_urgency.get(urgency, 0) for urgency in [Vulnerability.Urgency.HIGH,
+                                                                  Vulnerability.Urgency.MEDIUM,
+                                                                  Vulnerability.Urgency.LOW])
+
     @property
     def cve_count_last_week(self):
         now = timezone.now()
