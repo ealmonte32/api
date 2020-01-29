@@ -1,7 +1,6 @@
 import json
 import uuid
 from collections import defaultdict
-from math import ceil
 from typing import NamedTuple, List
 
 from django.contrib.auth.decorators import login_required
@@ -21,7 +20,7 @@ from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, HistoryRecord, Vulnerability, DebPackage
+    RecommendedAction, HistoryRecord, Vulnerability
 from .models import GlobalPolicy
 from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
 
@@ -631,6 +630,19 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         def cve_link(self):
             return CVEView.Hyperlink(self.cve_name, 'http://cve.mitre.org/cgi-bin/cvename.cgi?name=' + self.cve_name)
 
+    @staticmethod
+    def delta(current, last):
+        if current is None or last is None:
+            return
+        return {
+            'count': current,
+            'delta': f'{current - last:+d}'
+        }
+
+    @staticmethod
+    def percent(a, b):
+        return a / b * 100
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
@@ -643,31 +655,63 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             device = None
             vuln_query = Q(debpackage__device__owner=user)
 
-        vuln_names = Vulnerability.objects.only('name').filter(debpackage__device__owner=user,
-                                                  fix_available=True).values('name')
-        vuln_pub_dates_qs = Vulnerability.objects.only('name').filter(name__in=vuln_names) \
-            .values('name').annotate(pubdate=Max('pub_date')).distinct()
+        # We gather Vulnerabilities from different sources: Debian Security Tracker (DST) and Ubuntu Security Tracker
+        # (UST). DST and UST often don't agree on severity for the same CVE. Also UST has CVE publication date
+        # (pub_date) while DST has not. But we need to compile the resulting CVE list regardless of those differences.
+        # This is why the code below is so complicated.
+
+        # Select all CVEs which affect all user's devices and for every CVE find its publication date by looking through
+        # all CVEs with this name and finding maximal pub_date. By using Max() we avoid NULLs, as they compare as less
+        # than any other non-NULL value.
+        vuln_names = Vulnerability.objects.filter(vuln_query)\
+                                          .values('name').distinct()
+        vuln_pub_dates_qs = Vulnerability.objects.filter(name__in=vuln_names) \
+                                                 .values('name').annotate(pubdate=Max('pub_date')).distinct()
+        # Build a lookup dictionary for CVE publication dates.
         vuln_pub_dates = {v['name']: v['pubdate'] for v in vuln_pub_dates_qs}
 
-        qs0 = Vulnerability.objects.filter(fix_available=True) \
-            .values('name').annotate(max_urgency=Max('urgency')) \
-            .filter(vuln_query) \
-            .values('name',  'max_urgency', 'debpackage__pk', 'debpackage__device__pk', 'debpackage__name', 'debpackage__device__name',  'debpackage__device__deviceinfo__fqdn')
-        qs1 = qs0.annotate(devcnt=Window(expression=Count('debpackage__name'),
-                                         partition_by=['name', 'debpackage__name']),
-                           cvecnt=Window(expression=Count('debpackage__name'),
-                                         partition_by=['name'])) \
+        # For every Vulnerability (cve) on every user's DebPackage (pkg) installed on every user's device (dev) select
+        # the following data:
+        # cve_1 - pkg_1 - dev_1
+        #                   ...
+        # cve_1 - pkg_1 - dev_n1
+        # cve_1 - pkg_2 - dev_1
+        #         ...
+        # cve_1 - pkg_n - dev_nn
+        # ...
+        # cve_n - pkg_n - dev_nn
+        #
+        # This data is then sorted by:
+        # 1) CVE severity
+        # 2) total count of devices affected by a CVE (annotated as cvecnt)
+        # 3) total count of devices where the package is installed (annotated as devcnt)
+        # We have to do this with one request  because the number of CVEs, the number of packages and the number of
+        # devices - any of them may be well over a hundred, and we can't afford to run 100 requests while handling the
+        # web request.
+        devices_packages_cves = Vulnerability.objects.filter(vuln_query, fix_available=True)\
+            .values('name')\
+            .annotate(max_urgency=Max('urgency')) \
+            .values('name',  'max_urgency', 'debpackage__pk', 'debpackage__device__pk', 'debpackage__name',
+                    'debpackage__device__name',  'debpackage__device__deviceinfo__fqdn')\
+            .annotate(devcnt=Window(expression=Count('debpackage__name'),
+                                    partition_by=['name', 'debpackage__name']),
+                      cvecnt=Window(expression=Count('debpackage__name'),
+                                    partition_by=['name'])) \
             .order_by('-max_urgency', '-cvecnt', 'name', '-devcnt', 'debpackage__name')
 
         table_rows = []
         current_row = None
         current_package = None
-        for device_package_cve in qs1:
+        for device_package_cve in devices_packages_cves:
             cve_name, package_name, urgency, devices_count,\
                 device_pk, device_name, device_fqdn = (device_package_cve[k] for k in [
                                                             'name', 'debpackage__name', 'max_urgency', 'devcnt',
                                                             'debpackage__device__pk', 'debpackage__device__name',
                                                             'debpackage__device__deviceinfo__fqdn'])
+            # In devices_packages_cves the rows are ordered by cve_name and package_name. This means that they will be
+            # grouped together by cve_name and the rows with the same cve_name will be grouped together by package_name.
+            # Hence we have current_row.cve_name and current_package.name to detect when the cve_name or package_name
+            # changes which means we need a new TableRow or a new AffectedPackage.
             if not current_row or current_row.cve_name != cve_name:
                 current_row = self.TableRow(cve_name, urgency, [], '', vuln_pub_dates[cve_name])
                 table_rows.append(current_row)
@@ -690,34 +734,23 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         cve_hi, cve_med, cve_lo = self.request.user.profile.cve_count
         cve_hi_last, cve_med_last, cve_lo_last = self.request.user.profile.cve_count_last_week
 
-        def delta(current, last):
-            if current is None or last is None:
-                return
-            return {
-                'count': current,
-                'delta': f'{current - last:+d}'
-            }
-
-        def percent(a, b):
-            return a / b * 100
-
         context.update({
             'radius': "15.91549430918954",
             'high_color': "#EF2F20",
             'med_color': "#EF8F20",
             'low_color': "#23BED6",
             'cve': {
-                'high': delta(cve_hi, cve_hi_last),
-                'medium': delta(cve_med, cve_med_last),
-                'low': delta(cve_lo, cve_lo_last),
+                'high': self.delta(cve_hi, cve_hi_last),
+                'medium': self.delta(cve_med, cve_med_last),
+                'low': self.delta(cve_lo, cve_lo_last),
             }
         })
 
         cve_sum = sum((cve_hi, cve_med, cve_lo))
         if cve_sum:
-            percent_hi = percent(cve_hi, cve_sum)
-            percent_med = percent(cve_med, cve_sum)
-            percent_lo = percent(cve_lo, cve_sum)
+            percent_hi = self.percent(cve_hi, cve_sum)
+            percent_med = self.percent(cve_med, cve_sum)
+            percent_lo = self.percent(cve_lo, cve_sum)
             initial_hi = 35
             initial_med = 100 - percent_hi + initial_hi
             initial_lo = 100 - percent_med + initial_med
