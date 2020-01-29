@@ -13,14 +13,19 @@
 .cve-tab {
   th {
     font-size: .6rem;
-    font-weight: 700;;
+    font-weight: 700;
   }
   
   tr {
     padding: 1rem;
     font-size: .9rem;
     margin: 0;
-    background-color: white;
+  }
+
+  tbody {
+    tr {
+      background-color: white;
+    }
   }
   
   .bullet-lg {
