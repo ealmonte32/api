@@ -71,9 +71,8 @@
     <form class="filter-collapse-box">
       <div class="form d-flex w-100 justify-content-between">
         <div class="custom-control custom-checkbox">
-          <!-- TODO: @dvidotti please style this -->
           <input type="checkbox" class="custom-control-input" id="filter-check">
-          <label class="custom-control-label mt-1" for="filter-check"></label>
+          <label class="custom-control-label mt-1 wott-checkbox-label-round" for="filter-check"></label>
         </div>
         <div class="input-small" id="filter-name-div">
           <select class="form-control wott-filter-select" id="filter-selector" >
@@ -126,7 +125,7 @@
                     </button>
                   </div>
                 </th>
-                <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 80px;" aria-label="Node Name: activate to sort column ascending">Node Name<span><i class="fa fa-sort-down ml-3"></i></span></th>
+                <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 80px;" aria-label="Node Name: activate to sort column ascending">Node Name</th>
                 <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 70px;" aria-label="Hostname: activate to sort column ascending">Hostname</th>
                 <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 91px;" aria-label="Last Ping: activate to sort column ascending">Last Ping</th>
                 <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 76px;" aria-label="Trust Score: activate to sort column ascending">Trust Score</th>
@@ -443,6 +442,10 @@
 
     /* ------------------  TABLE  -------------------- */
 
+    #node-list-tab table {
+      margin-top: 2rem !important;
+    }
+
     #node-list-tab tr {
       padding: 1rem;
       font-size: .9rem;
@@ -450,6 +453,10 @@
       height: 60px;
     }
 
+    #node-list-tab .selected {
+      outline: none;
+      background-color: transparent !important;
+    }
 
     #trust-progress-100 {
       background-color: #EDF1FE;
@@ -479,9 +486,7 @@
       color: #1549A3;
     }
 
-    #node-list-tab .sorting {
-      width: 20% !important;
-    }
+   
 
     #node-list-tab th:last-child {
       padding-left: 30px;
@@ -497,12 +502,7 @@
       color: white;
     }
 
-    #node-list-tab #week-progress-var {
-      font-size: .7rem !important;
-      margin: auto !important;
-      color: white;
-      font-weight: 800;
-    }
+  
 
     #select-all {
       padding: 1rem 2rem;
@@ -569,13 +569,9 @@
       vertical-align: middle;
     }
 
+    
     th .svg-inline--fa path {
       color: transparent;
-    }
-
-    #node-list-tab th.sorting {
-      vertical-align: middle;
-      font-weight: 900;
     }
 
     #node-list-tab table th {
@@ -583,8 +579,36 @@
       border-bottom: 0px solid transparent;
     }
 
-   
+    #node-list-tab .wott-badge-pill {
+      margin-left: 30px;
+    }
 
+    /* -------------------- SORTING ------------------------ */
+
+
+    #node-list-tab .sorting,
+    #node-list-tab .sorting_asc,
+    #node-list-tab .sorting_desc {
+      width: 20% !important;
+    }
+  
+    #node-list-tab .sorting:first-child,
+    #node-list-tab .sorting_asc:first-child,
+    #node-list-tab .sorting_desc:first-child,
+    #node-list-tab .sorting_disabled:first-child {
+      width: 5% !important;
+    }
+
+    #node-list-tab th.sorting,
+    #node-list-tab th.sorting_asc,
+    #node-list-tab th.sorting_desc,
+    th.sorting_disable,
+    th:first-child {
+      vertical-align: middle !important;
+      font-weight: 900 !important;
+    }
+
+    
     #node-list-tab table th:first-child {
       border-top-left-radius: 8px;
     }
@@ -598,35 +622,74 @@
       background-color: #2460c8 !important;
       border-color: #ebf0fe;
     }
-
-    td.sorting_1, th.sorting_asc {
-      padding-left: 30px;
-      padding-right: 0px;
-      width: 8%;
-    }
-
-    th.sorting_asc {
+    
+    td.sorting_1,
+    th.sorting_asc,
+    th.sorting,
+    th.sorting_desc,
+    th.sorting_disable,
+    th:first-child,
+    #node-list-tab td {
+      padding-left: 30px !important;
       padding-right: 0px !important;
+      /* width: 8%; */
     }
 
-    th.sorting_asc::after, th.sorting_asc::before {
-      display: none !important;
+  
+    #node-list-tab th.sorting_asc:first-child::after,
+    #node-list-tab th.sorting_asc:first-child::before {
+      display: none;
+    }    
+
+    th.sorting::after,
+    th.sorting_asc::after,
+    th.sorting_desc::after, 
+    th.sorting::before,
+    th.sorting_asc::before,
+    th.sorting_desc::before   {
+      vertical-align: middle !important;
+      top: 38% !important;
     }
 
-    th.sorting::after, th.sorting::before {
-      vertical-align: middle;
-      top: 38%;
+    th.sorting::after,
+    th.sorting_asc::after,
+    th.sorting_desc::after {
+      left: 115px;
     }
 
-    th.sorting::after {
-      left: 90px;
+    th.sorting::before,
+    th.sorting_asc::before,
+    th.sorting_desc::before {
+      left: 110px;
     }
 
-    th.sorting::before {
-      left: 85px;
+    th.sorting:last-child::after,
+    th.sorting_asc:last-child::after,
+    th.sorting_desc:last-child::after {
+      left: 105px !important;
     }
+
+    th.sorting:last-child::before,
+    th.sorting_asc:last-child::before,
+    th.sorting_desc:last-child::before {
+      left: 100px !important;
+    }
+
+    th.sorting:last-child,
+    th.sorting_asc:last-child,
+    th.sorting_desc:last-child {
+      padding-left: 50px !important;
+    }
+
+    
 
     /* ------------------------ CHECK BOX ---------------------- */
+
+    .wott-select-all:focus {
+      outline: none !important;
+      background-color: #2460c8 !important;
+      border-color: #ebf0fe !important;
+    }
 
     #node-list-tab .round label{
       left: 30px;
@@ -643,6 +706,40 @@
 
 
     /* ----------------------- FILTER + SEARCH -------------------- */
+
+    .wott-checkbox-label-round:after {
+      border-radius: 50%;
+      height: 20px;
+      width: 20px;
+      padding: 10px;
+      border: 3px solid #cddef7;
+    }
+
+    .custom-control-label:after,
+    .custom-control-label:before {
+      left: -1.6rem !important;
+      top: .5rem;
+    }
+
+    .custom-control-label:before  {
+      border-radius: 50% !important;
+      height: 20px;
+      width: 20px;
+      padding: 10px;
+      border: 3px solid #cddef7;
+    }
+
+    .custom-control-input:checked~.custom-control-label:before {
+      color: #fff;
+      border-color: #cddef7 !important;
+      background-color: #2460c8 !important;
+    }
+
+    .wott-checkbox-label-round:checked {
+    color: #fff;
+    border-color: black;
+    background-color: black !important;
+   }
 
     #toolbar-header {
       height: 50px;
@@ -708,15 +805,15 @@
     }
 
     .input-small {
-      width: 25%;
+      width: 23%;
     }
 
     .input-medium {
-      width: 44%;
+      width: 42%;
     }
 
     .wott-btn-margin {
-      margin-left: 4%;
+      margin-left: 2%;
       margin-right: 2%;
     }
 
