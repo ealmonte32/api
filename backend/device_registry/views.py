@@ -709,7 +709,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                                     partition_by=['name', 'debpackage__name']),
                       cvecnt=Window(expression=Count('debpackage__name'),
                                     partition_by=['name'])) \
-            .order_by('-max_urgency', '-cvecnt', 'name', '-devcnt', 'debpackage__name')
+            .order_by('-max_urgency', '-cvecnt', 'name', '-devcnt', 'debpackage__name', 'debpackage__device__pk')
 
         table_rows = []
         current_row = None

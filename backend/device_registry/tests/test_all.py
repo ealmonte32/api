@@ -1429,7 +1429,7 @@ class CVEViewTests(TestCase):
         self.assertListEqual(response.context_data['table_rows'], [
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 # These two AffectedPackage's should be sorted by hosts_affected
-                CVEView.AffectedPackage('one_second', 2, self._hyperlinks([self.device1, self.device0])),
+                CVEView.AffectedPackage('one_second', 2, self._hyperlinks([self.device0, self.device1])),
                 CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0]))
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
