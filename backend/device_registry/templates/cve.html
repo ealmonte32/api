@@ -176,12 +176,10 @@
   $('body').click((e) => {
     if(e.target == modalShown || $(e.target).parents('.popover-box').length) {
       // clicked on popover link or inside popover
-      console.log('clicked inside modal');
       return;
     }
     if(modalShown) {
       // clicked anywhere outside the popover while it's shown -> hide it
-      console.log('clicked outside modal');
       modal(false);
       modalShown = null;
     }
@@ -237,7 +235,6 @@
     };
     let sector = sectors[e.target.id];
     if(sector) {
-        console.log(e.target, e.type);
         selectSector(sector, sectorValues[sector]);
     }
   });
