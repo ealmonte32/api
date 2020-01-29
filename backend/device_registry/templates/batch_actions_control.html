@@ -23,30 +23,30 @@
   </template>
 
   <template id="batch-footer-tmplate">
-    <div class="dropdown" id="device-list-columns">
-      <button class="btn btn-facebook" type="button" data-toggle="collapse" data-target="#batch-actions-collapse" id="batch-expand">
-        Batch Actions
-      </button>
-      <div class="collapse row" id="batch-actions-collapse">
-        <div class="card card-body">
-          <div class="form-row">
-            <div class="input-group col-2">
-              <select class="custom-select" id="subject_select">
-                <option selected>Subject...</option>
-              </select>
-            </div>
-            <div class="input-group col-2">
-              <select class="custom-select" id="action_select">
-                <option selected>Action...</option>
-              </select>
-            </div>
-            <div class="col-4" id="subj_element_div">
-            </div>
-            <div class="col-2">
-              <button type="button" class="btn btn-facebook" id="action_button" style="width: 6rem;">
-                <span class="spinner-border spinner-border-sm" style="display: none;" id="batch_apply_spinner"></span> Apply
-              </button>
-            </div>
+     <!--Added btn-wott-primary | wott-btn-medium | mb2-->
+    <button class="btn btn-wott-primary wott-btn-medium mb-2" type="button" data-toggle="collapse" data-target="#batch-actions-collapse" id="batch-expand">
+      <span>Batch Actions</span>
+    </button>
+    <div class="collapse row mb-2" id="batch-actions-collapse">
+      <!--Added wott-card-body |wott-rounded-lg-->
+      <div class="wott-card-body bg-white wott-box-shadow wott-rounded-lg">
+        <div class="form-row">
+          <div class="input-group col-2">
+            <!--added wott-filter-select-->
+            <select class="custom-select wott-filter-select" id="subject_select"><option selected="">Subject...</option><option value="Tags">Tags</option></select>
+          </div>
+          <div class="input-group col-2">
+               <!--added wott-filter-select-->
+            <select class="custom-select wott-filter-select" id="action_select">
+              <option selected="">Action...</option>
+            </select>
+          </div>
+          <div class="col-4" id="subj_element_div"></div>
+          <div class="col-2">
+            <!--added wott-btn-primary wott-btn-medium-->
+            <button type="button" class="btn btn-wott-primary wott-btn-medium wott-btn-margin" id="action_button" style="width: 6rem;">
+              <span class="spinner-border spinner-border-sm" style="display: none;" id="batch_apply_spinner"></span> Apply
+            </button>
           </div>
         </div>
       </div>

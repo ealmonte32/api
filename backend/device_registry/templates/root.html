@@ -111,27 +111,10 @@
     {# Table #}
     <div class="row">
       <div class="col-12">
-        <div class=""> <!--removed card class-->
-          
-          <!-- <div class="card-header">
-            <div class="row">
-              <div class="col-6">
-                <h5 class="card-title">Node List</h5>
-                <h6 class="card-subtitle text-muted">View registered nodes.</h6>
-              </div>
-              <div class="col-6">
-                <button type="button" class="btn btn-success" style="float: right;" id="inst-btn">
-                  Add Node
-                </button>
-              </div>
-            </div>
-          </div> -->
-
-
-          <div class=""> <!--removed card class in this div and added wott-box-shadow && wott-rounded bellow-->
+        <div class="">
+          <div class="">
             <table id="datatables-basic" class="table table-striped table-responsive-xs wott-box-shadow wott-rounded" style="width:100%">
               <thead>
-
 
               <!-- <tr>
                 <th width="5%" id="select-all"></th>
@@ -143,7 +126,7 @@
               <!------- the <tr> commented above should look like the one bellow ---->
 
               <tr role="row">
-                <th width="5%" id="select-all" class="sorting_asc" rowspan="1" colspan="1" style="width: 37px;" aria-label="">
+                <th width="5%" id="select-all1" class="sorting_asc" rowspan="1" colspan="1" style="width: 37px;" aria-label="">
                   <div class="btn-group dropdown">
                     <!-- added wott-select-all-->
                     <button type="button" class="btn wott-select-all" onclick="toggle_page(this)">
@@ -160,46 +143,10 @@
                 <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 76px;" aria-label="Trust Score: activate to sort column ascending">Trust Score</th>
                 <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 154px;" aria-label="Recommended Actions: activate to sort column ascending">Actions</th><!--Changed from Recommended Actions to Actions-->
               </tr>
-
               </thead>
-              <!-- <tfoot>
-                <th colspan="6"></th>
-              </tfoot> -->
-              <!----- t-foot above should loke like the one bellow-------------->
 
               <tfoot>
-                <th colspan="6">
-                  <div class="dropdown" id="device-list-columns">
-                    <!--Added btn-wott-primary | wott-btn-medium | mb2-->
-                    <button class="btn btn-wott-primary wott-btn-medium mb-2" type="button" data-toggle="collapse" data-target="#batch-actions-collapse" id="batch-expand">
-                      <span>Batch Actions</span>
-                    </button>
-                    <div class="collapse row mb-2" id="batch-actions-collapse">
-                      <!--Added wott-card-body |wott-rounded-lg-->
-                      <div class="wott-card-body bg-white wott-box-shadow wott-rounded-lg">
-                        <div class="form-row">
-                          <div class="input-group col-2">
-                            <!--added wott-filter-select-->
-                            <select class="custom-select wott-filter-select" id="subject_select"><option selected="">Subject...</option><option value="Tags">Tags</option></select>
-                          </div>
-                          <div class="input-group col-2">
-                               <!--added wott-filter-select-->
-                            <select class="custom-select wott-filter-select" id="action_select">
-                              <option selected="">Action...</option>
-                            </select>
-                          </div>
-                          <div class="col-4" id="subj_element_div"></div>
-                          <div class="col-2">
-                            <!--added wott-btn-primary wott-btn-medium-->
-                            <button type="button" class="btn btn-wott-primary wott-btn-medium wott-btn-margin" id="action_button" style="width: 6rem;">
-                              <span class="spinner-border spinner-border-sm" style="display: none;" id="batch_apply_spinner"></span> Apply
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </th>
+              <th colspan="6"></th>
               </tfoot>
 
               <tbody>
@@ -919,10 +866,10 @@
           processing: true,
           ajax: dt_ajax,
           responsive: true,
-          dom: '<"toolbar">frtip',
+          dom: 'rtip',
           "footerCallback": batch_footer,
           columns:[
-              {data: null, render: render_checkbox, orderable: false, sortable:false, /*className: 'select-checkbox'*/},
+              {data: null, render: render_checkbox, orderable: false, sortable:false, className: 'round'},
               {data: 'get_name' , render: render_device_name },
               {data: 'hostname' },
               {data: 'last_ping', type: 'last-ping' , orderable: true, sortable:true,},
@@ -947,7 +894,7 @@
         // apply 'select all' features to table.
         $("#select-all").html($("#select-all-template").html());
         set_select_all_link_toolbar();
-  
+
         table.on( 'select', function ( e, dt, type, indexes ) {
             for(let i in indexes){
                let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
@@ -1018,7 +965,8 @@
                 type: 'GET',
                 data: data,
                 success: (d) => {
-                    table.rows.add(d.data).draw(false);
+                    if(d.data.length)
+                      table.rows.add(d.data).draw(false);
                     data_timestamp = d.timestamp;
                 }
             });
@@ -1216,7 +1164,10 @@
      */
         function render_checkbox(data, type, row, meta){
             if(type === 'display'){
-                data = `<input type="checkbox" class="dt-checkbox"></checkbox>`;
+                data = `
+                  <input type="checkbox" class="dt-checkbox wott-round-checkbox"></checkbox>
+                  <label></label>
+                `;
             }
             return data;
         }
@@ -1257,7 +1208,7 @@
   
         function render_actions_count(data, type, row, meta) {
             if (type == 'sort') return data;
-            return data? `<a class="badge badge-pill badge-danger" href="${data.url}"}>${data.count}</span>`: "";
+            return data.count? `<a class="wott-badge-pill" href="${data.url}"}>${data.count}</span>`: "";
         }
   
     {% if not user.profile.wizard_shown %}
