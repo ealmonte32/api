@@ -119,10 +119,6 @@
   }
 }
 
-#week-progress-100 {
-  background-color: #EDF1FE;
-  height: 15px;
-}
 
 #week-progres-text {
   text-align: center;
@@ -137,6 +133,8 @@
 }
 
 #week-progress-100 {
+  background-color: #EDF1FE;
+  height: 15px;
   width: 100%;
   position: relative;
   border-radius: 30px;
@@ -149,13 +147,12 @@
   left: 0;
   border-top-left-radius: 30px;
   border-bottom-left-radius: 30px;
-}
-
-#week-progress-var {
   background-color: #0E85FF;
   width: 75%;
   height: 15px;
 }
+
+
 
 .graphic-title {
   white-space: nowrap;
