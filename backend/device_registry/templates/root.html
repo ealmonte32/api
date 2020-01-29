@@ -201,7 +201,7 @@
       </div>
       <div class="col mt-1">
         <!-- TODO: @dvidotti please style this -->
-        <label for="datetime-scale">ago</label>
+        <label id="ago" for="datetime-scale">ago</label>
       </div>
     </div>
   </template>
@@ -339,6 +339,16 @@
     </div>
   </template>
 </div>
+
+
+<!-- <div class="select2-container select2-container-multi" id="s2id_filter-tags" style="width: 95%;/* border-color: azure; */">
+  <ul class="select2-choices">
+    <li class="select2-search-field">
+      <label for="s2id_autogen1" class="select2-offscreen"></label>
+        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="select2-input" id="s2id_autogen1" placeholder="" style="width: 20px;">
+    </li>
+  </ul>
+</div> -->
 
 <style>
 /* ## All the style inside this tag will be moved to scss */
@@ -499,7 +509,7 @@
 
     #node-list-tab td:last-child a{
       font-size: .65rem;
-      color: white;
+      color: white !important;
     }
 
   
@@ -681,7 +691,9 @@
       padding-left: 50px !important;
     }
 
-    
+    #node-list-tab td:first-child:focus {
+      outline: none;
+    }
 
     /* ------------------------ CHECK BOX ---------------------- */
 
@@ -736,10 +748,10 @@
     }
 
     .wott-checkbox-label-round:checked {
-    color: #fff;
-    border-color: black;
-    background-color: black !important;
-   }
+      color: #fff;
+      border-color: black;
+      background-color: black !important;
+    }
 
     #toolbar-header {
       height: 50px;
@@ -837,7 +849,72 @@
       border-right: 10px solid transparent;
     }
 
+ 
+    #ago {
+      font-size: .8rem;
+      padding: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
    
+    .select2-container-multi .select2-choices {
+      min-height: 50px;
+      border-radius: 8px;
+      border: 2px solid #F1F4FE;
+      width: 88%;
+      background-image: none; 
+    }
+
+    .select2-drop-active {
+      border: 1px solid #F1F4FE;
+      border-radius: 8px;
+      border-top: none;
+      left: 743.41px;
+      width: 19% !important;
+      top: 311.319px;
+      bottom: auto;
+      font-size: .8rem;
+      text-transform: uppercase;
+      font-weight:400;
+    }
+
+    .select2-container-multi .select2-choices .select2-search-choice {
+      background-color: #E2E7F7;
+      border-radius: 8px;
+      background-image: none;
+      height:48px;
+      border-color: #E2E7F7;
+      padding: 0px 1rem;
+      font-size: .8rem;
+      text-transform: uppercase;
+      font-weight:400;
+    }
+
+    .select2-container-multi.select2-container-disabled .select2-choices {
+      background-image: none;
+      background-color: #E2E7F7;
+      border: 1px solid #ddd;
+      cursor: default;
+      border-color: #E2E7F7;
+      font-size: .8rem;
+      text-transform: uppercase;
+      font-weight:400;
+     } 
+
+    .select2-container-multi .select2-choices .select2-search-choice > div {
+      padding: 17px 5px;
+      color: gray;
+      font-size: .8rem;
+      text-transform: uppercase;
+      font-weight:400;
+    }
+
+    .select2-container-multi .select2-choices .select2-search-choice > a {
+      margin-top: 15px;
+      font-size: .8rem;
+      text-transform: uppercase;
+      font-weight:400;
+    }
 
 /* clears the 'X' from Internet Explorer */
     input[type=search]::-ms-clear {  display: none; width : 0; height: 0; }
