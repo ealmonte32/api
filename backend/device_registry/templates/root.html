@@ -70,31 +70,23 @@
   <div class="wott-card-body bg-white wott-box-shadow wott-rounded-lg">
     <form class="filter-collapse-box">
       <div class="form d-flex w-100 justify-content-between">
-        <div class="custom-control custom-checkbox d-none">
-          <input type="checkbox" class="custom-control-input" checked id="filter-check">
+        <div class="custom-control custom-checkbox">
+          <!-- TODO: @dvidotti please style this -->
+          <input type="checkbox" class="custom-control-input" id="filter-check">
           <label class="custom-control-label mt-1" for="filter-check"></label>
         </div>
-        <div class="input-small">
-          <select class=" form-control wott-filter-select" id="filter-selector" disabled="disabled">
-            <option name="device-name" value="str"><span class="text-center">  Node Name</span></option>
-            <option name="hostname" value="str">Hostname</option>
-            <option name="comment" value="str">Comment</option>
-            <option name="last-ping" value="datetime">Last Ping</option>
-            <option name="trust-score" value="float">Trust Score</option>
-            <option name="default-credentials" value="bool">Default Credentials Found</option>
-            <option name="tags" value="tags">Tags</option> 
+        <div class="input-small" id="filter-name-div">
+          <select class="form-control wott-filter-select" id="filter-selector" >
+          {% for filter_param in filter_params %}
+            <option name="{{ filter_param.0 }}" value="{{ filter_param.2 }}">{{ filter_param.1 }}</option>
+          {% endfor %}
           </select>
         </div>
         <div class="input-small" id="filter-predicate-div">
-          <select class="form-control wott-filter-select" id="filter-predicate" disabled="disabled">
-            <option value="eq">matches</option>
-            <option value="neq">not matches</option>
-            <option value="c">contains</option>
-            <option value="nc">not contains</option>
-          </select>
+
         </div>
         <div class="input-medium" id="filter-value-div">
-          <input type="text" class="form-control wott-filter-select bg-white wott-rounded-lg" placeholder="Value" disabled="disabled">
+
         </div>
       </div>
       <button type="submit" class="btn btn-wott-primary wott-btn-medium wott-btn-margin" id="filter-apply">Apply</button>
@@ -178,7 +170,7 @@
   {% include "batch_actions_control.html" %}
 
   <template id="str_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="form-control wott-filter-select" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="c">contains</option>
@@ -186,11 +178,11 @@
     </select>
   </template>
   <template id="str_value">
-    <input type="text" class="form-control" placeholder="Value">
+    <input type="text" class="form-control wott-filter-select bg-white wott-rounded-lg" placeholder="Value">
   </template>
 
   <template id="datetime_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="form-control wott-filter-select" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="lt">greater than</option>
@@ -200,22 +192,23 @@
   <template id="datetime_value">
     <div class="form-row">
       <div class="col">
-        <input type="number" class="form-control" min="0">
+        <input type="number" class="form-control wott-filter-select bg-white wott-rounded-lg" min="0">
       </div>
       <div class="col">
-        <select class="form-control" id="datetime-scale">
+        <select class="form-control wott-filter-select" id="datetime-scale">
           <option value="hours">hours</option>
           <option value="days">days</option>
         </select>
       </div>
       <div class="col mt-1">
+        <!-- TODO: @dvidotti please style this -->
         <label for="datetime-scale">ago</label>
       </div>
     </div>
   </template>
 
   <template id="float_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="form-control wott-filter-select" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="gt">greater than</option>
@@ -223,24 +216,24 @@
     </select>
   </template>
   <template id="float_value">
-    <input type="number" class="form-control" placeholder="Value" step="0.01">
+    <input type="number" class="form-control wott-filter-select bg-white wott-rounded-lg" placeholder="Value" step="0.01">
   </template>
 
   <template id="bool_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="form-control wott-filter-select" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
     </select>
   </template>
   <template id="bool_value">
-    <select class="form-control">
+    <select class="form-control wott-filter-select">
       <option>True</option>
       <option>False</option>
     </select>
   </template>
 
   <template id="tags_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="form-control wott-filter-select" id="filter-predicate">
       <option value="c">contains</option>
       <option value="nc">not contains</option>
     </select>
@@ -290,46 +283,6 @@
       <a href="/" class="align-middle btn-link" style="text-decoration: underline">Clear filters</a>
     </span>
     {% endif %}
-
-    <!-- <div class="collapse" id="collapseExample">
-      <div class="card card-body">
-        <form>
-          <div class="form-row mb-3">
-            <div class="custom-control custom-checkbox">
-              <input type="checkbox" class="custom-control-input" id="filter-check">
-              <label class="custom-control-label mt-1" for="filter-check"></label>
-            </div>
-            <div class="col-md-auto">
-              <select class="form-control" id="filter-selector">
-                {% for filter_param in filter_params %}
-                  <option name="{{ filter_param.0 }}" value="{{ filter_param.2 }}">{{ filter_param.1 }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-auto" id="filter-predicate-div"> -->
-              <!-- <template id=..._options> -->
-            <!-- </div> -->
-            <!-- <div class="col-md-auto" id="filter-value-div"> -->
-              <!-- <template id=..._value> -->
-            <!-- </div> -->
-
-            <!--
-            TODO: these buttons should be enabled when we can have multiple filters.
-            <div class="col">
-              <button type="button" class="btn btn-outline-primary" title="Add new filter after this one">
-                <i class="fas fa-plus" ></i>
-              </button>
-              <button type="button" class="btn btn-outline-danger" title="Remove this filter">
-                <i class="fas fa-ban" ></i>
-              </button>
-            </div>
-            -->
-          <!-- </div>
-          <button type="submit" class="btn btn-primary float-none" id="filter-apply">Apply</button>
-        </form>
-      </div>
-    </div>
-  </template> -->
 
   <div class="modal" tabindex="-1" role="dialog" id="wott-instruction-modal">
     <div class="modal-dialog modal-lg" role="document">
@@ -999,50 +952,50 @@
             $(e.target).toggleClass('active');
         });
   
-            $('.form-check-input').click((e) => {
-                var column = table.column( e.target.getAttribute('data-column') );
-                console.log('CLICK', column);
-                column.visible( e.target.checked );
-            });
-  
-            $('#filter-selector').change((e) => {
-                updateFilter(e.target.value);
-            });
-  
-            $('#filter-apply').click((e) => {
-                e.preventDefault();
-                let query = '/';
-                if($('#filter-check').prop('checked')) {
-                  let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
-                  let predicate = $('#filter-predicate').val();
-                  let value = $('#filter-value-div').children(0).val(),
-                      type = $('#filter-selector').val();
-                  if(type == 'datetime') {
-                      value = $('#filter-value-div input').val() + ',' + $('#filter-value-div select').val();
-                  } else if(type == 'tags') {
-                      value = $('form').serializeArray()[0].value;
-                      value = Tagulous.parseTags(value).join(',');
-                  }
-                  query += `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
-                }
-                document.location.replace(query);
-            });
-  
-            $('#filter-check').click((e) => {
-              enableFilter(e.target.checked);
-            });
-  
-            updateFilter($('#filter-selector')[0].options[0].value);
-  
-            {% if filter %}
-            let type = "{{ filter.type }}",
-                value = "{{ filter.value | default_if_none:'' }}";
-            updateFilter(type);
-            setFilter("{{ filter.by }}", "{{ filter.predicate }}", value, type);
-            {% else %}
-            enableFilter(false);
-            {% endif %}
+        $('.form-check-input').click((e) => {
+            var column = table.column( e.target.getAttribute('data-column') );
+            console.log('CLICK', column);
+            column.visible( e.target.checked );
         });
+
+        $('#filter-selector').change((e) => {
+            updateFilter(e.target.value);
+        });
+
+        $('#filter-apply').click((e) => {
+            e.preventDefault();
+            let query = '/';
+            if($('#filter-check').prop('checked')) {
+              let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
+              let predicate = $('#filter-predicate').val();
+              let value = $('#filter-value-div').children(0).val(),
+                  type = $('#filter-selector').val();
+              if(type == 'datetime') {
+                  value = $('#filter-value-div input').val() + ',' + $('#filter-value-div select').val();
+              } else if(type == 'tags') {
+                  value = $('form').serializeArray()[0].value;
+                  value = Tagulous.parseTags(value).join(',');
+              }
+              query += `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
+            }
+            document.location.replace(query);
+        });
+
+        $('#filter-check').click((e) => {
+          enableFilter(e.target.checked);
+        });
+
+        updateFilter($('#filter-selector')[0].options[0].value);
+
+        {% if filter %}
+        let type = "{{ filter.type }}",
+            value = "{{ filter.value | default_if_none:'' }}";
+        updateFilter(type);
+        setFilter("{{ filter.by }}", "{{ filter.predicate }}", value, type);
+        {% else %}
+        enableFilter(false);
+        {% endif %}
+    });
   
         function setFilter(name, predicate, value, type) {
             $(`option[name=${name}`)[0].selected = true;
@@ -1137,7 +1090,7 @@
           }
   
         function enableFilter(b) {
-            $('.col-md-auto').children().attr('disabled', !b)
+            $('#filter-name-div,#filter-predicate-div,#filter-value-div').children().attr('disabled', !b)
         }
   
         /**
