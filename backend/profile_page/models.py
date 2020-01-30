@@ -4,16 +4,16 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models import Q, Avg
+from django.db.models import Q, Avg, Max, Window, Count
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from dateutil.relativedelta import relativedelta, MO
+from dateutil.relativedelta import relativedelta, MO, SU
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction, Device, HistoryRecord
+from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability
 from device_registry.celery_tasks import github
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,43 @@ class Profile(models.Model):
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
         )
+
+        cve_hi, cve_med, cve_lo = self.cve_count
         HistoryRecord.objects.create(owner=self.user,
                                      recommended_actions_resolved=ra_resolved.count(),
-                                     average_trust_score=self.average_trust_score)
+                                     average_trust_score=self.average_trust_score,
+                                     cve_high_count=cve_hi, cve_medium_count=cve_med, cve_low_count=cve_lo)
 
+    @property
+    def cve_count(self):
+        # For every CVE name detected on all user's devices, find its maximal urgency among the whole CVE database.
+        # This will include CVEs with the same name from different sources (Denian and Ubuntu trackers currently).
+        # Then count the number of distinct CVE names grouped by urgency.
+        vuln_names = Vulnerability.objects.filter(debpackage__device__owner=self.user, fix_available=True) \
+            .values('name').distinct()
+        urgency_counts = Vulnerability.objects.filter(name__in=vuln_names) \
+            .values('name').distinct() \
+            .annotate(max_urgency=Max('urgency')) \
+            .annotate(urg_cnt=Window(expression=Count('name'), partition_by='max_urgency')).order_by() \
+            .values('max_urgency', 'urg_cnt')
+        counts_by_urgency = {s['max_urgency']: s['urg_cnt'] for s in urgency_counts}
+        return (counts_by_urgency.get(urgency, 0) for urgency in [Vulnerability.Urgency.HIGH,
+                                                                  Vulnerability.Urgency.MEDIUM,
+                                                                  Vulnerability.Urgency.LOW])
+
+    @property
+    def cve_count_last_week(self):
+        now = timezone.now()
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
+        this_monday = sunday + relativedelta(days=1)  # This week's monday
+        cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,
+                                                   sampled_at__date__lt=this_monday)\
+            .values('cve_high_count', 'cve_medium_count', 'cve_low_count')\
+            .annotate(cve_high=Max('cve_high_count'), cve_med=Max('cve_medium_count'), cve_lo=Max('cve_low_count'))\
+            .values('cve_high', 'cve_med', 'cve_lo')
+        if cve_history.exists():
+            cve_history = cve_history.first()
+            return cve_history['cve_high'], cve_history['cve_med'], cve_history['cve_lo']
+        else:
+            return 0, 0, 0

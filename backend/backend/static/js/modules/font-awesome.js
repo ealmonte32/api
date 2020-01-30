@@ -11,6 +11,8 @@ import {
     faInfoCircle,
     faQuestionCircle,
     faSave,
+    faSortDown,
+    faSortUp,
     faTrash
 } from '@fortawesome/free-solid-svg-icons'
 import {
@@ -33,6 +35,8 @@ library.add([
     faInfoCircle,
     faQuestionCircle,
     faSave,
+    faSortDown,
+    faSortUp,
     faSquare,
     faTrash
 ]);
