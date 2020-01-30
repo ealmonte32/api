@@ -25,9 +25,9 @@
 
         {% with url_name=request.resolver_match.url_name %}
           <ul class="sidebar-nav">
-            {% include "sidebar_item.html" with url='root' id='sidebar-root' label="Dashboard" image='/media/dashboard.png' image_selected='/media/dashboard-selected.png' %}
+            {% include "sidebar_item.html" with url='dashboard' id='sidebar-root' label="Dashboard" image='/media/dashboard.png' image_selected='/media/dashboard-selected.png' %}
             {% include "sidebar_item.html" with url='cve' id='sidebar-cve' label="CVE" image='/media/cve.png' image_selected='/media/cve-selected.png' %}
-            {% include "sidebar_item.html" with url='nodes' id='sidebar-nodes' label="Nodes" image='/media/nodes.png' image_selected='/media/nodes-selected.png' %}
+            {% include "sidebar_item.html" with url='root' id='sidebar-nodes' label="Nodes" image='/media/nodes.png' image_selected='/media/nodes-selected.png' %}
             {% include "sidebar_item.html" with url='claim-device' id='sidebar-claim-device' label="Claim Node" image='/media/add-node.png' image_selected='/media/add-node-selected.png' %}
             {% include "sidebar_item.html" with url='actions' id='sidebar-recommended-actions' label="Recommended Actions" image='/media/verified.png' image_selected='/media/verified-selected.png' badge=user.profile.actions_count %}
             {% include "sidebar_item.html" with url='global_policies' id='sidebar-policies' label="Global Policies" image='/media/policies.png' image_selected='/media/policies-selected.png' %}

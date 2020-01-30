@@ -89,8 +89,9 @@ class RecommendedActionsMixin:
             # Generate Action objects to be rendered on page for every affected RA.
             for ra_id, device_pks in actions_by_id.items():
                 devices = [affected_devices[d] for d in device_pks]
-                a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
-                actions.append(a)
+                if ActionMeta.is_action_id(ra_id):
+                    a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
+                    actions.append(a)
         else:  # User has no devices - display the special action.
             device_name = None
             actions = [Action(
