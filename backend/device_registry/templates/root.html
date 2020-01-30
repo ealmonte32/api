@@ -60,6 +60,11 @@
       <i class="fa fa-sort-down ml-3"></i>
     </button>
   </div>
+  <div class="select-all-box d-block"> <!--insert d-none class to hide it and d-block to show it-->
+    <div id="select-all-info-title">XXX rows selected on page.</div>
+    <a href="#" id="select-all-info-link" onclick="select_all('all', true)">Select all XX items.</a>
+  </div>
+
   <button type="button" class="btn btn-wott-primary wott-btn-medium" id="admin-inst-btn">
     <span>Add A Node</span>
     <img class="ml-3" src="{% static '/media/plus.png' %}" alt="plus">
@@ -165,6 +170,7 @@
       </div>
     </div>
   </div>
+  
   {% include "select_all_control.html" %}
   {% include "batch_actions_control.html" %}
 
@@ -323,7 +329,26 @@
 
 /* ------------------------------------- */
 
-    
+.select-all-box {
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: .75rem;
+  padding: 5px 8px 4px;
+  padding-top: 5px;
+  border: 2px solid #cddef7;
+  border-radius: 8px;
+}
+
+.selected-all-box div {
+  white-space: nowrap;
+}
+
+.select-all-box a {
+  color:#2460c8;
+  white-space: nowrap;
+}
+
+
 
 /* ---------------- PAGINATE ----------------- */
 
@@ -381,9 +406,9 @@
     /* ----------------------- BATCH EXPANDE ---------------------- */
 
 
-    #subject_select, #action_select{
+    /* #subject_select, #action_select{
       background-color: #F1F4FE;
-    }
+    } */
 
     #batch-actions-collapse {
       position: relative;
@@ -500,7 +525,7 @@
     #node-list-tab #datatables-basic_filter input{
       height: 100%;
       margin-left: 0;
-      width: 230px;
+      width: 200px;
       border-right:0px;
     }
 
@@ -576,6 +601,7 @@
     
     #node-list-tab table th:first-child {
       border-top-left-radius: 8px;
+      padding-left: 33px !important;
     }
 
     #node-list-tab table th:last-child {
