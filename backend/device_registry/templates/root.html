@@ -1347,25 +1347,12 @@
   
     {% if not user.profile.wizard_shown %}
       $(() => {
-          let sidebarToggled = false;
-          function toggleSidebar() {
-              return $(".sidebar")
-                  .toggleClass("toggled")
-                  // Triger resize after animation
-                  .one("transitionend", function() {
-                    setTimeout(function() {
-                      window.dispatchEvent(new Event("resize"));
-                      sidebarToggled = true;
-                    }, 100);
-                  });
-          }
           const tour = new Shepherd.Tour({
             defaultStepOptions: {
               cancelIcon: {
                 enabled: true
               },
-              classes: 'class-1 class-2',
-              scrollTo: { behavior: 'smooth', block: 'center' }
+              classes: 'class-1 class-2'
             },
             useModalOverlay: true
           });
@@ -1383,16 +1370,13 @@
               text: "Exit"
             }, {
               action: function() {
-                  if($('nav')[0].getBoundingClientRect().x == -250) {
-                      toggleSidebar();
-                  }
                 return this.next();
               },
               text: 'Next'
             }],
             canClickTarget: false,
             attachTo: {
-              element: '#inst-btn',
+              element: '#admin-inst-btn',
               on: 'left'
           }}, {
             title: 'Recommended Actions',
@@ -1413,14 +1397,12 @@
             }],
             attachTo: {
               element: '#sidebar-recommended-actions',
-              // on: 'right'
+              on: 'right'
           }}]);
   
           tour.start();
   
           function wizardShown() {
-              if(sidebarToggled)
-                  toggleSidebar();
               $.post('/user/profile/wizard-complete/')
           }
           tour.on('complete', wizardShown).on('cancel', wizardShown);
