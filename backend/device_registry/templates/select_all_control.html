@@ -61,16 +61,15 @@
       }
 
       function toggle_page(e){
-          let toggle_control = $('#select-all-toggle');
-          let state = toggle_control.hasClass("fa-check-square");
+          let toggle_control = $('.wott-select-all');
+          let state = toggle_control.hasClass("wott-select-all-focus");
+          toggle_control.focus();
 
           if(!state){
-              toggle_control.addClass("fa-check-square");
-              toggle_control.removeClass("fa-square");
+              toggle_control.addClass("wott-select-all-focus");
               select_all('current', true);
           } else {
-              toggle_control.removeClass("fa-check-square");
-              toggle_control.addClass("fa-square");
+              toggle_control.removeClass("wott-select-all-focus");
               deselect_all('all');
           }
       }
