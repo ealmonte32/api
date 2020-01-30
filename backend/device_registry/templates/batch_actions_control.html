@@ -120,7 +120,7 @@
           refresh_action_button_events();
 
           $.ajax({
-              url: 'ajax-batch/list/device',
+              url: '/ajax-batch/list/device',
               method: 'GET',
           }).done(function(a) {
              actions = a;

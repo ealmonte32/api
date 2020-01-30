@@ -198,7 +198,7 @@
 
 /* GRAPH CLASSES */
 
-.chart-text {
+.circle-text {
   font: 14px/1.2em "Muli", Arial, sans-serif;
   fill: black;
   -moz-transform: translateY(0.25em);
@@ -207,7 +207,7 @@
   transform: translateY(0.25em);
 }
 
-.chart-number {
+.circle-number {
   font-size: 0.6em;
   line-height: 1;
   text-anchor: middle;
@@ -217,7 +217,7 @@
   transform: translateY(-0.45em);
 }
 
-.chart-label {
+.circle-label {
   font-size: 0.12em;
   text-transform: uppercase;
   text-anchor: middle;
@@ -228,7 +228,7 @@
 }
 
 
-.chart-label2 {
+.circle-label2 {
   font-size: 0.12em;
   text-transform: uppercase;
   text-anchor: middle;
@@ -238,7 +238,7 @@
   transform: translateY(1.8em);
 }
 
-.chart-label3 {
+.circle-label3 {
   font-size: 0.12em;
   text-transform: uppercase;
   text-anchor: middle;
