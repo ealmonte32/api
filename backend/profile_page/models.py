@@ -129,8 +129,8 @@ class Profile(models.Model):
         sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
         last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
         this_monday = sunday + relativedelta(days=1)  # This week's monday
-        cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__gte=last_monday,
-                                                   sampled_at__lt=this_monday)\
+        cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,
+                                                   sampled_at__date__lt=this_monday)\
             .values('cve_high_count', 'cve_medium_count', 'cve_low_count')\
             .annotate(cve_high=Max('cve_high_count'), cve_med=Max('cve_medium_count'), cve_lo=Max('cve_low_count'))\
             .values('cve_high', 'cve_med', 'cve_lo')
