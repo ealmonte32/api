@@ -283,53 +283,6 @@
     </span>
     {% endif %}
 
-  <div class="modal" tabindex="-1" role="dialog" id="wott-instruction-modal">
-    <div class="modal-dialog modal-lg" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title" id="modal-title-h2">Add new node</h2>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-header">
-          <h4 class="modal-title" id="modal-title"></h4>
-        </div>
-        <div class="modal-body pb-0">
-          <p id="modal-msg" rows="10" class="w-100 mb-0"></p>
-        </div>
-        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="modal-alert">
-          Server error
-        </div>
-        <div class="modal-footer d-flex justify-content-between">
-          <span>
-            <a href="https://github.com/WoTTsecurity/agent#supported-operating-systems">
-                Supported operating systems
-            </a>
-          </span>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <template id="bash_block">
-    <div class="col-12">
-      <div class="row">
-        <div class="col-11">
-          <pre><code class="bash rounded"><!-- text --></code></pre>
-        </div>
-        <div class="col-1">
-          <button type="button" class="btn btn-primary" aria-label="Left Align" btn_id="bash">
-            <span class="fas fa-copy" aria-hidden="true" data-toggle="popover"
-                  data-placement="top" title="Copy to clipboard."></span>
-          </button>
-          <textarea hidden><!-- copy --></textarea>
-        </div>
-      </div>
-    </div>
-  </template>
-
   <template id="trust-score-template">
     <div class="position-relative">
       <div id="trust-progress-100"  class="w-100" role="progressbar"></div>
@@ -1198,71 +1151,7 @@
             if(type == 'tags')
               Tagulous.select2($('#filter-tags'));
         }
-  
-  
-        function copy_bash(e){
-          let text = e.currentTarget.parentElement.children[1].innerText.trim();
-          text = text.replace(/(\r\n|\n)/gm, ' && ');
-          copyToClipboard(text).then(function() {
-            /* clipboard successfully set */
-            console.log("COPIED");
-          }, function() {
-              alert("Cannot copy to clipboard, please enable clipboard access in browser permissions.");
-          });
-  
-        }
-  
-        function bash_block(text){
-            let s = $('#bash_block').html();
-            let copy_text = text.replace(/^(\$ )/gm, '');
-            return s.replace('<!-- text -->', text).replace('&lt;!-- copy --&gt;', copy_text);
-        }
-  
-        function show_install_msg(){
-          $.ajax({
-              url: '/ajax-pairing-keys/add_dev/',
-              type: "POST",
-              data: JSON.stringify({}),
-              contentType: 'application/json',
-          }).done(function (e) {
-              console.log('success');
-              let title = "To add a node, simply SSH in and run the following commands:";
-              let msg = bash_block(
-                       `$ export CLAIM_TOKEN="${e.key}"\n`
-                     + `$ curl -sL https://install.wott.io | sudo -E bash\n`);
-              show_dialog(title, msg);
-              document.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightBlock(block);
-              });
-              $("button[btn_id='bash']").on("click", copy_bash);
-          }).fail(function (e) {
-              console.log('error');
-              console.log(e.status, e.responseText);
-              show_dialog('Error', e.status, e.responseText);
-          })
-        }
-  
-        /***
-         *  setup dialog parameters and toggle on.
-         *  @param title - dialog title
-         *  @param message - dialog message
-         *  @param errors - the errors string to display, if is not null.
-         */
-        function show_dialog(title, message, errors=null, h2_title='Add new node' )
-        {
-            $('#modal-title-h2')[0].innerText = h2_title;
-            $('#modal-title')[0].innerText = title;
-            $('#modal-msg')[0].innerHTML = message;
-            if(errors == null)
-              $('#modal-alert')[0].style.display = 'none';
-            else
-            {
-              $('#modal-alert')[0].style.display = 'block';
-              $('#modal-alert')[0].innerText = errors;
-            }
-            $('#wott-instruction-modal').modal('toggle');
-        }
-  
+
         function updateFilter(opt_type) {
               $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
               $('#filter-value-div').html($(`#${opt_type}_value`).html());
@@ -1409,10 +1298,6 @@
           window.tour = tour;
       });
     {% endif %}
-  
-    {% if MIXPANEL_TOKEN %}
-      $("#inst-btn").on('click', () => mixpanel.track("Add Node"));
-    {% endif %}
-  
+
     </script>
 {% endblock scripts %}
