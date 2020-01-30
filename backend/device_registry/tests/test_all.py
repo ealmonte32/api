@@ -1557,7 +1557,6 @@ class CVECountTests(TestCase):
         self.assertDictEqual(self.device0.cve_count, {'high': 1, 'med': 2, 'low': 3})
 
     def test_cve_count_history(self):
-        self.test_cve_count()
         self.profile.sample_history()
         history_record = HistoryRecord.objects.get()
         self.assertEquals(history_record.cve_high_count, 1)
@@ -1569,7 +1568,6 @@ class CVECountTests(TestCase):
         # Last week's tuesday
         last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
 
-        self.test_cve_count()
         with freeze_time(last_tuesday):
             self.profile.sample_history()
         with freeze_time(last_tuesday + timezone.timedelta(days=1)):

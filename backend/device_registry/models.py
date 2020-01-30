@@ -501,7 +501,8 @@ class Device(models.Model):
             Vulnerability.Urgency.LOW: 'low'
         }
         result = {s: 0 for s in severities.values()}
-        result.update({severities[s['max_urgency']]: s['urg_cnt'] for s in urgency_counts})
+        result.update({severities[s['max_urgency']]: s['urg_cnt'] for s in urgency_counts
+                       if s['max_urgency'] in severities})
         return result
 
     def generate_recommended_actions(self, classes=None):
