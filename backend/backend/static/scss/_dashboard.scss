@@ -40,6 +40,12 @@
       font-size: .7rem;
     }
   }
+
+  .top-section {
+    display: flex;
+    width: 100%;
+    height: auto;
+  }
 }
 
 .weekly-card-body {
@@ -191,6 +197,7 @@
 
 .chart-number {
   font-weight: 600;
+  text-anchor: middle;
 }
 
 .chart-label, .chart-label2 {
@@ -205,6 +212,7 @@
   transform: translateY(2.3em);
   fill: #7CACFF;
   font-weight: 800;
+  text-anchor: middle;
 }
 
 .graph-footer {
