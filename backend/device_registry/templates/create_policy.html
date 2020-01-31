@@ -9,6 +9,7 @@
 {% endblock dashboard_title %}
 
 {% block admin_content %}
+<div id="create-policie-tab">
   <div class="row">
     <div class="col-12">
       <div class="wott-card wott-box-shadow">
@@ -18,12 +19,13 @@
             {% include "form_field.html" with field=form.name %}
             {% include "form_field.html" with field=form.policy %}
             {% include "form_field.html" with field=form.ports form_group_class="mb-4" %}
+            <div class="separator"></div>
             <hr class="my-4 hr-create-policy">
             {% buttons %}
             <div class="form-group mb-0">
               <div class="d-flex justify-content-between">
-                <button type="submit" class="btn wott-btn-medium btn-wott-primary">Save</button>
                 <a href="{% url 'global_policies' %}" class="btn wott-btn-medium btn-wott-tertiary mr-2" role="button">Cancel</a>
+                <button type="submit" class="btn wott-btn-medium btn-wott-primary">Save</button>
               </div>
             </div>
             {% endbuttons %}
@@ -32,6 +34,7 @@
       </div>
     </div>
   </div>
+</div>
 {% endblock admin_content %}
 
 {% block scripts %}

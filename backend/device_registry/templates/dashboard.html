@@ -17,8 +17,8 @@
       <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p>
       <p class="text-center pb-4 close-text">You can start your journey by adding a node.</p>
       <button type="button" class="btn wott-btn btn-wott-primary d-block m-auto">
-        Add A Node
-        <img src="{% static '/media/plus.png' %}" alt="plus">
+        Add Node
+        <img class="plus" src="{% static '/media/plus.png' %}" alt="plus">
       </button>
     </div>
     <div id="server-welcome-dashboard">
@@ -249,6 +249,11 @@
     </section>
   </section>
 </div>
+<style>
+.plus {
+  padding-left: 15px;
+}
+</style>
 {% endblock admin_content %}
 
 {% block scripts %}

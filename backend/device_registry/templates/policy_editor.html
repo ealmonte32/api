@@ -65,7 +65,7 @@
 </template>
 
 <template id="policy-table-template">
-  <table id="ports-table" class="table table-striped table-responsive-xs" style="width: 100%;">
+  <table id="ports-table" class="table table-striped table-responsive-xs wott-box-shadow wott-border-radius-lg" style="width: 100%;">
     <thead>
       <th width="5%"> </th>
       <th width="30%">Address</th>
@@ -74,7 +74,7 @@
       <th width="20%">IP version</th>
       <th width="20%"></th>
     </thead>
-    <tbody>
+    <tbody class="wott-border-radius-lg">
     </tbody>
   </table>
   <button type="button" class="btn wott-btn-small btn-wott-secondary mt-0 pr-4" id="add-port-btn">＋ Add Port</button>
@@ -106,11 +106,6 @@
 </template>
 
 {% block scripts %}
-<style type="text/css">
-    #id_ports {
-        display: none;
-    }
-</style>
 <script>
     function init_policy_ports_editor(ports)
     {
