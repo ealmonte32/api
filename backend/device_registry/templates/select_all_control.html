@@ -56,8 +56,8 @@
 
       /* select all control for table */
       function clear_select_all_info(){
-          $("#select-all-info-title").html('');
-          $("#select-all-info-link").html('');
+          $('.select-all-box').toggleClass('d-block', false);
+          $('.select-all-box').toggleClass('d-none', true);
       }
 
       function toggle_page(e){
@@ -107,6 +107,8 @@
               if ( total > on_page && page == 'current'){
                   $("#select-all-info-title").html(`${on_page} rows selected on page.`);
                   $("#select-all-info-link").html(`Select all ${total} items.`);
+                  $('.select-all-box').toggleClass('d-block', true);
+                  $('.select-all-box').toggleClass('d-none', false);
                   return;
               }
           }
