@@ -2,6 +2,7 @@
 {% load static %}
 {% load highlight_selector %}
 {% load misc %}
+{% load static %}
 
 {% block css %}
 {% endblock %}
@@ -106,53 +107,45 @@
   </div>
 
   {# TODO @dvidotti: please style this dialog #}
-  <div class="modal" tabindex="-1" role="dialog" id="wott-instruction-modal">
-    <div class="modal-dialog modal-lg" role="document">
+  <div class="wott-rounded-lg wott-modal-container" tabindex="-1" role="dialog" id="wott-instruction-modal">
+    <div class="w-100" role="document">
       <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title" id="modal-title-h2">Add new node</h2>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+        <div class="wott-modal-header wott-modal-header-box">
+          <h2 class="wott-modal-title" id="modal-title-h2">Add new node</h2>
+          <button type="button" class="wott-img-btn" data-dismiss="modal" aria-label="Close">
+            <img src="{% static '/media/close-icon.png' %}" alt="">
           </button>
         </div>
-        <div class="modal-header">
-          <h4 class="modal-title" id="modal-title"></h4>
+        <div class="wott-modal-body">
+          <h4 class="wott-modal-instructions" id="modal-title"></h4>
+          <p id="modal-msg" class="w-100 mb-0 position-relative"></p>
+          <div class="wott-modal-alert-box" role="alert" id="modal-alert">
+            <span class="wott-modal-alert">Server error</span>
+          </div>
         </div>
-        <div class="modal-body pb-0">
-          <p id="modal-msg" rows="10" class="w-100 mb-0"></p>
-        </div>
-        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="modal-alert">
-          Server error
-        </div>
-        <div class="modal-footer d-flex justify-content-between">
+        <div class="wott-modal-footer">
           <span>
             <a href="https://github.com/WoTTsecurity/agent#supported-operating-systems">
                 Supported operating systems
             </a>
           </span>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
   </div>
 
-  <template id="bash_block">
-    <div class="col-12">
-      <div class="row">
-        <div class="col-11">
-          <pre><code class="bash rounded"><!-- text --></code></pre>
-        </div>
-        <div class="col-1">
-          <button type="button" class="btn btn-primary" aria-label="Left Align" btn_id="bash">
-            <span class="fas fa-copy" aria-hidden="true" data-toggle="popover"
-                  data-placement="top" title="Copy to clipboard."></span>
-          </button>
-          <textarea hidden><!-- copy --></textarea>
-        </div>
-      </div>
-    </div>
+  <template id="bash_block">   
+    <h1 class="wott-bash-title">Terminal</h1>
+    <pre>
+      <code class="bash"><!-- text --></code>
+    </pre>
+    <button type="button" class="btn wott-btn-inside-bash" aria-label="Left Align" btn_id="bash">
+      <span class="wott-left-title-btn">Copy to clipboard</span>
+      <span class="fas fa-copy" aria-hidden="true" data-toggle="popover"
+            data-placement="top" title="Copy to clipboard."></span>
+    </button>
+    <textarea hidden><!-- copy --></textarea>
   </template>
-
 {% endblock %}
 
 {% block scripts %}
@@ -178,6 +171,7 @@
         let msg = bash_block(
                  `$ export CLAIM_TOKEN="${e.key}"\n`
                + `$ curl -sL https://install.wott.io | sudo -E bash\n`);
+
         show_dialog(title, msg);
         document.querySelectorAll('pre code').forEach((block) => {
           hljs.highlightBlock(block);
