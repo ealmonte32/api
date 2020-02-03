@@ -55,3 +55,105 @@
     opacity: 1;
   }
 }
+
+
+.node-profile-overview {
+  .wott-table { 
+    tr {
+      font-size: 1rem !important;
+      display: flex !important;
+      align-items: center !important;
+      border-top: 1px solid rgba(216,216,216, 0.5) !important; 
+    }
+    th {
+      font-size: 1rem;
+    }
+    .form-group {
+      margin-bottom: 0px;
+    }
+    .select2-choices{
+      width: 100% !important;
+    }
+  }
+}
+
+.top-color-section {
+  color: white;
+  padding: .5rem;
+  border-radius: 8px;
+  background-color: #2460C8;
+  .left-box {
+    width:45%;
+    display: flex;
+    flex-direction: column;
+    padding-left: 2.5rem;
+    margin: auto;
+  }
+  .right-box {
+    background-color: #1d5db6;
+    border-radius: 8px;
+    width: 55%;
+  }
+
+  .right-card {
+    background-color: #1b58ad;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    height: 212px;
+  }
+
+  .node-title {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    padding-bottom: 6px;
+    font-size: 2.8rem;
+    color: white;
+  }
+
+  .wott-badge-pill-light {
+    color: white;
+    background: #33D3EC;
+    display: inline-block;
+    margin-left: 0;
+    margin-right: .5rem;
+    font-size: .8rem;
+  }
+
+  .wott-recommended-actions {
+    white-space: nowrap;
+    padding: .6rem 1.5rem;
+    border-radius: 8px;
+    color: #33D3EC;
+    font-size: 1rem;
+    background-color: #1b58ad;
+    border: 0;
+    font-weight: 700;
+  }
+
+  .wott-recommended-actions:hover {
+    background-color: #1d468c;
+    color: white !important;
+    text-decoration: none;
+  }
+
+  .node-profile-arrow {
+    color: #33D3EC;
+    font-size: 1.8rem;
+    margin-top: 22px;
+    margin-left: -39px;
+  }
+
+  .recommended-action-number {
+    font-size: 2.9rem;
+    color: white;
+    margin-bottom: 0;
+  }
+
+  .recommended-action-info {
+    margin-bottom: 0;
+    font-size: .8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+}

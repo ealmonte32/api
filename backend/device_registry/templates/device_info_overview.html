@@ -12,7 +12,7 @@
 
 {% block admin_content %}
   {% include 'device_info_top_block.html' %}
-  <div class="row">
+  <div class="row node-profile-overview">
     <div class="col-12">
       <div class="tab wott-box-shadow">
         {% include 'device_info_tabs.html' with active="overview" %}
@@ -31,7 +31,7 @@
                 </div>
                 <tr>
                   <td class="wott-table-label-lg" scope="row">Hardware Type</td>
-                  <td width="30%">{{ object.deviceinfo.get_hardware_type|default_if_none:'Unknown' }}</td>
+                  <td width="30%" class="pl-4">{{ object.deviceinfo.get_hardware_type|default_if_none:'Unknown' }}</td>
                   <td class="wott-table-label-lg" scope="row">Last Heartbeat</td>
                   <td width="30%">{{ object.last_ping | timesince }} ago</td>
                 </tr>
@@ -102,77 +102,6 @@
       </div>
     </div>
   </div>
-  <style>
-  .wott-table-title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    padding: 0 2.5rem;
-    margin-bottom: 0;
-  }
-
-  .wott-table-content {
-    background-color: white !important;
-    border-radius: 8px;
-  }
-
-  .wott-table tr {
-    font-size: 1rem !important;
-    display: flex !important;
-    align-items: center !important;
-    border-top: 1px solid rgba(216,216,216, 0.5) !important; 
-  }
-
-
-  .wott-table th {
-    font-size: 1rem;
-  }
-
-  .wott-table-label-lg {
-    padding: 1rem 2.8vw 1rem 2.5rem;
-    white-space: nowrap;
-    font-weight: 700;
-    width: auto;
-    font-size: 1.1rem
-  }
-
-  .wott-table-label {
-    padding: 1rem .5rem 1rem 2.5rem;
-    font-weight: 700;
-    width: 20%;
-    font-size: 1.1rem;
-  }
-
-  .wott-no-label label{
-    display: none;
-  }
-
-  .wott-form-input-right {
-    width: 80%;
-    margin-bottom: 0 !important;
-    padding-right: 1rem;
-  }
-
-  .wott-table .form-group {
-    margin-bottom: 0px;
-  }
-
-  .wott-textarea-small .form-control {
-    height: 62px !important;
-  }
-
-  .wott-table .select2-choices{
-    width: 100% !important;
-  }
-  
-  .wott-table-pr {
-    padding-right: 2rem;
-  }
-
-  .wott-table-py {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-  }
-  </style>
 {% endblock admin_content %}
 
 {% block scripts %}

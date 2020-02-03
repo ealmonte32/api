@@ -75,3 +75,87 @@
 .dt-bootstrap4 {
 	width: calc(100% - 2px);
 }
+
+
+// Wott table rules
+
+.wott-table {
+  width: 100%;
+  border-radius: $wott-border-radius-lg;
+	background-color: white;
+	tr {
+		padding: 1rem;
+		font-size: .9rem;
+		margin: 0;
+	}
+	thead {
+		border-radius: $wott-border-radius-lg;
+		background-color: #edf1fe;
+	}
+
+	.wott-table-label-lg {
+		padding: 1rem 1rem 1rem 1.5rem;
+		white-space: nowrap;
+		font-weight: 700;
+		width: auto;
+		font-size: 1.1rem
+	}
+	
+	.wott-table-label {
+		padding: 1rem .5rem 1rem 1.5rem;
+		font-weight: 700;
+		width: 20%;
+		font-size: 1.1rem;
+	}
+	
+	.wott-no-label {
+		label {
+			display: none;
+		}
+	}
+	
+	.wott-form-input-right {
+		width: 80%;
+		margin-bottom: 0 !important;
+		padding-right: 1rem;
+	}
+
+	.wott-textarea-small {
+		.form-control {
+			height: 62px !important;
+		}
+	}
+}
+
+.wott-table-title {
+	font-size: 1.8rem;
+	font-weight: 700;
+	padding: 0 2.5rem;
+	margin-bottom: 0;
+}
+
+.wott-table-pr {
+	padding-right: 2rem;
+}
+
+.wott-table-py {
+	padding-top: 2rem;
+	padding-bottom: 2rem;
+}
+
+.wott-table-content {
+	background-color: white !important;
+	border-radius: 8px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
