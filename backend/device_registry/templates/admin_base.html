@@ -124,7 +124,7 @@
         </div>
         <div class="wott-modal-footer">
           <span>
-            <a href="https://github.com/WoTTsecurity/agent#supported-operating-systems">
+            <a href="https://github.com/WoTTsecurity/agent#supported-operating-systems" target="_blank">
                 Supported operating systems
             </a>
           </span>
@@ -143,7 +143,7 @@
       <span class="fas fa-copy" aria-hidden="true" data-toggle="popover"
             data-placement="top" title="Copy to clipboard."></span>
     </button>
-    <textarea hidden><!-- copy --></textarea>
+    <textarea hidden id="bash-clipboard"><!-- copy --></textarea>
   </template>
 {% endblock %}
 
@@ -169,7 +169,7 @@
         let title = "To add a node, simply SSH in and run the following commands:";
         let msg = bash_block(
                  `$ export CLAIM_TOKEN="${e.key}"\n`
-               + `$ curl -sL https://install.wott.io | sudo -E bash\n`);
+               + `$ curl -sL https://install.wott.io | sudo -E bash`);
 
         show_dialog(title, msg);
         document.querySelectorAll('pre code').forEach((block) => {
@@ -205,8 +205,8 @@
     }
 
     function copy_bash(e) {
-      let text = e.currentTarget.parentElement.children[1].innerText.trim();
-      text = text.replace(/(\r\n|\n)/gm, ' && ');
+      let text = $('#bash-clipboard').text();
+      text = text.replace(/(\r\n|\n)/gm, ' && ')+'\n';
       copyToClipboard(text).then(function() {
         /* clipboard successfully set */
         console.log("COPIED");
