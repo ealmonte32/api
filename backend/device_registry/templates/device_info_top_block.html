@@ -1,16 +1,3 @@
-<style>
-    .wott-recommended-actions {
-        white-space: nowrap;
-    }
-    .wott-score-bar {
-        width: 45ch;
-        height: 2rem;
-    }
-    .wott-actions-badge {
-      color: black;
-    }
-</style>
-
 {% if MIXPANEL_TOKEN %}
 <script type="text/javascript">
   $(() => {
@@ -20,35 +7,179 @@
 </script>
 {% endif %}
 
-<div class="row">
-  <div class="col">
-    <h2 style="
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      padding-bottom: 5px">{{ object.get_name }}</h2>
+<div class="top-color-section d-flex">
+  <div class="left-box">
+    <h2 class="node-title">{{ object.get_name }}
+    </h2>
+    <div class="d-flex align-items-center">
+      {%  with actions_count=object.actions_count %}
+        {% if actions_count %}
+        <a id="recommended-actions"
+        href="{% url 'device_actions' object.pk %}"
+        class="wott-recommended-actions"
+        role="button">
+        <span class="badge wott-badge-pill wott-badge-pill-light">{{ actions_count }}</span>
+            <span class="wott-actions-badge-text">Recommended Actions</span> 
+          </a>
+        {% endif %}
+      {% endwith %}
+    </div>
   </div>
-  <div class="col">
+  <div class="right-box d-flex">
+    <div class="left-card d-flex flex-column align-items m-auto w-50">
+      <div class="m-auto">
+        <h1 class="recommended-action-number"><i class="fas fa-sort-up position-absolute node-profile-arrow"></i>04</h1><!--HARDCODED-->
+        <span class="recommended-action-info">
+          new rec. actions<br>
+          this week
+        </span>
+      </div>
+    </div>
+    
+    <div class="right-card w-50">
+
       {% if object.trust_score is not None %}
-        <div class="wott-score-bar progress position-relative" >
-          <div class="progress-bar bg-{{ object.trust_score_color }}" role="progressbar"
-               style="width: {{ object.trust_score_percent }}%"></div>
-          <h2
-              class="justify-content-center d-flex position-absolute w-100">{{ object.trust_score_percent }}%</h2>
-        </div>
+      <svg width="100%" height="100%" viewbox="0 1 39 39" class="donut">
+
+        <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+        <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#417EE7" stroke-width="2"></circle>
+        <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-dasharray="{{ object.trust_score_percent }} 19"  stroke-linecap="round"  stroke-dashoffset="75"></circle> <!--TODO @arlem: percentage in stroke-dasharray hardcoded (100 - {{ object.trust_score_percent }})-->
+        
+        <g class="wott-chart-block-info">
+          <text id="trust-score-percentage" x="38%" y="46%" class="wott-chart-big-info">
+            {{ object.trust_score_percent }}
+          </text>
+          <text class="wott-chart-small-info" x="40%" y="59%">
+            OF 100
+          </text>
+          <text x="40%" y="71%" class="wott-chart-small-info wott-chart-light-text">
+            NEEDS
+          </text>
+          <text x="40%" y="79%" class="wott-chart-small-info wott-chart-light-text">
+            WORK
+          </text>
+        </g>
+
+      </svg>
       {% endif %}
+    </div>
   </div>
-  <div class="col">
-  {%  with actions_count=object.actions_count %}
-    {% if actions_count %}
-      <a id="recommended-actions"
-         href="{% url 'device_actions' object.pk %}"
-         class="wott-recommended-actions btn btn-primary"
-         role="button">
-        Recommended Actions
-        <span class="badge badge-light wott-actions-badge ml-2">{{ actions_count }}</span>
-      </a>
-    {% endif %}
-  {% endwith %}
-  </div>
+  
 </div>
+
+<style>
+  .top-color-section {
+    color: white;
+    padding: .5rem;
+    border-radius: 8px;
+  }
+
+  .wott-chart-small-info {
+    font-size: .21em;
+    fill: white;
+    font-weight: 800;
+  }
+
+  .wott-chart-medium-info {
+    font-size: .21em;
+    fill: white;
+    font-weight: 800;
+  }
+
+  .wott-chart-big-info {
+   font-family: Muli;
+   font-size: .75em;
+   fill: white;
+   font-weight: 700;
+  }
+
+  .node-profile-arrow {
+    color: #33D3EC;
+    font-size: 1.8rem;
+    margin-top: 22px;
+    margin-left: -39px;
+  }
+
+  .recommended-action-number {
+    font-size: 2.9rem;
+    color: white;
+    margin-bottom: 0;
+  }
+
+  .recommended-action-info {
+    margin-bottom: 0;
+    font-size: .8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .top-color-section {
+    background-color: #2460C8;
+  }
+
+  .left-box {
+    width:45%;
+  }
+
+  .right-box {
+    background-color: #1d5db6;
+    border-radius: 8px;
+    width: 55%;
+  }
+
+  .right-card {
+    background-color: #1b58ad;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    height: 212px;
+  }
+
+  .node-title {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    padding-bottom: 6px;
+    font-size: 2.8rem;
+    color: white;
+  }
+
+  .left-box {
+    display: flex;
+    flex-direction: column;
+    padding-left: 2.5rem;
+    margin: auto;
+  }
+
+  .wott-badge-pill-light {
+    color: white;
+    background: #33D3EC;
+    display: inline-block;
+    margin-left: 0;
+    margin-right: .5rem;
+    font-size: .8rem;
+  }
+
+  .wott-recommended-actions {
+    white-space: nowrap;
+    padding: .6rem 1.5rem;
+    border-radius: 8px;
+    color: #33D3EC;
+    font-size: 1rem;
+    background-color: #1b58ad;
+    border: 0;
+    font-weight: 700;
+  }
+
+  .wott-recommended-actions:hover {
+    /* background-color: #7CACFF; */
+    background-color: #1d468c;
+    color: white !important;
+    text-decoration: none;
+  }
+
+  .wott-chart-light-text {
+    fill: #7CACFF;
+  }
+  
+  
+</style>
