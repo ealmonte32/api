@@ -141,7 +141,7 @@
                             </tr>
                           </thead>
                           {% for param_name, param_info in sshd_issues.items %}
-                            <tr>
+                          <tr>
                             <td class="col-12">{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider
                               changing "{{ param_name }}" from "{{ param_info.unsafe_value }}" to "{{ param_info.safe_value }}"
                               {% if param_info.severity %}
@@ -162,11 +162,11 @@
                               </li>
                             {% endfor %}
                           </ul> -->
+                        </table>
                         {% else %}
                           {% include "badge.html" with icon="check" color="success" %}
                         {% endif %}
                       {% endwith %}
-                        </table>
                     </td>
                   </tr>
                   <tr>
@@ -200,14 +200,15 @@
                       {% endif %}
                     </td>
                   </tr>
-                  <th class="wott-table-label" scope="row">Logins</th>
-                  <td class="wott-inner-table-message ">
-                    {% if object.deviceinfo.logins %}
-                      <pre class="mb-0">{{ object.deviceinfo.beautified_logins }}</pre>
-                    {% else %}
-                      No recent login attempts detected.
-                    {% endif %}
-                  </td>
+                  <tr>
+                    <th class="wott-table-label" scope="row">Logins</th>
+                    <td class="wott-inner-table-message ">
+                      {% if object.deviceinfo.logins %}
+                        <pre class="mb-0">{{ object.deviceinfo.beautified_logins }}</pre>
+                      {% else %}
+                        No recent login attempts detected.
+                      {% endif %}
+                    </td>
                   </tr>
                   <tr>
                     <th class="wott-table-label" scope="row">
@@ -341,7 +342,7 @@
                             {{ ports_form.policy }}
                           </div>
                           <div class="form-group">
-                            {% if ports_choices is Null %}
+                            {% if ports_choices %}
                               <div class="table-responsive" id="ports-table">
                                 <table id="firewall-ports-table" class="wott-table wott-box-shadow">
                                   <thead>

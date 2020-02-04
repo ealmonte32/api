@@ -571,7 +571,7 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Firewall Ports Policy')
-        self.assertInHTML('<span id="ports-table-column-1">Allowed</span>', response.rendered_content)
+        self.assertInHTML('<span class="pl-1" id="ports-table-column-1">Allowed</span>', response.rendered_content)
 
     def test_open_ports_global_policy(self):
         self.client.login(username='test', password='123')
@@ -637,7 +637,7 @@ class DeviceDetailViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<pre>pi:')
+        self.assertContains(response, '<pre class="mb-0">pi:')
         self.assertContains(response, 'success: 1')
 
     def test_insecure_services(self):
@@ -705,7 +705,7 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
 
         response = self.client.get(url)
-        self.assertInHTML("""<th scope="row">Patched against Heartbleed</th>
+        self.assertInHTML("""<th class="wott-table-label" scope="row">Patched against Heartbleed</th>
                              <td>
                                <span class="p-1 text-success"><i class="fas fa-check" ></i></span>
                                Yes
@@ -717,7 +717,7 @@ class DeviceDetailViewTests(TestCase):
         self.device.deb_packages.first().vulnerabilities.add(v)
 
         response = self.client.get(url)
-        self.assertInHTML("""<th scope="row">Patched against Heartbleed</th>
+        self.assertInHTML("""<th class="wott-table-label" scope="row">Patched against Heartbleed</th>
                              <td>
                                <span class="p-1 text-danger"><i class="fas fa-exclamation-circle" ></i></span>
                                No
@@ -758,20 +758,20 @@ class DeviceDetailViewTests(TestCase):
         url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
         # Unknown distro.
         response = self.client.get(url)
-        self.assertInHTML('<td id="eol_info">N/A</td>', response.rendered_content)
+        self.assertInHTML('<td class="pl-4" id="eol_info">N/A</td>', response.rendered_content)
         # Supported distro version.
         self.device.os_release = {'distro': 'raspbian', 'version': '10', 'codename': 'buster',
                                   'distro_root': 'debian', 'full_version': '10 (buster)'}
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
         # print(response.content)
-        self.assertInHTML('<td id="eol_info">July 1, 2022</td>', response.rendered_content)
+        self.assertInHTML('<td class="pl-4" id="eol_info">July 1, 2022</td>', response.rendered_content)
         # Outdated distro version.
         self.device.os_release = {'distro': 'debian', 'version': '7', 'codename': 'wheezy',
                                   'distro_root': 'debian', 'full_version': '7 (wheezy)'}
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
-        self.assertInHTML('<td id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
+        self.assertInHTML('<td class="pl-4" id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
                           '</i></span>May 31, 2018</td>', response.rendered_content)
 
     def test_default_credentials(self):
