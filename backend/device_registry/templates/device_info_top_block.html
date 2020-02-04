@@ -28,7 +28,12 @@
   <div class="right-box d-flex">
     <div class="left-card d-flex flex-column align-items m-auto w-50">
       <div class="m-auto">
-        <h1 class="recommended-action-number"><i class="fas fa-sort-up position-absolute node-profile-arrow"></i>04</h1><!--HARDCODED-->
+        <h1 class="recommended-action-number">
+          {% with object.actions_count_delta as actions_count_delta %}
+          <i class="fas fa-sort-{{ actions_count_delta.arrow }} position-absolute node-profile-arrow"></i>
+          {{ actions_count_delta.count }}
+          {% endwith %}
+        </h1><!--HARDCODED-->
         <span class="recommended-action-info">
           new rec. actions<br>
           this week

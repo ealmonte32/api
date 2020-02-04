@@ -524,6 +524,11 @@ class Device(models.Model):
             .values('ra_max')
         return actions_count.first() if actions_count.exists() else 0
 
+    @property
+    def actions_count_delta(self):
+        count = self.actions_count - self.actions_count_last_week
+        return {'count': count, 'arrow': 'up' if count >= 0 else 'down'}
+
     def sample_history(self):
         DeviceHistoryRecord.objects.create(device=self,
                                            recommended_actions_count=self.actions_count)
