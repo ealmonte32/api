@@ -43,7 +43,10 @@
 
         <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
         <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#417EE7" stroke-width="2"></circle>
-        <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-dasharray="{{ object.trust_score_percent }} 19"  stroke-linecap="round"  stroke-dashoffset="75"></circle> <!--TODO @arlem: percentage in stroke-dasharray hardcoded (100 - {{ object.trust_score_percent }})-->
+        <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954"
+                fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-linecap="round"
+                stroke-dashoffset="75"
+                stroke-dasharray="{{ object.trust_score_percent }} {{ object.trust_score_minus100 }}"></circle>
         
         <g class="wott-chart-block-info">
           <text id="trust-score-percentage" x="38%" y="46%" class="wott-chart-big-info">

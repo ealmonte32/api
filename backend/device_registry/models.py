@@ -445,6 +445,9 @@ class Device(models.Model):
         else:
             return 0
 
+    def trust_score_minus100(self):
+        return 100 - self.trust_score_percent()
+
     def trust_score_color(self):
         return get_bootstrap_color(self.trust_score_percent())
 
