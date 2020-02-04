@@ -164,7 +164,7 @@
     var table;
     var edited = false;
     var previous_mode;
-    document.addEventListener("DOMContentLoaded", function () {
+    $(() => {
         // data-table
       table = $('#dev-md-table').DataTable({
         searching: false,
@@ -290,7 +290,7 @@
      */
     function kv_remove(e){
         $('#confirm-btn').on("click", {row: e.parentElement.parentElement}, delete_row );
-        show_dialog("Confirm Removal",
+        kv_dialog("Confirm Removal",
             "Are you sure you want to delete?",
             "Delete"
         );
@@ -315,7 +315,7 @@
      *  @param message - dialog message
      *  @param btn_text - dialog confirm button text
      */
-    function show_dialog(title, message, btn_text )
+    function kv_dialog(title, message, btn_text )
     {
         $('#confirm-title')[0].innerText = title;
         $('#confirm-msg')[0].innerText = message;
