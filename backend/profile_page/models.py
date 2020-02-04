@@ -129,13 +129,16 @@ class Profile(models.Model):
             status=RecommendedAction.Status.NOT_AFFECTED,
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
-        )
+        ).values('action_id').distinct().count()
 
         cve_hi, cve_med, cve_lo = self.cve_count
         HistoryRecord.objects.create(owner=self.user,
-                                     recommended_actions_resolved=ra_resolved.count(),
+                                     recommended_actions_resolved=ra_resolved,
                                      average_trust_score=self.average_trust_score,
                                      cve_high_count=cve_hi, cve_medium_count=cve_med, cve_low_count=cve_lo)
+
+        for d in self.user.devices.all():
+            d.sample_history()
 
     @property
     def cve_count(self):

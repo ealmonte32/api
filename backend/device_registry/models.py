@@ -4,6 +4,7 @@ import json
 import uuid
 from typing import NamedTuple
 
+from dateutil.relativedelta import relativedelta, SU, MO
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q, Max, Window, Count
@@ -508,6 +509,25 @@ class Device(models.Model):
                        if s['max_urgency'] in severities})
         return result
 
+    @property
+    def actions_count_last_week(self):
+        now = timezone.now()
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
+        this_monday = sunday + relativedelta(days=1)  # This week's monday
+
+        actions_count = DeviceHistoryRecord.objects.filter(device=self,
+                                                           sampled_at__gte=last_monday,
+                                                           sampled_at__lt=this_monday)\
+            .values('recommended_actions_count')\
+            .annotate(ra_max=Max('recommended_actions_count'))\
+            .values('ra_max')
+        return actions_count.first() if actions_count.exists() else 0
+
+    def sample_history(self):
+        DeviceHistoryRecord.objects.create(device=self,
+                                           recommended_actions_count=self.actions_count)
+
     def generate_recommended_actions(self, classes=None):
         """
         Generate RAs for this device and store them as RecommendedAction objects in database.
@@ -962,3 +982,9 @@ class HistoryRecord(models.Model):
     cve_high_count = models.IntegerField(null=True)
     cve_medium_count = models.IntegerField(null=True)
     cve_low_count = models.IntegerField(null=True)
+
+
+class DeviceHistoryRecord(models.Model):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    recommended_actions_count = models.IntegerField(null=True)
+    sampled_at = models.DateTimeField(auto_now_add=True)
