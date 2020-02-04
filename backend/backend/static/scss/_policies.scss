@@ -93,7 +93,7 @@
   }
 
   #datatables-basic_filter input{
-    height: 100%;
+    height: 50px;
     margin-left: 0;
     width: 200px;
     border-right:0px;
@@ -135,6 +135,7 @@
   padding-top: 5px;
   border: 2px solid #cddef7;
   border-radius: 8px;
+  height: 50px;
   div {
     white-space: nowrap;
   }
@@ -817,11 +818,16 @@ th.sorting_desc:last-child {
   border-bottom-right-radius: 8px;
   border-bottom-left-radius: 0px;
   border-top-left-radius: 0px;
-
+  height: 50px;
 }
+
 
 .filter-btn-box {
   width: auto;
+}
+
+.filter-btn-box .wott-form-control {
+  height: 50px;
 }
 
 .wott-btn-filter .fa-sort-down {
@@ -896,7 +902,7 @@ th.sorting_desc:last-child {
   min-height: 50px;
   border-radius: 8px;
   border: 2px solid #F1F4FE;
-  width: 88%;
+  width: 18.5vw;
   background-image: none; 
 }
 
