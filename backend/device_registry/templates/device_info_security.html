@@ -10,474 +10,501 @@
 
 {% block admin_content %}
   {% include 'device_info_top_block.html' %}
-  <div class="row">
+  <div class="row node-profile-security">
     <div class="col-12">
-      <div class="tab">
+      <div class="tab wott-box-shadow">
         {% include 'device_info_tabs.html' with active="security" %}
-        <div class="tab-content">
+        <div class="wott-table-content">
           {% if portscan and firewall %}
             <div class="tab-pane active" id="security" role="tabpanel">
-              <h4 class="tab-title">Security</h4>
-              <table class="table table-striped table-responsive-xs">
+              <table class="wott-table px-0">
                 <tbody>
-                <tr>
-                  <th scope="row">Vulnerable Packages</th>
-                  <td>
-                    {% with object.cve_count as cve_count %}
-                    {% if cve_count is None %}
-                      N/A
-                    {% else %}
-                      High: {{  cve_count.high }}<br>
-                      Medium: {{ cve_count.med }}<br>
-                      Low: {{ cve_count.low }}<br>
-                    {% endif %}
-                    {% endwith %}
-                    <a href="{% url 'device_cve' object.pk %}">Detailed View</a>
-                  </td>
-                </tr>
-                {% with object.heartbleed_vulnerable as heartbleed_vulnerable %}
-                {% if heartbleed_vulnerable is not None %}
-                 <tr>
-                   <th scope="row">
-                     Patched against Heartbleed
-                   </th>
-                   <td>
-                     {% if not heartbleed_vulnerable %}
-                         {% include "badge.html" with icon="check" color="success" %}
-                         Yes
-                     {% else %}
-                         {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                         No
-                     {% endif %}
-                   </td>
-                 </tr>
-                 {% endif %}
-                 {% endwith %}
-                {% if object.cpu.vendor == 'GenuineIntel' %}
-                <tr>
-                  <th scope="row">
-                    Patched against Meltdown/Spectre
-                  </th>
-                  <td>
-                    {% with object.cpu_vulnerable as cpu_vulnerable %}
-                    {% if cpu_vulnerable is False %}
-                        {% include "badge.html" with icon="check" color="success" %}
-                        Yes
-                    {% elif cpu_vulnerable is True %}
-                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                        No
-                    {% else %}
+                  <h4 class="wott-table-title wott-table-py">Security</h4>
+                  <tr>
+                    <th class="wott-table-label" scope="row">Vulnerable Packages</th>
+                    <td class="d-flex justify-content-between w-60">
+                      {% with object.cve_count as cve_count %}
+                      {% if cve_count is None %}
                         N/A
-                    {% endif %}
-                    {% endwith %}
-                  </td>
-                </tr>
-                {% endif %}
-                <tr>
-                  <th scope="row">
-                    Default Credentials
-                    <a href="https://wott.io/documentation/faq#what-are-default-credentials"
-                       target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                  </th>
-                  <td>
-                    {% if object.default_password is None %}N/A{% else %}
-                      {% if object.default_password_users %}
-                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                        Users with default credentials: {{ object.default_password_users|join:", " }}
-                      {% elif object.deviceinfo.default_password is True %}
-                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                        Default credentials detected!
                       {% else %}
-                        {% include "badge.html" with icon="check" color="success" %}
-                        No default credentials detected.
+                        <span class="High font-weight-bold pr-3">High: {{  cve_count.high }}</span>
+                        <span class="Medium font-weight-bold pr-3">Medium: {{ cve_count.med }}</span>
+                        <span class="Low font-weight-bold pr-4">Low: {{ cve_count.low }}</span>
                       {% endif %}
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                <tr>
-                  <th scope="row">System File Audit</th>
-                  <td>
-                    {% if object.audit_files %}
-                      <table class="table table-borderless table-sm">
-                        <thead class="thead-light">
-                        <tr>
-                          <th scope="col">Path</th>
-                          <th scope="col">Checksum (SHA-256)</th>
-                          <th scope="col">Last Modified</th>
-                        </tr>
-                        </thead>
-                        {% for file in object.audit_files %}
+                      {% endwith %}
+                      <a class="pr-4" href="{% url 'device_cve' object.pk %}">Detailed View</a>
+                    </td>
+                  </tr>
+                  {% with object.heartbleed_vulnerable as heartbleed_vulnerable %}
+                  {% if heartbleed_vulnerable is not None %}
+                  <tr>
+                    <th class="wott-table-label" scope="row">
+                      Patched against Heartbleed
+                    </th>
+                    <td>
+                      {% if not heartbleed_vulnerable %}
+                          {% include "badge.html" with icon="check" color="success" %}
+                          Yes
+                      {% else %}
+                          {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                          No
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endif %}
+                  {% endwith %}
+                  {% if object.cpu.vendor == 'GenuineIntel' %}
+                  <tr>
+                    <th class="wott-table-label" scope="row">
+                      Patched against Meltdown/Spectre
+                    </th>
+                    <td>
+                      {% with object.cpu_vulnerable as cpu_vulnerable %}
+                      {% if cpu_vulnerable is False %}
+                          {% include "badge.html" with icon="check" color="success" %}
+                          Yes
+                      {% elif cpu_vulnerable is True %}
+                          {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                          No
+                      {% else %}
+                          N/A
+                      {% endif %}
+                      {% endwith %}
+                    </td>
+                  </tr>
+                  {% endif %}
+                  <tr>
+                    <th class="wott-table-label" scope="row">
+                      Default Credentials
+                      <a href="https://wott.io/documentation/faq#what-are-default-credentials"
+                        target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                    </th>
+                    <td>
+                      {% if object.default_password is None %}N/A{% else %}
+                        {% if object.default_password_users %}
+                          {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                          Users with default credentials: {{ object.default_password_users|join:", " }}
+                        {% elif object.deviceinfo.default_password is True %}
+                          {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                          Default credentials detected!
+                        {% else %}
+                          {% include "badge.html" with icon="check" color="success" %}
+                          No default credentials detected.
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                  </tr>
+        
+                  <tr class="pb-4">
+                    <th class="wott-table-label pb-0">System File Audit</th>
+                  </tr>
+
+                  <tr class="border-top-0 pt-0">
+                    <td class="inner-table mb-4">
+                      {% if object.audit_files %}
+                        <table class="wott-table wott-box-shadow">
+                          <thead class="">
+                          <tr class="row">
+                            <th class="col-2">Path</th>
+                            <th class="col-8">Checksum (SHA-256)</th>
+                            <th class="col-2">Last Modified</th>
+                          </tr>
+                          </thead>
+                          {% for file in object.audit_files %}
                           <tr>
-                            <td>{{ file.name }}</td>
-                            <td>{{ file.sha256 }}</td>
-                            <td>
+                            <td class="col-2">{{ file.name }}</td>
+                            <td class="col-8">{{ file.sha256 }}</td>
+                            <td class="col-2">
                               {% if file.last_modified %}{{ file.last_modified|fromunix|timesince }} ago{% endif %}</td>
                           </tr>
-                        {% endfor %}
-                      </table>
-                    {% else %}
-                      N/A
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Configuration Audit</th>
-                  <td>
-                    {% with object.sshd_issues as sshd_issues %}
-                      {% if sshd_issues is None %}
+                          {% endfor %}
+                        </table>
+                      {% else %}
                         N/A
-                      {% elif sshd_issues %}
-                        <h5>OpenSSH</h5>
-                        <ul style="list-style-type:none; padding: 0;">
+                      {% endif %}
+                    </td>
+                  </tr>
+
+                  <tr class="pb-4">
+                    <th class="wott-table-label pb-0" scope="row">Configuration Audit</th>
+                  </tr>
+                  <tr class="border-top-0 pt-0">
+                    <td class="inner-table mb-4">
+                      {% with object.sshd_issues as sshd_issues %}
+                        {% if sshd_issues is None %}
+                          N/A
+                        {% elif sshd_issues %}
+                        <table class="wott-table wott-box-shadow">
+                          <thead class="">
+                            <tr class="row">
+                              <th class="col-12">OpenSSH</th>
+                            </tr>
+                          </thead>
                           {% for param_name, param_info in sshd_issues.items %}
-                            <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider
+                            <tr>
+                            <td class="col-12">{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider
                               changing "{{ param_name }}" from "{{ param_info.unsafe_value }}" to "{{ param_info.safe_value }}"
                               {% if param_info.severity %}
                                 <a href="{{ param_info.severity }}"
-                                   target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                                  target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
                               {% endif %}
-                            </li>
-                          {% endfor %}
-                        </ul>
-                      {% else %}
+                            </td>
+                          </tr>
+                            {% endfor %}
+                          <!-- <ul style="list-style-type:none; padding: 0;">
+                            {% for param_name, param_info in sshd_issues.items %}
+                              <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} Consider
+                                changing "{{ param_name }}" from "{{ param_info.unsafe_value }}" to "{{ param_info.safe_value }}"
+                                {% if param_info.severity %}
+                                  <a href="{{ param_info.severity }}"
+                                    target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                                {% endif %}
+                              </li>
+                            {% endfor %}
+                          </ul> -->
+                        {% else %}
+                          {% include "badge.html" with icon="check" color="success" %}
+                        {% endif %}
+                      {% endwith %}
+                        </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th class="wott-table-label" scope="row">Insecure Services</th>
+                    <td>
+                      {% with object.insecure_services as services %}
+                        {% if services %}
+                          <ul style="list-style-type:none; padding: 0">
+                            {% for service in services %}
+                              <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} {{ service.name }}</li>
+                            {% endfor %}
+                          </ul>
+                        {% elif services is not None %}
+                          No insecure services detected.
+                        {% else %}
+                          N/A
+                        {% endif %}
+                      {% endwith %}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th class="wott-table-label" scope="row">Automatic Security Update</th>
+                    <td>
+                      {% if object.auto_upgrades_enabled is True %}
                         {% include "badge.html" with icon="check" color="success" %}
-                      {% endif %}
-                    {% endwith %}
-                  </td>
-                </tr>
-                <tr>
-                <tr>
-                  <th scope="row">Insecure Services</th>
-                  <td>
-                    {% with object.insecure_services as services %}
-                      {% if services %}
-                        <ul style="list-style-type:none; padding: 0">
-                          {% for service in services %}
-                            <li>{% include "badge.html" with icon="exclamation-circle" color="danger" %} {{ service.name }}</li>
-                          {% endfor %}
-                        </ul>
-                      {% elif services is not None %}
-                        No insecure services detected.
+                      {% elif object.auto_upgrades_enabled is False %}
+                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                          Automatic security update disabled!
                       {% else %}
                         N/A
                       {% endif %}
-                    {% endwith %}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Automatic Security Update</th>
-                  <td>
-                    {% if object.auto_upgrades_enabled is True %}
-                      {% include "badge.html" with icon="check" color="success" %}
-                    {% elif object.auto_upgrades_enabled is False %}
-                      {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                        Automatic security update disabled!
+                    </td>
+                  </tr>
+                  <th class="wott-table-label" scope="row">Logins</th>
+                  <td class="wott-inner-table-message ">
+                    {% if object.deviceinfo.logins %}
+                      <pre class="mb-0">{{ object.deviceinfo.beautified_logins }}</pre>
                     {% else %}
-                      N/A
+                      No recent login attempts detected.
                     {% endif %}
                   </td>
-                </tr>
-                <th scope="row">Logins</th>
-                <td>
-                  {% if object.deviceinfo.logins %}
-                    <pre>{{ object.deviceinfo.beautified_logins }}</pre>
-                  {% else %}
-                    No recent login attempts detected.
-                  {% endif %}
-                </td>
-                </tr>
-                <tr>
-                  <th scope="row">
-                    SELinux
-                    <a href="https://wott.io/documentation/faq#what-is-selinux"
-                       target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                  </th>
-                  <td>
-                    {% if object.deviceinfo.selinux_state.enabled and object.deviceinfo.selinux_state.mode == 'enforcing' %}
-                      {% include "badge.html" with icon="check" color="success" %}
-                    {% elif object.deviceinfo.selinux_state.enabled is not None %}
-                      {% include "badge.html" with icon="exclamation-circle" color="warning" %}
-                    {% endif %}
-
-                    {% if object.deviceinfo.selinux_state.enabled %}
-                      {{ object.deviceinfo.selinux_state.mode|default:'Enabled (unknown)' }}
-                    {% elif object.deviceinfo.selinux_state.enabled is False %}
-                    {% else %}
-                      N/A
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">
-                    AppArmor
-                    <a href="https://wott.io/documentation/faq#what-is-apparmor"
-                       target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                  </th>
-                  <td>
-                    {% if object.deviceinfo.app_armor_enabled is None %}N/A{% else %}
-                      {% if object.deviceinfo.app_armor_enabled %}
+                  </tr>
+                  <tr>
+                    <th class="wott-table-label" scope="row">
+                      SELinux
+                      <a href="https://wott.io/documentation/faq#what-is-selinux"
+                        target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                    </th>
+                    <td>
+                      {% if object.deviceinfo.selinux_state.enabled and object.deviceinfo.selinux_state.mode == 'enforcing' %}
                         {% include "badge.html" with icon="check" color="success" %}
-                      {% else %}
+                      {% elif object.deviceinfo.selinux_state.enabled is not None %}
                         {% include "badge.html" with icon="exclamation-circle" color="warning" %}
                       {% endif %}
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">Firewall Rules</th>
-                  <td>
-                    <div id="firewall-rules">
-                      <style>
-                        button.collapser.collapsed:before {
-                          content: 'show';
-                        }
 
-                        button.collapser:before {
-                          content: 'hide';
-                        }
-                      </style>
-                      <div>
-                        <div id="firewall-rules-btn">
-                          <button class="btn btn-link m-0 p-0 collapser collapsed" type="button" data-toggle="collapse"
-                                  data-target="#firewall-rules-collapse" aria-expanded="false"
-                                  aria-controls="firewall-rules-collapse"></button>
-                        </div>
+                      {% if object.deviceinfo.selinux_state.enabled %}
+                        {{ object.deviceinfo.selinux_state.mode|default:'Enabled (unknown)' }}
+                      {% elif object.deviceinfo.selinux_state.enabled is False %}
+                      {% else %}
+                        N/A
+                      {% endif %}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th  class="wott-table-label" scope="row">
+                      AppArmor
+                      <a href="https://wott.io/documentation/faq#what-is-apparmor"
+                        target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                    </th>
+                    <td>
+                      {% if object.deviceinfo.app_armor_enabled is None %}N/A{% else %}
+                        {% if object.deviceinfo.app_armor_enabled %}
+                          {% include "badge.html" with icon="check" color="success" %}
+                        {% else %}
+                          {% include "badge.html" with icon="exclamation-circle" color="warning" %}
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th class="wott-table-label" scope="row">Firewall Rules</th>
+                    <td>
+                      <div id="firewall-rules">
+                        <style>
+                          button.collapser.collapsed:before {
+                            content: 'show';
+                          }
 
-                        <div id="firewall-rules-collapse" class="collapse" aria-labelledby="firewall-rules-btn"
-                             data-parent="#firewall-rules">
-                          <div>
-                            <pre>{{ object.firewallstate.beautified_rules }}</pre>
+                          button.collapser:before {
+                            content: 'hide';
+                          }
+                        </style>
+                        <div>
+                          <div id="firewall-rules-btn">
+                            <button class="btn btn-link m-0 p-0 collapser collapsed" type="button" data-toggle="collapse"
+                                    data-target="#firewall-rules-collapse" aria-expanded="false"
+                                    aria-controls="firewall-rules-collapse"></button>
+                          </div>
+
+                          <div id="firewall-rules-collapse" class="collapse" aria-labelledby="firewall-rules-btn"
+                              data-parent="#firewall-rules">
+                            <div>
+                              <pre>{{ object.firewallstate.beautified_rules }}</pre>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">
-                    Global Policy
-                    <a href="https://wott.io/documentation/faq#what-is-a-global-policy"
-                       target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                  </th>
-                  <td>
-                    <form method="POST" action="">
-                      {% csrf_token %}
-                      <div class="form-group">
-                        {{ global_policy_form.global_policy }}
-                      </div>
-                      <button class="btn btn-success btn-sm" type="submit">Apply</button>
-                    </form>
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">
-                    {% if has_global_policy %}
-                      Open Ports
-                    {% else %}
-                      Firewall Ports Policy
-                      <a href="https://wott.io/documentation/faq#what-is-firewall-policy"
-                         target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                    {% endif %}
-                  </th>
-                  <td>
-                    {% if has_global_policy %}
-                      <table id="firewall-ports-table" class="table table-borderless table-sm">
-                        <thead class="thead-light">
-                        <tr>
-                          <th scope="col">IP</th>
-                          <th scope="col">Address</th>
-                          <th scope="col">Port</th>
-                          <th scope="col">Proto</th>
-                          <th scope="col">Info</th>
-                        </tr>
-                        </thead>
-                        {% for port in portscan.scan_info %}
-                          <tr>
-                            <td>v{{ port.ip_version }}</td>
-                            <td>{{ port.host }}</td>
-                            <td>{{ port.port }}</td>
-                            <td>{{ port.proto|upper }}</td>
-                            <td>
-                              {% with process_info=port|get_process_info_html:portscan %}
-                                {% if process_info %}
-                                  <span class="badge badge-info" data-container="body" data-toggle="popover"
-                                        data-placement="top" data-trigger="hover"
-                                        data-content="{{ process_info }}">Info</span>
-                                {% endif %}
-                              {% endwith %}
-                            </td>
-                          </tr>
-                        {% endfor %}
-                      </table>
-                    {% else %}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th class="wott-table-label" scope="row">
+                      Global Policy
+                      <a href="https://wott.io/documentation/faq#what-is-a-global-policy"
+                        target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                    </th>
+                    <td class="w-60">
                       <form method="POST" action="">
                         {% csrf_token %}
-                        <div class="form-group">
-                          {{ ports_form.policy }}
-                        </div>
-                        <div class="form-group">
-                          {% if ports_choices %}
-                            <div class="table-responsive" id="ports-table">
-                              <table id="firewall-ports-table" class="table table-borderless table-sm">
-                                <thead class="thead-light">
-                                <tr>
-                                  <th scope="col" width="5%" nowrap>
-                                  <input type="checkbox" value="0"  id="ports-check-all">
-                                      <span
-                                      id="ports-table-column-1">{% if firewall.policy == 1 %}
-                                    Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
-                                  <th scope="col">IP</th>
-                                  <th scope="col">Address</th>
-                                  <th scope="col">Port</th>
-                                  <th scope="col">Proto</th>
-                                  <th scope="col">Info</th>
-                                </tr>
-                                </thead>
-                                {% for checkbox in ports_form.open_ports %}
-                                  <tr>
-                                    <td>{{ checkbox.tag }}</td>
-                                    <td>v{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:3 }}</td>
-                                    <td>{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:0 }}</td>
-                                    <td>{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:1 }}</td>
-                                    <td>{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:2 }}</td>
-                                    <td>
-                                      {% with process_info=choices_extra_data|keyvalue:checkbox.data.value|list_index:4 %}
-                                        {% if process_info %}
-                                          <span class="badge badge-info" data-container="body" data-toggle="popover"
-                                                data-placement="top" data-trigger="hover"
-                                                data-content="{{ process_info }}">Info</span>
-                                        {% endif %}
-                                      {% endwith %}
-                                    </td>
-                                  </tr>
-                                {% endfor %}
-                              </table>
-                            </div>
-                          {% endif %}
-                          {{ ports_form.is_ports_form }}
-                          <button class="btn btn-success btn-sm" type="submit">Apply</button>
+                        <div class="wott-form-group d-flex pr-2">
+                          {{ global_policy_form.global_policy }}
+                          <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
                         </div>
                       </form>
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">
-                    Open Connections
-                    <a href="https://wott.io/documentation/faq#what-are-open-connections"
-                       target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                  </th>
-                  <td>
-                    {% if has_global_policy %}
-                      <table class="table table-borderless table-sm">
-                        <thead class="thead-light">
-                        <tr>
-                          <th scope="col">IP</th>
-                          <th scope="col">Rem addr</th>
-                          <th scope="col">Rem port</th>
-                          <th scope="col">Loc addr</th>
-                          <th scope="col">Loc port</th>
-                          <th scope="col">Type</th>
-                          <th scope="col">Status</th>
-                          <th scope="col">PID</th>
-                        </tr>
-                        </thead>
-                        {% for connection in portscan.netstat %}
-                          <tr>
-                            <td>v{{ connection.ip_version }}</td>
-                            <td>{{ connection.remote_address.0 }}</td>
-                            <td>{{ connection.remote_address.1 }}</td>
-                            <td>{{ connection.local_address.0 }}</td>
-                            <td>{{ connection.local_address.1 }}</td>
-                            <td>{{ connection.type|upper }}</td>
-                            <td>{{ connection.status }}</td>
-                            <td>{{ connection.pid|default:'' }}</td>
+                    </td>
+                  </tr>
+                  <tr class="pb-4">
+                    <th class="wott-table-label pb-0" scope="row">
+                      {% if has_global_policy %}
+                        Open Ports
+                      {% else %}
+                        Firewall Ports Policy
+                        <a href="https://wott.io/documentation/faq#what-is-firewall-policy"
+                          target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                      {% endif %}
+                    </th>
+                  </tr>
+                  <tr class="border-top-0 pt-0">
+                    <td class="inner-table mb-4">
+                      {% if has_global_policy %}
+                        <table id="firewall-ports-table" class="wott-table wott-box-shadow">
+                          <thead class="">
+                          <tr class="row">
+                            <th class="col-2" scope="col">IP</th>
+                            <th class="col-3" scope="col">Address</th>
+                            <th class="col-3" scope="col">Port</th>
+                            <th class="col-2" scope="col">Proto</th>
+                            <th class="col-2" scope="col">Info</th>
                           </tr>
-                        {% endfor %}
-                      </table>
-                    {% else %}
-                      {% if connections_choices %}
+                          </thead>
+                          {% for port in portscan.scan_info %}
+                            <tr>
+                              <td class="col-2">v{{ port.ip_version }}</td>
+                              <td class="col-3">{{ port.host }}</td>
+                              <td class="col-3">{{ port.port }}</td>
+                              <td class="col-2">{{ port.proto|upper }}</td>
+                              <td class="col-2">
+                                {% with process_info=port|get_process_info_html:portscan %}
+                                  {% if process_info %}
+                                    <span class="badge badge-info" data-container="body" data-toggle="popover"
+                                          data-placement="top" data-trigger="hover"
+                                          data-content="{{ process_info }}">Info</span>
+                                  {% endif %}
+                                {% endwith %}
+                              </td>
+                            </tr>
+                          {% endfor %}
+                        </table>
+                      {% else %}
                         <form method="POST" action="">
                           {% csrf_token %}
                           <div class="form-group">
-                            <div class="table-responsive">
-                              <table class="table table-borderless table-sm" id="connections-table">
-                                <thead class="thead-light">
-                                <tr>
-                                  <th scope="col" width="5%" nowrap>
-                                      <input type="checkbox" value="0"  id="connections-check-all">
-                                      Blocked</th>
-                                  <th scope="col">IP</th>
-                                  <th scope="col">Rem addr</th>
-                                  <th scope="col">Rem port</th>
-                                  <th scope="col">Loc addr</th>
-                                  <th scope="col">Loc port</th>
-                                  <th scope="col">Type</th>
-                                  <th scope="col">Status</th>
-                                  <th scope="col">PID</th>
-                                </tr>
-                                </thead>
-                                {% for checkbox in connections_form.open_connections %}
-                                  <tr>
-                                    <td>{{ checkbox.tag }}</td>
-                                    <td>v{{ checkbox.choice_label|split_index:"/,4" }}</td>
-                                    <td>{{ checkbox.choice_label|split_index:"/,0" }}</td>
-                                    <td>{{ checkbox.choice_label|split_index:"/,1" }}</td>
-                                    <td>{{ checkbox.choice_label|split_index:"/,2" }}</td>
-                                    <td>{{ checkbox.choice_label|split_index:"/,3" }}</td>
-                                    <td>{{ checkbox.choice_label|split_index:"/,5" }}</td>
-                                    <td>{{ checkbox.choice_label|split_index:"/,6" }}</td>
-                                    <td>{{ checkbox.choice_label|split_index:"/,7" }}</td>
-                                  </tr>
-                                {% endfor %}
-                              </table>
-                            </div>
-                            {{ connections_form.is_connections_form }}
-                            <button class="btn btn-success btn-sm" type="submit">Apply</button>
+                            {{ ports_form.policy }}
+                          </div>
+                          <div class="form-group">
+                            {% if ports_choices is Null %}
+                              <div class="table-responsive" id="ports-table">
+                                <table id="firewall-ports-table" class="wott-table wott-box-shadow">
+                                  <thead>
+                                    <tr class="inner-table mb-4 row">
+                                      <th class="col-2" scope="col" nowrap>
+                                      <input type="checkbox" value="0"  id="ports-check-all">
+                                          <span class="pl-1"
+                                          id="ports-table-column-1">{% if firewall.policy == 1 %}
+                                        Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
+                                      <th class="col-2" scope="col">IP</th>
+                                      <th class="col-3" scope="col">Address</th>
+                                      <th class="col-2" scope="col">Port</th>
+                                      <th class="col-2" scope="col">Proto</th>
+                                      <th class="col-1" scope="col">Info</th>
+                                    </tr>
+                                  </thead>
+                                  {% for checkbox in ports_form.open_ports %}
+                                    <tr>
+                                      <td class="col-2">{{ checkbox.tag }}</td>
+                                      <td class="col-2">v{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:3 }}</td>
+                                      <td class="col-3">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:0 }}</td>
+                                      <td class="col-2">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:1 }}</td>
+                                      <td class="col-2">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:2 }}</td>
+                                      <td class="col-1">
+                                        {% with process_info=choices_extra_data|keyvalue:checkbox.data.value|list_index:4 %}
+                                          {% if process_info %}
+                                            <span class="badge badge-info" data-container="body" data-toggle="popover"
+                                                  data-placement="top" data-trigger="hover"
+                                                  data-content="{{ process_info }}">Info</span>
+                                          {% endif %}
+                                        {% endwith %}
+                                      </td>
+                                    </tr>
+                                  {% endfor %}
+                                </table>
+                              </div>
+                            {% endif %}
+                            {{ ports_form.is_ports_form }}
+                            <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
                           </div>
                         </form>
                       {% endif %}
-                    {% endif %}
-                  </td>
-                </tr>
-                {% if not has_global_policy %}
-                  <tr>
-                    <th>
-                      <a href="{% url 'save_as_policy' object.pk %}" class="btn btn-info" role="button">Save
-                        ports/connections rules as global policy</a>
-                    </th>
-                    <td></td>
+                    </td>
                   </tr>
-                {% endif %}
-                <tr>
-                  <th scope="row">
-                    Download Node Certificate
-                    <a href="https://wott.io/documentation/faq#what-is-a-device-certificate"
-                       target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                  </th>
-                  <td>
-                    {% if object.certificate %}
-                      <a href="{% url 'download_device_cert' object.device_id %}">{{ object.device_id }}.crt</a>
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">
-                    Certificate
-                    {% if object.certificate and object.certificate_expired %}Expired{% else %}Expires{% endif %}
-                  </th>
-                  <td>
-                    {% if object.certificate %}
-                      {% if object.certificate_expired %}
-                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                        On {{ object.certificate_expires|date:"Y-m-d" }}
+                  <tr class="pb-4">
+                    <th class="wott-table-label pb-0" scope="row">
+                      Open Connections
+                      <a href="https://wott.io/documentation/faq#what-are-open-connections"
+                        target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                    </th>
+                  </tr>
+                  <tr class="border-top-0 pt-0">
+                    <td class="inner-table mb-4">
+                      {% if has_global_policy %}
+                        <table class="wott-table wott-box-shadow">
+                          <thead class="">
+                          <tr class="row">
+                            <th class="col-1" scope="col">IP</th>
+                            <th class="col-2" scope="col">Rem addr</th>
+                            <th class="col-1 px-0" scope="col">Rem port</th>
+                            <th class="col-2 pl-4" scope="col">Loc addr</th>
+                            <th class="col-2" scope="col">Loc port</th>
+                            <th class="col-1" scope="col">Type</th>
+                            <th class="col-2" scope="col">Status</th>
+                            <th class="col-1" scope="col">PID</th>
+                          </tr>
+                          </thead>
+                          {% for connection in portscan.netstat %}
+                            <tr class="row">
+                              <td class="col-1">v{{ connection.ip_version }}</td>
+                              <td class="col-2">{{ connection.remote_address.0 }}</td>
+                              <td class="col-1 px-0">{{ connection.remote_address.1 }}</td>
+                              <td class="col-2 pl-4">{{ connection.local_address.0 }}</td>
+                              <td class="col-2">{{ connection.local_address.1 }}</td>
+                              <td class="col-1">{{ connection.type|upper }}</td>
+                              <td class="col-2">{{ connection.status }}</td>
+                              <td class="col-1">{{ connection.pid|default:'' }}</td>
+                            </tr>
+                          {% endfor %}
+                        </table>
                       {% else %}
-                        In {{ object.certificate_expires|timeuntil }}
+                        {% if connections_choices %}
+                          <form method="POST" action="">
+                            {% csrf_token %}
+                            <div class="form-group">
+                              <div class="inner-table mb-4 pl-0">
+                                <table class="wott-table wott-box-shadow" id="connections-table">
+                                  <thead class="">
+                                  <tr>
+                                    <th class="col-2" scope="col" width="5%" nowrap>
+                                      <input type="checkbox" value="0"  id="connections-check-all">
+                                      Blocked
+                                    </th>
+                                    <th class="col-1" scope="col">IP</th>
+                                    <th class="col-1" scope="col">Rem addr</th>
+                                    <th class="col-1" scope="col">Rem port</th>
+                                    <th class="col-2" scope="col">Loc addr</th>
+                                    <th class="col-1" scope="col">Loc port</th>
+                                    <th class="col-1" scope="col">Type</th>
+                                    <th class="col-2" scope="col">Status</th>
+                                    <th class="col-1" scope="col">PID</th>
+                                  </tr>
+                                  </thead>
+                                  {% for checkbox in connections_form.open_connections %}
+                                    <tr>
+                                      <td class="col-2">{{ checkbox.tag }}</td>
+                                      <td class="col-1">v{{ checkbox.choice_label|split_index:"/,4" }}</td>
+                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,0" }}</td>
+                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,1" }}</td>
+                                      <td class="col-2">{{ checkbox.choice_label|split_index:"/,2" }}</td>
+                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,3" }}</td>
+                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,5" }}</td>
+                                      <td class="col-2">{{ checkbox.choice_label|split_index:"/,6" }}</td>
+                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,7" }}</td>
+                                    </tr>
+                                  {% endfor %}
+                                </table>
+                              </div>
+                              {{ connections_form.is_connections_form }}
+                              <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
+                            </div>
+                          </form>
+                        {% endif %}
                       {% endif %}
-                    {% endif %}
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                  {% if not has_global_policy %}
+                    <tr>
+                      <th class="wott-table-label">
+                        <a href="{% url 'save_as_policy' object.pk %}" class="btn btn-info" role="button">Save
+                          ports/connections rules as global policy</a>
+                      </th>
+                      <td></td>
+                    </tr>
+                  {% endif %}
+                  <tr>
+                    <th class="wott-table-label" scope="row">
+                      Download Node Certificate
+                      <a href="https://wott.io/documentation/faq#what-is-a-device-certificate"
+                        target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                    </th>
+                    <td>
+                      {% if object.certificate %}
+                        <a href="{% url 'download_device_cert' object.device_id %}">{{ object.device_id }}.crt</a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th  class="wott-table-label" scope="row">
+                      Certificate
+                      {% if object.certificate and object.certificate_expired %}Expired{% else %}Expires{% endif %}
+                    </th>
+                    <td>
+                      {% if object.certificate %}
+                        {% if object.certificate_expired %}
+                          {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                          On {{ object.certificate_expires|date:"Y-m-d" }}
+                        {% else %}
+                          In {{ object.certificate_expires|timeuntil }}
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -486,6 +513,94 @@
       </div>
     </div>
   </div>
+  <style>
+      .node-profile-security .wott-table tr {
+      font-size: 1rem!important;
+      display: -webkit-box!important;
+      display: flex!important;
+      -webkit-box-align: center!important;
+      align-items: center!important;
+      border-top: 1px solid hsla(0,0%,84.7%,.5);
+   }
+
+   .node-profile-security a {
+     color: #2460c8;
+   }
+   
+
+   .node-profile-security .wott-table-label  {
+     width: 40% !important;
+   } 
+
+   .inner-table {
+    width: 100%;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    border-radius: 8px;
+   }
+
+   .inner-table .wott-table {
+     width: 100%;
+   }
+
+   .inner-table td {
+      font-size: .85rem;
+   }
+
+   .inner-table th {
+      font-size: .8rem;
+   }
+
+   .inner-table th:first-child {
+      padding-left: 15px !important;
+   }
+
+   .wott-inner-table-message {
+    width: auto;
+    padding: .8rem 4.5rem !important;
+    display: inline-block;
+    background-color: #e9edf7; 
+    border: none;
+    border-radius: 8px;
+    font-size: .9rem;
+    text-transform: uppercase;
+    color: #2460c8;
+    font-weight: 700;
+  }
+
+   @media screen and (max-width: 1200px) {
+    .inner-table td{
+      font-size: .68rem;
+    }
+   }
+
+   .w-60 {
+     width: 60%;
+   }
+
+   #id_global_policy {
+    width: 80%;
+    margin-right: 5%;
+    padding-left: 3%;
+   }
+
+   .btn-link {
+     color: #2460c8 !important;
+   }
+
+   .fa-question-circle {
+    color: #7F8899 !important;
+   }
+
+   .fa-exclamation-circle {
+    color: #EF2F20 !important;
+   }
+
+   .badge-info {
+     background-color: #2460c8 !important;
+   }
+  
+  </style>
 {% endblock admin_content %}
 
 {% block scripts %}

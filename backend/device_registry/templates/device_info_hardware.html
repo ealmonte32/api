@@ -9,27 +9,27 @@
 
 {% block admin_content %}
   {% include 'device_info_top_block.html' %}
-  <div class="row">
+  <div class="row node-profile-hardware">
     <div class="col-12">
-      <div class="tab">
+      <div class="tab wott-box-shadow">
         {% include 'device_info_tabs.html' with active="hardware" %}
-        <div class="tab-content">
+        <div class="wott-table-content">
           <div class="tab-pane active" id="hardware" role="tabpanel">
-            <h4 class="tab-title">Hardware</h4>
-            <table class="table table-striped table-responsive-xs">
+            <table class="wott-table px-0">
               <tbody>
-              <tr>
-                <th scope="row">Manufacturer</th>
-                <td>{{ object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Model</th>
-                <td>{{ object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Architecture</th>
-                <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A'|upper }}</td>
-              </tr>
+              <h4 class="wott-table-title wott-table-py">Hardware</h4>
+                <tr>
+                  <td class="wott-table-label" scope="row">Manufacturer</td>
+                  <td>{{ object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <td class="wott-table-label" scope="row">Model</td>
+                  <td>{{ object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <td class="wott-table-label" scope="row">Architecture</td>
+                  <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A'|upper }}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -37,5 +37,22 @@
       </div>
     </div>
   </div>
+
+  <style>
+    .node-profile-hardware .wott-table tr {
+      font-size: 1rem!important;
+      display: -webkit-box!important;
+      display: flex!important;
+      -webkit-box-align: center!important;
+      align-items: center!important;
+      border-top: 1px solid hsla(0,0%,84.7%,.5)!important;
+   }
+
+   .node-profile-hardware .wott-table-label  {
+     width: 40% !important;
+   } 
+
+  
+  </style>
 {% endblock admin_content %}
 

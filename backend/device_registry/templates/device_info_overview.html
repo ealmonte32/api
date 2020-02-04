@@ -16,12 +16,12 @@
     <div class="col-12">
       <div class="tab wott-box-shadow">
         {% include 'device_info_tabs.html' with active="overview" %}
-        <div class="wott-table-content ">
+        <div class="wott-table-conten">
           <div class="tab-pane active" id="overview" role="tabpanel">
             <form method="POST" action="">
               <table class="wott-table px-0">
                 <tbody>
-                <div class="d-flex justify-content-between align-items-center wott-table-py">
+                <div class="d-flex justify-content-between align-items-center wott-table-py bg-white">
                   <h4 class="d-inline-flex wott-table-title">Overview</h4>
                   <div class="wott-form-group d-flex wott-table-pr">
                     {% csrf_token %}

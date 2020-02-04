@@ -9,35 +9,35 @@
 
 {% block admin_content %}
   {% include 'device_info_top_block.html' %}
-  <div class="row">
+  <div class="row node-profile-network">
     <div class="col-12">
-      <div class="tab">
+      <div class="tab wott-box-shadow">
         {% include 'device_info_tabs.html' with active="network" %}
-        <div class="tab-content">
+        <div class="wott-table-content">
           <div class="tab-pane active" id="network" role="tabpanel">
-            <h4 class="tab-title">Network</h4>
-            <table class="table table-striped table-responsive-xs">
+            <h4 class="wott-table-title wott-table-py">Network</h4>
+            <table class="wott-table px-0">
               <tbody>
               <tr>
-                <th scope="row">
+                <td class="wott-table-label" scope="row">
                     Node ID
                     <a href="https://wott.io/documentation/faq#what-is-devicenode-id" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                </th>
+                </td>
                 <td>{{ object.device_id|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
-                <th scope="row">
+                <td class="wott-table-label" scope="row">
                     FQDN
                     <a href="https://wott.io/documentation/faq#whats-an-fqdn" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                </th>
+                </td>
                 <td>{{ object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
-                <th scope="row">IP</th>
+                <td class="wott-table-label" scope="row">IP</td>
                 <td>{{ object.deviceinfo.ipv4_address|default_if_none:'N/A' }}</td>
               </tr>
               <tr>
-                <th scope="row">Last Heartbeat</th>
+                <td class="wott-table-label" scope="row">Last Heartbeat</td>
                 <td>{{ object.last_ping|timesince }} ago</td>
               </tr>
               </tbody>
@@ -47,4 +47,27 @@
       </div>
     </div>
   </div>
+  <style>
+    .node-profile-network .wott-table tr {
+      font-size: 1rem!important;
+      display: -webkit-box!important;
+      display: flex!important;
+      -webkit-box-align: center!important;
+      align-items: center!important;
+      border-top: 1px solid hsla(0,0%,84.7%,.5)!important;
+   }
+
+   .node-profile-network .wott-table-label  {
+     width: 40% !important;
+   } 
+  
+   .fa-question-circle {
+    color: #7F8899 !important;
+   }
+
+   .fa-exclamation-circle {
+    color: #EF2F20 !important;
+   }
+
+  </style>
 {% endblock admin_content %}
