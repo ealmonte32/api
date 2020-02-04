@@ -84,6 +84,10 @@ class GlobalPolicyForm(forms.ModelForm):
         model = GlobalPolicy
         fields = ['name', 'policy', 'ports']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['policy'].widget.attrs['class'] = 'custom-select'
+
     def clean_ports(self):
         data = self.cleaned_data['ports']
         if data:

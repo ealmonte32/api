@@ -9,8 +9,9 @@
 
 {% block admin_content %}
   <!-- cve.html -->
-  <div class="overlay"></div>
   <div class="cve-tab">
+    <div class="overlay"></div>
+
     <section class="top-section background-blue">
 
       <div class="left-container wott-rounded-lg wott-box-shadow">
@@ -53,15 +54,15 @@
           {% else %}
             <circle class="donut-ring" cx="21" cy="21" r={{ radius }} fill="transparent" stroke="#d2d3d4" stroke-width="3"></circle>
           {% endif %}
-            <g class="chart-text">
-              <text id="cve-priority" x="50%" y="50%" class="chart-number">
+            <g class="circle-text">
+              <text id="cve-priority" x="50%" y="50%" class="circle-number">
               </text>
-              <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
+              <text id="severity-inner-text" x="50%" y="50%" class="circle-label">
               </text>
-              <text x="50%" y="50%" class="chart-label2">
+              <text x="50%" y="50%" class="circle-label2">
                 priority
               </text>
-              <text x="50%" y="50%" class="chart-label3">
+              <text x="50%" y="50%" class="circle-label3">
                 cve
               </text>
             </g>
@@ -138,19 +139,21 @@
             </tbody>
           </table>
     </section>
+
+    <div class="popover-box"> <!--use wott-scroll-y for nodelist and wott-scroll-x for instructions-->
+      <div class="wott-popover-header">
+        <div class="wott-popover-header-box">
+          <h1 class="mb-0" id="wott-popover-title">TEXT GO HERE</h1>
+          <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
+        </div>
+        <hr class="popover-title-line">
+      </div>
+      <div class="wott-popover-body"><!--nodeList include w-100 | instructions include w-auto-->
+      </div>
+    </div>
+
   </div>
 
-  <div class="popover-box"> <!--use wott-scroll-y for nodelist and wott-scroll-x for instructions-->
-    <div class="wott-popover-header"> 
-      <div class="wott-popover-header-box">
-        <h1 class="mb-0" id="wott-popover-title">TEXT GO HERE</h1>
-        <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
-      </div>
-      <hr class="popover-title-line">
-    </div>
-    <div class="wott-popover-body"><!--nodeList include w-100 | instructions include w-auto-->
-    </div>
-  </div>
 {% endblock admin_content %}
 
 {% block scripts %}

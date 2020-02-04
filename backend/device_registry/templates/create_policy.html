@@ -9,25 +9,32 @@
 {% endblock dashboard_title %}
 
 {% block admin_content %}
+<div id="create-policie-tab">
   <div class="row">
     <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h5 class="card-title">{{ object }}</h5>
-        </div>
-        <div class="card-body">
-          <form method="POST" action="" id="policy-form">
+      <div class="wott-card wott-box-shadow">
+        <div class="wott-card-body">
+          <form method="POST" action="" id="policy-form" class="py-3 px-4">
             {% csrf_token %}
-            {% bootstrap_form form  %}
+            {% include "form_field.html" with field=form.name %}
+            {% include "form_field.html" with field=form.policy %}
+            {% include "form_field.html" with field=form.ports form_group_class="mb-4" %}
+            <div class="separator"></div>
+            <hr class="my-4 hr-create-policy">
             {% buttons %}
-              <button type="submit" class="btn btn-primary">Save</button>
-              <a href="{% url 'global_policies' %}" class="btn btn-secondary" role="button" style="float: right;">Cancel</a>
+            <div class="form-group mb-0">
+              <div class="d-flex justify-content-between">
+                <a href="{% url 'global_policies' %}" class="btn wott-btn-medium btn-wott-tertiary mr-2" role="button">Cancel</a>
+                <button type="submit" class="btn wott-btn-medium btn-wott-primary">Save</button>
+              </div>
+            </div>
             {% endbuttons %}
           </form>
         </div>
       </div>
     </div>
   </div>
+</div>
 {% endblock admin_content %}
 
 {% block scripts %}

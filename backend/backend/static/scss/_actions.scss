@@ -1,0 +1,292 @@
+#actions-tab {
+
+  .wott-node {
+    color: #2460c8;
+    font-weight: 800;
+    font-size: .8rem;
+  }
+
+  .wott-inner-open-box {
+    padding-bottom: 1.5rem;
+  }
+
+  .terminal-box {
+    background-color: #263E67;
+    color: white;
+    border-radius: 8px;
+  }
+
+  .terminal-instructions {
+    padding: 0rem 1.5rem;
+  }
+
+  .terminal-header {
+    background-color: #1A2F53;
+  }
+
+  .terminal-header {
+    h5 {
+      color: white;
+      padding: .6rem 2.3rem
+    }
+  }
+
+  .terminal-body {
+    padding: 1.2rem 1rem 1.5rem;
+  }
+
+  .line-box {
+    background-color: #E9EDF8;
+    margin: 2rem 5.5rem;
+    padding: 1rem 2rem;
+    font-size: .8rem;
+    color: #2460C8;
+  }
+
+  .nav-open-box {
+    color: black;
+    padding: .7rem 1.5rem;
+    background-color: #E9EDF8;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    font-size: .6rem;
+    font-weight: 800;
+  }
+
+  .nav-open-box2 {
+    color: #2460C8;
+    padding: .7rem 1.5rem;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    font-size: .6rem;
+    font-weight: 800;
+  }
+
+  .line-box a {
+    font-size: .8rem;
+    text-transform: uppercase;
+    color: #2460c8;
+    font-weight: 800;
+  }
+
+  .open-box-header {
+    margin-bottom: 2rem;
+  }
+
+  .wott-open-box {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+
+  }
+
+  .wott-btn-header {
+    padding: .7rem .6rem;
+    background-color: #DDE4F9;
+    width: 160px;
+    border-radius: 9px;
+    font-size: .8rem;
+    color: #2460C8;
+    margin: 6px 10px;
+    font-weight: 800;
+  }
+
+  .open-box-header-text {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .open-box-tab {
+    background-color: #E9EDF8;
+    margin: 0 5.5rem;
+    padding: 1.5rem;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+
+  .wott-rect-badge-danger,
+  .wott-rect-badge-warning,
+  .wott-rect-badge-secondary {
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 10px 10px;
+    font-family: Muli;
+    font-size: .75rem;
+    font-weight: 700;
+    height: 17px;
+    border-radius: 4px;
+  }
+
+  .wott-rect-badge-danger {
+    background-color: #EF2F20;
+  }
+
+  .wott-rect-badge-warning {
+    background-color: #EF8F20;
+  }
+
+  .wott-rect-badge-secondary {
+    background-color: #23BED6;
+  }
+
+  .round {
+    label {
+      left: 0;
+      top: -6px;
+      margin-right: 1rem;
+      margin-bottom: 0px;
+      background-color: #EBF0FE;
+      border: 4px solid #EBF0FE;
+      border-radius: 50%;
+      cursor: pointer;
+      height: 33px;
+      position: absolute;
+      width: 33px;
+      @include mQ(1200px) {
+        top: 0px;
+        width: 33px;
+      }
+    }
+  }
+
+  /*
+  There .round classes below come from _dashboard.css. They should be merged with the one above.
+   */
+
+  .round {
+    position: relative;
+    height: 0;
+  }
+
+  .round label:after {
+    border: 2.5px solid #fff;
+    border-top: none;
+    border-right: none;
+    content: "";
+    height: 8px;
+    left: 5px;
+    opacity: 0;
+    position: absolute;
+    top: 7px;
+    transform: rotate(-45deg);
+    width: 15px;
+  }
+
+  .round input {
+    visibility: hidden;
+  }
+
+  .round input:checked + label {
+    background-color: #2460C8;
+    border-color: #EBF0FE;
+  }
+
+  .round input:checked + label:after {
+    opacity: 1;
+  }
+
+  .wott-closed-box {
+    width: 100%;
+    background-color: white;
+    border-radius: 8px;
+    margin-top: 2vh;
+  }
+
+  .wott-closed-box:first-child {
+    margin-top: 0;
+  }
+
+  .alert-instruction {
+    color: #9298A5;
+    font-size: 1rem;
+    @include mQ(1200px) {
+      font-size: .8rem;
+    }
+  }
+
+  .alert-title {
+    padding-right: 1rem;
+    margin-bottom: 0;
+    padding-bottom: 7px;
+    font-size: 1.2rem;
+    @include mQ(1200px) {
+      font-size: 1rem;
+    }
+  }
+
+  .open-box-header {
+    padding-left: 5.5rem;
+    background-color: #E9EDF8;
+  }
+
+  .terminal-instructions {
+    display: block;
+  }
+
+  .wott-closed-box {
+    .round {
+      height: auto;
+    }
+  }
+
+  .alert-box-text {
+    width: 100%;
+    padding-top: .6rem;
+  }
+
+  .wott-btn-dropdown {
+    padding: .6rem .8rem;
+    background-color: #e9edf8;
+    width: 150px;
+    border-radius: 9px;
+    font-size: .8rem;
+    color: #2460c8;
+    font-weight: 800;
+  }
+
+  .wott-alert-btn-group button {
+    border: 0px;
+  }
+
+  .btn-img-text {
+    font-size: .8rem;
+    color: #2460c8;
+    margin-top: .3rem;
+    font-weight: 800;
+  }
+
+  .btn-group-box {
+    margin: auto;
+  }
+
+  .recommendation-left-box {
+    width: 70%;
+    display: flex;
+    align-items: center;
+    padding: 2.5rem 1.8rem;
+    border-right: 1px solid rgb(216,216,216, 0.5);
+  }
+
+  .actions-safe {
+    padding: 0rem 5.5rem;
+    font-size: .9rem;
+  }
+
+  .inner-open-box {
+    margin: 0 5.5rem;
+    padding: .4rem 1rem 0rem;
+    background-color: #D9DEEE;
+  }
+
+  .wott-alert-btn-group button:active {
+    border: none;
+    outline: none;
+    background-color: #dde3f3;
+  }
+
+  .wott-alert-btn-group button:focus {
+    border: none;
+    background-color: #dde3f3;
+    outline: none;
+  }
+}

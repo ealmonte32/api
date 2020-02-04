@@ -1,6 +1,6 @@
 // Fonts
 @import url('https://fonts.googleapis.com/css?family=Open+Sans');
-@import url('https://fonts.googleapis.com/css?family=Muli:300,400,500,600,800,900&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Muli:300,400,500,600,700,800,900&display=swap');
 
 // Theme variables
 @import "variables";
@@ -52,6 +52,7 @@
 
 // Theme components
 @import "accordion";
+@import "actions";
 @import "alert";
 @import "avatar";
 @import "badge";
@@ -59,6 +60,7 @@
 @import "card";
 @import "chart";
 @import "cve";
+@import "dashboard";
 @import "dropdown";
 @import "feather";
 @import "footer";
@@ -67,7 +69,9 @@
 @import "login";
 @import "label";
 @import "modal";
+@import "nodes";
 @import "navbar";
+@import "policies";
 @import "profile";
 @import "reboot";
 @import "progress";
@@ -79,6 +83,7 @@
 @import "timeline";
 @import "type";
 @import "wrapper";
+@import "wott-components";
 @import "content";
 @import "main";
 @import "ie";

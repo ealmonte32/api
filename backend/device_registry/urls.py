@@ -55,11 +55,8 @@ if settings.IS_MTLS_API:
 # Front-end
 if settings.IS_DASH or settings.IS_CELERY:
     urlpatterns += [
-        path('',
-             views.RootView.as_view(),
-             name='root'),
-        path('', views.RootView.as_view(), name='nodes'),
-        path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
+        path('', views.DashboardView.as_view(), name='dashboard'),
+        path('nodes/', views.RootView.as_view(), name='root'),
         path('policies/', views.GlobalPoliciesListView.as_view(), name='global_policies'),
         path('policies/add/', views.GlobalPolicyCreateView.as_view(), name='create_global_policy'),
         path('policies/<int:pk>/', views.GlobalPolicyEditView.as_view(), name='edit_global_policy'),

@@ -36,3 +36,27 @@
 .wott-badge-text {
   display: inline-block;
 }
+
+.rect-badge-high, .rect-badge-medium, .rect-badge-low {
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 10px 10px;
+  font-family: Muli;
+  font-size: .75rem;
+  font-weight: 700;
+  height: 17px;
+  border-radius: 4px;
+}
+
+.rect-badge-high {
+  background-color: #EF2F20;
+}
+
+.rect-badge-medium {
+  background-color: #EF8F20;
+}
+
+.rect-badge-low {
+  background-color: #23BED6;
+}

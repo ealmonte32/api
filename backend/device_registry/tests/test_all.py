@@ -1052,13 +1052,9 @@ class GlobalPolicyEditViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
-                                      'name="name" value="gp1" maxlength="32" class="form-control" placeholder="Name" '
-                                      'title="" required id="id_name"></div>')
+        self.assertContains(response, '<input type="text" name="name" value="gp1"')
         self.assertContains(response, '<option value="1" selected>Allow by default</option>')
-        self.assertContains(response, '<div class="form-group"><label for="id_ports">Ports</label><textarea '
-                                      'name="ports" cols="40" rows="10" class="form-control" placeholder="Ports" '
-                                      'title="" id="id_ports">\n[]</textarea></div>')
+        self.assertContains(response, '[]</textarea>')
 
     def test_post(self):
         self.client.login(username='test', password='123')
@@ -1067,9 +1063,7 @@ class GlobalPolicyEditViewTests(TestCase):
         self.assertRedirects(response, '/policies/')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
-                                      'name="name" value="My policy" maxlength="32" class="form-control" '
-                                      'placeholder="Name" title="" required id="id_name"></div>')
+        self.assertContains(response, '<input type="text" name="name" value="My policy"')
         self.assertContains(response, '<option value="2" selected>Block by default</option>')
 
     def test_post_non_unique_name(self):
@@ -1109,9 +1103,7 @@ class GlobalPolicyCreateViewTests(TestCase):
         gp = GlobalPolicy.objects.all()[0]
         response = self.client.get(reverse('edit_global_policy', kwargs={'pk': gp.pk}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
-                                      'name="name" value="My policy" maxlength="32" class="form-control" '
-                                      'placeholder="Name" title="" required id="id_name"></div>')
+        self.assertContains(response, '<input type="text" name="name" value="My policy"')
         self.assertContains(response, '<option value="2" selected>Block by default</option>')
 
     def test_post_non_unique_name(self):
@@ -1140,7 +1132,7 @@ class GlobalPoliciesListViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<h5 class="card-title">Policies</h5>')
+        self.assertContains(response, '<th class="col-3">Firewall Ports Policy</th>')
 
 
 class GlobalPolicyFormTests(TestCase):

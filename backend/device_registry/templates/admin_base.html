@@ -2,6 +2,7 @@
 {% load static %}
 {% load highlight_selector %}
 {% load misc %}
+{% load static %}
 
 {% block css %}
 {% endblock %}
@@ -25,9 +26,9 @@
 
         {% with url_name=request.resolver_match.url_name %}
           <ul class="sidebar-nav">
-            {% include "sidebar_item.html" with url='root' id='sidebar-root' label="Dashboard" image='/media/dashboard.png' image_selected='/media/dashboard-selected.png' %}
+            {% include "sidebar_item.html" with url='dashboard' id='sidebar-root' label="Dashboard" image='/media/dashboard.png' image_selected='/media/dashboard-selected.png' %}
             {% include "sidebar_item.html" with url='cve' id='sidebar-cve' label="CVE" image='/media/cve.png' image_selected='/media/cve-selected.png' %}
-            {% include "sidebar_item.html" with url='nodes' id='sidebar-nodes' label="Nodes" image='/media/nodes.png' image_selected='/media/nodes-selected.png' %}
+            {% include "sidebar_item.html" with url='root' id='sidebar-nodes' label="Nodes" image='/media/nodes.png' image_selected='/media/nodes-selected.png' %}
             {% include "sidebar_item.html" with url='claim-device' id='sidebar-claim-device' label="Claim Node" image='/media/add-node.png' image_selected='/media/add-node-selected.png' %}
             {% include "sidebar_item.html" with url='actions' id='sidebar-recommended-actions' label="Recommended Actions" image='/media/verified.png' image_selected='/media/verified-selected.png' badge=user.profile.actions_count %}
             {% include "sidebar_item.html" with url='global_policies' id='sidebar-policies' label="Global Policies" image='/media/policies.png' image_selected='/media/policies-selected.png' %}
@@ -105,17 +106,122 @@
     </div>
   </div>
 
+  <div class="wott-rounded-lg wott-modal-container" tabindex="-1" role="dialog" id="wott-instruction-modal">
+    <div class="w-100" role="document">
+      <div class="modal-content">
+        <div class="wott-modal-header wott-modal-header-box">
+          <h2 class="wott-modal-title" id="modal-title-h2">Add new node</h2>
+          <button type="button" class="wott-img-btn" data-dismiss="modal" aria-label="Close">
+            <img src="{% static '/media/close-icon.png' %}" alt="">
+          </button>
+        </div>
+        <div class="wott-modal-body">
+          <h4 class="wott-modal-instructions" id="modal-title"></h4>
+          <p id="modal-msg" class="w-100 mb-0 position-relative"></p>
+          <div class="wott-modal-alert-box" role="alert" id="modal-alert">
+            <span class="wott-modal-alert">Server error</span>
+          </div>
+        </div>
+        <div class="wott-modal-footer mt-0">
+          <span>
+            <a href="https://github.com/WoTTsecurity/agent#supported-operating-systems" target="_blank">
+                Supported operating systems
+            </a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="bash_block">   
+    <h1 class="wott-bash-title">Terminal</h1>
+    <pre class="mb-0">
+      <code class="bash"><!-- text --></code>
+    </pre>
+    <button type="button" class="btn wott-btn-inside-bash" aria-label="Left Align" btn_id="bash">
+      <span class="wott-left-title-btn">Copy to clipboard</span>
+      <span class="fas fa-copy" aria-hidden="true" data-toggle="popover"
+            data-placement="top" title="Copy to clipboard."></span>
+    </button>
+    <textarea hidden id="bash-clipboard"><!-- copy --></textarea>
+  </template>
 {% endblock %}
 
 {% block scripts %}
   {{ block.super }}
   <script src="{% static '/js/csrf.js' %}"></script>
   <script type="text/javascript">
-      $(() => {
-          feather.replace();
-          $('#action-solved-var').width("{% widthratio user.profile.actions_resolved_since_monday 5 100 %}%");
-          $('#trust-graph-var').width("{% widthratio user.profile.average_trust_score 1 100 %}%");
+    $(() => {
+        feather.replace();
+        $('#action-solved-var').width("{% widthratio user.profile.actions_resolved_since_monday 5 100 %}%");
+        $('#trust-graph-var').width("{% widthratio user.profile.average_trust_score 1 100 %}%");
+    });
+
+    $('#admin-inst-btn,#inst-btn').on('click', show_install_msg );
+    function show_install_msg() {
+      $.ajax({
+        url: '/ajax-pairing-keys/add_dev/',
+        type: "POST",
+        data: JSON.stringify({}),
+        contentType: 'application/json',
+      }).done(function (e) {
+        console.log('success');
+        let title = "To add a node, simply SSH in and run the following commands:";
+        let msg = bash_block(
+                 `$ export CLAIM_TOKEN="${e.key}"\n`
+               + `$ curl -sL https://install.wott.io | sudo -E bash`);
+
+        show_dialog(title, msg);
+        document.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightBlock(block);
+        });
+        $("button[btn_id='bash']").on("click", copy_bash);
+      }).fail(function (e) {
+        console.log('error');
+        console.log(e.status, e.responseText);
+        show_dialog('Error', e.status, e.responseText);
+      })
+    }
+
+    /***
+     *  setup dialog parameters and toggle on.
+     *  @param title - dialog title
+     *  @param message - dialog message
+     *  @param errors - the errors string to display, if is not null.
+     */
+    function show_dialog(title, message, errors=null, h2_title='Add new node' )
+    {
+        $('#modal-title-h2')[0].innerText = h2_title;
+        $('#modal-title')[0].innerText = title;
+        $('#modal-msg')[0].innerHTML = message;
+        if(errors == null)
+          $('#modal-alert')[0].style.display = 'none';
+        else
+        {
+          $('#modal-alert')[0].style.display = 'block';
+          $('#modal-alert')[0].innerText = errors;
+        }
+        $('#wott-instruction-modal').modal('toggle');
+    }
+
+    function copy_bash(e) {
+      let text = $('#bash-clipboard').text();
+      text = text.replace(/(\r\n|\n)/gm, ' && ')+'\n';
+      copyToClipboard(text).then(function() {
+        /* clipboard successfully set */
+        console.log("COPIED");
+      }, function() {
+          alert("Cannot copy to clipboard, please enable clipboard access in browser permissions.");
       });
+
+    }
+
+    function bash_block(text){
+        let s = $('#bash_block').html();
+        let copy_text = text.replace(/^(\$ )/gm, '');
+        return s.replace('<!-- text -->', text).replace('&lt;!-- copy --&gt;', copy_text);
+    }
+
     {% if MIXPANEL_TOKEN %}
       $('.sidebar-link').click((e) => {
           mixpanel.track("Sidebar", {element: e.target.id});
@@ -136,6 +242,7 @@
           "$email": "{{ user.email }}",
           "$phone": "{{ user.profile.phone }}"
       });
+      $("#admin-inst-btn,#inst-btn").on('click', () => mixpanel.track("Add Node"));
 
     {% endif %}
   </script>
