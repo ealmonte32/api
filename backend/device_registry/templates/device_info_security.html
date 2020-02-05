@@ -67,7 +67,7 @@
                               {% include "badge.html" with icon="exclamation-circle" color="danger" %}
                               No
                           {% else %}
-                            N/A
+                            <span class="wott-blue">N/A</span>
                         {% endif %}
                       {% endwith %}
                     </td>
@@ -80,7 +80,7 @@
                         target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
                     </th>
                     <td>
-                      {% if object.default_password is None %}N/A{% else %}
+                      {% if object.default_password is None %}<span class="wott-blue">N/A</span>{% else %}
                         {% if object.default_password_users %}
                           {% include "badge.html" with icon="exclamation-circle" color="danger" %}
                           Users with default credentials: {{ object.default_password_users|join:", " }}
@@ -120,7 +120,7 @@
                           {% endfor %}
                         </table>
                       {% else %}
-                        N/A
+                      <span class="wott-blue">N/A</span>
                       {% endif %}
                     </td>
                   </tr>
@@ -179,7 +179,7 @@
                         {% elif services is not None %}
                           No insecure services detected.
                         {% else %}
-                          N/A
+                        <span class="wott-blue">N/A</span>
                         {% endif %}
                       {% endwith %}
                     </td>
@@ -294,15 +294,17 @@
                     </td>
                   </tr>
                   <tr class="pb-4">
-                    <th class="wott-table-label pb-0" scope="row">
-                      {% if has_global_policy %}
-                        Open Ports
+                    {% if has_global_policy %}
+                      <th class="wott-table-label pb-0" scope="row">
+                          Open Ports
+                      </th>
                       {% else %}
+                      <th class="wott-table-label pb-0" scope="row">
                         Firewall Ports Policy
                         <a href="https://wott.io/documentation/faq#what-is-firewall-policy"
                           target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                      {% endif %}
-                    </th>
+                      </th>
+                    {% endif %}
                   </tr>
                   <tr class="border-top-0 pt-0">
                     <td class="inner-table mb-4">
@@ -310,20 +312,20 @@
                         <table id="firewall-ports-table" class="wott-table wott-box-shadow">
                           <thead class="">
                           <tr class="row">
-                            <th class="col-2" scope="col">IP</th>
-                            <th class="col-3" scope="col">Address</th>
+                            <th class="col-1" scope="col">IP</th>
+                            <th class="col-5" scope="col">Address</th>
                             <th class="col-3" scope="col">Port</th>
                             <th class="col-2" scope="col">Proto</th>
-                            <th class="col-2" scope="col">Info</th>
+                            <th class="col-1" scope="col">Info</th>
                           </tr>
                           </thead>
                           {% for port in portscan.scan_info %}
                             <tr>
-                              <td class="col-2">v{{ port.ip_version }}</td>
-                              <td class="col-3">{{ port.host }}</td>
+                              <td class="col-1">v{{ port.ip_version }}</td>
+                              <td class="col-5">{{ port.host }}</td>
                               <td class="col-3">{{ port.port }}</td>
                               <td class="col-2">{{ port.proto|upper }}</td>
-                              <td class="col-2">
+                              <td class="col-1">
                                 {% with process_info=port|get_process_info_html:portscan %}
                                   {% if process_info %}
                                     <span class="badge badge-info" data-container="body" data-toggle="popover"
@@ -343,7 +345,7 @@
                           </div>
                           <div class="form-group">
                             {% if ports_choices %}
-                              <div class="table-responsive" id="ports-table">
+                              <div class="wott-table wott-box-shadow" id="ports-table">
                                 <table id="firewall-ports-table" class="wott-table wott-box-shadow">
                                   <thead>
                                     <tr class="inner-table mb-4 row">
@@ -352,18 +354,18 @@
                                           <span class="pl-1"
                                           id="ports-table-column-1">{% if firewall.policy == 1 %}
                                         Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
-                                      <th class="col-2" scope="col">IP</th>
-                                      <th class="col-3" scope="col">Address</th>
+                                      <th class="col-1" scope="col">IP</th>
+                                      <th class="col-4" scope="col">Address</th>
                                       <th class="col-2" scope="col">Port</th>
                                       <th class="col-2" scope="col">Proto</th>
                                       <th class="col-1" scope="col">Info</th>
                                     </tr>
-                                  </thead>
+                                  </thead>            
                                   {% for checkbox in ports_form.open_ports %}
                                     <tr>
                                       <td class="col-2">{{ checkbox.tag }}</td>
-                                      <td class="col-2">v{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:3 }}</td>
-                                      <td class="col-3">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:0 }}</td>
+                                      <td class="col-1">v{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:3 }}</td>
+                                      <td class="col-4">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:0 }}</td>
                                       <td class="col-2">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:1 }}</td>
                                       <td class="col-2">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:2 }}</td>
                                       <td class="col-1">
@@ -381,7 +383,8 @@
                               </div>
                             {% endif %}
                             {{ ports_form.is_ports_form }}
-                            <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
+                            <!-- <select type="select" class="wott-form-control d-block w-50 mb-3"><option>Allow by default</option></select> -->
+                            <button class="btn btn-wott-primary wott-btn-medium" type="submit">Apply</button>                    
                           </div>
                         </form>
                       {% endif %}
@@ -398,29 +401,29 @@
                   <tr class="border-top-0 pt-0">
                     <td class="inner-table mb-4">
                       {% if has_global_policy %}
-                        <table class="wott-table wott-box-shadow">
+                        <table class="wott-table wott-box-shadow" id="connections-table">
                           <thead class="">
                           <tr class="row">
-                            <th class="col-1" scope="col">IP</th>
-                            <th class="col-2" scope="col">Rem addr</th>
-                            <th class="col-1 px-0" scope="col">Rem port</th>
-                            <th class="col-2 pl-4" scope="col">Loc addr</th>
-                            <th class="col-2" scope="col">Loc port</th>
-                            <th class="col-1" scope="col">Type</th>
-                            <th class="col-2" scope="col">Status</th>
-                            <th class="col-1" scope="col">PID</th>
+                            <th width="5%" scope="col">IP</th>
+                            <th width="28%" scope="col">Rem addr</th>
+                            <th width="9%" scope="col">Rem port</th>
+                            <th width="28%" scope="col">Loc addr</th>
+                            <th width="8%" scope="col">Loc port</th>
+                            <th width="6%" scope="col">Type</th>
+                            <th width="11%" scope="col">Status</th>
+                            <th width="4%" scope="col">PID</th>
                           </tr>
                           </thead>
                           {% for connection in portscan.netstat %}
                             <tr class="row">
-                              <td class="col-1">v{{ connection.ip_version }}</td>
-                              <td class="col-2">{{ connection.remote_address.0 }}</td>
-                              <td class="col-1 px-0">{{ connection.remote_address.1 }}</td>
-                              <td class="col-2 pl-4">{{ connection.local_address.0 }}</td>
-                              <td class="col-2">{{ connection.local_address.1 }}</td>
-                              <td class="col-1">{{ connection.type|upper }}</td>
-                              <td class="col-2">{{ connection.status }}</td>
-                              <td class="col-1">{{ connection.pid|default:'' }}</td>
+                              <td width="5%">v{{ connection.ip_version }}</td>
+                              <td width="28%">{{ connection.remote_address.0 }}</td>
+                              <td width="9%">{{ connection.remote_address.1 }}</td>
+                              <td width="28%">{{ connection.local_address.0 }}</td>
+                              <td width="8%">{{ connection.local_address.1 }}</td>
+                              <td width="6%">{{ connection.type|upper }}</td>
+                              <td width="11%">{{ connection.status }}</td>
+                              <td width="4%">{{ connection.pid|default:'' }}</td>
                             </tr>
                           {% endfor %}
                         </table>
@@ -429,35 +432,35 @@
                           <form method="POST" action="">
                             {% csrf_token %}
                             <div class="form-group">
-                              <div class="inner-table mb-4 pl-0">
+                              <div class="inner-table mb-4 px-0">
                                 <table class="wott-table wott-box-shadow" id="connections-table">
                                   <thead class="">
-                                  <tr>
-                                    <th class="col-2" scope="col" width="5%" nowrap>
-                                      <input type="checkbox" value="0"  id="connections-check-all">
-                                      Blocked
-                                    </th>
-                                    <th class="col-1" scope="col">IP</th>
-                                    <th class="col-1" scope="col">Rem addr</th>
-                                    <th class="col-1" scope="col">Rem port</th>
-                                    <th class="col-2" scope="col">Loc addr</th>
-                                    <th class="col-1" scope="col">Loc port</th>
-                                    <th class="col-1" scope="col">Type</th>
-                                    <th class="col-2" scope="col">Status</th>
-                                    <th class="col-1" scope="col">PID</th>
-                                  </tr>
+                                    <tr>
+                                      <th width="8%" scope="col">
+                                        <input type="checkbox" value="0"  id="connections-check-all">
+                                        <span>Blocked</span>
+                                      </th>
+                                      <th width="3%" class="px-0"  scope="col">IP</th>
+                                      <th width="28%" class="" scope="col">Rem addr</th>
+                                      <th width="8%"  class="" scope="col">Rem port</th>
+                                      <th width="28%" class="" scope="col">Loc addr</th>
+                                      <th width="7%"  class="" scope="col">Loc port</th>
+                                      <th width="4%" class="" scope="col">Type</th>
+                                      <th width="10%" class="" scope="col">Status</th>
+                                      <th width="4%" class="" scope="col">PID</th>
+                                    </tr>
                                   </thead>
                                   {% for checkbox in connections_form.open_connections %}
                                     <tr>
-                                      <td class="col-2">{{ checkbox.tag }}</td>
-                                      <td class="col-1">v{{ checkbox.choice_label|split_index:"/,4" }}</td>
-                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,0" }}</td>
-                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,1" }}</td>
-                                      <td class="col-2">{{ checkbox.choice_label|split_index:"/,2" }}</td>
-                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,3" }}</td>
-                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,5" }}</td>
-                                      <td class="col-2">{{ checkbox.choice_label|split_index:"/,6" }}</td>
-                                      <td class="col-1">{{ checkbox.choice_label|split_index:"/,7" }}</td>
+                                      <td width="8%">{{ checkbox.tag }}</td>
+                                      <td width="3%" class="px-0">v{{ checkbox.choice_label|split_index:"/,4" }}</td>
+                                      <td width="28%">{{ checkbox.choice_label|split_index:"/,0" }}</td>
+                                      <td width="8%">{{ checkbox.choice_label|split_index:"/,1" }}</td>
+                                      <td width="28%">{{ checkbox.choice_label|split_index:"/,2" }}</td>
+                                      <td width="7%">{{ checkbox.choice_label|split_index:"/,3" }}</td>
+                                      <td width="4%">{{ checkbox.choice_label|split_index:"/,5" }}</td>
+                                      <td width="10%">{{ checkbox.choice_label|split_index:"/,6" }}</td>
+                                      <td width="4%">{{ checkbox.choice_label|split_index:"/,7" }}</td>
                                     </tr>
                                   {% endfor %}
                                 </table>
@@ -479,6 +482,7 @@
                       <td></td>
                     </tr>
                   {% endif %}
+
                   <tr>
                     <th class="wott-table-label" scope="row">
                       Download Node Certificate
@@ -487,7 +491,7 @@
                     </th>
                     <td>
                       {% if object.certificate %}
-                        <a href="{% url 'download_device_cert' object.device_id %}">{{ object.device_id }}.crt</a>
+                        <a id="certificate-download-link" href="{% url 'download_device_cert' object.device_id %}">{{ object.device_id }}.crt</a>
                       {% endif %}
                     </td>
                   </tr>
@@ -558,6 +562,46 @@
       padding-left: 15px !important;
    }
 
+  #connections-table th:first-child,
+  #connections-table td:first-child {
+    padding-left: 0px !important;
+  }
+
+  #connections-table th,
+  #connections-table td {
+    word-wrap: break-word;
+    font-size: .8rem;
+  }
+
+  @media screen and (max-width: 1380px) {
+    #connections-table th,
+    #connections-table td {
+      font-size: .7rem;
+    }
+  }
+
+  @media screen and (max-width: 1250px) {
+    #connections-table th,
+    #connections-table td {
+      font-size: .65rem;
+    }
+  }
+
+  @media screen and (max-width: 1200px) {
+    #connections-table th,
+    #connections-table td {
+      font-size: .6rem;
+    }
+  }
+
+  @media screen and (max-width: 1110px) {
+    #connections-table th,
+    #connections-table td {
+      font-size: .55rem;
+    }
+  }
+
+
    .wott-inner-table-message {
     width: auto;
     padding: .8rem 4.5rem !important;
@@ -601,6 +645,10 @@
 
    .badge-info {
      background-color: #2460c8 !important;
+   }
+
+   #certificate-download-link {
+     font-size: .9rem;
    }
   
   </style>
