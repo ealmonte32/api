@@ -519,15 +519,13 @@ class Device(models.Model):
         actions_count = DeviceHistoryRecord.objects.filter(device=self,
                                                            sampled_at__gte=last_monday,
                                                            sampled_at__lt=this_monday)\
-            .values('recommended_actions_count')\
-            .annotate(ra_max=Max('recommended_actions_count'))\
-            .values('ra_max')
-        return actions_count.first() if actions_count.exists() else 0
+                                                   .aggregate(Max('recommended_actions_count'))
+        return actions_count['recommended_actions_count__max'] or 0
 
     @property
     def actions_count_delta(self):
         count = self.actions_count - self.actions_count_last_week
-        return {'count': count, 'arrow': 'up' if count >= 0 else 'down'}
+        return {'count': abs(count), 'arrow': 'up' if count >= 0 else 'down'}
 
     def sample_history(self):
         DeviceHistoryRecord.objects.create(device=self,

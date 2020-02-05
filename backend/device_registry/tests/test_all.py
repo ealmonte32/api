@@ -373,6 +373,43 @@ class DeviceModelTest(TestCase):
         self.device0.save()
         self.assertFalse(self.device0.cpu_vulnerable)
 
+    def test_ra_last_week(self):
+        now = timezone.now()
+        # Last week's tuesday
+        last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
+        ra0 = RecommendedAction.objects.create(device=self.device0, action_id=1,
+                                               status=RecommendedAction.Status.NOT_AFFECTED)
+        ra1 = RecommendedAction.objects.create(device=self.device0, action_id=2,
+                                               status=RecommendedAction.Status.NOT_AFFECTED)
+        ra2 = RecommendedAction.objects.create(device=self.device0, action_id=3,
+                                               status=RecommendedAction.Status.SNOOZED_UNTIL_PING)
+
+        self.assertEqual(self.device0.actions_count_last_week, 0)
+        self.assertEqual(self.device0.actions_count_delta['count'], 0)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'up')
+
+        with freeze_time(last_tuesday):
+            ra0.status = RecommendedAction.Status.AFFECTED
+            ra0.save()
+            self.device0.sample_history()
+        with freeze_time(last_tuesday + timezone.timedelta(days=1)):
+            ra1.status = RecommendedAction.Status.AFFECTED
+            ra1.save()
+            self.device0.sample_history()
+        self.assertEqual(self.device0.actions_count_last_week, 2)
+
+        ra2.status = RecommendedAction.Status.AFFECTED
+        ra2.save()
+        self.assertEqual(self.device0.actions_count_delta['count'], 1)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'up')
+
+        ra0.status = RecommendedAction.Status.NOT_AFFECTED
+        ra2.status = RecommendedAction.Status.NOT_AFFECTED
+        ra0.save()
+        ra2.save()
+        self.assertEqual(self.device0.actions_count_last_week, 2)
+        self.assertEqual(self.device0.actions_count_delta['count'], 1)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'down')
 
 class FormsTests(TestCase):
     def setUp(self):
