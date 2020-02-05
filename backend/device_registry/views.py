@@ -133,30 +133,13 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
     next_actions_count = 5
 
     def get_context_data(self, **kwargs):
-        week = timezone.timedelta(days=7)
-
         context = super().get_context_data(**kwargs)
 
-        now = timezone.now()
-
-        # TODO: for arbitrary intervals:
-        # SELECT CAST(EXTRACT(EPOCH FROM <date or timestamp>::timestamptz) AS INTEGER) / <nseconds>;
-        cases = [When(sampled_at__range=(now - week * (i + 1), now - week * i), then=i) for i in range(4)]
-
-        history = HistoryRecord.objects \
-            .filter(owner=self.request.user, sampled_at__gte=now - timezone.timedelta(days=28)) \
-            .annotate(week=Case(*cases,output_field=IntegerField())).values('week')\
-            .annotate(sum_ra=Sum('recommended_actions_resolved'), avg_score=Avg('average_trust_score'))
-
-        _, actions = self.get_actions()
-        next_actions = actions[:self.next_actions_count]
-        solved_history = [h['sum_ra'] for h in history]
-        trust_score_history = [h['avg_score'] for h in history]
+        score = self.request.user.profile.average_trust_score * 100
         context.update(
-            next_actions=next_actions,
-            ra_solved_history=solved_history,
-            trust_score_history=trust_score_history,
-            trust_score=self.request.user.profile.average_trust_score
+            welcome=not self.request.user.devices.exists(),
+            ball_offset=-score * 0.74 - 38,
+            trust_score=int(score)
         )
         return context
 

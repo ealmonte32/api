@@ -11,7 +11,8 @@
 {% block admin_content %}
  
 <div class="dashboard-tab">
-  <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});">
+  <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});
+          {% if not welcome %}display: none !important;{% endif %}">
     <div class="left-box py-4">
       <h1 class="big-text text-center">Welcome User!</h1><!--Include user first name if it exists-->
       <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p>
@@ -26,7 +27,7 @@
     </div>
   </div>
 
-  <section class="top-section pt-2" id="welcome-overlay">
+  <section class="top-section pt-2 {% if not welcome %}d-none{% endif %}" id="welcome-overlay">
     <div class="weekly-card-container card mb-0 wott-box-shadow">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="title-left-box wott-blue">Weekly Recommended Actions</h3>
@@ -136,7 +137,7 @@
   </section>
 
   <!-- -------------------- WIHTOUT WELCOME BOX ----------------------------------- -->
-  <section class="top-section pt-2" style="display: none">
+  <section class="top-section pt-2 {% if welcome %}d-none{% endif %}">
     <div class="weekly-card-container card mb-0 wott-box-shadow">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="title-left-box">Weekly Recommended Actions</h3>
@@ -226,12 +227,12 @@
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
           
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad2)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="4.5"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="3"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
           
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
-              80 <!--HARDCODE-->
+              {{ trust_score }}
             </text>
             <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
               of 100 <!--HARDCODE-->

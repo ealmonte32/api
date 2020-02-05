@@ -23,7 +23,7 @@
     weaknesses.
 - title: Default credentials detected
   id: 1
-  subtitle: NO SUBTITLE
+  subtitle: please consider changing this as soon as possible
   short: |
     You may be using default credentials, such as ones predetermined at manufacturing, or common credentials; classic
     examples of this include having 'password' as your password. Change your credentials to something more secure.
@@ -296,3 +296,12 @@
     ```
     requirepass yourPasswordHere
     ```
+- title: Vulnerable packages found
+  id: 3
+  subtitle: update or remove packages
+  short: |
+    Vulnerable packages have been found. These packages may be exploitable by an attacker to gain access to, or escalate permissions, on your servers. Make sure packages are up to date by running `sudo apt-get update && sudo apt-get upgrade`. If package is known to still be compromised, we recommend removing or disabling it. Note, some vulnerabilities may have yet to be addressed by the operating system vendor.
+  long: |
+    Packages are a key part of most Linux based operating systems software. Typically when downloading additional software onto Linux systems, it comes in pre-compiled packages that contain relevant information about updates, versions, and security. Inbuilt software therefore also has packages and these packages depend on the Linux distribution run. For example, Debian distributions have `DEB` packages and Red Hat has `RPM` packages with many other package systems being based off these two.
+
+    Over time, if not updated, these packages become vulnerable to security risks leaving them open to exploitation from external attackers. These operating system packages can then be used by an attacker to gain access to your server, or its permissions and then escalate them. Fortunately, these packages are updated frequently. WoTT can detect an out-of-date or insecure package. Usually, it is only necessary to update the package or packages by running `sudo apt-get update && sudo apt-get upgrade` to obtain the most recent, secure version. However, it is also possible that a package has not had its security vulnerability resolved yet by the operating system vendor. In this case, it is safer to disable a particular package where possible.

@@ -64,6 +64,7 @@ class Action(NamedTuple):
     :param issue_url: Github issue URL, optional
     """
     title: str
+    subtitle: str
     description: str
     action_id: int
     devices: List[int]
@@ -179,6 +180,7 @@ class BaseAction:
         issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
         return Action(
             cls.action_config['title'].format(**context),
+            cls.action_config['subtitle'].format(**context),
             cls.action_config['short'].format(**context),
             cls.action_id, devices_list,
             cls.severity,
@@ -412,7 +414,7 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
 
 
 # Vulnerable packages found action.
-class VulnerablePackagesAction(BaseAction):  #, metaclass=ActionMeta): FIXME: no text for this one
+class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
     action_id = 3
     severity = Severity.MED
 
