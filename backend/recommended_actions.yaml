@@ -72,14 +72,14 @@
 
     [proftpd](http://proftpd.org)
     [vsftpd](https://help.ubuntu.com/community/vsftpd)
-- title: Insecure services found
-  subtitle: uninstall services
+- title: Insecure service found
+  subtitle: uninstall service
   id: 1000
   short: |
     You may have insecure services installed. These services may either be outdated or inherently insecure due to lack
     of encryption of information like usernames and passwords, or the use of insecure protocols. Using these services
     over the internet greatly increases your risk of being intercepted by 'man-in-the-middle' attacks. Remove and
-    uninstall these by running `sudo apt-get purge {services}`.
+    uninstall these by running `sudo apt-get purge {service}`.
   long: |
     There are multiple generations of services. Many older services, like Telnet, RSH, and FTP are still readily
     available in most Linux distributions. However, it is generally considered bad practice to use these nowadays as
@@ -109,7 +109,6 @@
   short: |
     It appears that you have Password authentication enabled in your OpenSSH config which may leave your entire machine vulnerable to attack. Please consider removing this in your config file `/etc/ssh/sshd_config`.
   long: |
-    FAQ
     SSH (Secure Shell) is a method to remote login to a server. SSH is usually secure, however if used with the default settings, can be vulnerable to attacks from unwanted parties. By default, the SSH config file is preset with some values allowing for new developers to get used to setting up SSH servers. However, this often exposes vulnerabilities by not being restrictive enough.
 
     Here, `PasswordAuthentication` is enabled. Passwords can easily be exploited and brute-forced due to human error and is less secure than identifying an accessor via cryptographic identity. Where possible, it is ideal to completely remove the need for passwords as no password is truly safe/uncrackable. Edit the /etc/ssh/sshd_config file like so:
