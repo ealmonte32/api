@@ -2,6 +2,7 @@ import json
 import logging
 import uuid
 import datetime
+from urllib.parse import unquote
 
 import dateutil
 import dateutil.parser
@@ -950,7 +951,10 @@ class DeviceListFilterMixin:
             elif query_type == 'tags':
                 filter_value = filter_value.split(',') if filter_value else []
                 if filter_value:
-                    if len(filter_value) != Tag.objects.filter(owner=self.request.user, name__in=filter_value).count():
+                    filter_value = [unquote(v) for v in filter_value]
+                    if len(filter_value) != Tag.objects.filter(device__owner=self.request.user,
+                                                               name__in=filter_value)\
+                                                       .distinct().count():
                         raise ValidationError('tags argument list is invalid.')
 
             if isinstance(query_by, list):
