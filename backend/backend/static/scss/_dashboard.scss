@@ -287,10 +287,14 @@
 
   // WELCOME DASHBOARD
 
-  #inst-btn img {
-    margin-left: 15px;
-    margin-bottom: 5px;
+  #inst-btn {
+    font-weight: 700;
+    img {
+      margin-left: 15px;
+      margin-bottom: 5px;
+    }
   }
+  
 
   .big-text {
     font-size: 2.5rem;

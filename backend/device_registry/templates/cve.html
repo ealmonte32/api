@@ -113,7 +113,7 @@
                     {{ p.devices_count }}
                     <template title="Nodes Affected" data-type="nodes">
                       {% for du in p.devices %}
-                        <a class="wott-node-list wott-list-blue" href="{{ du.href }}">{{  du.text }}</a>
+                        <a class="wott-node-list wott-list-blue" href="{{ du.href }}">&#8226 {{  du.text }}</a>
                       {% endfor %}
                     </template>
                   </a>
@@ -125,10 +125,19 @@
                 {% for p in row.packages %}
                   <a href="#" class="wott-popover">
                     Instructions
-                    <template title="Instructions" data-type="instructions">
-                      <p class="wott-intructions wott-list-blue">
-                        {{ p.upgrade_command }}
-                      </p>
+                    <template title="Instructions" data-type="instructions"> 
+                      <div class="instructions-box mb-4">
+                        <div class="instructions-header">
+                          <h5>Terminal</h5>
+                        </div>
+                        <div class="instructions-body">
+                          <div class="instructions-text">
+                            <div class="instructions-instructions">
+                              <p>{{ p.upgrade_command }}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>      
                     </template>
                   </a>
                   <br>
@@ -153,6 +162,48 @@
     </div>
 
   </div>
+  <!-- <style>
+  
+  
+   .instructions-box {
+    background-color: #263E67;
+    color: white;
+    border-radius: 8px;
+    width: 670px;
+    max-height: 250px;
+    position: relative;
+    overflow-y: scroll;
+  }
+
+
+  .instructions-instructions {
+    padding: 0rem 1.5rem;
+    width: auto;
+    white-space: nowrap;
+  }
+
+   .instructions-header {
+    background-color: #1A2F53;
+    position: sticky;
+    top: 0;
+    left: 0;
+  }
+
+  .instructions-header h5 {
+      color: white;
+      padding: .6rem 2.3rem;
+      border-radius: 8px;
+    }
+
+   .instructions-header {
+    border-radius: 8px 9px 0 0;
+  }
+  
+
+   .instructions-body {
+    padding: 1.2rem 1rem 1.5rem;
+  }
+  </style> -->
 
 {% endblock admin_content %}
 
