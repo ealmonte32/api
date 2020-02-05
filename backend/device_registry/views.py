@@ -97,9 +97,10 @@ class RecommendedActionsMixin:
         else:  # User has no devices - display the special action.
             device_name = None
             actions = [Action(
-                'Enroll your node(s) to unlock this feature',
-                'In order to receive recommended actions, click "Add Node" under "Dashboard" to receive instructions '
-                'on how to enroll your nodes.',
+                title='Enroll your node(s) to unlock this feature',
+                subtitle='...',
+                description='In order to receive recommended actions, click "Add Node" under "Dashboard" to receive ' \
+                            'instructions on how to enroll your nodes.',
                 action_id=0,
                 devices=[],
                 severity=Severity.LO
@@ -111,12 +112,15 @@ class RecommendedActionsMixin:
                 self.request.user.profile.github_repo_id) and \
                 device_pk is None:
             actions.append(Action(
-                'Enable our GitHub integration for improved workflow',
-                'Did you know that WoTT integrates directly with GitHub? By enabling this integration, GitHub Issues '
-                'are automatically created and updated for Recommended Actions. You can then easily assign these Issues'
-                ' to team members and integrate them into your sprint planning.\n\n'
-                'Please note that we recommend that you use a private GitHub repository for issues.\n\n'
-                'You can find the GitHub integration settings in under your profile in the upper right-hand corner.',
+                title='Enable our GitHub integration for improved workflow',
+                subtitle='turn on the setting',
+                description='Did you know that WoTT integrates directly with GitHub? By enabling this integration, '
+                            'GitHub Issues are automatically created and updated for Recommended Actions. You can then '
+                            'easily assign these Issues to team members and integrate them into your sprint planning.'
+                            '\n\n'
+                            'Please note that we recommend that you use a private GitHub repository for issues.\n\n'
+                            'You can find the GitHub integration settings in under your profile in the upper right-hand '
+                            'corner.',
                 action_id=0,
                 devices=[],
                 severity=Severity.LO
@@ -135,12 +139,15 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        score = self.request.user.profile.average_trust_score * 100
         context.update(
-            welcome=not self.request.user.devices.exists(),
-            ball_offset=-score * 0.74 - 38,
-            trust_score=int(score)
+            welcome=not self.request.user.devices.exists()
         )
+        score = self.request.user.profile.average_trust_score
+        if score:
+            context.update(
+                ball_offset=-score * 74 - 38,
+                trust_score=int(score)
+            )
         return context
 
 

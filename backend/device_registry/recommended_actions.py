@@ -231,9 +231,9 @@ class BaseAction:
         if 'subject' in context:
             # Workaround for AutoUpdatesAction three-way logic
             context['subject'] = ''
-        body_text = cls.action_description if body is None else body
+        body_text = cls.action_config['long'] if body is None else body
         action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
-        return cls.action_title, action_text
+        return cls.action_config['title'], action_text
 
 
 class GroupedAction:
@@ -326,11 +326,12 @@ class ActionMeta(type):
 
         if not meta._config:
             meta.load_config()
-        if hasattr(cls, 'config_id'):
-            config_id = cls.config_id
-        else:
-            config_id = cls.action_id
-        cls.action_config = meta._config[config_id]
+        if not hasattr(cls, 'action_config'):
+            if hasattr(cls, 'config_id'):
+                config_id = cls.config_id
+            else:
+                config_id = cls.action_id
+            cls.action_config = meta._config.get(config_id)
         return cls
 
     @classmethod
@@ -434,6 +435,7 @@ class InsecureServicesGroupAction(GroupedAction):
 # Insecure services found action.
 class BaseInsecureServicesAction(BaseAction):
     config_id = 1000
+    group_action = InsecureServicesGroupAction
 
     @classmethod
     def get_context(cls, devices, device_pk=None):
@@ -463,6 +465,8 @@ class OpensshIssueGroupAction(GroupedAction):
 
 
 class BaseOpensshIssueAction(BaseAction):
+    group_action = OpensshIssueGroupAction
+
     @classmethod
     def get_context(cls, devices, device_pk=None):
         safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[cls.sshd_param]
@@ -575,6 +579,7 @@ class PubliclyAccessibleServiceGroupAction(GroupedAction):
 
 
 class BasePubliclyAccessibleServiceAction(BaseAction):
+    group_action = PubliclyAccessibleServiceGroupAction
     severity = Severity.HI
 
     @classmethod
