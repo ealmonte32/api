@@ -110,7 +110,7 @@
     align-items: center;
     padding: 10px 10px;
     font-family: Muli;
-    font-size: .75rem;
+    font-size: .65rem;
     font-weight: 700;
     height: 17px;
     border-radius: 4px;
@@ -198,7 +198,7 @@
   .alert-instruction {
     color: #9298A5;
     font-size: 1rem;
-    @include mQ(1200px) {
+    @include mQ(1340px) {
       font-size: .8rem;
     }
   }
@@ -207,8 +207,8 @@
     padding-right: 1rem;
     margin-bottom: 0;
     padding-bottom: 7px;
-    font-size: 1.2rem;
-    @include mQ(1200px) {
+    font-size: 1.1rem;
+    @include mQ(1340px) {
       font-size: 1rem;
     }
   }
@@ -241,6 +241,11 @@
     font-size: .8rem;
     color: #2460c8;
     font-weight: 800;
+    @include mQ(1340px) {
+      padding: .4rem .6rem;
+      width: 120px;
+      font-size: .65rem;
+    }
   }
 
   .wott-alert-btn-group button {
@@ -252,8 +257,22 @@
     color: #2460c8;
     margin-top: .3rem;
     font-weight: 800;
+    @include mQ(1340px) {
+      font-size: .7rem;
+    }
   }
 
+  #resolved-img {
+    @include mQ(1340px) {
+      width: 40%;
+    }
+  }
+
+  #ignore-img{
+    @include mQ(1340px) {
+      width: 55%;
+    }
+  }
   .btn-group-box {
     margin: auto;
   }
@@ -262,8 +281,17 @@
     width: 70%;
     display: flex;
     align-items: center;
-    padding: 2.5rem 1.8rem;
+    padding: 2.5rem 1.2rem;
     border-right: 1px solid rgb(216,216,216, 0.5);
+    @include mQ(1340px) {
+      width: 80%
+    }
+  }
+
+  .wott-img-btn {
+    @include mQ(1340px) {
+      width: 50%;
+    }
   }
 
   .actions-safe {

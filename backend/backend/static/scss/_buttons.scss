@@ -38,20 +38,18 @@
 }
 
 .wott-btn {
-  font-size: 1rem;
+  font-size: .9rem;
   width: 50%;
   height: 58px;
   border-radius: $wott-border-radius-lg;
 }
 
 .wott-btn-medium {
-  font-size: 1rem;
+  font-size: .9rem;
   width: 215px;
   height: 50px;
   border-radius: $wott-border-radius-lg;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-weight: 700;
 }
 
 .wott-btn-small {
