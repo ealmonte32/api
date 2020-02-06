@@ -490,11 +490,6 @@ for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
 # Automatic security update disabled action.
 class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
     action_id = 6
-    action_title = 'Consider enable automatic security updates'
-    action_description = \
-        'We found that {subject}{devices} {verb} not configured to automatically install security updates. Consider ' \
-        'enabling this feature.\n\n' \
-        'Details for how to do this can be found [here]({doc_url})'
     severity = Severity.HI
 
     @classmethod
@@ -537,11 +532,6 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
 # FTP listening on port 21 action.
 class FtpServerAction(BaseAction, metaclass=ActionMeta):
     action_id = 7
-    action_title = 'Consider moving to SFTP'
-    action_description = \
-        'There appears to be an FTP server running on {devices}. FTP is generally considered insecure as the ' \
-        'credentials are sent unencrypted over the internet. Consider switching to an encrypted service, such as ' \
-        '[SFTP](https://www.ssh.com/ssh/sftp).'
     severity = Severity.MED
 
     @classmethod
@@ -552,15 +542,6 @@ class FtpServerAction(BaseAction, metaclass=ActionMeta):
 # MySQL root default password action.
 class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
     action_id = 10
-    action_title = 'No root password set for the MySQL/MariaDB server'
-    action_description = \
-        'We detected that there is no root password set for MySQL/MariaDB on {devices}. Not having a root password ' \
-        'set makes it easy for anyone with access to the service to copy all information from the database. It is ' \
-        'recommended that you change the password as soon as possible. There are multiple ways to do this, ' \
-        'including using mysqladmin as follows:\n\n' \
-        '`mysqladmin -u root password NEWPASSWORD`\n\n' \
-        'Tip: If you are using mysqladmin as per above, make sure to add a space before the command to avoid it ' \
-        'being stored in your shell\'s history.'
     severity = Severity.HI
 
     @classmethod
@@ -573,8 +554,6 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
 
 
 class PubliclyAccessibleServiceGroupAction(GroupedAction):
-    group_action_title = 'Your services may be publicly accessible'
-    group_action_main = 'We detected that the following services on your nodes may be accessible remotely.'
     action_id = 3000
 
 
@@ -601,10 +580,6 @@ for service, service_info in PUBLIC_SERVICE_PORTS.items():
 
 class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):
     action_id = 12
-    action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
-    action_description = \
-        'We detected that {devices} is vulnerable to Meltdown/Spectre. You can learn more about these issues ' \
-        '[here](https://meltdownattack.com/). To fix the issue, please run `apt-get update && apt-get upgrade`'
     severity = Severity.HI
 
     @classmethod

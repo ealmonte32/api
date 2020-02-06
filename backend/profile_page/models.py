@@ -87,6 +87,18 @@ class Profile(models.Model):
             return None
         return devices.aggregate(Avg('trust_score'))['trust_score__avg']
 
+    @property
+    def average_trust_score_last_week(self):
+        now = timezone.now()
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
+        this_monday = sunday + relativedelta(days=1)  # This week's monday
+        score_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,
+                                                     sampled_at__date__lt=this_monday) \
+                                             .values('average_trust_score') \
+                                             .aggregate(Max('average_trust_score'))
+        return score_history['average_trust_score__max'] or 0
+
     def sample_history(self):
         """
         Count the number of newly resolved user's RAs in the last 24h, save it together with the user's average trust

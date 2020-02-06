@@ -143,10 +143,15 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
             welcome=not self.request.user.devices.exists()
         )
         score = self.request.user.profile.average_trust_score
-        if score:
+        if score is not None:
+            last_week_score = self.request.user.profile.average_trust_score_last_week
             context.update(
                 ball_offset=-score * 74 - 38,
-                trust_score=int(score)
+                trust_score={
+                    'current': int(score * 100),
+                    'delta': int(abs(score - last_week_score) * 100),
+                    'arrow': 'up' if score - last_week_score >= 0 else 'down'
+                }
             )
         return context
 

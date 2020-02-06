@@ -232,7 +232,7 @@
           
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
-              {{ trust_score }}
+              {{ trust_score.current }}
             </text>
             <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
               of 100 <!--HARDCODE-->
@@ -246,7 +246,12 @@
         </svg>
   
       </div>
-      <div class="graph-footer"><i class="fas fa-sort-down"></i><span> UP</span> 5% OVER THE LAST WEEK</div>
+      <div class="graph-footer">
+        <i class="fas fa-sort-{{ trust_score.arrow }}"></i>
+        <span> {{ trust_score.arrow|upper }}</span>
+        {{ trust_score.delta }}
+        OVER THE LAST WEEK
+      </div>
     </section>
   </section>
 </div>
