@@ -136,6 +136,24 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
     template_name = 'dashboard.html'
     next_actions_count = 5
 
+    def _actions(self):
+        ra_unresolved, ra_resolved_this_week = self.request.user.profile.actions_weekly
+
+        severities = {ra.action_id: ra.severity for ra in ActionMeta.all_classes()}
+        actions = []
+        resolved_count = ra_resolved_this_week.count()
+        if resolved_count < self.next_actions_count:
+            ra_unresolved = sorted(ra_unresolved.values_list('action_id', flat=True), key=lambda v: severities[v].value)
+            for action_id in ra_unresolved[:self.next_actions_count - resolved_count]:
+                a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
+                actions.append(a._replace(resolved=False))
+
+        for action_id in ra_resolved_this_week.values_list('action_id', flat=True)[:self.next_actions_count]:
+            a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
+            actions.append(a._replace(resolved=True))
+
+        return actions, min(ra_resolved_this_week.count(), self.next_actions_count)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -143,7 +161,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
             welcome=not self.request.user.devices.exists()
         )
         score = self.request.user.profile.average_trust_score
-        _, actions = self.get_actions()
+        actions, resolved_count = self._actions()
         if score is not None:
             last_week_score = self.request.user.profile.average_trust_score_last_week
             context.update(
@@ -153,7 +171,8 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin
                     'delta': int(abs(score - last_week_score) * 100),
                     'arrow': 'up' if score - last_week_score >= 0 else 'down',
                 },
-                actions=actions[:5]
+                actions=actions,
+                weekly_progress=int(resolved_count*100/self.next_actions_count)
             )
         return context
 

@@ -15,6 +15,7 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability
 from device_registry.celery_tasks import github
+from device_registry.recommended_actions import ActionMeta
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +56,29 @@ class Profile(models.Model):
             .values('action_id').distinct().count()
 
     @property
+    def actions_weekly(self):
+        now = timezone.now()
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
+        this_monday = sunday + relativedelta(days=1)  # This week's monday
+        all_ids = [ra.action_id for ra in ActionMeta.all_classes()]
+
+        ra_maybe_resolved_this_week = RecommendedAction.objects.filter(device__owner=self.user,
+                                                                       action_id__in=all_ids,
+                                                                       status=RecommendedAction.Status.NOT_AFFECTED,
+                                                                       resolved_at__gte=this_monday) \
+            .values('action_id').distinct()  # resolved this week (not completely)
+        ra_unresolved = RecommendedAction.objects.filter(device__owner=self.user,
+                                                         action_id__in=all_ids,
+                                                         status=RecommendedAction.Status.AFFECTED) \
+            .values('action_id').distinct()  # unresolved
+        ra_resolved_this_week = ra_maybe_resolved_this_week.exclude(action_id__in=ra_unresolved)
+        return ra_unresolved, ra_resolved_this_week
+
+    @property
     def actions_resolved_since_monday(self):
-        monday = (timezone.now() - relativedelta(weekday=MO(-1))).date()  # Find this week's monday
-        return min(RecommendedAction.objects.filter(device__owner=self.user, resolved_at__gte=monday)\
-            .values('action_id').distinct().count(), settings.MAX_WEEKLY_RA)
+        _, resolved = self.actions_weekly
+        return min(resolved.count(), settings.MAX_WEEKLY_RA)
 
     @property
     def github_repos(self):
