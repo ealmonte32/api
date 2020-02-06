@@ -71,6 +71,7 @@ class Action(NamedTuple):
     severity: Severity
     doc_url: str = '/'
     issue_url: str = None
+    resolved: bool = None
 
     @property
     def html(self):
