@@ -10,6 +10,7 @@
 
 {% block admin_content %}
   <div id="actions-tab" class="">
+    <div class="overlay" style="display: none;"></div> <!--@Artem: hange class to display:block when modal is open-->
     <div class="mb-3 w-100" id="alert-container">
       {% for action in actions %}
         <div class="" role="alert">
@@ -47,12 +48,12 @@
               
               {% ifnotequal action.action_id 0 %}
               <div class="btn-group-box">
-                <div class="btn-group wott-alert-btn-group"
+                <div class="btn-group wott-alert-btn-group d-flex justify-content-around"
                     wott-action
                     wott-action-id="{{ action.action_id }}"
                     wott-action-devices="{{ action.devices }}"
                     wott-action-title="{{ action.title }}">
-                  <button type="button" class="bg-white look-disable" data-dismiss="alert" wott-snooze wott-snooze-duration="0"> <!--@Artem: if btns disable include class look-disable -->
+                  <button type="button" class="bg-white" data-dismiss="alert" wott-snooze wott-snooze-duration="0"> <!--@Artem: if btns disable include class look-disable -->
                     <span>
                       <img id="ignore-img" 
                               class="wott-img-btn" 
@@ -164,6 +165,57 @@
       </div>
     </div>
   </div>
+
+<!--@Artem the modal is bellow, it needs all interactions to be implemented-->
+<div id="all-nodes">
+  <div class="popover-box wott-scroll-y" style="visibility: hidden; pointer-events: all; z-index: 999;"> <!--change style to visible to show this box-->
+    <div class="wott-popover-header">
+      <div class="wott-popover-header-box">
+        <h1 class="mb-0" id="wott-popover-title">All Nodes</h1>
+        <span id="close-popover-buttton"><img src="http://localhost:8003/media/close-icon.png" alt="close"></span>
+      </div>
+      <hr class="popover-title-line">
+    </div>
+    <div class="wott-popover-body w-100"> <!--HARDCODE BELLOW-->               
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+    </div>
+  </div>
+</div>
+
+
   <style>
 
     .alert-title-big {
@@ -201,6 +253,106 @@
     .learn-more-box h4 {
       padding: 0.5rem 0 1rem;
     }
+
+
+    /* MODAL */
+
+   #all-nodes .popover-box {
+      padding: 0;
+      color: #495057;
+      position: fixed;
+      overflow: hidden;
+      width: 800px;
+      max-height: 510px;
+      top: 22%;
+      left: 0;
+      right: 0;
+      margin: auto;
+      background-color: white;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      visibility: hidden;
+      pointer-events: all;
+      z-index: 0;
+      word-wrap: break-word;
+    }
+
+    #actions-tab .overlay {
+      position: fixed;
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(7, 26, 61, 0.7);
+      z-index: 990;
+    }
+
+
+
+    #all-nodes .wott-popover-body {
+      padding: 2.5rem 0rem 2rem 4rem;
+      word-wrap: break-word;
+    }
+
+    #all-nodes .wott-popover-header {
+      position: sticky !important;
+      top: 0;
+      left: 0;
+      background-color: white;
+      width: 100%;
+    }
+
+    #all-nodes .wott-popover-header-box {
+      padding: 2.5rem 4rem 2rem;
+      margin-bottom: 0 !important;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #all-nodes .wott-scroll-y {
+      overflow-y: scroll;
+    }
+
+    #all-nodes .wott-scroll-x {
+      overflow-x: scroll;
+    }
+
+    #all-nodes .wott-node-list {
+      display: inline-block;
+      width: 100px;
+      white-space: normal;
+      margin: 0;
+      margin-bottom: 2rem;
+      margin-right: 7%;
+      min-width: 17%;
+      max-width: 17%;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+
+    #all-nodes .popover-title {
+      width: 100%;
+      padding: 0.5rem 2.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #all-nodes #wott-popover-title {
+      font-weight: 600;
+    }
+
+    #all-nodes .popover-title-line {
+      width: 100%;
+      margin-left: 0;
+    }
+
   </style>
 {% endblock admin_content %}
 
