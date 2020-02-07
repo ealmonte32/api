@@ -10,7 +10,6 @@
     input[failed]{
       border-color: red;
     }
-
     </style>
 {% endblock %}
 
@@ -34,7 +33,7 @@
           </button>
         </div>
         <div class="modal-body">
-          <p id="confirm-msg">You did not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?</p>
+          <p id="confirm-msg"></p>
         </div>
         <div class="alert alert-warning wott-form-alert p-1" role="alert" id="confirm-alert">
           Server error
@@ -59,19 +58,19 @@
                   <h4 class="wott-table-title wott-table-py">Metadata</h4>
                   <tr>
                     <td class="wott-table-label" scope="row" width="20%">Node Name</td>
-                    <td width="80%">{{ object.name|default_if_none:object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
+                    <td width="80%">{{ object.name|default_if_none:object.deviceinfo.fqdn|default:'N/A' }}</td>
                   </tr>
                   <tr>
                     <td class="wott-table-label" scope="row" width="20%">Device ID</td>
-                    <td width="80%">{{  object.device_id|default_if_none:'N/A' }}</td>
+                    <td width="80%">{{  object.device_id|default:'N/A' }}</td>
                   </tr>
                   <tr>
                     <td class="wott-table-label" scope="row" width="20%">Manufacturer</td>
-                    <td width="80%">{{  object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
+                    <td width="80%">{{  object.deviceinfo.device_manufacturer|default:'N/A' }}</td>
                   </tr>
                   <tr>
                     <td class="wott-table-label" scope="row" width="20%">Model</td>
-                    <td width="80%">{{  object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
+                    <td width="80%">{{  object.deviceinfo.get_model|default:'N/A' }}</td>
                   </tr>
                   <tr class="">
                     <th class="wott-table-label pb-0" scope="row" width="20%">
@@ -160,7 +159,6 @@
   </style>
 
   <script>
-
     var table;
     var edited = false;
     var previous_mode;

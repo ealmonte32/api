@@ -5,6 +5,7 @@ from typing import NamedTuple, List
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.db import transaction
 from django.db.models import Case, When, Count, Window, Value
 from django.db.models import Q, Sum, Avg, IntegerField, Max
@@ -299,6 +300,7 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 self.object.owner = None
                 self.object.claim_token = uuid.uuid4()
                 self.object.save(update_fields=['owner', 'claim_token'])
+                messages.add_message(request, messages.INFO, 'You have successfully revoked your device.')
                 return HttpResponseRedirect(reverse('root'))
             else:
                 form.save()
@@ -421,11 +423,11 @@ class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_network.html'
 
-    def get_queryset(self):
+    def get_queryset(self):  # TODO: put this kind of `get_queryset` method to mixin.
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs):  # TODO: put duplicated `get_context_data` to mixin.
         context = super().get_context_data(**kwargs)
         try:
             context['portscan'] = self.object.portscan

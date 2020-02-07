@@ -1,4 +1,5 @@
 {% extends "admin_base.html" %}
+
 {% load split_string %}
 
 {% block title %}WoTT - Device Info{% endblock title %}
@@ -21,24 +22,28 @@
               <tr>
                 <td class="wott-table-label" scope="row">
                     Node ID
-                    <a href="https://wott.io/documentation/faq#what-is-devicenode-id" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                    <a href="https://wott.io/documentation/faq#what-is-devicenode-id" target="_blank">
+                      {% include "badge.html" with icon="question-circle" color="primary" %}
+                    </a>
                 </td>
-                <td>{{ object.device_id|default_if_none:'N/A' }}</td>
+                <td>{{ object.device_id|default:'N/A' }}</td>
               </tr>
               <tr>
                 <td class="wott-table-label" scope="row">
                     FQDN
-                    <a href="https://wott.io/documentation/faq#whats-an-fqdn" target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
+                    <a href="https://wott.io/documentation/faq#whats-an-fqdn" target="_blank">
+                      {% include "badge.html" with icon="question-circle" color="primary" %}
+                    </a>
                 </td>
-                <td>{{ object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.fqdn|default:'N/A' }}</td>
               </tr>
               <tr>
                 <td class="wott-table-label" scope="row">IP</td>
-                <td>{{ object.deviceinfo.ipv4_address|default_if_none:'N/A' }}</td>
+                <td>{{ object.deviceinfo.ipv4_address|default:'N/A' }}</td>
               </tr>
               <tr>
                 <td class="wott-table-label" scope="row">Last Heartbeat</td>
-                <td>{{ object.last_ping|timesince }} ago</td>
+                <td>{% if object.last_ping %}{{ object.last_ping|timesince }} ago{% else %}N/A{% endif %}</td>
               </tr>
               </tbody>
             </table>
@@ -68,6 +73,5 @@
    .fa-exclamation-circle {
     color: #EF2F20 !important;
    }
-
   </style>
 {% endblock admin_content %}

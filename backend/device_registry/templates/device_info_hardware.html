@@ -1,4 +1,5 @@
 {% extends "admin_base.html" %}
+
 {% load split_string %}
 
 {% block title %}WoTT - Device Info{% endblock title %}
@@ -20,7 +21,7 @@
               <h4 class="wott-table-title wott-table-py">Hardware</h4>
                 <tr>
                   <td class="wott-table-label" scope="row">Manufacturer</td>
-                  <td>{{ object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
+                  <td>{{ object.deviceinfo.device_manufacturer|default:'N/A' }}</td>
                 </tr>
                 <tr>
                   <td class="wott-table-label" scope="row">Model</td>
@@ -28,7 +29,7 @@
                 </tr>
                 <tr>
                   <td class="wott-table-label" scope="row">Architecture</td>
-                  <td>{{ object.deviceinfo.device_architecture|default_if_none:'N/A'|upper }}</td>
+                  <td>{{ object.deviceinfo.device_architecture|default:'N/A'|upper }}</td>
                 </tr>
               </tbody>
             </table>
@@ -51,8 +52,6 @@
    .node-profile-hardware .wott-table-label  {
      width: 40% !important;
    } 
-
-  
   </style>
 {% endblock admin_content %}
 
