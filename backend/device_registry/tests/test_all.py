@@ -715,8 +715,8 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'telnetd</li>')
-        self.assertContains(response, 'fingerd</li>')
+        self.assertContains(response, '\n telnetd\n                              </li>')
+        self.assertContains(response, '\n fingerd\n                              </li>')
         self.assertNotContains(response, 'No insecure services detected')
         self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
                              [{'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386',

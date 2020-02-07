@@ -93,15 +93,15 @@ INSECURE_SERVICES = [
 
 SSHD_CONFIG_PARAMS_INFO = {
     'PermitEmptyPasswords': OpenSSHConfigParam(
-        'no', None, 1, Severity.HI),
+        'no', '', 1, Severity.HI),
     'PermitRootLogin': OpenSSHConfigParam(
         'no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', 2, Severity.MED),
     'PasswordAuthentication': OpenSSHConfigParam(
-        'no', 'https://wott.io/documentation/faq#openssh-password-authentication', 3, Severity.HI),
+        'no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', 3, Severity.HI),
     'AllowAgentForwarding': OpenSSHConfigParam(
-        'no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', 4, Severity.MED),
+        'no', 'https://wott.io/documentation/faq#openssh-allowagentforwarding', 4, Severity.MED),
     'Protocol': OpenSSHConfigParam(
-        '2', None, 5, Severity.HI)
+        '2', '', 5, Severity.HI)
 }
 
 PUBLIC_SERVICE_PORTS = {

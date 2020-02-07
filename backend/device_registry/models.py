@@ -76,7 +76,7 @@ class Device(models.Model):
     class SshdIssueItem(NamedTuple):
         safe_value: str
         unsafe_value: str
-        severity: Severity
+        doc_url: str
 
     device_id = models.CharField(
         max_length=128,
@@ -119,11 +119,11 @@ class Device(models.Model):
 
     @property
     def default_password(self):
-        if not hasattr(self, 'deviceinfo'):
-            return None
         if self.default_password_users:
             return True
-        elif self.deviceinfo.default_password is not None:
+        elif not hasattr(self, 'deviceinfo'):
+            return None
+        else:
             return self.deviceinfo.default_password
 
     @property
@@ -198,7 +198,7 @@ class Device(models.Model):
         if self.os_release.get('distro') == 'ubuntu-core':
             return True
         elif self.os_release.get('distro') == 'debian' or self.os_release.get('distro_root') == 'debian':
-            return self.deb_packages.filter(name='unattended-upgrades').exists() and self.auto_upgrades is True
+            return self.auto_upgrades and self.deb_packages.filter(name='unattended-upgrades').exists()
 
     @property
     def distribution(self):
@@ -217,7 +217,7 @@ class Device(models.Model):
             for file_info in self.audit_files:
                 if 'sshd' in file_info['name']:
                     return {k: self.SshdIssueItem(unsafe_value=v, safe_value=SSHD_CONFIG_PARAMS_INFO[k].safe_value,
-                                                  severity=SSHD_CONFIG_PARAMS_INFO[k].severity)
+                                                  doc_url=SSHD_CONFIG_PARAMS_INFO[k].doc_url)
                             for k, v in file_info['issues'].items()}
 
     @property
