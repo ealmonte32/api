@@ -42,6 +42,10 @@
     strongly recommend that you quickly resolve this issue by changing your password to a more secure one. Avoid
     passwords such as 123, password, and other variations of, and do not distribute your password to anyone. To be more
     secure, consider changing username as well. Default credentials will lower your node's Trust Score.
+  terminal_title: This is terminal title
+  terminal_code: |
+    $ code one
+    # code too
 - title: An FTP service has been detected
   id: 7
   subtitle: consider disabling FTP and switching to a new service

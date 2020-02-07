@@ -12,7 +12,7 @@
   <div id="actions-tab" class="">
     <div class="mb-3 w-100" id="alert-container">
       {% for action in actions %}
-        <div class="" role="alert">
+        <div class="wott-action" role="alert" wott-action-id="{{ action.action_id }}">
           <div class="full-alert-box mb-3 wott-box-shadow">
             
             <div class="d-flex wott-closed-box align-items-center">
@@ -41,7 +41,10 @@
               
                 
                 <div class="dropdown">
-                  <button id="toogle-ra" class="btn wott-btn-dropdown">VIEW DETAILS <i class=" ml-1 fas fa-sort-down"></i></button>
+                  <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
+                    VIEW DETAILS
+                    <i class=" ml-1 fas fa-sort-down"></i>
+                  </button>
                 </div>
               </div>
               
@@ -50,9 +53,10 @@
                 <div class="btn-group wott-alert-btn-group"
                     wott-action
                     wott-action-id="{{ action.action_id }}"
-                    wott-action-devices="{{ action.devices }}"
+                    wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
                     wott-action-title="{{ action.title }}">
-                  <button type="button" class="bg-white mr-4" data-dismiss="alert" wott-snooze wott-snooze-duration="0">
+                  <button type="button" class="bg-white mr-4" data-dismiss="alert"
+                          wott-snooze wott-snooze-duration="0" wott-snooze-type="Ignore">
                     <span><img src="{% static '/media/ignore-icon.png' %}"></span>
                     <div class="btn-img-text">IGNORE</div>
                   </button>
@@ -60,53 +64,66 @@
                     <span><img src="{% static '/media/snooze-icon.png' %}"></span>
                     <div class="btn-img-text">SNOOZE</div>
                   </button>
-                  <button type="button" class="bg-white" data-dismiss="alert" wott-snooze wott-snooze-duration="null">
+                  <button type="button" class="bg-white" data-dismiss="alert"
+                          wott-snooze wott-snooze-duration="null" wott-snooze-type="Resolve">
                     <span id="close-btn"><img src="{% static '/media/resolve-icon.png' %}"></span>
                     <div class="btn-img-text">RESOLVED</div>
                   </button>
                   <div class="dropdown-menu">
-                    <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24">24 hours</a>
-                    <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24*7">7 days</a>
+                    <a class="dropdown-item" href="#" data-dismiss="alert"
+                       wott-snooze wott-snooze-duration="24" wott-snooze-type="Snooze">24 hours</a>
+                    <a class="dropdown-item" href="#" data-dismiss="alert"
+                       wott-snooze wott-snooze-duration="24*7" wott-snooze-type="Snooze">7 days</a>
                   </div>
                 </div>
               </div>
               {% endifnotequal %}
             </div>
             
-            <section class="wott-open-box mb-4">
+            <section wott-action-id="{{ action.action_id }}" wott-action-expanded=false class="wott-open-box mb-4 d-none">
               <div class="wott-inner-open-box">
                 <div class="open-box-header d-flex align-items-center justify-content-between">
+                {% if action.action_id != 0 %}
                   <h4 class="mb-0 open-box-header-text">Affected Nodes:</h4>
-                  <a href="#" class="wott-node">WOTT-1</a>
-                  <a href="#" class="wott-node">WOTT-2</a>
-                  <a href="#" class="wott-node">WOTT-3</a>
-                  <a href="#" class="wott-node">WOTT-4</a>
-                  <a href="#" class="wott-node">WOTT-5</a>
-                  <button id="" class="btn wott-btn-header">VIEW ALL NODES +</button>
+                  {% for d in action.devices %}
+                    <a href="{% url 'device-detail' d.pk %}" class="wott-node">{{ d.get_name }}</a>
+                  {% endfor %}
+                  <button wott-action-id="{{ action.action_id }}" class="btn wott-btn-header">
+                    VIEW ALL NODES +
+                    <template>
+                    {% for d in action.devices %}
+                      <a href="{% url 'device-detail' d.pk %}" class="wott-node">{{ d.get_name }}</a>
+                    {% endfor %}
+                    </template>
+                  </button>
+                {% endif %}
                 </div>
-                <!-- <p class="actions-safe">{{ action.html|safe }}</p> -->
-                <p class="actions-safe">We found insecure configuration issue with OpenSSH on <a href="/devices/1/">artem-linux-gf</a>, <a href="/devices/9/">clone</a>: insecure parameter PermitRootLogin. To improve the security posture of your node, please consider changing PermitRootLogin to "no".</p>
-                <p class="actions-safe">We found insecure configuration issue with OpenSSH on.</p>
+                {{ action.short_html|safe }}
+
+                {% if action.terminal_title %}
                 <div class="inner-open-box d-flex align-items-center">
                   <a href="#" class="nav-open-box">MANUAL</a>
                   <a href="#" class="nav-open-box2">ANSIBLE</a>
                 </div>
                 <div class="open-box-tab">
-                  <p class="">Run the following command to bring your system up to date</p>
+                  <p class="terminal-title">{{ action.terminal_title }}</p>
                   <div class="terminal-box">
                     <div class="terminal-header">
                       <h5>Terminal</h5>
                     </div>
                     <div class="terminal-body">
                       <div class="terminal-text">
-                        <span class="terminal-instructions">$ dotnet add package Wott.io</span>
-                        <span class="terminal-instructions">> dotnet restore</span>
+                        <span class="terminal-instructions">{{ action.terminal_code|linebreaksbr }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
+              {% endif %}
                
                 <h4 class="line-box"><a class="mb-0" href="{{ action.doc_url }}">Learn More</a></h4>
+                <div class="wott-inner-open-box">
+                  {{ action.long_html|safe }}
+                </div>
                 
                 
               </div>
@@ -134,9 +151,26 @@
   {{ block.super }}
   <script>
    
-    $('.wott-open-box').css("display", "none") // change to block/none to see/hide the open box
+    $('.toggle-ra-button').click((e) => {
+        let action_id = $(e.target).attr('wott-action-id'),
+            block = $(`.wott-open-box[wott-action-id=${action_id}]`),
+            expanded = block.attr('wott-action-expanded') === 'true';
 
+        console.log(action_id);
+        block.toggleClass("d-none", expanded);
+        block.toggleClass("d-block", !expanded);
+        block.attr('wott-action-expanded', !expanded);
+    });
 
+    $('.wott-btn-header').click((e) => {
+        let btn = $(e.target);
+        let action_id = btn.attr('wott-action-id');
+        console.log(action_id, btn.children('template').html());
+    });
+
+    function viewNodes(id) {
+
+    }
 
     /**
      * Snooze an action. Used by the close icon on the alerts.
@@ -153,17 +187,19 @@
               duration: duration
           }),
           contentType: "application/json; charset=utf-8",
-          dataType: "json"
+          success: () => {
+            $(`.wott-action[wott-action-id=${id}]`).toggleClass('d-none')
+          }
       });
     }
 
     $(() => {
         $('[wott-snooze]').click((e) => {
-            let button = $(e.target), parent = button.closest('[wott-action]');
+            let button = $(e.target).closest('[wott-snooze-duration]'), parent = button.closest('[wott-action]');
             let id = eval(parent.attr('wott-action-id')),
                 devices = eval(parent.attr('wott-action-devices')),
                 duration = eval(button.attr('wott-snooze-duration')),
-                snooze_type = duration? "Snooze":  button.text(),
+                snooze_type = button.attr('wott-snooze-type'),
                 title = parent.attr('wott-action-title');
             console.log(id, devices, duration, snooze_type, title);
             snoozeAction(id, devices, duration);

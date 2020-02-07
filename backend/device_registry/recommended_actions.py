@@ -65,7 +65,10 @@ class Action(NamedTuple):
     """
     title: str
     subtitle: str
-    description: str
+    short: str
+    long: str
+    terminal_title: str
+    terminal_code: str
     action_id: int
     devices: List[int]
     severity: Severity
@@ -74,8 +77,12 @@ class Action(NamedTuple):
     resolved: bool = None
 
     @property
-    def html(self):
-        return markdown.markdown(self.description)
+    def short_html(self):
+        return markdown.markdown(self.short)
+
+    @property
+    def long_html(self):
+        return markdown.markdown(self.long)
 
 
 INSECURE_SERVICES = [
@@ -180,11 +187,15 @@ class BaseAction:
             issue_number = profile.github_issues.get(str(cls.action_id))
         issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
         return Action(
-            cls.action_config['title'].format(**context),
-            cls.action_config['subtitle'].format(**context),
-            cls.action_config['short'].format(**context),
-            cls.action_id, devices_list,
-            cls.severity,
+            title=cls.action_config['title'].format(**context),
+            subtitle=cls.action_config['subtitle'].format(**context),
+            short=cls.action_config['short'].format(**context),
+            long=cls.action_config['long'].format(**context),
+            terminal_title=cls.action_config.get('terminal_title', '').format(**context),
+            terminal_code=cls.action_config.get('terminal_code', '').format(**context),
+            action_id=cls.action_id,
+            devices=devices_list,
+            severity=cls.severity,
             issue_url=issue_url,
             doc_url=cls.doc_url
         )
@@ -200,7 +211,7 @@ class BaseAction:
         """
         context = cls.get_context(devices=devices, device_pk=device_pk)
         context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
-        return cls._create_action(user.profile, context, [d.pk for d in devices])
+        return cls._create_action(user.profile, context, [d for d in devices])
 
     @classmethod
     def get_description(cls, user, body=None, additional_context=None) -> (str, str):
