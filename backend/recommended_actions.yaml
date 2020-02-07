@@ -309,3 +309,28 @@
     Packages are a key part of most Linux based operating systems software. Typically when downloading additional software onto Linux systems, it comes in pre-compiled packages that contain relevant information about updates, versions, and security. Inbuilt software therefore also has packages and these packages depend on the Linux distribution run. For example, Debian distributions have `DEB` packages and Red Hat has `RPM` packages with many other package systems being based off these two.
 
     Over time, if not updated, these packages become vulnerable to security risks leaving them open to exploitation from external attackers. These operating system packages can then be used by an attacker to gain access to your server, or its permissions and then escalate them. Fortunately, these packages are updated frequently. WoTT can detect an out-of-date or insecure package. Usually, it is only necessary to update the package or packages by running `sudo apt-get update && sudo apt-get upgrade` to obtain the most recent, secure version. However, it is also possible that a package has not had its security vulnerability resolved yet by the operating system vendor. In this case, it is safer to disable a particular package where possible.
+- title: Enable our GitHub integration for improved workflow
+  id: -1
+  subtitle: Streamline the remediation process and assign issues to team members.
+  short: |
+    You can integrate GitHub with WoTT. By doing so, GitHub Issues will automatically be generated based on your Recommended Actions. These can then be scheduled into sprints and assigned to team members.
+  long: |
+    To get started with WoTT's GitHub integration, click the menu in the upper right-hand side of your screen and select 'GitHub Integration' and follow the steps.
+
+    Your Recommended Actions will then automatically be turned into GitHub Issues as they appear. Moreover, we will also automatically update said GitHub issues as the Recommended Actions are being updated. For instance, if the Recommended Action has been resolved, the GitHub Issue will automatically get closed.
+- title: Install the agent on your node(s) to get started
+  id: -2
+  subtitle: Without any nodes, we can't provide you with any insights.
+  short: |
+    WoTT uses an agent to perform the security audit. Without the agent installed on any of your servers, we are unable to provide you with any insights on your security posture.
+  long: |
+    To get started, you need to install our [agent](https://github.com/WoTTsecurity/agent) on your servers. The agent performs a security audit, which is then sent to our back-end for processing. With this data, we are able to provide you with tailored recommendations for how to improve your security posture.
+
+    For the security minded people, we are happy to let you know that the agent is fully open source, so you can inspect the code base before you install it if you so desire.
+
+    While the installation instructions below are useful for installing on small number of hosts, we also have an [Ansible Playbook](\https://github.com/WoTTsecurity/examples/tree/master/ansible) if you want to deploy the agent to a larger fleet of servers.
+  terminal_title: |
+    To install the agent, run the following command:
+  terminal_code: |
+    $ export CLAIM_TOKEN="x"
+    $ curl -sL https://install.wott.io | sudo -E bash

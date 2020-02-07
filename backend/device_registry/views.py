@@ -23,7 +23,7 @@ from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
     RecommendedAction, HistoryRecord, Vulnerability
 from .models import GlobalPolicy
-from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
+from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity, EnrollAction, GithubAction
 
 
 class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
@@ -573,35 +573,14 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                     actions.append(a)
         else:  # User has no devices - display the special action.
             device_name = None
-            actions = [Action(
-                title='Enroll your node(s) to unlock this feature',
-                subtitle='...',
-                description='In order to receive recommended actions, click "Add Node" under "Dashboard" to receive ' \
-                            'instructions on how to enroll your nodes.',
-                action_id=0,
-                devices=[],
-                severity=Severity.LO
-            )]
+            actions = [EnrollAction.action(self.request.user, [])]
 
         # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
         # and has not set up integration with any Github repo. Only shown on common actions page.
         if not (self.request.user.profile.github_oauth_token and
                 self.request.user.profile.github_repo_id) and \
                 device_pk is None:
-            actions.append(Action(
-                title='Enable our GitHub integration for improved workflow',
-                subtitle='turn on the setting',
-                description='Did you know that WoTT integrates directly with GitHub? By enabling this integration, '
-                            'GitHub Issues are automatically created and updated for Recommended Actions. You can then '
-                            'easily assign these Issues to team members and integrate them into your sprint planning.'
-                            '\n\n'
-                            'Please note that we recommend that you use a private GitHub repository for issues.\n\n'
-                            'You can find the GitHub integration settings in under your profile in the upper right-hand '
-                            'corner.',
-                action_id=0,
-                devices=[],
-                severity=Severity.LO
-            ))
+            actions.append(GithubAction.action(self.request.user, []))
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.
         actions.sort(key=lambda a: (a.severity.value, a.action_id))

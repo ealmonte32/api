@@ -67,11 +67,11 @@ class Action(NamedTuple):
     subtitle: str
     short: str
     long: str
-    terminal_title: str
-    terminal_code: str
     action_id: int
     devices: List[int]
     severity: Severity
+    terminal_title: str = None
+    terminal_code: str = None
     doc_url: str = '/'
     issue_url: str = None
     resolved: bool = None
@@ -370,7 +370,7 @@ class ActionMeta(type):
         :param grouped:
         :return:
         """
-        regular = list(meta._action_classes.values())
+        regular = [c for c in meta._action_classes.values() if c.action_id > 0]
         return regular + (list(meta._grouped_action_classes) if grouped
                           else list(meta._ungrouped_action_classes.values()))
 
@@ -570,3 +570,13 @@ class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):
     @classmethod
     def is_affected(cls, device) -> bool:
         return device.cpu_vulnerable is True
+
+
+class GithubAction(BaseAction, metaclass=ActionMeta):
+    action_id = -1
+    severity = Severity.LO
+
+
+class EnrollAction(BaseAction, metaclass=ActionMeta):
+    action_id = -2
+    severity = Severity.LO

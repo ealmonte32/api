@@ -48,7 +48,7 @@
                 </div>
               </div>
               
-              {% ifnotequal action.action_id 0 %}
+            {% if action.action_id > 0 %}
               <div class="btn-group-box">
                 <div class="btn-group wott-alert-btn-group"
                     wott-action
@@ -77,13 +77,13 @@
                   </div>
                 </div>
               </div>
-              {% endifnotequal %}
+            {% endif %}
             </div>
             
             <section wott-action-id="{{ action.action_id }}" wott-action-expanded=false class="wott-open-box mb-4 d-none">
               <div class="wott-inner-open-box">
                 <div class="open-box-header d-flex align-items-center justify-content-between">
-                {% if action.action_id != 0 %}
+                {% if action.action_id > 0 %}
                   <h4 class="mb-0 open-box-header-text">Affected Nodes:</h4>
                   {% for d in action.devices %}
                     <a href="{% url 'device-detail' d.pk %}" class="wott-node">{{ d.get_name }}</a>
