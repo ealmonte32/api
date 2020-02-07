@@ -13,9 +13,9 @@ import markdown
 
 
 class Severity(Enum):
-    LO = ('Low', 'secondary')
-    MED = ('Medium', 'warning')
-    HI = ('High', 'danger')
+    LO = ('Low', 'secondary', 1)
+    MED = ('Medium', 'warning', 2)
+    HI = ('High', 'danger', 3)
 
 
 class InsecureService(NamedTuple):
@@ -452,7 +452,6 @@ class BaseInsecureServicesAction(BaseAction):
         return device.deb_packages.filter(name=cls.service_name).exists()
 
 
-
 for name, sub_id, severity in INSECURE_SERVICES:
     class ConcreteInsecureServicesAction(BaseInsecureServicesAction, metaclass=ActionMeta):
         action_id = sub_id + InsecureServicesGroupAction.action_id
@@ -492,34 +491,6 @@ for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
 class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
     action_id = 6
     severity = Severity.HI
-
-    @classmethod
-    def get_doc_url(cls, devices):
-        debian_url = 'https://wiki.debian.org/UnattendedUpgrades'
-        ubuntu_url = 'https://help.ubuntu.com/lts/serverguide/automatic-updates.html'
-        if len(devices) > 1:
-            # Provide Debian's link if more than 1 device.
-            return debian_url
-        else:
-            if devices[0].os_release.get('distro') == 'ubuntu':
-                return ubuntu_url
-            else:  # Everything besides Ubuntu is Debian.
-                return debian_url
-
-    @classmethod
-    def get_context(cls, devices, device_pk=None):
-        if device_pk is None:
-            if len(devices) > 1:
-                subject, verb = 'your nodes ', 'are'
-            else:
-                subject, verb = 'your node ', 'is'
-        else:
-            subject, verb = '', 'is'
-        return {
-            'subject': subject,
-            'verb': verb,
-            'doc_url': cls.get_doc_url(devices)
-        }
 
     @classmethod
     def affected_devices(cls, qs):

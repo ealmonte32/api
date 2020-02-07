@@ -59,7 +59,6 @@ class Profile(models.Model):
     def actions_weekly(self):
         now = timezone.now()
         sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
-        last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
         this_monday = sunday + relativedelta(days=1)  # This week's monday
         all_ids = [ra.action_id for ra in ActionMeta.all_classes()]
 

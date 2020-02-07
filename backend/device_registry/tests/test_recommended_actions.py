@@ -383,8 +383,6 @@ class TestsMixin:
         self.assertEqual(len(response.context['actions']), 0)
 
     def test_get(self):
-        search_string_common_page = self.get_search_string()
-
         # No action at the beginning.
         self.device.generate_recommended_actions()
         self.assertFalse(self.action_class.is_affected(self.device))
@@ -403,7 +401,10 @@ class TestsMixin:
         self.check_description()
 
     def check_description(self):
-        title, text = self.action_class.get_description(self.user, additional_context=dict(devices='this node'))
+        title, text = self.action_class.get_description(self.user)
+        # Just check that title and text are not None and not empty.
+        self.assertTrue(title)
+        self.assertTrue(text)
 
     def check_action(self, action: Action):
         self.assertEquals(action.action_id, self.action_class.action_id)
@@ -413,8 +414,6 @@ class TestsMixin:
 
 
 class DefaultCredentialsActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found default credentials present on [{name}]({url})'
-    search_pattern_device_page = 'We found default credentials present on this node'
     action_class = DefaultCredentialsAction
 
     def enable_action(self):
@@ -429,8 +428,6 @@ class DefaultCredentialsUsersTest(DefaultCredentialsActionTest):
 
 
 class FirewallDisabledActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found permissive firewall policy present on [{name}]({url})'
-    search_pattern_device_page = 'We found permissive firewall policy present on this node'
     action_class = FirewallDisabledAction
 
     def enable_action(self):
@@ -451,8 +448,6 @@ class FirewallPolicyActionTest(FirewallDisabledActionTest):
 
 
 class VulnerablePackagesActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found vulnerable packages on [{name}]({url})'
-    search_pattern_device_page = 'We found vulnerable packages on this node'
     action_class = VulnerablePackagesAction
 
     def enable_action(self):
@@ -468,9 +463,6 @@ class VulnerablePackagesActionTest(TestsMixin, TestCase):
 
 
 class AutoUpdatesActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We found that your node [{name}]({url}) is not configured to automatically ' \
-                                 'install security updates'
-    search_pattern_device_page = 'We found that this node is not configured to automatically install security updates'
     action_class = AutoUpdatesAction
 
     def enable_action(self):
@@ -479,9 +471,6 @@ class AutoUpdatesActionTest(TestsMixin, TestCase):
 
 
 class MySQLDefaultRootPasswordActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We detected that there is no root password set for MySQL/MariaDB on ' \
-                                 '[{name}]({url})'
-    search_pattern_device_page = 'We detected that there is no root password set for MySQL/MariaDB on this node'
     action_class = MySQLDefaultRootPasswordAction
 
     def enable_action(self):
@@ -507,41 +496,13 @@ class InsecureServicesActionTest(TestsMixin, TestCase):
     def test_get(self):
         for subclass in InsecureServicesGroupAction.subclasses:
             self.action_class = subclass
-            self.search_pattern_device_page = 'We found ' + self.action_class.service_name + ' installed on this node'
-            self.search_pattern_common_page = 'We found ' + self.action_class.service_name + ' installed on [{name}]({url})'
+
+
             super().test_get()
             self.disable_action()
 
-    def check_description(self):
-        pass
-
-    # def test_group(self):
-    #     services_installed = ['fingerd', 'tftpd']
-    #     service_not_installed = 'telnetd'
-    #     for pkg_name in services_installed:
-    #         deb_package = DebPackage.objects.create(name=pkg_name, version='version1',
-    #                                                 source_name=pkg_name,
-    #                                                 source_version='sversion1',
-    #                                                 arch='amd64', os_release_codename='jessie')
-    #         self.device.deb_packages.add(deb_package)
-    #     self.device.generate_recommended_actions()
-    #
-    #     title, text = InsecureServicesGroupAction.get_description(self.user,
-    #                                                               additional_context=dict(devices='your nodes'))
-    #     self.assertEqual(title, 'Insecure services found')
-    #     self.assertIn('We found insecure services installed on your nodes.', text)
-    #     for pkg_name in services_installed:
-    #         self.assertIn(f'### {pkg_name} ###', text)
-    #         self.assertIn(f'Run `sudo apt-get remove {pkg_name}` to remove it.', text)
-    #     self.assertNotIn(f'### {service_not_installed} ###', text)
-    #     self.assertNotIn(f'Run `sudo apt-get remove {service_not_installed}` to remove it.', text)
-
 
 class OpensshIssueActionTest(TestsMixin, TestCase):
-    search_pattern_common = 'We found insecure configuration issue with OpenSSH on [{name}]({url}): ' \
-                            'insecure parameter '
-    search_pattern_device = 'We found insecure configuration issue with OpenSSH on this node: ' \
-                            'insecure parameter '
     bad_config = {'PermitRootLogin': 'prohibit-password',
                   'AllowAgentForwarding': 'yes',
                   'PasswordAuthentication': 'yes',
@@ -568,37 +529,11 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
     def test_get(self):
         for subclass in OpensshIssueGroupAction.subclasses:
             self.action_class = subclass
-            self.search_pattern_common_page = self.search_pattern_common + self.action_class.sshd_param
-            self.search_pattern_device_page = self.search_pattern_device + self.action_class.sshd_param
             super().test_get()
             self.disable_action()
 
-    # def test_group(self):
-    #     good_config_name = list(self.bad_config.keys())[0]
-    #     bad_config = self.bad_config.copy()
-    #     del(bad_config[good_config_name])
-    #     self.device.audit_files[0]['issues'] = bad_config
-    #     self.device.save(update_fields=['audit_files'])
-    #     self.device.generate_recommended_actions()
-    #
-    #     title, text = OpensshIssueGroupAction.get_description(self.user,
-    #                                                           additional_context=dict(devices='your nodes'))
-    #     self.assertIn('We found insecure configuration issues with OpenSSH on your nodes. To improve the '
-    #                   'security posture of your node, please consider making the following changes:', text)
-    #     self.assertEqual(title, 'Insecure configuration for OpenSSH found')
-    #     for config_name in bad_config:
-    #         self.assertIn(f'### {config_name} ###', text)
-    #         self.assertIn(f'Please consider changing {config_name}', text)
-    #     self.assertNotIn(f'### {good_config_name} ###', text)
-    #     self.assertNotIn(f'Please consider changing {good_config_name}', text)
-
-    def check_description(self):
-        pass
-
 
 class FtpServerActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'There appears to be an FTP server running on [{name}]({url})'
-    search_pattern_device_page = 'There appears to be an FTP server running on this node'
     action_class = FtpServerAction
 
     def enable_action(self):
@@ -609,10 +544,6 @@ class FtpServerActionTest(TestsMixin, TestCase):
 
 
 class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
-    search_pattern_common = 'We detected that a {service} instance on [{{name}}]({{url}}) may be ' \
-                                 'accessible remotely'
-    search_pattern_device = 'We detected that a {service} instance on this node may be accessible remotely'
-
     def enable_action(self):
         dummy_pid = 34568
         self.device.deviceinfo.processes = {str(dummy_pid): (self.action_class.service, '', '', None)}
@@ -629,53 +560,14 @@ class PubliclyAccessibleServiceActionTest(TestsMixin, TestCase):
         self.device.portscan.scan_info = []
         self.device.portscan.save(update_fields=['scan_info'])
 
-    def check_description(self):
-        pass
-
     def test_get(self):
-        for subclass in [PubliclyAccessibleServiceGroupAction.subclasses[0]]:
+        for subclass in PubliclyAccessibleServiceGroupAction.subclasses:
             self.action_class = subclass
-            self.search_pattern_common_page = self.search_pattern_common.format(service=subclass.service_name)
-            self.search_pattern_device_page = self.search_pattern_device.format(service=subclass.service_name)
             super().test_get()
             self.disable_action()
 
-    # def test_group(self):
-    #     dummy_pid = 34568
-    #     publicly_available = ['mongod', 'mysqld', 'memcached']
-    #     not_publicly_available = 'redis-server'
-    #     for service in publicly_available:
-    #         self.device.deviceinfo.processes[str(dummy_pid)] = (service, '', '', None)
-    #         self.device.portscan.scan_info.append(
-    #             {'ip_version': 4, 'proto': 'tcp', 'state': 'LISTEN', 'host': '0.0.0.0',
-    #              'port': PUBLIC_SERVICE_PORTS[service][0], 'pid': dummy_pid}
-    #         )
-    #         dummy_pid += 1
-    #     self.device.deviceinfo.save(update_fields=['processes'])
-    #     self.device.portscan.save(update_fields=['scan_info'])
-    #     self.device.generate_recommended_actions()
-    #
-    #     title, text = PubliclyAccessibleServiceGroupAction.get_description(self.user,
-    #                                                                        additional_context=dict(devices='your nodes'))
-    #     self.assertEqual(title, 'Your services may be publicly accessible')
-    #     for service in publicly_available:
-    #         port, name = PUBLIC_SERVICE_PORTS[service][:2]
-    #         self.assertIn(f'### {name} ###', text)
-    #         self.assertIn(f'We detected that a {name} instance on your nodes may be accessible '
-    #                       f'remotely. Consider either blocking port {port} through the WoTT firewall '
-    #                       f'management tool, or re-configure {name} to only listen on localhost.',
-    #                       text)
-    #     port, name = PUBLIC_SERVICE_PORTS[not_publicly_available][:2]
-    #     self.assertNotIn(f'### {name} ###', text)
-    #     self.assertNotIn(f'We detected that a {name} instance on your nodes may be accessible '
-    #                      f'remotely. Consider either blocking port {port} through the WoTT firewall '
-    #                      f'management tool, or re-configure {name} to only listen on localhost.',
-    #                      text)
-
 
 class CpuVulnerableActionTest(TestsMixin, TestCase):
-    search_pattern_common_page = 'We detected that [{name}]({url}) is vulnerable to Meltdown/Spectre'
-    search_pattern_device_page = 'We detected that this node is vulnerable to Meltdown/Spectre'
     action_class = CpuVulnerableAction
 
     def enable_action(self):

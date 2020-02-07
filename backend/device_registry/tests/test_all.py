@@ -1,6 +1,6 @@
 import json
 import sys
-from statistics import mean
+from collections import defaultdict
 from unittest.mock import patch
 
 from dateutil.relativedelta import relativedelta, TU, SU
@@ -24,6 +24,7 @@ from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState
     GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
+from device_registry.recommended_actions import BaseAction, ActionMeta, Severity
 from device_registry.views import CVEView
 from profile_page.models import Profile
 
@@ -1273,6 +1274,94 @@ class DashboardViewTests(TestCase):
             device_id='device0.d.wott-dev.local',
             owner=self.user
         )
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            owner=self.user
+        )
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        severities = [Severity.LO, Severity.HI, Severity.MED, Severity.MED,
+                      Severity.HI, Severity.MED, Severity.MED, Severity.HI]
+        cls.test_actions = []
+        for i in range(len(severities)):
+            class TestActionOne(BaseAction, metaclass=ActionMeta):
+                """
+                A simple dummy action class with specified severity.
+                """
+                action_id = 9990 + i
+                severity = severities[i]
+                action_config = defaultdict(str)
+
+            cls.test_actions.append(TestActionOne)
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        for a in cls.test_actions:
+            ActionMeta.unregister(a)
+
+    def test_empty(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context_data['weekly_progress'], 0)
+        self.assertListEqual(response.context_data['actions'], [])
+
+    def test_weekly_ra(self):
+        today = timezone.now()
+        RecommendedAction.objects.bulk_create([
+            # Both devices affected - counts as one RA.
+            # This one is low severity and will be displaced by three other RAs below.
+            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device0,
+                              status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device1,
+                              status=RecommendedAction.Status.AFFECTED),
+
+            # both devices affected - counts as one RA
+            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+
+            # one device is affected, second was never affected (and never fixed)
+            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+
+            # one device is affected, second fixed - still not fixed
+            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+
+            # fixed on both devices - completely fixed
+            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+
+            # one never affected, another one fixed - completely fixed
+            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+
+            # resolved a week ago - doesn't count
+            RecommendedAction(action_id=self.test_actions[6].action_id, device=self.device1,
+                              status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today - timezone.timedelta(days=7)),
+
+            # snoozed - doesn't count
+            RecommendedAction(action_id=self.test_actions[7].action_id, device=self.device1,
+                              status=RecommendedAction.Status.SNOOZED_FOREVER)
+        ])
+        # expected result: 1, 2, 3 - unfixed, 4, 5 - fixed
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual([(a.action_id, a.resolved) for a in response.context_data['actions']],
+                             [(self.test_actions[1].action_id, False),
+                              (self.test_actions[2].action_id, False),
+                              (self.test_actions[3].action_id, False),
+                              (self.test_actions[4].action_id, True),
+                              (self.test_actions[5].action_id, True)])
+        self.assertEqual(response.context_data['weekly_progress'], 40)
 
 
 class CVEViewTests(TestCase):
