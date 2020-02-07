@@ -22,8 +22,8 @@
                   <label for="alert-ra-{{forloop.counter}}"></label>
                 </div>
                 <div class="alert-box-text">
-                  <div class="d-flex align-items-center mb-0">
-                    <span class="alert-title"> <!--include solved-dash to linetrough the title-->
+                  <div class="d-flex align-items-center justify-content-between mb-0">
+                    <span class="alert-title"> <!--include solved-dash to linetrough the title when clicked-->
                       {{ action.title|safe }}
                       
                       {% if action.issue_url %}
@@ -55,18 +55,40 @@
                     wott-action-id="{{ action.action_id }}"
                     wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
                     wott-action-title="{{ action.title }}">
-                  <button type="button" class="bg-white mr-4" data-dismiss="alert"
-                          wott-snooze wott-snooze-duration="0" wott-snooze-type="Ignore">
-                    <span><img src="{% static '/media/ignore-icon.png' %}"></span>
+                  <button type="button" class="bg-white look-disable" data-dismiss="alert" wott-snooze wott-snooze-duration="0" wott-snooze-type="Ignore"> <!--@Artem: if btns disable include class look-disable -->
+                    <span>
+                      <img id="ignore-img"
+                              class="wott-img-btn"
+                              src="{% static '/media/multiply.svg' %}"
+                              data-src1="{% static '/media/multiply.svg' %}"
+                              data-src2="{% static '/media/close-selected.svg' %}"
+                              onmouseover="hover(this)"
+                              onmouseout="unhover(this)">
+                    </span>
                     <div class="btn-img-text">IGNORE</div>
                   </button>
-                  <button type="button" class="bg-white mr-4" data-toggle="dropdown">
-                    <span><img src="{% static '/media/snooze-icon.png' %}"></span>
+                  <button type="button" class="bg-white" data-toggle="dropdown"> <!--@Artem: if btns disable include class look-disable -->
+                    <span>
+                      <img id="snooze-img"
+                          class="wott-img-btn"
+                          src="{% static '/media/snooze-icon.svg' %}"
+                          data-src1="{% static '/media/snooze-icon.svg' %}"
+                          data-src2="{% static '/media/snooze-selected.svg' %}"
+                          onmouseover="hover(this)"
+                          onmouseout="unhover(this)">
+                    </span>
                     <div class="btn-img-text">SNOOZE</div>
                   </button>
-                  <button type="button" class="bg-white" data-dismiss="alert"
-                          wott-snooze wott-snooze-duration="null" wott-snooze-type="Resolve">
-                    <span id="close-btn"><img src="{% static '/media/resolve-icon.png' %}"></span>
+                  <button type="button" class="bg-white" data-dismiss="alert" wott-snooze wott-snooze-duration="null" wott-snooze-type="Resolve"><!--@Artem: if btns disable include class look-disable -->
+                    <span>
+                      <img id="resolved-img"
+                          class="wott-img-btn"
+                          src="{% static '/media/resolve-icon.svg' %}"
+                          data-src1="{% static '/media/resolve-icon.svg' %}"
+                          data-src2="{% static '/media/resolve-selected.svg' %}"
+                          onmouseover="hover(this)"
+                          onmouseout="unhover(this)"
+                         ></span>
                     <div class="btn-img-text">RESOLVED</div>
                   </button>
                   <div class="dropdown-menu">
@@ -119,9 +141,15 @@
                   </div>
                 </div>
               {% endif %}
-               
-                <h4 class="line-box"><a class="mb-0" href="{{ action.doc_url }}">Learn More</a></h4>
-                <div class="wott-inner-open-box">
+
+                <div class="line-box d-flex justify-content-between">
+                  <a class="mb-0" href="{{ action.doc_url }}">Learn More</a>
+                  <button class="wott-dropdown">
+                    <i class="fas fa-sort-down"></i>
+                  </button>
+                </div>
+                <div class="learn-more-box" style="display: none"> <!--@Artem: Change to display block-->
+                  <h4>This is a fake title</h4>
                   {{ action.long_html|safe }}
                 </div>
                 
@@ -135,16 +163,54 @@
     </div>
   </div>
 
-  <div class="row" style="display: none; margin-top: -1rem;" id="success-card">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Well Done!</h5>
+  <div class="recommendation-left-box bg-white p-5 mt-2 wott-box-shadow" style="display: none; margin-top: -1rem;" id="success-card">
+    <div class="full-alert-box mb-3">
+      <div class="alert-title">
+        <h5 class="alert-title-big mb-0">Well Done!</h5>
       </div>
-      <div class="card-body">
-        <p><i class="align-middle mr-2" data-feather="check"></i>No recommended tasks.</p>
+      <div class="alert-instruction-big mb-0">
+        <p class="alert-instruction-big"><i class="align-middle mr-2" data-feather="check"></i>No recommended tasks.</p>
       </div>
     </div>
   </div>
+  <style>
+
+    .alert-title-big {
+      font-size: 2rem;
+      color: #2460c8;
+    }
+
+    .alert-instruction-big {
+      font-size: 1.5rem;
+      color: #9298a5;
+      padding-top: 5px;;
+    }
+
+    .look-disable {
+      filter: grayscale(100%);
+      opacity: .5;
+      pointer-events: none;
+    }
+
+    .wott-dropdown {
+      background-color:  transparent;
+      width: auto;
+      padding :4px;
+      border: 0;
+    }
+
+    .learn-more-box {
+      background-color:#d9deee;
+      margin: -2.5rem 5.5rem 2.5rem;
+      padding: 2rem 2rem;
+      font-size: .8rem;
+      color:#495057;
+    }
+
+    .learn-more-box h4 {
+      padding: 0.5rem 0 1rem;
+    }
+  </style>
 {% endblock admin_content %}
 
 {% block scripts %}
@@ -161,6 +227,19 @@
         block.toggleClass("d-block", !expanded);
         block.attr('wott-action-expanded', !expanded);
     });
+    $('.wott-open-box').css("display", "none") // @Artem: change to block/none to see/hide the open box
+
+    function hover(e) {
+      let obj = document.getElementById(`${e.id}`);
+      let src = obj.getAttribute("data-src2");
+      e.setAttribute('src', src);
+    }
+
+    function unhover(e) {
+      let obj = document.getElementById(`${e.id}`);
+      let src = obj.getAttribute("data-src1");
+      e.setAttribute('src', src);
+    }
 
     $('.wott-btn-header').click((e) => {
         let btn = $(e.target);
