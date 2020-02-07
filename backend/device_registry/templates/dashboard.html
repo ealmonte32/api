@@ -113,8 +113,8 @@
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
           
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad3)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#7cacff" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle>
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#7cacff" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle>
           
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
@@ -155,7 +155,10 @@
         <li class="d-flex justify-content-between">
           <div class="d-flex flex-column">
             <div class="round">
-              <input type="checkbox" id="weekly-ra-{{forloop.counter}}" {% if action.resolved %}checked{% endif %}/>
+              <input type="checkbox"
+                     id="weekly-ra-{{forloop.counter}}"
+                     {% if action.resolved %}checked{% endif %}
+                     disabled/>
               <label for="weekly-ra-{{forloop.counter}}"></label>
             </div>
             <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">{{ action.title }}</h3>
@@ -187,8 +190,8 @@
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
           
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad2)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="4.5"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="3"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="4.5"></circle>
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="3"></circle>
           
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
