@@ -294,7 +294,7 @@
                     <td class="w-60">
                       <form method="POST" action="">
                         {% csrf_token %}
-                        <div class="wott-form-group d-flex pr-2">
+                        <div class="wott-form-group d-flex pr-4">
                           {{ global_policy_form.global_policy }}
                           <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
                         </div>
@@ -535,138 +535,7 @@
       </div>
     </div>
   </div>
-  <style>
-      .node-profile-security .wott-table tr {
-      font-size: 1rem!important;
-      display: -webkit-box!important;
-      display: flex!important;
-      -webkit-box-align: center!important;
-      align-items: center!important;
-      border-top: 1px solid hsla(0,0%,84.7%,.5);
-   }
-
-   .node-profile-security a {
-     color: #2460c8;
-   }
-   
-
-   .node-profile-security .wott-table-label  {
-     width: 40% !important;
-   } 
-
-   .inner-table {
-    width: 100%;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-    border-radius: 8px;
-   }
-
-   .inner-table .wott-table {
-     width: 100%;
-   }
-
-   .inner-table td {
-      font-size: .85rem;
-   }
-
-   .inner-table th {
-      font-size: .8rem;
-   }
-
-   .inner-table th:first-child {
-      padding-left: 15px !important;
-   }
-
-  #connections-table th:first-child,
-  #connections-table td:first-child {
-    padding-left: 0px !important;
-  }
-
-  #connections-table th,
-  #connections-table td {
-    word-wrap: break-word;
-    font-size: .8rem;
-  }
-
-  @media screen and (max-width: 1380px) {
-    #connections-table th,
-    #connections-table td {
-      font-size: .7rem;
-    }
-  }
-
-  @media screen and (max-width: 1250px) {
-    #connections-table th,
-    #connections-table td {
-      font-size: .65rem;
-    }
-  }
-
-  @media screen and (max-width: 1200px) {
-    #connections-table th,
-    #connections-table td {
-      font-size: .6rem;
-    }
-  }
-
-  @media screen and (max-width: 1110px) {
-    #connections-table th,
-    #connections-table td {
-      font-size: .55rem;
-    }
-  }
-
-
-   .wott-inner-table-message {
-    width: auto;
-    padding: .8rem 4.5rem !important;
-    display: inline-block;
-    background-color: #e9edf7; 
-    border: none;
-    border-radius: 8px;
-    font-size: .9rem;
-    text-transform: uppercase;
-    color: #2460c8;
-    font-weight: 700;
-  }
-
-   @media screen and (max-width: 1200px) {
-    .inner-table td{
-      font-size: .68rem;
-    }
-   }
-
-   .w-60 {
-     width: 60%;
-   }
-
-   #id_global_policy {
-    width: 80%;
-    margin-right: 5%;
-    padding-left: 3%;
-   }
-
-   .btn-link {
-     color: #2460c8 !important;
-   }
-
-   .fa-question-circle {
-    color: #7F8899 !important;
-   }
-
-   .fa-exclamation-circle {
-    color: #EF2F20 !important;
-   }
-
-   .badge-info {
-     background-color: #2460c8 !important;
-   }
-
-   #certificate-download-link {
-     font-size: .9rem;
-   }
   
-  </style>
 {% endblock admin_content %}
 
 {% block scripts %}
