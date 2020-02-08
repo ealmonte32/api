@@ -61,19 +61,33 @@
 
     <div class="main">
       <nav class="navbar navbar-expand navbar-light">
-        <div class="navbar-collapse collapse">
+        <div id="dropdown-settings-nav" class="navbar-collapse collapse">
           {% block dashboard_title %}
           {% endblock dashboard_title %}
           <ul class="navbar-nav">
             <li class="nav-item dropdown">
               <a class="nav-linkq" href="#" data-toggle="dropdown">
               <div id="username-box" class="text-dark">{{ user.username }}</div>
-              <div class="icon-container"><span class="dropdown-toggle"></span></div>
+              <div class="icon-container"><span class="sort-symbol"><i class="fas fa-sort-down"></i></span></div>
             </a>
-              <div class="dropdown-menu dropdown-menu-right">
-                <a class="dropdown-item" href="{% url 'profile' %}"><i class="align-middle mr-1" data-feather="user"></i>Profile</a>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="{% url 'auth_logout' %}">Sign out</a>
+              <div class="dropdown-menu dropdown-menu-right wott-box-shadow">
+                <div class="p-relative">
+                  <div class="dropdown-nav-block">
+                    {% include "menu_item.html" with tab=tab_account url='profile' image='/media/account.svg' image_selected='/media/account-selected.svg' label="Account" %}
+                    {% include "menu_item.html" with tab=tab_password url='profile_password' image='/media/password.svg' image_selected='/media/password-selected.svg' label="Password" %}
+                    {% include "menu_item.html" with tab=tab_api_token url='profile_token' image='/media/api.svg' image_selected='/media/api-selected.svg' label="API Token" %}
+                    {% include "menu_item.html" with tab=tab_github_integration url='github_integration' image='/media/github.svg' image_selected='/media/github-selected.svg' label="GitHub Integration" beta_badge=False %}
+                    {% include "menu_item.html" with tab=tab_slack_integration url='slack_integration' image='/media/slack.svg' image_selected='/media/slack-selected.svg' label="Slack Integration"%}
+                    {% include "menu_item.html" with tab=tab_payment_plan url='payment_plan' image='/media/payment.svg' image_selected='/media/payment-selected.svg' label="Payment Plan" %}
+                    <div class="dropdown-divider mt-0 mb-0" ></div>
+                    <div class="sidebar-item py-2">
+                      <a class="sidebar-link py-3 px-0 d-flex border-0" href="{% url 'auth_logout' %}">
+                        <img src="{% static '/media/logout.svg'%}" alt="Logout">
+                        <h4 class="wott-blue">Sign out</h4>
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </div>
             </li>
           </ul>
@@ -246,5 +260,18 @@
       $("#admin-inst-btn,#inst-btn").on('click', () => mixpanel.track("Add Node"));
 
     {% endif %}
+
+    let flag = true;
+    let sort_container = $('.icon-container')[0];
+    let dropdown = $('.nav-item.dropdown')[0];
+    sort_container.onclick = (e) => {
+      if(flag) { 
+        sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-sort-up"></i></span>';
+        flag = false;
+      } else {
+         sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-sort-down"></i></span>';
+         flag = true;
+      }
+    }
   </script>
 {% endblock %}
