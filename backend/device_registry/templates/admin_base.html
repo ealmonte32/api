@@ -266,10 +266,10 @@
     let dropdown = $('.nav-item.dropdown')[0];
     sort_container.onclick = (e) => {
       if(flag) { 
-        sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-caret-right"></i></span>';
+        sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-caret-down"></i></span>';
         flag = false;
       } else {
-         sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-caret-down"></i></span>';
+         sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-caret-right"></i></span>';
          flag = true;
       }
     }
