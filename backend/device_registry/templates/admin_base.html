@@ -68,7 +68,7 @@
             <li class="nav-item dropdown">
               <a class="nav-linkq" href="#" data-toggle="dropdown">
               <div id="username-box" class="text-dark">{{ user.username }}</div>
-              <div class="icon-container"><span class="sort-symbol"><i class="fas fa-sort-down"></i></span></div>
+              <div class="icon-container"><span class="sort-symbol"><i class="fas fa-caret-right"></i></span></div>
             </a>
               <div class="dropdown-menu dropdown-menu-right wott-box-shadow">
                 <div class="p-relative">
@@ -159,7 +159,7 @@
     </button>
     <textarea hidden id="bash-clipboard"><!-- copy --></textarea>
   </template>
- 
+
 {% endblock %}
 
 {% block scripts %}
@@ -266,10 +266,10 @@
     let dropdown = $('.nav-item.dropdown')[0];
     sort_container.onclick = (e) => {
       if(flag) { 
-        sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-sort-up"></i></span>';
+        sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-caret-down"></i></span>';
         flag = false;
       } else {
-         sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-sort-down"></i></span>';
+         sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-caret-right"></i></span>';
          flag = true;
       }
     }

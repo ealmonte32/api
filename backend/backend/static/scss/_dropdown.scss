@@ -75,7 +75,7 @@
    content: "";
    position: absolute;
    top: -9px;
-   left: 299px;
+   left: 258px;
    width: 0;
    border-bottom: 10px solid #fff;
    border-left: 10px solid transparent;
@@ -87,8 +87,8 @@
   }
   
   .sidebar-item {
-   padding:.6rem 1.5rem 0rem 3.5rem;
-   margin: 0rem !important;
+    padding: .6rem 1rem 0 2.5rem;
+    margin: 0!important;
   }
   
   .dropdown-menu {
@@ -96,11 +96,11 @@
   }
   
   .dropdown-menu-right {
-   width: 170%;
-   border-radius: 8px;
-   margin-top: 15px;
-   border: 0;
-   box-shadow: 1px 1px 15px #e5e9f2 !important;
+    width: 150%;
+    border-radius: 8px;
+    margin-top: 15px;
+    border: 0;
+    box-shadow: 1px 1px 15px #e5e9f2 !important;
   }
   
   .sidebar-item:hover,
