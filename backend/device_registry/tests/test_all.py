@@ -683,8 +683,8 @@ class DeviceDetailViewTests(TestCase):
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, '>telnetd<')
-        self.assertNotContains(response, '>fingerd<')
+        self.assertNotContains(response, 'telnetd')
+        self.assertNotContains(response, 'fingerd')
         self.assertNotContains(response, 'No insecure services detected')
 
         self.device.set_deb_packages([
@@ -697,8 +697,8 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, '>telnetd<')
-        self.assertNotContains(response, '>fingerd<')
+        self.assertNotContains(response, 'telnetd')
+        self.assertNotContains(response, 'fingerd')
         self.assertContains(response, 'No insecure services detected')
         self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
                              [{'name': 'python2', 'version': 'VERSION', 'arch': 'i386',
@@ -715,8 +715,8 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '\n telnetd\n                              </li>')
-        self.assertContains(response, '\n fingerd\n                              </li>')
+        self.assertContains(response, 'telnetd')
+        self.assertContains(response, 'fingerd')
         self.assertNotContains(response, 'No insecure services detected')
         self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
                              [{'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386',
