@@ -8,6 +8,10 @@
 
   .wott-inner-open-box {
     padding-bottom: 1.5rem;
+
+    p:not(.terminal-title){
+      font-size: .9rem;
+    }
   }
 
   .terminal-box {
@@ -294,10 +298,6 @@
     }
   }
 
-  .actions-safe {
-    padding: 0rem 5.5rem;
-    font-size: .9rem;
-  }
 
   .inner-open-box {
     margin: 0 5.5rem;

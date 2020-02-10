@@ -9,7 +9,7 @@ from device_registry.recommended_actions import DefaultCredentialsAction, Firewa
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
     InsecureServicesGroupAction, OpensshIssueGroupAction, FtpServerAction, \
     CpuVulnerableAction, BaseAction, ActionMeta, Action, PubliclyAccessibleServiceGroupAction, \
-    PUBLIC_SERVICE_PORTS
+    PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction
 
 from freezegun import freeze_time
 
@@ -24,12 +24,11 @@ class NoDevicesActionTest(TestCase):
         user.save()
         self.client.login(username='test', password='123')
         common_actions_url = reverse('actions')
-        search_string = 'In order to receive recommended actions'
 
         # No devices.
         response = self.client.get(common_actions_url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, search_string)
+        self.assertIn(EnrollAction.action_id, [a.action_id for a in response.context_data['actions']])
 
         # Create a device.
         device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=user)
@@ -38,14 +37,14 @@ class NoDevicesActionTest(TestCase):
         DeviceInfo.objects.create(device=device)
         response = self.client.get(common_actions_url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, search_string)
+        self.assertNotIn(EnrollAction.action_id, [a.action_id for a in response.context_data['actions']])
 
         # Revoke the device.
         device.owner = None
         device.save(update_fields=['owner'])
         response = self.client.get(common_actions_url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, search_string)
+        self.assertIn(EnrollAction.action_id, [a.action_id for a in response.context_data['actions']])
 
 
 class GithubActionTest(TestCase):
@@ -65,11 +64,11 @@ class GithubActionTest(TestCase):
         response = self.client.get(common_actions_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context['actions']), 1)
-        self.assertEqual(response.context['actions'][0].title, 'Enable our GitHub integration for improved workflow')
+        self.assertIn(GithubAction.action_id, [a.action_id for a in response.context_data['actions']])
 
         # This RA should not be shown on the per-device action page.
         response = self.client.get(device_actions_url)
-        self.assertEqual(len(response.context['actions']), 0)
+        self.assertNotIn(GithubAction.action_id, [a.action_id for a in response.context_data['actions']])
 
         # Set up Github integration - RA should disappear.
         user.profile.github_repo_id = 1234
@@ -77,7 +76,7 @@ class GithubActionTest(TestCase):
         user.profile.save()
         response = self.client.get(common_actions_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context['actions']), 0)
+        self.assertNotIn(GithubAction.action_id, [a.action_id for a in response.context_data['actions']])
 
 
 class GenerateActionsTest(TestCase):
