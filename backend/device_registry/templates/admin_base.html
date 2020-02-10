@@ -17,21 +17,21 @@
     <nav class="sidebar sidebar-sticky">
       <div class="sidebar-content">
         <a class="sidebar-brand" href="{% url 'root' %}">
-          <img class="logo-image" src="{% static '/media/logo.png' %}" alt="wott">
+          <img class="logo-image" src="{% static '/media/logo.svg' %}" alt="wott">
         </a>
         <button type="button" class="btn btn-wott-primary btn-lg btn-block" id="admin-inst-btn">
           Add Node
-          <img src="{% static '/media/plus.png' %}" alt="plus">
+          <img src="{% static '/media/plus.svg' %}" alt="plus">
         </button>
 
         {% with url_name=request.resolver_match.url_name %}
           <ul class="sidebar-nav">
-            {% include "sidebar_item.html" with url='dashboard' id='sidebar-root' label="Dashboard" image='/media/dashboard.png' image_selected='/media/dashboard-selected.png' %}
-            {% include "sidebar_item.html" with url='cve' id='sidebar-cve' label="CVE" image='/media/cve.png' image_selected='/media/cve-selected.png' %}
-            {% include "sidebar_item.html" with url='root' id='sidebar-nodes' label="Nodes" image='/media/nodes.png' image_selected='/media/nodes-selected.png' %}
-            {% include "sidebar_item.html" with url='claim-device' id='sidebar-claim-device' label="Claim Node" image='/media/add-node.png' image_selected='/media/add-node-selected.png' %}
-            {% include "sidebar_item.html" with url='actions' id='sidebar-recommended-actions' label="Recommended Actions" image='/media/verified.png' image_selected='/media/verified-selected.png' badge=user.profile.actions_count %}
-            {% include "sidebar_item.html" with url='global_policies' id='sidebar-policies' label="Global Policies" image='/media/policies.png' image_selected='/media/policies-selected.png' %}
+            {% include "sidebar_item.html" with url='dashboard' id='sidebar-root' label="Dashboard" image='/media/dashboard.svg' image_selected='/media/dashboard-selected.svg' %}
+            {% include "sidebar_item.html" with url='cve' id='sidebar-cve' label="Vulnerabilities" image='/media/cve.svg' image_selected='/media/cve-selected.svg' %}
+            {% include "sidebar_item.html" with url='root' id='sidebar-nodes' label="Nodes" image='/media/nodes.svg' image_selected='/media/nodes-selected.svg' %}
+            {% include "sidebar_item.html" with url='claim-device' id='sidebar-claim-device' label="Claim Node" image='/media/add-node.svg' image_selected='/media/add-node-selected.svg' %}
+            {% include "sidebar_item.html" with url='actions' id='sidebar-recommended-actions' label="Recommended Actions" image='/media/recommended-actions.svg' image_selected='/media/recommended-actions-selected.svg' badge=user.profile.actions_count %}
+            {% include "sidebar_item.html" with url='global_policies' id='sidebar-policies' label="Global Policies" image='/media/policies.svg' image_selected='/media/policies-selected.svg' %}
           </ul>
         {% endwith %}
 
@@ -112,7 +112,7 @@
         <div class="wott-modal-header wott-modal-header-box">
           <h2 class="wott-modal-title" id="modal-title-h2">Add new node</h2>
           <button type="button" class="wott-img-btn" data-dismiss="modal" aria-label="Close">
-            <img src="{% static '/media/close-icon.png' %}" alt="">
+            <img src="{% static '/media/close.svg' %}" alt="">
           </button>
         </div>
         <div class="wott-modal-body">
@@ -145,6 +145,7 @@
     </button>
     <textarea hidden id="bash-clipboard"><!-- copy --></textarea>
   </template>
+ 
 {% endblock %}
 
 {% block scripts %}

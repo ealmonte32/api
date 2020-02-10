@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="12px" height="12px" viewBox="0 0 12 12" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.3 (57544) - http://www.bohemiancoding.com/sketch -->
+    <title>Path</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Dashboard-Welcome" transform="translate(-724.000000, -390.000000)" fill="#FFFFFF">
+            <g id="Welcome-Screen" transform="translate(277.000000, 152.000000)">
+                <g id="Button" transform="translate(269.000000, 215.000000)">
+                    <g id="Group-8" transform="translate(64.000000, 17.000000)">
+                        <path d="M126,12 C126,12.6717139 125.455502,13.2162121 124.783788,13.2162121 L121.216212,13.2162121 L121.216212,16.7837879 C121.216212,17.4555018 120.671714,18 120,18 C119.328286,18 118.783788,17.4555018 118.783788,16.7837879 L118.783788,13.2162121 L115.216212,13.2162121 C114.544498,13.2162121 114,12.6717139 114,12 C114,11.3282861 114.544498,10.7837879 115.216212,10.7837879 L118.783788,10.7837879 L118.783788,7.21621211 C118.783788,6.54449816 119.328286,6 120,6 C120.671714,6 121.216212,6.54449816 121.216212,7.21621211 L121.216212,10.7837879 L124.783788,10.7837879 C125.455441,10.7837879 126,11.3282861 126,12 Z" id="Path"></path>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

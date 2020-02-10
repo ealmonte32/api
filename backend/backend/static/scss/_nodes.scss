@@ -56,7 +56,45 @@
   }
 }
 
+// NODE NAV TABS 
 
+.wott-nav-tabs-container {
+  margin-top: 2rem;
+  background-color: #EDF1FE;
+  border-top-right-radius: 8px;
+  border-top-left-radius: 8px;
+  padding: .7rem .7rem 0;
+  text-transform: uppercase;
+  font-size: .65rem;
+  font-weight: 900;
+  
+  .wott-nav-item {
+    width: 12%;
+    height: 45px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+  }
+  
+  .wott-nav-link {
+    width: 100%;
+    text-align: center;
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+    padding: .75rem .5rem !important;
+  }
+}
+
+
+// SYMBOLS 
+.fa-question-circle {
+  color: #7F8899 !important;
+ }
+
+ .fa-exclamation-circle {
+  color: #EF2F20 !important;
+ }
+
+// NODE OVERVIEW
 .node-profile-overview {
   .wott-table { 
     tr {
@@ -117,7 +155,6 @@
     display: inline-block;
     margin-left: 0;
     margin-right: .5rem;
-    font-size: .8rem;
   }
 
   .wott-recommended-actions {
@@ -157,3 +194,183 @@
     text-transform: uppercase;
   }
 }
+
+// NODE METADATA
+
+.node-profile-metadata {
+  .wott-table tr {
+    font-size: 1rem!important;
+    display: -webkit-box!important;
+    display: flex !important;
+    -webkit-box-align: center!important;
+    align-items: center!important;
+    border-top: 1px solid hsla(0,0%,84.7%,.5);
+  }
+  
+  .wott-table-label  {
+    width: 40% !important;
+  } 
+  
+  .wott-form-control  {
+    border-radius: 8px !important;
+    width: 100% !important;
+    margin-right: 100px;
+  } 
+  
+  tr.odd, tr.even  {
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+  } 
+  
+  .wott-btn-full  {
+    border: 3px solid #FF5649;
+    width: 58px !important;
+    border-radius: 8px;
+  } 
+  
+  th  {
+    padding-left: 1rem !important;
+  }
+  
+  th:nth-child(2)  {
+    padding-left: 1.5rem !important;
+  }
+  
+  #dev-md-table tr {
+    display: flex !important;
+    justify-content: space-between  ;
+  }
+}
+
+
+// NODE HARDWARE,  NODE NETWORK, NODE SOFTWARE
+
+.node-profile-hardware, 
+.node-profile-network,
+.node-profile-software {
+  .wott-table tr {
+    font-size: 1rem!important;
+    display: -webkit-box!important;
+    display: flex!important;
+    -webkit-box-align: center!important;
+    align-items: center!important;
+    border-top: 1px solid hsla(0,0%,84.7%,.5)!important;
+  }
+  
+  .wott-table-label  {
+    width: 40% !important;
+  } 
+}
+
+
+// NODE SECURITY
+
+.node-profile-security {
+
+  .wott-table tr {
+    font-size: 1rem!important;
+    display: -webkit-box!important;
+    display: flex!important;
+    -webkit-box-align: center!important;
+    align-items: center!important;
+    border-top: 1px solid hsla(0,0%,84.7%,.5);
+  }
+  
+  a {
+   color: #2460c8;
+  }
+  
+  
+  .wott-table-label  {
+    width: 40% !important;
+  } 
+  
+  .inner-table {
+    width: 100%;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    border-radius: 8px;
+  }
+  
+  .inner-table .wott-table {
+    width: 100%;
+  }
+  
+  .inner-table td {
+    font-size: .85rem;
+    @include mQ(1200px) {
+      font-size: .68rem;
+    }
+  }
+  
+  .inner-table th {
+    font-size: .8rem;
+  }
+  
+  .inner-table th:first-child {
+    padding-left: 15px !important;
+  }
+  
+  #connections-table th:first-child,
+  #connections-table td:first-child {
+    padding-left: 0px !important;
+  }
+  
+  #connections-table th,
+  #connections-table td {
+    word-wrap: break-word;
+    font-size: .8rem;
+    @include mQ(1380px) {
+      font-size: .7rem;
+    }
+    @include mQ(1250px) {
+      font-size: .65rem;
+    }
+    @include mQ(1200px) {
+      font-size: .6rem;
+    }
+    @include mQ(1110px) {
+      font-size: .55rem;
+    }
+  }
+  
+
+  .wott-inner-table-message {
+    width: auto;
+    padding: .8rem 4.5rem !important;
+    display: inline-block;
+    background-color: #e9edf7; 
+    border: none;
+    border-radius: 8px;
+    font-size: .9rem;
+    text-transform: uppercase;
+    color: #2460c8;
+    font-weight: 700;
+  }
+  
+  
+  
+  .w-60 {
+   width: 60%;
+  }
+  
+  #id_global_policy {
+    width: 80%;
+    margin-right: 5%;
+    padding-left: 3%;
+  }
+  
+  .btn-link {
+   color: #2460c8 !important;
+  }
+  
+  .badge-info {
+   background-color: #2460c8 !important;
+  }
+  
+  #certificate-download-link {
+   font-size: .9rem;
+  }
+}
+
+

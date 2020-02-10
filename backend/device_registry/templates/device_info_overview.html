@@ -2,9 +2,8 @@
 
 {% load split_string %}
 {% load static %}
-{% block title %}WoTT - Device Info{% endblock title %}
 
-{% load widget_tweaks %}
+{% block title %}WoTT - Device Info{% endblock title %}
 
 {% block dashboard_title %}
   <h1 style="margin-bottom: 0">Node Profile</h1>
@@ -16,16 +15,17 @@
     <div class="col-12">
       <div class="tab wott-box-shadow">
         {% include 'device_info_tabs.html' with active="overview" %}
-        <div class="wott-table-content ">
+        <div class="wott-table-content">
           <div class="tab-pane active" id="overview" role="tabpanel">
             <form method="POST" action="">
               <table class="wott-table px-0">
                 <tbody>
-                <div class="d-flex justify-content-between align-items-center wott-table-py">
+                <div class="d-flex justify-content-between align-items-center wott-table-py bg-white">
                   <h4 class="d-inline-flex wott-table-title">Overview</h4>
                   <div class="wott-form-group d-flex wott-table-pr">
                     {% csrf_token %}
-                    <button id="revoke-button" class="btn wott-btn-medium wott-btn-danger mr-3" data-toggle="modal" data-target="#revokeModal" type="button">Revoke</button>
+                    <button id="revoke-button" class="btn wott-btn-medium wott-btn-danger mr-3" data-toggle="modal" data-target="#revokeModal" type="button">
+                      Revoke</button>
                     <button class="btn wott-btn-medium btn-wott-primary" type="submit">Save</button>
                   </div>
                 </div>
@@ -68,32 +68,30 @@
                     </div>
                   </td>
                 </tr>
-               
-              
-                    <!-- Revoke Ye/No Dialog -->
-                    <div class="wott-rounded-lg wott-modal-container" id="revokeModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                      <div class="" role="document">
-                        <div class="modal-content">
-                          <div class="wott-modal-header wott-modal-header-box">
-                            <h5 class="wott-modal-title" id="exampleModalLabel">Revoke the device</h5>
-                            <button type="button" class="wott-img-btn" data-dismiss="modal" aria-label="Close">
-                              <img src="{% static '/media/close-icon.png' %}" alt="Close">
-                            </button>
-                          </div>
-                          <div class="wott-modal-body">
-                            <div class="wott-modal-alert-box mt-4">
-                              <span class="wott-modal-alert">Do you really want to revoke this device?</span>
-                            </div>
-                          </div>
-                          <hr class="wott-line-split">
-                          <div class="wott-modal-footer d-flex justify-content-center">
-                            <button type="button" class="btn btn-wott-tertiary  wott-btn-medium mr-2" data-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn wott-btn-danger wott-btn-medium" name="revoke_button">Revoke</button>
-                          </div>
+
+                <!-- Revoke Ye/No Dialog -->
+                <div class="wott-rounded-lg wott-modal-container" id="revokeModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                  <div class="" role="document">
+                    <div class="modal-content">
+                      <div class="wott-modal-header wott-modal-header-box">
+                        <h5 class="wott-modal-title" id="exampleModalLabel">Revoke the device</h5>
+                        <button type="button" class="wott-img-btn" data-dismiss="modal" aria-label="Close">
+                          <img src="{% static '/media/close.svg' %}" alt="Close">
+                        </button>
+                      </div>
+                      <div class="wott-modal-body">
+                        <div class="wott-modal-alert-box mt-4">
+                          <span class="wott-modal-alert">Do you really want to revoke this device?</span>
                         </div>
                       </div>
+                      <hr class="wott-line-split">
+                      <div class="wott-modal-footer d-flex justify-content-center">
+                        <button type="button" class="btn btn-wott-tertiary  wott-btn-medium mr-2" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn wott-btn-danger wott-btn-medium" name="revoke_button">Revoke</button>
+                      </div>
                     </div>
-                 
+                  </div>
+                </div>
                 </tbody>
               </table>
             </form>
@@ -105,12 +103,12 @@
 {% endblock admin_content %}
 
 {% block scripts %}
-{{ block.super }}
-{% if MIXPANEL_TOKEN %}
-  <script type="text/javascript">
-  $(() => {
-      $('#revoke-button').click(() => mixpanel.track("Revoke"));
-  });
-  </script>
-{% endif %}
+  {{ block.super }}
+  {% if MIXPANEL_TOKEN %}
+    <script type="text/javascript">
+        $(() => {
+            $('#revoke-button').click(() => mixpanel.track("Revoke"));
+        });
+    </script>
+  {% endif %}
 {% endblock scripts %}

@@ -10,11 +10,12 @@
     input[failed]{
       border-color: red;
     }
-
     </style>
 {% endblock %}
 
 {% load split_string %}
+
+{% load static %}
 
 {% block title %}WoTT - Device Info{% endblock title %}
 
@@ -24,86 +25,89 @@
 
 {% block admin_content %}
   {% include 'device_info_top_block.html' %}
-  <div class="modal" tabindex="-1" role="dialog" id="wott-confirm-modal">
-    <div class="modal-dialog" role="document">
+  <div class="wott-rounded-lg wott-modal-container" tabindex="-1" role="dialog" id="wott-confirm-modal">
+    <div class="" role="document">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="confirm-title">Confirm mode change</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+        <div class="wott-modal-header wott-modal-header-box">
+          <h5 class="wott-modal-title" id="confirm-title">Confirm mode change</h5>
+          <button type="button" class="wott-img-btn" data-dismiss="modal" aria-label="Close">
+            <img src="{% static '/media/close.svg' %}" alt="Close">
           </button>
         </div>
-        <div class="modal-body">
-          <p id="confirm-msg">You did not save your changes. Switching mode will cause them to be lost. Are you sure you want to continue?</p>
+        <div class="wott-modal-body">
+          <div class="wott-modal-alert-box pt-5">
+            <h2 class="wott-modal-alert" id="confirm-msg"></h2>
+            <div class="wott-modal-alert" role="alert" id="confirm-alert">
+              Server error
+            </div>
+          </div>
         </div>
-        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="confirm-alert">
-          Server error
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-danger" id="confirm-btn">Yes</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <div class="modal-footer d-flex justify-content-center">
+          <button type="button" class="btn wott-btn-medium  btn-wott-tertiary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn wott-btn-medium  wott-btn-danger" id="confirm-btn">Yes</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row">
+  <div class="row node-profile-metadata">
     <div class="col-12">
-      <div class="tab">
+      <div class="tab wott-box-shadow">
         {% include 'device_info_tabs.html' with active="metadata" %}
-        <div class="tab-content">
+        <div class="wott-table-content">
           <div class="tab-pane active" id="device-metadata" role="tabpanel">
-            <h4 class="tab-title">Metadata</h4>
             <form method="POST" action="" id="dev-md-form">
-              <table class="table table-striped table-responsive-xs">
+              <table class="wott-table px-0">
                 <tbody>
-                <tr>
-                  <th scope="row" width="20%">Node Name</th>
-                  <td width="80%">{{ object.name|default_if_none:object.deviceinfo.fqdn|default_if_none:'N/A' }}</td>
-                </tr>
-                <tr>
-                  <th scope="row" width="20%">Device ID</th>
-                  <td width="80%">{{  object.device_id|default_if_none:'N/A' }}</td>
-                </tr>
-                <tr>
-                  <th scope="row" width="20%">Manufacturer</th>
-                  <td width="80%">{{  object.deviceinfo.device_manufacturer|default_if_none:'N/A' }}</td>
-                </tr>
-                <tr>
-                  <th scope="row" width="20%">Model</th>
-                  <td width="80%">{{  object.deviceinfo.get_model|default_if_none:'N/A' }}</td>
-                </tr>
-                <tr>
-                  <th scope="row" width="20%">
-                    User values
-                  </th>
-                  <td width="80%">
-                    <div class="form-group" id="kv-editor">
-                      {% csrf_token %}
-                      <table id="dev-md-table" class="table table-striped table-responsive-xs" style="width:100%" >
-                      </table>
-                      <button class="btn btn-success" id="add-row" type="button">+</button>
-                    </div>
-                    <div class="form-group" id="json-editor" style="display: none">
-                      {% csrf_token %}
-                      {{ form.non_field_errors }}
-                      {{ form.device_metadata.errors }}
-                      {{ form.device_metadata }}
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row" width="20%"> </th>
-                  <td>
-                    <div class="alert alert-warning wott-form-alert p-1" role="alert" id="main-alert">
-                      Server error
-                    </div>
-                    <div class="form-group">
-                      {% csrf_token %}
-                      <button class="btn btn-success" type="submit">Save</button>
-                    </div>
-                  </td>
-                </tr>
+                  <h4 class="wott-table-title wott-table-py">Metadata</h4>
+                  <tr>
+                    <td class="wott-table-label" scope="row" width="20%">Node Name</td>
+                    <td width="80%">{{ object.name|default_if_none:object.deviceinfo.fqdn|default:'N/A' }}</td>
+                  </tr>
+                  <tr>
+                    <td class="wott-table-label" scope="row" width="20%">Device ID</td>
+                    <td width="80%">{{  object.device_id|default:'N/A' }}</td>
+                  </tr>
+                  <tr>
+                    <td class="wott-table-label" scope="row" width="20%">Manufacturer</td>
+                    <td width="80%">{{  object.deviceinfo.device_manufacturer|default:'N/A' }}</td>
+                  </tr>
+                  <tr>
+                    <td class="wott-table-label" scope="row" width="20%">Model</td>
+                    <td width="80%">{{  object.deviceinfo.get_model|default:'N/A' }}</td>
+                  </tr>
+                  <tr class="">
+                    <th class="wott-table-label pb-0" scope="row" width="20%">
+                      User values
+                    </th>
+                  </tr>
+                  <tr class="border-top-0 pt-0 px-5">
+                    <td class="inner-table mb-4 wott-box-shadow w-100 p-5">
+                      <div class="" id="kv-editor">
+                        {% csrf_token %}
+                        <table id="dev-md-table" class="inner-table" style="width:100%" >
+                        </table>
+                        <div class="">
+                          <button class="btn btn-wott-primary wott-btn-small py-3 px-5 float-right" type="submit">Save</button>   
+                          <button class="btn btn-wott-primary wott-btn-small p-3" id="add-row" type="button">Add&nbsp;&nbsp;+</button>
+                        </div>
+                      </div>
+                      <div class="wott-form-group" id="json-editor" style="display: none">
+                        {% csrf_token %}
+                        {{ form.non_field_errors }}
+                        {{ form.device_metadata.errors }}
+                        {{ form.device_metadata }}
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="justify-content-between border-top-0">
+                    <td class="wott-table-label"  width="20%"> </td>
+                    <td>
+                      <div class="alert alert-warning wott-form-alert p-1" role="alert" id="main-alert">
+                        Server error
+                      </div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </form>
@@ -112,12 +116,12 @@
       </div>
     </div>
   </div>
+  
   <script>
-
     var table;
     var edited = false;
     var previous_mode;
-    document.addEventListener("DOMContentLoaded", function () {
+    $(() => {
         // data-table
       table = $('#dev-md-table').DataTable({
         searching: false,
@@ -165,7 +169,7 @@
               }
               else
               {
-                  if ( s === "true" || s === "fasle" || s === "null" || (left === right && left === '"' )
+                  if ( s === "true" || s === "false" || s === "null" || (left === right && left === '"' )
                      || ( left === "{"  && right === "}" ) || ( left === "[" && right === "]" ) || isFinite(s))
                   {
                       try
@@ -214,7 +218,7 @@
       if( type == 'sort' ) return data ? data : "\xFF";
       let data_h = htmlEntities(data);
       let columns=['key','value']
-      return '<input type="text" value="' + data_h +'" style="width:100%" id="md_' + meta.row + '_' + columns[meta.col] +
+      return '<input type="text" class="wott-form-control pl-4" value="' + data_h +'" style="width:100%" id="md_' + meta.row + '_' + columns[meta.col] +
              '" oninput="kv_update(this)">';
     }
 
@@ -234,7 +238,7 @@
      */
     function kv_render_btns(data, type, row, meta){
       if( type == 'sort' ) return data;
-      return '<button type="button" class="btn btn-danger" onclick="kv_remove(this)">x</i>';
+      return '<button type="button" class="btn wott-btn-danger wott-btn-full" onclick="kv_remove(this)">x</i>';
     }
 
     /***
@@ -243,7 +247,7 @@
      */
     function kv_remove(e){
         $('#confirm-btn').on("click", {row: e.parentElement.parentElement}, delete_row );
-        show_dialog("Confirm Removal",
+        kv_dialog("Confirm Removal",
             "Are you sure you want to delete?",
             "Delete"
         );
@@ -268,7 +272,7 @@
      *  @param message - dialog message
      *  @param btn_text - dialog confirm button text
      */
-    function show_dialog(title, message, btn_text )
+    function kv_dialog(title, message, btn_text )
     {
         $('#confirm-title')[0].innerText = title;
         $('#confirm-msg')[0].innerText = message;

@@ -10,7 +10,6 @@
     font-weight: 600;
     margin-top: 5px;
     @include mQ($browser-width-md) {
-      font-size: 1.8rem;
       margin-top: 10px;
     }
   }

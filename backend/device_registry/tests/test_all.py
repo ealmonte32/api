@@ -373,6 +373,43 @@ class DeviceModelTest(TestCase):
         self.device0.save()
         self.assertFalse(self.device0.cpu_vulnerable)
 
+    def test_ra_last_week(self):
+        now = timezone.now()
+        # Last week's tuesday
+        last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
+        ra0 = RecommendedAction.objects.create(device=self.device0, action_id=1,
+                                               status=RecommendedAction.Status.NOT_AFFECTED)
+        ra1 = RecommendedAction.objects.create(device=self.device0, action_id=2,
+                                               status=RecommendedAction.Status.NOT_AFFECTED)
+        ra2 = RecommendedAction.objects.create(device=self.device0, action_id=3,
+                                               status=RecommendedAction.Status.SNOOZED_UNTIL_PING)
+
+        self.assertEqual(self.device0.actions_count_last_week, 0)
+        self.assertEqual(self.device0.actions_count_delta['count'], 0)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'up')
+
+        with freeze_time(last_tuesday):
+            ra0.status = RecommendedAction.Status.AFFECTED
+            ra0.save()
+            self.device0.sample_history()
+        with freeze_time(last_tuesday + timezone.timedelta(days=1)):
+            ra1.status = RecommendedAction.Status.AFFECTED
+            ra1.save()
+            self.device0.sample_history()
+        self.assertEqual(self.device0.actions_count_last_week, 2)
+
+        ra2.status = RecommendedAction.Status.AFFECTED
+        ra2.save()
+        self.assertEqual(self.device0.actions_count_delta['count'], 1)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'up')
+
+        ra0.status = RecommendedAction.Status.NOT_AFFECTED
+        ra2.status = RecommendedAction.Status.NOT_AFFECTED
+        ra0.save()
+        ra2.save()
+        self.assertEqual(self.device0.actions_count_last_week, 2)
+        self.assertEqual(self.device0.actions_count_delta['count'], 1)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'down')
 
 class FormsTests(TestCase):
     def setUp(self):
@@ -571,7 +608,7 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Firewall Ports Policy')
-        self.assertInHTML('<span id="ports-table-column-1">Allowed</span>', response.rendered_content)
+        self.assertInHTML('<span class="pl-1" id="ports-table-column-1">Allowed</span>', response.rendered_content)
 
     def test_open_ports_global_policy(self):
         self.client.login(username='test', password='123')
@@ -637,7 +674,7 @@ class DeviceDetailViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<pre>pi:')
+        self.assertContains(response, '<pre class="mb-0">pi:')
         self.assertContains(response, 'success: 1')
 
     def test_insecure_services(self):
@@ -646,8 +683,8 @@ class DeviceDetailViewTests(TestCase):
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, '>telnetd<')
-        self.assertNotContains(response, '>fingerd<')
+        self.assertNotContains(response, 'telnetd')
+        self.assertNotContains(response, 'fingerd')
         self.assertNotContains(response, 'No insecure services detected')
 
         self.device.set_deb_packages([
@@ -660,8 +697,8 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, '>telnetd<')
-        self.assertNotContains(response, '>fingerd<')
+        self.assertNotContains(response, 'telnetd')
+        self.assertNotContains(response, 'fingerd')
         self.assertContains(response, 'No insecure services detected')
         self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
                              [{'name': 'python2', 'version': 'VERSION', 'arch': 'i386',
@@ -678,8 +715,8 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'telnetd</li>')
-        self.assertContains(response, 'fingerd</li>')
+        self.assertContains(response, 'telnetd')
+        self.assertContains(response, 'fingerd')
         self.assertNotContains(response, 'No insecure services detected')
         self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
                              [{'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386',
@@ -705,7 +742,7 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
 
         response = self.client.get(url)
-        self.assertInHTML("""<th scope="row">Patched against Heartbleed</th>
+        self.assertInHTML("""<th class="wott-table-label" scope="row">Patched against Heartbleed</th>
                              <td>
                                <span class="p-1 text-success"><i class="fas fa-check" ></i></span>
                                Yes
@@ -717,7 +754,7 @@ class DeviceDetailViewTests(TestCase):
         self.device.deb_packages.first().vulnerabilities.add(v)
 
         response = self.client.get(url)
-        self.assertInHTML("""<th scope="row">Patched against Heartbleed</th>
+        self.assertInHTML("""<th class="wott-table-label" scope="row">Patched against Heartbleed</th>
                              <td>
                                <span class="p-1 text-danger"><i class="fas fa-exclamation-circle" ></i></span>
                                No
@@ -758,20 +795,20 @@ class DeviceDetailViewTests(TestCase):
         url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
         # Unknown distro.
         response = self.client.get(url)
-        self.assertInHTML('<td id="eol_info">N/A</td>', response.rendered_content)
+        self.assertInHTML('<td class="pl-4" id="eol_info">N/A</td>', response.rendered_content)
         # Supported distro version.
         self.device.os_release = {'distro': 'raspbian', 'version': '10', 'codename': 'buster',
                                   'distro_root': 'debian', 'full_version': '10 (buster)'}
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
         # print(response.content)
-        self.assertInHTML('<td id="eol_info">July 1, 2022</td>', response.rendered_content)
+        self.assertInHTML('<td class="pl-4" id="eol_info">July 1, 2022</td>', response.rendered_content)
         # Outdated distro version.
         self.device.os_release = {'distro': 'debian', 'version': '7', 'codename': 'wheezy',
                                   'distro_root': 'debian', 'full_version': '7 (wheezy)'}
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
-        self.assertInHTML('<td id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
+        self.assertInHTML('<td class="pl-4" id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
                           '</i></span>May 31, 2018</td>', response.rendered_content)
 
     def test_default_credentials(self):

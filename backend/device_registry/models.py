@@ -4,6 +4,7 @@ import json
 import uuid
 from typing import NamedTuple
 
+from dateutil.relativedelta import relativedelta, SU, MO
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q, Max, Window, Count
@@ -75,7 +76,7 @@ class Device(models.Model):
     class SshdIssueItem(NamedTuple):
         safe_value: str
         unsafe_value: str
-        severity: Severity
+        doc_url: str
 
     device_id = models.CharField(
         max_length=128,
@@ -118,11 +119,11 @@ class Device(models.Model):
 
     @property
     def default_password(self):
-        if not hasattr(self, 'deviceinfo'):
-            return None
         if self.default_password_users:
             return True
-        elif self.deviceinfo.default_password is not None:
+        elif not hasattr(self, 'deviceinfo'):
+            return None
+        else:
             return self.deviceinfo.default_password
 
     @property
@@ -197,7 +198,7 @@ class Device(models.Model):
         if self.os_release.get('distro') == 'ubuntu-core':
             return True
         elif self.os_release.get('distro') == 'debian' or self.os_release.get('distro_root') == 'debian':
-            return self.deb_packages.filter(name='unattended-upgrades').exists() and self.auto_upgrades is True
+            return self.auto_upgrades and self.deb_packages.filter(name='unattended-upgrades').exists()
 
     @property
     def distribution(self):
@@ -216,7 +217,7 @@ class Device(models.Model):
             for file_info in self.audit_files:
                 if 'sshd' in file_info['name']:
                     return {k: self.SshdIssueItem(unsafe_value=v, safe_value=SSHD_CONFIG_PARAMS_INFO[k].safe_value,
-                                                  severity=SSHD_CONFIG_PARAMS_INFO[k].severity)
+                                                  doc_url=SSHD_CONFIG_PARAMS_INFO[k].doc_url)
                             for k, v in file_info['issues'].items()}
 
     @property
@@ -445,6 +446,9 @@ class Device(models.Model):
         else:
             return 0
 
+    def trust_score_minus100(self):
+        return 100 - self.trust_score_percent()
+
     def trust_score_color(self):
         return get_bootstrap_color(self.trust_score_percent())
 
@@ -504,6 +508,28 @@ class Device(models.Model):
         result.update({severities[s['max_urgency']]: s['urg_cnt'] for s in urgency_counts
                        if s['max_urgency'] in severities})
         return result
+
+    @property
+    def actions_count_last_week(self):
+        now = timezone.now()
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
+        this_monday = sunday + relativedelta(days=1)  # This week's monday
+
+        actions_count = DeviceHistoryRecord.objects.filter(device=self,
+                                                           sampled_at__gte=last_monday,
+                                                           sampled_at__lt=this_monday)\
+                                                   .aggregate(Max('recommended_actions_count'))
+        return actions_count['recommended_actions_count__max'] or 0
+
+    @property
+    def actions_count_delta(self):
+        count = self.actions_count - self.actions_count_last_week
+        return {'count': abs(count), 'arrow': 'up' if count >= 0 else 'down'}
+
+    def sample_history(self):
+        DeviceHistoryRecord.objects.create(device=self,
+                                           recommended_actions_count=self.actions_count)
 
     def generate_recommended_actions(self, classes=None):
         """
@@ -959,3 +985,9 @@ class HistoryRecord(models.Model):
     cve_high_count = models.IntegerField(null=True)
     cve_medium_count = models.IntegerField(null=True)
     cve_low_count = models.IntegerField(null=True)
+
+
+class DeviceHistoryRecord(models.Model):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    recommended_actions_count = models.IntegerField(null=True)
+    sampled_at = models.DateTimeField(auto_now_add=True)

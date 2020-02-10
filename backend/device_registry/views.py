@@ -5,6 +5,7 @@ from typing import NamedTuple, List
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.db import transaction
 from django.db.models import Case, When, Count, Window, Value
 from django.db.models import Q, Sum, Avg, IntegerField, Max
@@ -299,6 +300,7 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 self.object.owner = None
                 self.object.claim_token = uuid.uuid4()
                 self.object.save(update_fields=['owner', 'claim_token'])
+                messages.add_message(request, messages.INFO, 'You have successfully revoked your device.')
                 return HttpResponseRedirect(reverse('root'))
             else:
                 form.save()
@@ -338,6 +340,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         has_global_policy = False
+
         try:
             context['firewall'] = self.object.firewallstate
         except FirewallState.DoesNotExist:
@@ -346,6 +349,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
             context['global_policy_form'] = FirewallStateGlobalPolicyForm(instance=self.object.firewallstate)
             has_global_policy = bool(self.object.firewallstate.global_policy)
             context['has_global_policy'] = has_global_policy
+
         try:
             context['portscan'] = self.object.portscan
         except PortScan.DoesNotExist:
@@ -366,17 +370,21 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        # TODO: handle missing portscan and firewallstate instances.
         portscan = self.object.portscan
         firewallstate = self.object.firewallstate
 
+        # Submitted the `FirewallStateGlobalPolicyForm` form.
         if 'global_policy' in request.POST:
             form = FirewallStateGlobalPolicyForm(request.POST, instance=firewallstate)
             if form.is_valid():
+                # TODO: check isn't it enough to do `form.save()` here.
                 firewallstate.global_policy = form.cleaned_data["global_policy"]
                 firewallstate.save(update_fields=['global_policy'])
-
+        # Submitted the `PortsForm` form.
         elif 'is_ports_form' in request.POST:
-            if firewallstate and firewallstate.global_policy:
+            if firewallstate.global_policy:
+                # If some global policy applied to the device - you can't manage its ports.
                 return HttpResponseForbidden()
             ports_form_data = self.object.portscan.ports_form_data()
             form = PortsForm(request.POST, ports_choices=ports_form_data[0])
@@ -387,15 +395,15 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                     out_data.append(ports_form_data[2][port_record_index])
                 portscan.block_ports = out_data
                 firewallstate.policy = form.cleaned_data['policy']
-                self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
                     firewallstate.save(update_fields=['policy'])
                     self.object.update_trust_score = True
                     self.object.save(update_fields=['update_trust_score'])
-
+        # Submitted the `ConnectionsForm` form.
         elif 'is_connections_form' in request.POST:
-            if firewallstate and firewallstate.global_policy:
+            if firewallstate.global_policy:
+                # If some global policy applied to the device - you can't manage its connections.
                 return HttpResponseForbidden()
             connections_form_data = self.object.portscan.connections_form_data()
             form = ConnectionsForm(request.POST, open_connections_choices=connections_form_data[0])
@@ -415,11 +423,11 @@ class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_network.html'
 
-    def get_queryset(self):
+    def get_queryset(self):  # TODO: put this kind of `get_queryset` method to mixin.
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs):  # TODO: put duplicated `get_context_data` to mixin.
         context = super().get_context_data(**kwargs)
         try:
             context['portscan'] = self.object.portscan

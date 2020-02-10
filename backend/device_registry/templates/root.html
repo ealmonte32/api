@@ -1,10 +1,10 @@
 {% extends "admin_base.html" %}
 {% load static %}
 
-{% block title %}WoTT - Dashboard{% endblock title %}
+{% block title %}WoTT - Nodes{% endblock title %}
 
 {% block dashboard_title %}
-  <h1 style="margin-bottom: 0">Dashboard</h1>
+  <h1 style="margin-bottom: 0">Nodes List</h1>
 {% endblock dashboard_title %}
 
 {% block admin_content %}
@@ -54,7 +54,7 @@
 
     <button class="btn wott-btn-filter" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
       <span class="mr-2">
-        <img src="{% static '/media/settings-white.png' %}" alt="filter">
+        <img src="{% static '/media/filter-white.svg' %}" alt="filter">
       </span>
       <span class="btn-text">Filters</span>
       <i class="fa fa-sort-down ml-3"></i>
@@ -67,7 +67,7 @@
 
   <button type="button" class="btn btn-wott-primary wott-btn-medium" id="admin-inst-btn">
     <span>Add Node</span>
-    <img class="ml-3" src="{% static '/media/plus.png' %}" alt="plus">
+    <img class="ml-3" src="{% static '/media/plus.svg' %}" alt="plus">
   </button>
 </div>
 
@@ -206,7 +206,6 @@
         </select>
       </div>
       <div class="col mt-1">
-        <!-- TODO: @dvidotti please style this -->
         <label id="ago" for="datetime-scale">ago</label>
       </div>
     </div>
@@ -284,8 +283,8 @@
     </button> -->
 
     {% if filter %}
-    <span class="ml-3" id="clear-filters">
-      <a href="." class="align-middle btn-link" style="text-decoration: underline">Clear filters</a>
+    <span id="clear-filters">
+        <a href="." class="wott-blue" style="text-decoration: underline">Clear filters</a>
     </span>
     {% endif %}
 
@@ -312,7 +311,6 @@
 </div> -->
 
 <style>
-/* ## All the style inside this tag will be moved to scss */
 
 #device-list-columns {
       display: inline;

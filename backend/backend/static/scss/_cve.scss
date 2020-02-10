@@ -290,6 +290,7 @@
     margin-bottom: 0 !important;
     display: flex;
     justify-content: space-between;
+    align-items: center;
   }
 
   .wott-scroll-y {
@@ -328,7 +329,7 @@
 
   .popover-title-line {
     width: 100%;
-    margin-left: 0;
+    margin: 0;
   }
 
   .wott-intructions {
@@ -362,4 +363,46 @@
       padding-right: 1rem;
     }
   }
+}
+
+
+// INSTRUCTIONS TEMPLATE
+
+.instructions-box {
+  background-color: #263E67;
+  color: white;
+  border-radius: 8px;
+  width: 670px;
+  max-height: 250px;
+  position: relative;
+  overflow-y: scroll;
+}
+
+
+.instructions-instructions {
+  padding: 0rem 1.5rem;
+  width: auto;
+  white-space: nowrap;
+}
+
+ .instructions-header {
+  background-color: #1A2F53;
+  position: sticky;
+  top: 0;
+  left: 0;
+}
+
+.instructions-header h5 {
+  color: white;
+  padding: .6rem 2.3rem;
+  border-radius: 8px;
+}
+
+ .instructions-header {
+  border-radius: 8px 9px 0 0;
+}
+
+
+.instructions-body {
+  padding: 1.2rem 1rem 1.5rem;
 }

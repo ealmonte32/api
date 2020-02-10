@@ -16,7 +16,7 @@
 
       <div class="left-container wott-rounded-lg wott-box-shadow">
         <div class="inner-left-box">
-          <h3 class="title-left-box">CVE Overview</h3>
+          <h3 class="title-left-box">Vulnerabilities Overview</h3>
           <div class="cards-container">
             <div class="mini-card wott-rounded-lg d-flex flex-column">
               <span class="title-mini-card High font-strong">HIGH</span>
@@ -113,7 +113,7 @@
                     {{ p.devices_count }}
                     <template title="Nodes Affected" data-type="nodes">
                       {% for du in p.devices %}
-                        <a class="wott-node-list wott-list-blue" href="{{ du.href }}">{{  du.text }}</a>
+                        <a class="wott-node-list wott-list-blue" href="{{ du.href }}">&#8226 {{  du.text }}</a>
                       {% endfor %}
                     </template>
                   </a>
@@ -125,10 +125,19 @@
                 {% for p in row.packages %}
                   <a href="#" class="wott-popover">
                     Instructions
-                    <template title="Instructions" data-type="instructions">
-                      <p class="wott-intructions wott-list-blue">
-                        {{ p.upgrade_command }}
-                      </p>
+                    <template title="Instructions" data-type="instructions"> 
+                      <div class="instructions-box mb-4">
+                        <div class="instructions-header">
+                          <h5>Terminal</h5>
+                        </div>
+                        <div class="instructions-body">
+                          <div class="instructions-text">
+                            <div class="instructions-instructions">
+                              <p>{{ p.upgrade_command }}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>      
                     </template>
                   </a>
                   <br>
@@ -144,7 +153,7 @@
       <div class="wott-popover-header">
         <div class="wott-popover-header-box">
           <h1 class="mb-0" id="wott-popover-title">TEXT GO HERE</h1>
-          <span id="close-popover-buttton"><img src="{% static '/media/close-icon.png' %}" alt="close"></span>
+          <span id="close-popover-buttton"><img src="{% static '/media/close.svg' %}" alt="close"></span>
         </div>
         <hr class="popover-title-line">
       </div>
