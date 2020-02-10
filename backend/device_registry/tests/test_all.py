@@ -1,6 +1,6 @@
 import json
 import sys
-from statistics import mean
+from collections import defaultdict
 from unittest.mock import patch
 
 from dateutil.relativedelta import relativedelta, TU, SU
@@ -24,6 +24,7 @@ from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState
     GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
+from device_registry.recommended_actions import BaseAction, ActionMeta, Severity
 from device_registry.views import CVEView
 from profile_page.models import Profile
 
@@ -1273,86 +1274,94 @@ class DashboardViewTests(TestCase):
             device_id='device0.d.wott-dev.local',
             owner=self.user
         )
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            owner=self.user
+        )
 
-    def test_history(self):
-        self.device0.generate_recommended_actions()
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
 
-        now = timezone.now()
-        scores = [d / 28.0 for d in range(28)]
-        scores_weeks = [mean(scores[w*7:(w+1)*7]) for w in range(4)]
-        solved_ra = [i // 6 for i in range(28)]
-        solved_ra_weeks = [sum(solved_ra[w*7:(w+1)*7]) for w in range(4)]
+        severities = [Severity.LO, Severity.HI, Severity.MED, Severity.MED,
+                      Severity.HI, Severity.MED, Severity.MED, Severity.HI]
+        cls.test_actions = []
+        for i in range(len(severities)):
+            class TestActionOne(BaseAction, metaclass=ActionMeta):
+                """
+                A simple dummy action class with specified severity.
+                """
+                action_id = 9990 + i
+                severity = severities[i]
+                action_config = defaultdict(str)
 
-        # For each day of 4 weeks set trust score provided by "scores" array
-        # and set the number of resolved RAs provided by "solved_ra" array. Then
-        # compare the per-week trust score average and RA sum calculated by the view
-        # with the simple calculations provided here (scores_weeks and solved_ra_weeks)
-        for d in range(28):
-            with freeze_time(now - timezone.timedelta(days=d)):
-                self.device0.trust_score = scores[d]
-                self.device0.save()
-                solved_today = solved_ra[d]
+            cls.test_actions.append(TestActionOne)
 
-                # Can't simply update part of selected objects, will throw
-                #  "Cannot update a query once a slice has been taken". Instead I'm selecting pks, slicing them and then
-                # making a new query with them.
-                ras_list = self.device0.recommendedaction_set.all()[:solved_today].values_list('pk', flat=True)
-                ras = self.device0.recommendedaction_set.filter(pk__in=ras_list)
-                self.assertEqual(ras.count(), solved_today)
-                ras.update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
-
-                self.profile.sample_history()
-
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(all(
-            abs(a - b) <= sys.float_info.epsilon
-            for a, b in zip(scores_weeks, response.context_data['trust_score_history'])
-        ))
-        self.assertListEqual(solved_ra_weeks, response.context_data['ra_solved_history'])
-        self.assertLessEqual(abs(scores[-1] - response.context_data['trust_score']), sys.float_info.epsilon * 2)
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        for a in cls.test_actions:
+            ActionMeta.unregister(a)
 
     def test_empty(self):
-        now = timezone.now()
-        self.device0.generate_recommended_actions()
-
-        # Trust score will be None here. We want to make sure it doesn't
-        # break per-week calculation
-        with freeze_time(now - timezone.timedelta(days=3)):
-            self.profile.sample_history()
-
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual([None], response.context_data['trust_score_history'])
-        self.assertListEqual([0], response.context_data['ra_solved_history'])
+        self.assertEqual(response.context_data['weekly_progress'], 0)
+        self.assertListEqual(response.context_data['actions'], [])
 
-    def test_incomplete(self):
-        now = timezone.now()
-        self.device0.generate_recommended_actions()
+    def test_weekly_ra(self):
+        today = timezone.now()
+        RecommendedAction.objects.bulk_create([
+            # Both devices affected - counts as one RA.
+            # This one is low severity and will be displaced by three other RAs below.
+            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device0,
+                              status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device1,
+                              status=RecommendedAction.Status.AFFECTED),
 
-        # We want to make sure incomplete data, such as empty (None) trust score
-        # combined with complete data doesn't break per-week calculation.
-        with freeze_time(now - timezone.timedelta(days=2)):
-            # Trust score is None, RAs count is 1
-            ra0 = self.device0.recommendedaction_set.all()[0]
-            ra0.resolved_at = timezone.now()
-            ra0.save()
-            self.profile.sample_history()
-        with freeze_time(now - timezone.timedelta(days=1)):
-            # Trust score is 0.5, RAs count is 0
-            self.device0.trust_score = 0.5
-            self.device0.save()
-            self.profile.sample_history()
-        with freeze_time(now):
-            # Trust score is 0.4, RAs count is 0
-            self.device0.trust_score = 0.4
-            self.device0.save()
-            self.profile.sample_history()
+            # both devices affected - counts as one RA
+            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
+            # one device is affected, second was never affected (and never fixed)
+            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+
+            # one device is affected, second fixed - still not fixed
+            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+
+            # fixed on both devices - completely fixed
+            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+
+            # one never affected, another one fixed - completely fixed
+            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+
+            # resolved a week ago - doesn't count
+            RecommendedAction(action_id=self.test_actions[6].action_id, device=self.device1,
+                              status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today - timezone.timedelta(days=7)),
+
+            # snoozed - doesn't count
+            RecommendedAction(action_id=self.test_actions[7].action_id, device=self.device1,
+                              status=RecommendedAction.Status.SNOOZED_FOREVER)
+        ])
+        # expected result: 1, 2, 3 - unfixed, 4, 5 - fixed
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual([(0.4 + 0.5) / 2], response.context_data['trust_score_history'])
-        self.assertListEqual([1], response.context_data['ra_solved_history'])
+        self.assertListEqual([(a.action_id, a.resolved) for a in response.context_data['actions']],
+                             [(self.test_actions[1].action_id, False),
+                              (self.test_actions[2].action_id, False),
+                              (self.test_actions[3].action_id, False),
+                              (self.test_actions[4].action_id, True),
+                              (self.test_actions[5].action_id, True)])
+        self.assertEqual(response.context_data['weekly_progress'], 40)
 
 
 class CVEViewTests(TestCase):

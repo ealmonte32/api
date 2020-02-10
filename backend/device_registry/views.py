@@ -62,101 +62,50 @@ class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListV
         return context
 
 
-class RecommendedActionsMixin:
-    def get_actions(self, device_pk=None):
-        actions = []
-
-        if self.request.user.devices.exists():
-            if device_pk is not None:
-                dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
-                device_name = dev.get_name()
-                actions_qs = dev.recommendedaction_set.all()
-            else:
-                device_name = None
-                actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
-
-            # Select all RAs for all user's devices which are not snoozed
-            active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
-
-            # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
-            actions_by_id = defaultdict(list)
-            affected_devices = set()
-            for ra in active_actions:
-                affected_devices.add(ra.device.pk)
-                actions_by_id[ra.action_id].append(ra.device.pk)
-            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
-
-            # Generate Action objects to be rendered on page for every affected RA.
-            for ra_id, device_pks in actions_by_id.items():
-                devices = [affected_devices[d] for d in device_pks]
-                if ActionMeta.is_action_id(ra_id):
-                    # Make sure we have an Action class with this id.
-                    # If we don't (this id is invalid or was removed) - ignore it.
-                    a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
-                    actions.append(a)
-        else:  # User has no devices - display the special action.
-            device_name = None
-            actions = [Action(
-                'Enroll your node(s) to unlock this feature',
-                'In order to receive recommended actions, click "Add Node" under "Dashboard" to receive instructions '
-                'on how to enroll your nodes.',
-                action_id=0,
-                devices=[],
-                severity=Severity.LO
-            )]
-
-        # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
-        # and has not set up integration with any Github repo. Only shown on common actions page.
-        if not (self.request.user.profile.github_oauth_token and
-                self.request.user.profile.github_repo_id) and \
-                device_pk is None:
-            actions.append(Action(
-                'Enable our GitHub integration for improved workflow',
-                'Did you know that WoTT integrates directly with GitHub? By enabling this integration, GitHub Issues '
-                'are automatically created and updated for Recommended Actions. You can then easily assign these Issues'
-                ' to team members and integrate them into your sprint planning.\n\n'
-                'Please note that we recommend that you use a private GitHub repository for issues.\n\n'
-                'You can find the GitHub integration settings in under your profile in the upper right-hand corner.',
-                action_id=0,
-                devices=[],
-                severity=Severity.LO
-            ))
-
-        # Sort actions by severity and then by action id, effectively grouping subclasses together.
-        actions.sort(key=lambda a: (a.severity.value, a.action_id))
-
-        return device_name, actions
-
-
-class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin, TemplateView):
+class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'dashboard.html'
     next_actions_count = 5
 
-    def get_context_data(self, **kwargs):
-        week = timezone.timedelta(days=7)
+    def _actions(self):
+        ra_unresolved, ra_resolved_this_week = self.request.user.profile.actions_weekly
 
+        severities = {ra.action_id: ra.severity for ra in ActionMeta.all_classes()}
+        actions = []
+        resolved_count = ra_resolved_this_week.count()
+        if resolved_count < self.next_actions_count:
+            ra_unresolved = sorted(ra_unresolved.values_list('action_id', flat=True),
+                                   key=lambda v: severities[v].value[2], reverse=True)
+            for action_id in ra_unresolved[:self.next_actions_count - resolved_count]:
+                a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
+                actions.append(a._replace(resolved=False))
+
+        for action_id in ra_resolved_this_week.values_list('action_id', flat=True)[:self.next_actions_count]:
+            a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
+            actions.append(a._replace(resolved=True))
+
+        return actions, min(ra_resolved_this_week.count(), self.next_actions_count)
+
+    def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        now = timezone.now()
-
-        # TODO: for arbitrary intervals:
-        # SELECT CAST(EXTRACT(EPOCH FROM <date or timestamp>::timestamptz) AS INTEGER) / <nseconds>;
-        cases = [When(sampled_at__range=(now - week * (i + 1), now - week * i), then=i) for i in range(4)]
-
-        history = HistoryRecord.objects \
-            .filter(owner=self.request.user, sampled_at__gte=now - timezone.timedelta(days=28)) \
-            .annotate(week=Case(*cases,output_field=IntegerField())).values('week')\
-            .annotate(sum_ra=Sum('recommended_actions_resolved'), avg_score=Avg('average_trust_score'))
-
-        _, actions = self.get_actions()
-        next_actions = actions[:self.next_actions_count]
-        solved_history = [h['sum_ra'] for h in history]
-        trust_score_history = [h['avg_score'] for h in history]
         context.update(
-            next_actions=next_actions,
-            ra_solved_history=solved_history,
-            trust_score_history=trust_score_history,
-            trust_score=self.request.user.profile.average_trust_score
+            welcome=not self.request.user.devices.exists()
+        )
+        score = self.request.user.profile.average_trust_score
+        actions, resolved_count = self._actions()
+        if score is not None:
+            last_week_score = self.request.user.profile.average_trust_score_last_week
+            context.update(
+                ball_offset=-score * 74 - 38,
+                trust_score={
+                    'current': int(score * 100),
+                    'delta': int(abs(score - last_week_score) * 100),
+                    'arrow': 'up' if score - last_week_score >= 0 else 'down',
+                },
+            )
+        context.update(
+            actions=actions,
+            weekly_progress=int(resolved_count * 100 / self.next_actions_count)
         )
         return context
 
@@ -576,18 +525,89 @@ class PairingKeySaveFileView(LoginRequiredMixin, LoginTrackMixin, View):
         return response
 
 
-class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin, TemplateView):
+class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     """
     Display all available to the user (or to the device) recommended actions.
     Handle 2 different url patterns: one for all user's devices, another of particular device.
     """
     template_name = 'actions.html'
 
+    def _actions(self, device_pk=None):
+        actions = []
+
+        if self.request.user.devices.exists():
+            if device_pk is not None:
+                dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
+                device_name = dev.get_name()
+                actions_qs = dev.recommendedaction_set.all()
+            else:
+                device_name = None
+                actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
+
+            # Select all RAs for all user's devices which are not snoozed
+            active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
+
+            # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
+            actions_by_id = defaultdict(list)
+            affected_devices = set()
+            for ra in active_actions:
+                affected_devices.add(ra.device.pk)
+                actions_by_id[ra.action_id].append(ra.device.pk)
+            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
+
+            # Generate Action objects to be rendered on page for every affected RA.
+            for ra_id, device_pks in actions_by_id.items():
+                devices = [affected_devices[d] for d in device_pks]
+                if ActionMeta.is_action_id(ra_id):
+                    # Make sure we have an Action class with this id.
+                    # If we don't (this id is invalid or was removed) - ignore it.
+                    a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
+                    actions.append(a)
+        else:  # User has no devices - display the special action.
+            device_name = None
+            actions = [Action(
+                title='Enroll your node(s) to unlock this feature',
+                subtitle='...',
+                description='In order to receive recommended actions, click "Add Node" under "Dashboard" to receive ' \
+                            'instructions on how to enroll your nodes.',
+                action_id=0,
+                devices=[],
+                severity=Severity.LO
+            )]
+
+        # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
+        # and has not set up integration with any Github repo. Only shown on common actions page.
+        if not (self.request.user.profile.github_oauth_token and
+                self.request.user.profile.github_repo_id) and \
+                device_pk is None:
+            actions.append(Action(
+                title='Enable our GitHub integration for improved workflow',
+                subtitle='turn on the setting',
+                description='Did you know that WoTT integrates directly with GitHub? By enabling this integration, '
+                            'GitHub Issues are automatically created and updated for Recommended Actions. You can then '
+                            'easily assign these Issues to team members and integrate them into your sprint planning.'
+                            '\n\n'
+                            'Please note that we recommend that you use a private GitHub repository for issues.\n\n'
+                            'You can find the GitHub integration settings in under your profile in the upper right-hand '
+                            'corner.',
+                action_id=0,
+                devices=[],
+                severity=Severity.LO
+            ))
+
+        # Sort actions by severity and then by action id, effectively grouping subclasses together.
+        actions.sort(key=lambda a: (a.severity.value, a.action_id))
+
+        return device_name, actions
+
     def get_context_data(self, **kwargs):
-        device_name, actions = self.get_actions(kwargs.get('device_pk'))
         context = super().get_context_data(**kwargs)
-        context['actions'] = actions
-        context['device_name'] = device_name
+
+        device_name, actions = self._actions(kwargs.get('device_pk'))
+        context.update(
+            actions=actions,
+            device_name=device_name
+        )
         return context
 
 

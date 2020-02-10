@@ -3,6 +3,7 @@ from enum import Enum
 from typing import NamedTuple, List, Union
 from urllib.parse import urljoin
 
+import yaml
 from django.conf import settings
 from django.db.models import Q, QuerySet
 from django.urls import reverse
@@ -12,9 +13,9 @@ import markdown
 
 
 class Severity(Enum):
-    LO = ('Low', 'secondary')
-    MED = ('Medium', 'warning')
-    HI = ('High', 'danger')
+    LO = ('Low', 'secondary', 1)
+    MED = ('Medium', 'warning', 2)
+    HI = ('High', 'danger', 3)
 
 
 class InsecureService(NamedTuple):
@@ -63,12 +64,14 @@ class Action(NamedTuple):
     :param issue_url: Github issue URL, optional
     """
     title: str
+    subtitle: str
     description: str
     action_id: int
     devices: List[int]
     severity: Severity
     doc_url: str = '/'
     issue_url: str = None
+    resolved: bool = None
 
     @property
     def html(self):
@@ -177,8 +180,9 @@ class BaseAction:
             issue_number = profile.github_issues.get(str(cls.action_id))
         issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
         return Action(
-            cls.action_title.format(**context),
-            cls.action_description.format(**context),
+            cls.action_config['title'].format(**context),
+            cls.action_config['subtitle'].format(**context),
+            cls.action_config['short'].format(**context),
             cls.action_id, devices_list,
             cls.severity,
             issue_url=issue_url,
@@ -228,9 +232,9 @@ class BaseAction:
         if 'subject' in context:
             # Workaround for AutoUpdatesAction three-way logic
             context['subject'] = ''
-        body_text = cls.action_description if body is None else body
+        body_text = cls.action_config['long'] if body is None else body
         action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
-        return cls.action_title, action_text
+        return cls.action_config['title'], action_text
 
 
 class GroupedAction:
@@ -297,6 +301,7 @@ class ActionMeta(type):
     _action_classes = {}
     _grouped_action_classes = set()
     _ungrouped_action_classes = {}
+    _config = {}
 
     def __new__(meta, *args, **kwargs):
         """
@@ -319,7 +324,23 @@ class ActionMeta(type):
             meta._grouped_action_classes.add(group_action)
         else:
             meta._action_classes[cls.action_id] = cls
+
+        if not meta._config:
+            meta.load_config()
+        if not hasattr(cls, 'action_config'):
+            # If action_cofig is specified as a class attribute it won't be loaded from the config file.
+            # Mostly makes sense for testing.
+            if hasattr(cls, 'config_id'):
+                config_id = cls.config_id
+            else:
+                config_id = cls.action_id
+            cls.action_config = meta._config.get(config_id)
         return cls
+
+    @classmethod
+    def load_config(meta):
+        config = yaml.load(open('recommended_actions.yaml'))
+        meta._config = {e['id']: e for e in config}
 
     @classmethod
     def unregister(meta, cls):
@@ -362,9 +383,6 @@ class ActionMeta(type):
 # Default username/password used action.
 class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
     action_id = 1
-    action_title = 'Default credentials detected'
-    action_description = \
-        'We found default credentials present on {devices}. Please consider changing them as soon as possible.'
     severity = Severity.HI
 
     @classmethod
@@ -380,9 +398,6 @@ class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
 # Firewall disabled action.
 class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
     action_id = 2
-    action_title = 'Permissive firewall policy detected'
-    action_description = \
-        'We found permissive firewall policy present on {devices}. Please consider change it to more restrictive one.'
     severity = Severity.MED
 
     @classmethod
@@ -405,14 +420,6 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
 # Vulnerable packages found action.
 class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
     action_id = 3
-    action_title = 'Vulnerable packages found'
-    action_description = \
-        'We found vulnerable packages on {devices}. These packages could be used by an attacker to either gain ' \
-        'access to your node, or escalate permission. It is recommended that you address this at your earliest ' \
-        'convenience.\n\n' \
-        'Run `sudo apt-get update && sudo apt-get upgrade` to bring your system up to date.\n\n' \
-        'Please note that there might be vulnerabilities detected that are yet to be fixed by the operating system ' \
-        'vendor.'
     severity = Severity.MED
 
     @classmethod
@@ -425,15 +432,12 @@ class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
 
 
 class InsecureServicesGroupAction(GroupedAction):
-    group_action_title = 'Insecure services found'
-    group_action_main = 'We found insecure services installed on your nodes. Because these services are ' \
-                        'considered insecure, we recommend you to uninstall them.'
     action_id = 1000
 
 
 # Insecure services found action.
 class BaseInsecureServicesAction(BaseAction):
-    action_title = 'Insecure service found'
+    config_id = 1000
     group_action = InsecureServicesGroupAction
 
     @classmethod
@@ -453,12 +457,6 @@ class BaseInsecureServicesAction(BaseAction):
 for name, sub_id, severity in INSECURE_SERVICES:
     class ConcreteInsecureServicesAction(BaseInsecureServicesAction, metaclass=ActionMeta):
         action_id = sub_id + InsecureServicesGroupAction.action_id
-        action_description = \
-            'We found {service} installed on {devices}. Because this service is considered insecure, it is ' \
-            'recommended that you uninstall it.\n\n' \
-            'Run `sudo apt-get remove {service}` to remove it.'
-        group_action_section_title = name
-        group_action_section_body = 'Run `sudo apt-get remove {service}` to remove it.'
         severity = severity
         service_name = name
 
@@ -466,18 +464,10 @@ for name, sub_id, severity in INSECURE_SERVICES:
 # OpenSSH configuration issues found action.
 class OpensshIssueGroupAction(GroupedAction):
     action_id = 2000
-    group_action_title = 'Insecure configuration for OpenSSH found'
-    group_action_main = \
-        'We found insecure configuration issues with OpenSSH on your nodes. To improve the security posture of your ' \
-        'node, please consider making the following changes:'
 
 
 class BaseOpensshIssueAction(BaseAction):
     group_action = OpensshIssueGroupAction
-    action_title = 'Insecure configuration for OpenSSH found'
-    action_description = \
-        'We found insecure configuration issue with OpenSSH on {devices}: insecure parameter {param_name}. To improve ' \
-        'the security posture of your node, please consider changing {param_name} to "{safe_value}".'
 
     @classmethod
     def get_context(cls, devices, device_pk=None):
@@ -497,49 +487,12 @@ for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
         _, doc_url, sub_id, severity = param_info
         action_id = OpensshIssueGroupAction.action_id + sub_id
         sshd_param = param_name
-        group_action_section_title = param_name
-        group_action_section_body = \
-            'Please consider changing {param_name} to "{safe_value}".' \
-            + (f'\n\nYou can learn more [here]({doc_url}).' if doc_url else '')
 
 
 # Automatic security update disabled action.
 class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
     action_id = 6
-    action_title = 'Consider enable automatic security updates'
-    action_description = \
-        'We found that {subject}{devices} {verb} not configured to automatically install security updates. Consider ' \
-        'enabling this feature.\n\n' \
-        'Details for how to do this can be found [here]({doc_url})'
     severity = Severity.HI
-
-    @classmethod
-    def get_doc_url(cls, devices):
-        debian_url = 'https://wiki.debian.org/UnattendedUpgrades'
-        ubuntu_url = 'https://help.ubuntu.com/lts/serverguide/automatic-updates.html'
-        if len(devices) > 1:
-            # Provide Debian's link if more than 1 device.
-            return debian_url
-        else:
-            if devices[0].os_release.get('distro') == 'ubuntu':
-                return ubuntu_url
-            else:  # Everything besides Ubuntu is Debian.
-                return debian_url
-
-    @classmethod
-    def get_context(cls, devices, device_pk=None):
-        if device_pk is None:
-            if len(devices) > 1:
-                subject, verb = 'your nodes ', 'are'
-            else:
-                subject, verb = 'your node ', 'is'
-        else:
-            subject, verb = '', 'is'
-        return {
-            'subject': subject,
-            'verb': verb,
-            'doc_url': cls.get_doc_url(devices)
-        }
 
     @classmethod
     def affected_devices(cls, qs):
@@ -553,11 +506,6 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
 # FTP listening on port 21 action.
 class FtpServerAction(BaseAction, metaclass=ActionMeta):
     action_id = 7
-    action_title = 'Consider moving to SFTP'
-    action_description = \
-        'There appears to be an FTP server running on {devices}. FTP is generally considered insecure as the ' \
-        'credentials are sent unencrypted over the internet. Consider switching to an encrypted service, such as ' \
-        '[SFTP](https://www.ssh.com/ssh/sftp).'
     severity = Severity.MED
 
     @classmethod
@@ -568,15 +516,6 @@ class FtpServerAction(BaseAction, metaclass=ActionMeta):
 # MySQL root default password action.
 class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
     action_id = 10
-    action_title = 'No root password set for the MySQL/MariaDB server'
-    action_description = \
-        'We detected that there is no root password set for MySQL/MariaDB on {devices}. Not having a root password ' \
-        'set makes it easy for anyone with access to the service to copy all information from the database. It is ' \
-        'recommended that you change the password as soon as possible. There are multiple ways to do this, ' \
-        'including using mysqladmin as follows:\n\n' \
-        '`mysqladmin -u root password NEWPASSWORD`\n\n' \
-        'Tip: If you are using mysqladmin as per above, make sure to add a space before the command to avoid it ' \
-        'being stored in your shell\'s history.'
     severity = Severity.HI
 
     @classmethod
@@ -589,18 +528,11 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
 
 
 class PubliclyAccessibleServiceGroupAction(GroupedAction):
-    group_action_title = 'Your services may be publicly accessible'
-    group_action_main = 'We detected that the following services on your nodes may be accessible remotely.'
     action_id = 3000
 
 
 class BasePubliclyAccessibleServiceAction(BaseAction):
     group_action = PubliclyAccessibleServiceGroupAction
-    action_title = 'Your {service} instance may be publicly accessible'
-    action_description = \
-        'We detected that a {service} instance on {devices} may be accessible remotely. Consider either blocking '\
-        'port {port} through the WoTT firewall management tool, or re-configure {service} to only listen on localhost.'
-    group_action_section_body = action_description
     severity = Severity.HI
 
     @classmethod
@@ -618,15 +550,10 @@ for service, service_info in PUBLIC_SERVICE_PORTS.items():
         port, service_name, sub_id = service_info
         action_id = sub_id + PubliclyAccessibleServiceGroupAction.action_id
         service = service
-        group_action_section_title = service_name
 
 
 class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):
     action_id = 12
-    action_title = 'Your system is vulnerable to Meltdown and/or Spectre attacks'
-    action_description = \
-        'We detected that {devices} is vulnerable to Meltdown/Spectre. You can learn more about these issues ' \
-        '[here](https://meltdownattack.com/). To fix the issue, please run `apt-get update && apt-get upgrade`'
     severity = Severity.HI
 
     @classmethod

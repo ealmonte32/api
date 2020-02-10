@@ -11,7 +11,8 @@
 {% block admin_content %}
  
 <div class="dashboard-tab">
-  <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});">
+  <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});
+          {% if not welcome %}display: none !important;{% endif %}">
     <div class="left-box py-4">
       <h1 class="big-text text-center">Welcome User!</h1><!--Include user first name if it exists-->
       <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p>
@@ -26,7 +27,7 @@
     </div>
   </div>
 
-  <section class="top-section pt-2" id="welcome-overlay">
+  <section class="top-section pt-2 {% if not welcome %}d-none{% endif %}" id="welcome-overlay">
     <div class="weekly-card-container card mb-0 wott-box-shadow">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="title-left-box wott-blue">Weekly Recommended Actions</h3>
@@ -112,8 +113,8 @@
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
           
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad3)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#7cacff" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle>
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#7cacff" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle>
           
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
@@ -136,75 +137,38 @@
   </section>
 
   <!-- -------------------- WIHTOUT WELCOME BOX ----------------------------------- -->
-  <section class="top-section pt-2" style="display: none">
+  <section class="top-section pt-2 {% if welcome %}d-none{% endif %}">
     <div class="weekly-card-container card mb-0 wott-box-shadow">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="title-left-box">Weekly Recommended Actions</h3>
         <div class="weekly-progress">
           <div class="graphic-title">Weekly Progress</div>
           <div id="week-progress-100">  
-            <span id="week-progress-var">
-              <p class="mb-0" id="week-progres-text">75%</p><!--HARDCODE | Need function to set #week-progres-text width-->
+            <span id="week-progress-var" style="width: {{ weekly_progress }}%">
+              <p class="mb-0" id="week-progres-text" >{{ weekly_progress }}</p>
             </span>
           </div>
         </div>
       </div>
       <ul class="weekly-card-body">
+      {% for action in actions %}
         <li class="d-flex justify-content-between">
           <div class="d-flex flex-column">
             <div class="round">
-              <input type="checkbox" id="weekly-ra-1"/> <!--ID FROM DB | use: id="weekly-ra-{index}-->
-              <label for="weekly-ra-1"></label> <!--LABEL.FOR FROM DB | use: id="weekly-ra-{index}-->
+              <input type="checkbox"
+                     id="weekly-ra-{{forloop.counter}}"
+                     {% if action.resolved %}checked{% endif %}
+                     disabled style="pointer-events: none"/>
+              <label for="weekly-ra-{{forloop.counter}}"></label>
             </div>
-            <h3 class="list-title mb-0">Default credentials detected</h3><!--HARDCODE-->
-            <h3 class="list-subtitle mb-0">Consider changing them as soom as possible</h3><!--HARDCODE-->
+            <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">{{ action.title }}</h3>
+            <h3 class="list-subtitle mb-0">{{ action.subtitle }}</h3>
           </div>
-          <div class="rect-badge-high">HIGH</div><!--HARDCODE | for the class use: "react-badge-{severity}-->
+        {% with action.severity.value as action_severity %}
+          <div class="rect-badge-{{ action_severity.0|lower }}">{{ action_severity.0|upper }}</div>
+        {% endwith %}
         </li>
-        <li class="d-flex justify-content-between">
-          <div class="d-flex flex-column">
-            <div class="round">
-              <input type="checkbox" id="weekly-ra-2"/> <!--ID FROM DB | use: id="weekly-ra-{index}-->
-              <label for="weekly-ra-2"></label> <!--LABEL.FOR FROM DB | use: id="weekly-ra-{index}-->
-            </div>
-            <h3 class="list-title mb-0">Default credentials detected</h3> <!--HARDCODE-->
-            <h3 class="list-subtitle mb-0">Consider changing them as soom as possible</h3> <!--HARDCODE-->
-          </div>
-          <div class="rect-badge-high">HIGH</div><!--HARDCODE | for the class use: "react-badge-{severity}-->
-        </li>
-        <li class="d-flex justify-content-between">
-          <div class="d-flex flex-column">
-            <div class="round">
-              <input type="checkbox" id="weekly-ra-3"/> <!--ID FROM DB | use: id="weekly-ra-{index}-->
-              <label for="weekly-ra-3"></label> <!--LABEL.FOR FROM DB | use: id="weekly-ra-{index}-->
-            </div>
-            <h3 class="list-title mb-0">Permissive Firewall policy detected</h3><!--HARDCODE-->
-            <h3 class="list-subtitle mb-0">Consider changing them as soom as possible</h3><!--HARDCODE-->
-          </div>
-          <div class="rect-badge-high">HIGH</div><!--HARDCODE | for the class use: "react-badge-{severity}-->
-        </li>
-        <li class="d-flex justify-content-between">
-          <div class="d-flex flex-column">
-            <div class="round">
-              <input type="checkbox" id="weekly-ra-4" checked/> <!--ID FROM DB | use: id="weekly-ra-{index}-->
-              <label for="weekly-ra-4"></label> <!--LABEL.FOR FROM DB | use: id="weekly-ra-{index}-->
-            </div>
-            <h3 class="list-title mb-0 solved-dash">Valnerable packages found</h3> <!--HARDCODE-->
-            <h3 class="list-subtitle mb-0">Consider changing them as soom as possible</h3> <!--HARDCODE-->
-          </div>
-          <div class="rect-badge-medium">MEDIUM</div><!--HARDCODE | for the class use: "react-badge-{severity}-->
-        </li>
-        <li class="d-flex justify-content-between">
-          <div class="d-flex flex-column">
-            <div class="round">
-              <input type="checkbox" id="weekly-ra-5" checked/> <!--ID FROM DB | use: id="weekly-ra-{index}-->
-              <label for="weekly-ra-5"></label> <!--LABEL.FOR FROM DB | use: id="weekly-ra-{index}-->
-            </div>
-            <h3 class="list-title mb-0 solved-dash">Default credentials detected</h3> <!--HARDCODE-->
-            <h3 class="list-subtitle mb-0">Consider changing them as soom as possible</h3> <!--HARDCODE-->
-          </div>
-          <div class="rect-badge-low">LOW</div><!--HARDCODE | for the class use: "react-badge-{severity}-->
-        </li>
+      {% endfor %}
       </ul>
     </div>
     <section class="right-graphic-container">
@@ -226,12 +190,12 @@
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
           
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad2)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
-          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle> <!--small ball position = stroke-dashoffset | Check commented function in script-->
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="4.5"></circle>
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="3"></circle>
           
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
-              80 <!--HARDCODE-->
+              {{ trust_score.current }}
             </text>
             <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
               of 100 <!--HARDCODE-->
@@ -245,7 +209,12 @@
         </svg>
   
       </div>
-      <div class="graph-footer"><i class="fas fa-sort-down"></i><span> UP</span> 5% OVER THE LAST WEEK</div>
+      <div class="graph-footer">
+        <i class="fas fa-sort-{{ trust_score.arrow }}"></i>
+        <span> {{ trust_score.arrow|upper }}</span>
+        {{ trust_score.delta }}
+        OVER THE LAST WEEK
+      </div>
     </section>
   </section>
 </div>
@@ -253,16 +222,5 @@
 
 {% block scripts %}
 {{ block.super }}
-
-<!-- The percentage could be scaled with this function bellow -->
-
-<!-- function scalePercentage(percentage) {
-  if (percentage >= 0 && percentage <=100) {
-    let newPercentage = parseInt(percentage * .74);
-    return -newPercentage - 38 
-  }
-  else return false;
-} -->
-
 
 {% endblock scripts %}
