@@ -17,8 +17,6 @@ import {
     faTrash,
     faSortDown,
     faSortUp,
-    faCaretDown,
-    faCaretRight,
 } from '@fortawesome/free-solid-svg-icons'
 import {
     faCheckSquare,
@@ -47,7 +45,5 @@ library.add([
     faSortUp,
     faSquare,
     faTrash,
-    faCaretDown,
-    faCaretRight,
 ]);
 dom.watch();

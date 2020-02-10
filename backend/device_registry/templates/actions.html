@@ -40,7 +40,7 @@
                 <div class="dropdown">
                   <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
                     VIEW DETAILS
-                    <i class="ml-1 fas fa-caret-down"></i>
+                    <i class="ml-1 fas fa-caret-right toggle-ra-arrow" wott-action-id="{{ action.action_id }}"></i>
                   </button>
                 </div>
               </div>
@@ -125,14 +125,17 @@
 
                 <div class="actions-instrucions">{{ action.short_html|safe }}</div>
 
-                <span class="line-box d-flex justify-content-between align-items-center">
-                  <span class="mb-0 wott-learn-more font-weight-bolder" wott-action-id="{{ action.action_id }}">View Details</span>
-                  <button class="wott-dropdown">
-                    <span><i class="fas fa-caret-down"></i></span>
-                    <!-- <i class="fas fa-caret-right"></i> -->
+                <span class="line-box d-flex justify-content-between align-items-center wott-learn-more"
+                      wott-action-id="{{ action.action_id }}">
+                  <span class="mb-0 font-weight-bolder" style="pointer-events: none">View Details</span>
+                  <button class="wott-dropdown" style="pointer-events: none">
+                    <span>
+                      <i class="fas fa-caret-right wott-learn-more-arrow"
+                         wott-action-id="{{ action.action_id }}"></i>
+                    </span>
                   </button>
                 </span>
-                <div class="learn-more-box" style="display: block" wott-action-id="{{ action.action_id }}">
+                <div class="learn-more-box" style="display: none" wott-action-id="{{ action.action_id }}">
                   {{ action.long_html|safe }}
                 </div>
 
@@ -355,14 +358,17 @@
   <script>
    
     $('.toggle-ra-button').click((e) => {
-        let action_id = $(e.target).attr('wott-action-id'),
-            block = $(`.wott-open-box[wott-action-id=${action_id}]`),
-            expanded = block.attr('wott-action-expanded') === 'true';
+      let action_id = $(e.target).attr('wott-action-id'),
+          block = $(`.wott-open-box[wott-action-id=${action_id}]`),
+          expanded = block.attr('wott-action-expanded') === 'true';
 
-        console.log(action_id);
-        block.toggleClass("d-none", expanded);
-        block.toggleClass("d-block", !expanded);
-        block.attr('wott-action-expanded', !expanded);
+      console.log(action_id);
+      block.toggleClass("d-none", expanded);
+      block.toggleClass("d-block", !expanded);
+      block.attr('wott-action-expanded', !expanded);
+      $(`.toggle-ra-arrow[wott-action-id=${action_id}]`)
+          .toggleClass('fa-caret-down', !expanded)
+          .toggleClass('fa-caret-right', expanded);
     });
 
     function hover(e) {
@@ -385,6 +391,9 @@
         console.log(action_id, block);
         block.css({display: expanded? 'none': 'block'});
         block.attr('wott-action-expanded', !expanded);
+        $(`.wott-learn-more-arrow[wott-action-id=${action_id}]`)
+            .toggleClass('fa-caret-down', !expanded)
+            .toggleClass('fa-caret-right', expanded);
     });
 
     /**
