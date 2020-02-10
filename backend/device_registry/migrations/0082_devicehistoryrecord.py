@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('device_registry', '0080_history_cve_count'),
+        ('device_registry', '0081_merge_20200204_0808'),
     ]
 
     operations = [
