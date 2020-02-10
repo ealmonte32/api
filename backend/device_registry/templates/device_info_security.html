@@ -99,11 +99,16 @@
         
                   <tr class="pb-4">
                     <th class="wott-table-label pb-0">System File Audit</th>
+                  {% if not object.audit_files %}
+                    <td>
+                      <span class="wott-blue">N/A</span>
+                    </td>
+                  {% endif %}
                   </tr>
 
+                {% if object.audit_files %}
                   <tr class="border-top-0 pt-0">
                     <td class="inner-table mb-4">
-                      {% if object.audit_files %}
                         <table class="wott-table wott-box-shadow">
                           <thead class="">
                             <tr class="row">
@@ -122,11 +127,10 @@
                             </tr>
                           {% endfor %}
                         </table>
-                      {% else %}
-                      <span class="wott-blue">N/A</span>
-                      {% endif %}
                     </td>
                   </tr>
+                {% endif %}
+
 
                   {% with object.sshd_issues as sshd_issues %}
                     {% if sshd_issues is None %}
