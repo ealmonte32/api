@@ -370,6 +370,9 @@ class ActionMeta(type):
         :param grouped:
         :return:
         """
+
+        # Classes with action_id < 0 are "special": they are for a user, not for device(s).
+        # We don't store those in database.
         regular = [c for c in meta._action_classes.values() if c.action_id > 0]
         return regular + (list(meta._grouped_action_classes) if grouped
                           else list(meta._ungrouped_action_classes.values()))

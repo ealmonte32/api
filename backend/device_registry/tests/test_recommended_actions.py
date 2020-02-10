@@ -24,7 +24,6 @@ class NoDevicesActionTest(TestCase):
         user.save()
         self.client.login(username='test', password='123')
         common_actions_url = reverse('actions')
-        search_string = 'In order to receive recommended actions'
 
         # No devices.
         response = self.client.get(common_actions_url)

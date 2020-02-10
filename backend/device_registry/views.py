@@ -21,9 +21,9 @@ from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, HistoryRecord, Vulnerability
+    RecommendedAction, Vulnerability
 from .models import GlobalPolicy
-from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity, EnrollAction, GithubAction
+from .recommended_actions import ActionMeta, FirewallDisabledAction, EnrollAction, GithubAction
 
 
 class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
