@@ -328,6 +328,8 @@ class ActionMeta(type):
         if not meta._config:
             meta.load_config()
         if not hasattr(cls, 'action_config'):
+            # If action_cofig is specified as a class attribute it won't be loaded from the config file.
+            # Mostly makes sense for testing.
             if hasattr(cls, 'config_id'):
                 config_id = cls.config_id
             else:
