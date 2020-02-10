@@ -583,7 +583,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             actions.append(GithubAction.action(self.request.user, []))
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.
-        actions.sort(key=lambda a: (a.severity.value, a.action_id))
+        actions.sort(key=lambda a: (a.severity.value[2], a.action_id), reverse=True)
 
         return device_name, actions
 
