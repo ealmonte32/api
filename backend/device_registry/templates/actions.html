@@ -43,7 +43,7 @@
                 <div class="dropdown">
                   <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
                     VIEW DETAILS
-                    <i class=" ml-1 fas fa-sort-down"></i>
+                    <i class=" ml-1 fas fa-caret-down"></i>
                   </button>
                 </div>
               </div>
@@ -107,7 +107,7 @@
                 <div class="open-box-header d-flex align-items-center justify-content-between">
                 {% if action.action_id > 0 %}
                   <h4 class="mb-0 open-box-header-text">Affected Nodes:</h4>
-                  {% for d in action.devices %}
+                  {% for d in action.devices|slice:":5" %}
                     <a href="{% url 'device-detail' d.pk %}" class="wott-node">{{ d.get_name }}</a>
                   {% endfor %}
                   <button wott-action-id="{{ action.action_id }}" class="btn wott-btn-header">
@@ -143,13 +143,12 @@
               {% endif %}
 
                 <div class="line-box d-flex justify-content-between">
-                  <a class="mb-0" href="{{ action.doc_url }}">Learn More</a>
+                  <a class="mb-0 wott-learn-more" href="{{ action.doc_url }}" wott-action-id="{{ action.action_id }}">Learn More</a>
                   <button class="wott-dropdown">
-                    <i class="fas fa-sort-down"></i>
+                    <i class="fas fa-caret-down"></i>
                   </button>
                 </div>
-                <div class="learn-more-box" style="display: none"> <!--@Artem: Change to display block-->
-                  <h4>This is a fake title</h4>
+                <div class="learn-more-box" style="display: none" wott-action-id="{{ action.action_id }}"> <!--@Artem: Change to display block-->
                   {{ action.long_html|safe }}
                 </div>
                 
@@ -227,7 +226,6 @@
         block.toggleClass("d-block", !expanded);
         block.attr('wott-action-expanded', !expanded);
     });
-    $('.wott-open-box').css("display", "none") // @Artem: change to block/none to see/hide the open box
 
     function hover(e) {
       let obj = document.getElementById(`${e.id}`);
@@ -250,6 +248,16 @@
     function viewNodes(id) {
 
     }
+
+    $('.wott-learn-more').click((e) => {
+        e.preventDefault();
+        let action_id = $(e.target).attr('wott-action-id'),
+            block = $(`.learn-more-box[wott-action-id=${action_id}]`),
+            expanded = block.attr('wott-action-expanded') === 'true';
+        console.log(action_id, block);
+        block.css({display: expanded? 'none': 'block'});
+        block.attr('wott-action-expanded', !expanded);
+    });
 
     /**
      * Snooze an action. Used by the close icon on the alerts.

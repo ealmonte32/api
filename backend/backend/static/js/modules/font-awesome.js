@@ -2,6 +2,8 @@ import {dom, library} from '@fortawesome/fontawesome-svg-core'
 
 import {
     faBan,
+    faCaretDown,
+    faCaretRight,
     faCheck,
     faCheckCircle,
     faCopy,
@@ -25,6 +27,8 @@ import {faGithub} from '@fortawesome/free-brands-svg-icons'
 
 library.add([
     faBan,
+    faCaretDown,
+    faCaretRight,
     faCheck,
     faCheckCircle,
     faCheckSquare,
