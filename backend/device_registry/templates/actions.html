@@ -10,7 +10,7 @@
 
 {% block admin_content %}
   <div id="actions-tab" class="">
-    <div class="overlay" style="display: none;"></div> <!--@Artem: hange class to display:block when modal is open-->
+    <div class="overlay" style="display: none;"></div>
     <div class="mb-3 w-100" id="alert-container">
       {% for action in actions %}
         <div class="wott-action" role="alert" wott-action-id="{{ action.action_id }}">
@@ -49,14 +49,14 @@
                 </div>
               </div>
               
-            {% if action.action_id > 0 %}
               <div class="btn-group-box">
                 <div class="btn-group wott-alert-btn-group d-flex justify-content-around"
                     wott-action
                     wott-action-id="{{ action.action_id }}"
                     wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
                     wott-action-title="{{ action.title }}">
-                  <button type="button" class="bg-white look-disable" data-dismiss="alert" wott-snooze wott-snooze-duration="0"> <!--@Artem: if btns disable include class look-disable -->
+                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                          data-dismiss="alert" wott-snooze wott-snooze-duration="0">
                     <span>
                       <img id="ignore-img"
                               class="wott-img-btn"
@@ -68,7 +68,8 @@
                     </span>
                     <div class="btn-img-text">IGNORE</div>
                   </button>
-                  <button type="button" class="bg-white" data-toggle="dropdown"> <!--@Artem: if btns disable include class look-disable -->
+                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                          data-toggle="dropdown">
                     <span>
                       <img id="snooze-img"
                           class="wott-img-btn"
@@ -80,7 +81,8 @@
                     </span>
                     <div class="btn-img-text">SNOOZE</div>
                   </button>
-                  <button type="button" class="bg-white" data-dismiss="alert" wott-snooze wott-snooze-duration="null" wott-snooze-type="Resolve"><!--@Artem: if btns disable include class look-disable -->
+                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                          data-dismiss="alert" wott-snooze wott-snooze-duration="null" wott-snooze-type="Resolve">
                     <span>
                       <img id="resolved-img"
                           class="wott-img-btn"
@@ -100,10 +102,11 @@
                   </div>
                 </div>
               </div>
-            {% endif %}
             </div>
             
-            <section wott-action-id="{{ action.action_id }}" wott-action-expanded=false class="wott-open-box mb-4 d-none">
+            <section class="wott-open-box mb-4 d-none"
+                     wott-action-id="{{ action.action_id }}"
+                     wott-action-expanded=false>
               <div class="wott-inner-open-box">
                 <div class="open-box-header d-flex align-items-center justify-content-between">
                 {% if action.action_id > 0 %}
@@ -115,7 +118,9 @@
                     VIEW ALL NODES +
                     <template>
                     {% for d in action.devices %}
-                      <a href="{% url 'device-detail' d.pk %}" class="wott-node">{{ d.get_name }}</a>
+                      <a class="wott-node-list wott-list-blue" href="{% url 'device-detail' d.pk %}">
+                        {{ d.get_name }}
+                      </a>
                     {% endfor %}
                     </template>
                   </button>
@@ -149,7 +154,7 @@
                     <i class="fas fa-caret-down"></i>
                   </button>
                 </div>
-                <div class="learn-more-box" style="display: none" wott-action-id="{{ action.action_id }}"> <!--@Artem: Change to display block-->
+                <div class="learn-more-box" style="display: none" wott-action-id="{{ action.action_id }}">
                   {{ action.long_html|safe }}
                 </div>
                 
@@ -174,9 +179,8 @@
     </div>
   </div>
 
-<!--@Artem the modal is bellow, it needs all interactions to be implemented-->
 <div id="all-nodes">
-  <div class="popover-box wott-scroll-y" style="visibility: hidden; pointer-events: all; z-index: 999;"> <!--change style to visible to show this box-->
+  <div class="popover-box wott-scroll-y" style="visibility: hidden; pointer-events: all; z-index: 999;">
     <div class="wott-popover-header">
       <div class="wott-popover-header-box">
         <h1 class="mb-0" id="wott-popover-title">All Nodes</h1>
@@ -184,41 +188,7 @@
       </div>
       <hr class="popover-title-line">
     </div>
-    <div class="wott-popover-body w-100"> <!--HARDCODE BELLOW-->
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
-      <a class="wott-node-list wott-list-blue" href="/devices/1/cve/">artem-linux-gf</a>
+    <div class="wott-popover-body w-100">
     </div>
   </div>
 </div>
@@ -391,16 +361,6 @@
       e.setAttribute('src', src);
     }
 
-    $('.wott-btn-header').click((e) => {
-        let btn = $(e.target);
-        let action_id = btn.attr('wott-action-id');
-        console.log(action_id, btn.children('template').html());
-    });
-
-    function viewNodes(id) {
-
-    }
-
     $('.wott-learn-more').click((e) => {
         e.preventDefault();
         let action_id = $(e.target).attr('wott-action-id'),
@@ -451,7 +411,56 @@
             });
           {% endif %}
         })
-    })
+    });
+
+  /*
+   *** Modal interaction
+   */
+
+  let modalShown = null;
+
+  $('.wott-btn-header').click((e) => {
+    let btn = $(e.target);
+    {#console.log(action_id, btn.children('template').html());#}
+    e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
+    e.stopPropagation(); // prevent $body.click handler - it will catch "outside click"
+    modalShown = $('.popover-box')[0];
+    let template = $(e.target).children('template');
+    const is_nodes = true;
+    modal(true, template.attr('title'), template.html(), !is_nodes, is_nodes, is_nodes);
+  });
+
+  $('body').click((e) => {
+    if(e.target == modalShown || $(e.target).parents('.popover-box').length) {
+      // clicked on popover link or inside popover
+      return;
+    }
+    if(modalShown) {
+      // clicked anywhere outside the popover while it's shown -> hide it
+      modal(false);
+      modalShown = null;
+    }
+  });
+
+  $('#close-popover-buttton').click(() => {
+      modal(false);
+      modalShown = null;
+  });
+
+  function modal(show, title, html, box_scroll_x, box_scroll_y, body_w100) {
+      $('.overlay').css({display: show? 'block': 'none'});
+      $('.popover-box').css({
+          visibility: (show? 'visible': 'hidden'),
+          pointerEvents: (show? 'all': 'none'),
+          zIndex: (show? 999: 0)
+      });
+      if(!show)
+          return;
+      $('.popover-box').toggleClass('wott-scroll-x', box_scroll_x).toggleClass('wott-scroll-y', box_scroll_y);
+      $('.wott-popover-body').html(html).toggleClass('w-100', body_w100).toggleClass('w-auto', !body_w100);
+      $('#wott-popover-title').text(title);
+  }
+
   </script>
   <script>
     // Listen to mutations to the DOM. If there are no alerts then show a message.
