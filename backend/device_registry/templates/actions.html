@@ -18,13 +18,9 @@
             
             <div class="d-flex wott-closed-box align-items-center">
               <div class="recommendation-left-box">
-                <div class="round pl-5">
-                  <input type="checkbox" id="alert-ra-{{forloop.counter}}"/> <!--include checked atribute to check the input-->
-                  <label for="alert-ra-{{forloop.counter}}"></label>
-                </div>
                 <div class="alert-box-text">
                   <div class="d-flex align-items-center justify-content-between mb-0">
-                    <span class="alert-title"> <!--include solved-dash to linetrough the title when clicked-->
+                    <span class="alert-title">
                       {{ action.title|safe }}
                       
                       {% if action.issue_url %}
@@ -44,7 +40,7 @@
                 <div class="dropdown">
                   <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
                     VIEW DETAILS
-                    <i class=" ml-1 fas fa-caret-down"></i>
+                    <i class="ml-1 fas fa-caret-down"></i>
                   </button>
                 </div>
               </div>
@@ -126,7 +122,19 @@
                   </button>
                 {% endif %}
                 </div>
-                {{ action.short_html|safe }}
+
+                <div class="actions-instrucions">{{ action.short_html|safe }}</div>
+
+                <span class="line-box d-flex justify-content-between align-items-center">
+                  <span class="mb-0 wott-learn-more font-weight-bolder" wott-action-id="{{ action.action_id }}">View Details</span>
+                  <button class="wott-dropdown">
+                    <span><i class="fas fa-caret-down"></i></span>
+                    <!-- <i class="fas fa-caret-right"></i> -->
+                  </button>
+                </span>
+                <div class="learn-more-box" style="display: block" wott-action-id="{{ action.action_id }}">
+                  {{ action.long_html|safe }}
+                </div>
 
                 {% if action.terminal_title %}
                 <div class="inner-open-box d-flex align-items-center">
@@ -147,18 +155,6 @@
                   </div>
                 </div>
               {% endif %}
-
-                <div class="line-box d-flex justify-content-between">
-                  <a class="mb-0 wott-learn-more" href="{{ action.doc_url }}" wott-action-id="{{ action.action_id }}">Learn More</a>
-                  <button class="wott-dropdown">
-                    <i class="fas fa-caret-down"></i>
-                  </button>
-                </div>
-                <div class="learn-more-box" style="display: none" wott-action-id="{{ action.action_id }}">
-                  {{ action.long_html|safe }}
-                </div>
-                
-                
               </div>
             </section>
 
@@ -196,6 +192,22 @@
 
   <style>
 
+    #actions-tab .line-box {
+      padding: .7rem 2rem;
+    }
+
+    .line-box span {
+      color: #2460c8;;
+    }
+    .actions-instrucions {
+      padding: 0 5.5rem;
+    }
+
+    #actions-tab .line-box {
+      cursor: pointer;
+      background-color:#d9deee;
+    }
+
     .alert-title-big {
       font-size: 2rem;
       color: #2460c8;
@@ -221,7 +233,8 @@
     }
 
     .learn-more-box {
-      background-color:#d9deee;
+      /* background-color:#d9deee; */
+      background-color: #e9edf8;
       margin: -2.5rem 5.5rem 2.5rem;
       padding: 2rem 2rem;
       font-size: .8rem;
@@ -232,6 +245,9 @@
       padding: 0.5rem 0 1rem;
     }
 
+    .wott-node-list {
+      color: #2460c8 !important;
+    }
 
     /* MODAL */
 
