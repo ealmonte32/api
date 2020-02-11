@@ -22,7 +22,7 @@
                   <h4 class="wott-table-title wott-table-py">Security</h4>
                   <tr>
                     <th class="wott-table-label" scope="row">Vulnerable Packages</th>
-                    <td class="d-flex justify-content-between w-60">
+                    <td class="d-flex flex-column justify-content-between w-60">
                       {% with object.cve_count as cve_count %}
                         {% if cve_count is None %}
                           <span class="wott-blue font-weight-bold">N/A</span>
@@ -398,7 +398,9 @@
                             {% endif %}
                             {{ ports_form.is_ports_form }}
                             <!-- <select type="select" class="wott-form-control d-block w-50 mb-3"><option>Allow by default</option></select> -->
-                            <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
+                            <div class="d-flex justify-content-end">
+                              <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
+                            </div>
                           </div>
                         </form>
                       {% endif %}
@@ -481,7 +483,9 @@
                                 </table>
                               </div>
                               {{ connections_form.is_connections_form }}
-                              <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
+                              <div class="d-flex justify-content-end">
+                                <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
+                              </div>
                             </div>
                           </form>
                         {% endif %}
