@@ -68,7 +68,11 @@
             <li class="nav-item dropdown">
               <a class="nav-linkq" href="#" data-toggle="dropdown">
               <div id="username-box" class="text-dark">{{ user.username }}</div>
-              <div class="icon-container"><span class="sort-symbol"><i class="fas fa-caret-right"></i></span></div>
+              <div class="icon-container">
+                <span class="sort-symbol">
+                  <i class="fas fa-caret-right" id="wott-dropdown-arrow"></i>
+                </span>
+              </div>
             </a>
               <div class="dropdown-menu dropdown-menu-right wott-box-shadow">
                 <div class="p-relative">
@@ -237,41 +241,47 @@
         return s.replace('<!-- text -->', text).replace('&lt;!-- copy --&gt;', copy_text);
     }
 
-    {% if MIXPANEL_TOKEN %}
-      $('.sidebar-link').click((e) => {
-          mixpanel.track("Sidebar", {element: e.target.id});
-      });
-      $('#logout').click(() => {
-          mixpanel.reset();
-      });
-      {% if signed_up %}
-      mixpanel.alias("{{ user.email }}");
-      mixpanel.track("Signed Up");
-      {% elif signed_in %}
-      mixpanel.track("Signed In");
-      {% endif %}
-      mixpanel.identify("{{ user.email }}");
-      mixpanel.people.set({
-          "$first_name": "{{ user.first_name }}",
-          "$last_name": "{{ user.last_name }}",
-          "$email": "{{ user.email }}",
-          "$phone": "{{ user.profile.phone }}"
-      });
-      $("#admin-inst-btn,#inst-btn").on('click', () => mixpanel.track("Add Node"));
-
+  {% if MIXPANEL_TOKEN %}
+    $('.sidebar-link').click((e) => {
+        mixpanel.track("Sidebar", {element: e.target.id});
+    });
+    $('#logout').click(() => {
+        mixpanel.reset();
+    });
+    {% if signed_up %}
+    mixpanel.alias("{{ user.email }}");
+    mixpanel.track("Signed Up");
+    {% elif signed_in %}
+    mixpanel.track("Signed In");
     {% endif %}
+    mixpanel.identify("{{ user.email }}");
+    mixpanel.people.set({
+        "$first_name": "{{ user.first_name }}",
+        "$last_name": "{{ user.last_name }}",
+        "$email": "{{ user.email }}",
+        "$phone": "{{ user.profile.phone }}"
+    });
+    $("#admin-inst-btn,#inst-btn").on('click', () => mixpanel.track("Add Node"));
+  {% endif %}
 
-    let flag = true;
-    let sort_container = $('.icon-container')[0];
-    let dropdown = $('.nav-item.dropdown')[0];
-    sort_container.onclick = (e) => {
-      if(flag) { 
-        sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-caret-down"></i></span>';
-        flag = false;
-      } else {
-         sort_container.innerHTML = '<span class="sort-symbol"><i class="fas fa-caret-right"></i></span>';
-         flag = true;
-      }
+    /*
+      Dropdown arrow interaction.
+      Arrow points right when collapsed and down when expanded.
+      Clicking anywhere inside nav-item dropdown will cause it to expand or collapse.
+      Clicking outside of nav-item dropdown will cause it to collapse if expanded.
+     */
+
+    function toggleDropdownArrow(expanded) {
+        let arrow = $('#wott-dropdown-arrow');
+        arrow.toggleClass('fa-caret-down', expanded)
+             .toggleClass('fa-caret-right', !expanded);
     }
+
+    $('.nav-item.dropdown')
+      .on('show.bs.dropdown', () => {
+        toggleDropdownArrow(true);
+    }).on('hide.bs.dropdown', () => {
+        toggleDropdownArrow(false);
+    });
   </script>
 {% endblock %}
