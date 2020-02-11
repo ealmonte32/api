@@ -67,9 +67,9 @@ class Profile(models.Model):
                                                                        status=RecommendedAction.Status.NOT_AFFECTED,
                                                                        resolved_at__gte=this_monday) \
             .values('action_id')  # resolved this week (not completely)
-        ra_unresolved = RecommendedAction.objects.filter(device__owner=self.user,
-                                                         action_id__in=all_ids,
-                                                         status=RecommendedAction.Status.AFFECTED) \
+        ra_unresolved = RecommendedAction.objects.filter(RecommendedAction.get_affected_query(),
+                                                         device__owner=self.user,
+                                                         action_id__in=all_ids) \
             .values('action_id').distinct()  # unresolved
         ra_resolved_this_week = ra_maybe_resolved_this_week.exclude(action_id__in=ra_unresolved).distinct()
         return ra_unresolved, ra_resolved_this_week
