@@ -415,6 +415,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 portscan.block_networks = out_data
                 portscan.save(update_fields=['block_networks'])
 
+        self.object.refresh_from_db()
         self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
