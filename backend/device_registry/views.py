@@ -3,6 +3,7 @@ import uuid
 from collections import defaultdict
 from typing import NamedTuple, List
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
@@ -65,7 +66,6 @@ class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListV
 
 class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'dashboard.html'
-    next_actions_count = 5
 
     def _actions(self):
         ra_unresolved, ra_resolved_this_week = self.request.user.profile.actions_weekly
@@ -73,18 +73,18 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         severities = {ra.action_id: ra.severity for ra in ActionMeta.all_classes()}
         actions = []
         resolved_count = ra_resolved_this_week.count()
-        if resolved_count < self.next_actions_count:
+        if resolved_count < settings.MAX_WEEKLY_RA:
             ra_unresolved = sorted(ra_unresolved.values_list('action_id', flat=True),
                                    key=lambda v: severities[v].value[2], reverse=True)
-            for action_id in ra_unresolved[:self.next_actions_count - resolved_count]:
+            for action_id in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
                 actions.append(a._replace(resolved=False))
 
-        for action_id in ra_resolved_this_week.values_list('action_id', flat=True)[:self.next_actions_count]:
+        for action_id in ra_resolved_this_week.values_list('action_id', flat=True)[:settings.MAX_WEEKLY_RA]:
             a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
             actions.append(a._replace(resolved=True))
 
-        return actions, min(ra_resolved_this_week.count(), self.next_actions_count)
+        return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -106,7 +106,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             )
         context.update(
             actions=actions,
-            weekly_progress=int(resolved_count * 100 / self.next_actions_count)
+            weekly_progress=int(resolved_count * 100 / settings.MAX_WEEKLY_RA)
         )
         return context
 
