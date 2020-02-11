@@ -257,26 +257,12 @@
   }
 
   .btn-img-text {
-    font-size: .8rem;
+    font-size: .6rem;
     color: #2460c8;
     margin-top: .3rem;
     font-weight: 800;
-    @include mQ(1340px) {
-      font-size: .7rem;
-    }
   }
 
-  #resolved-img {
-    @include mQ(1340px) {
-      width: 40%;
-    }
-  }
-
-  #ignore-img{
-    @include mQ(1340px) {
-      width: 55%;
-    }
-  }
   .btn-group-box {
     width: 30%;
   }
@@ -291,13 +277,6 @@
       width: 80%
     }
   }
-
-  .wott-img-btn {
-    @include mQ(1340px) {
-      width: 50%;
-    }
-  }
-
 
   .inner-open-box {
     margin: 0 5.5rem;
