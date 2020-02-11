@@ -65,3 +65,69 @@
   display: block;
   font-size: $font-size-sm;
 }
+
+
+// WOTT DROPDOWN PROFILE
+
+
+#dropdown-settings-nav {
+  .sidebar-item:first-child::before {
+   content: "";
+   position: absolute;
+   top: -9px;
+   left: 258px;
+   width: 0;
+   border-bottom: 10px solid #fff;
+   border-left: 10px solid transparent;
+   border-right: 10px solid transparent;
+  }
+  
+   .sidebar-item:first-child:hover::before {
+   border-bottom: 10px solid rgb( 245, 247, 252);
+  }
+  
+  .sidebar-item {
+    padding: .6rem 1rem 0 2.5rem;
+    margin: 0!important;
+  }
+  
+  .dropdown-menu {
+   padding: 0 !important;
+  }
+  
+  .dropdown-menu-right {
+    width: 300px;
+    border-radius: 8px;
+    margin-top: 15px;
+    border: 0;
+    box-shadow: 1px 1px 15px #e5e9f2 !important;
+  }
+  
+  .sidebar-item:hover,
+  .sidebar-link:hover {
+   background-color: rgb( 245, 247, 252);
+  }
+  
+  .sidebar-item:active,
+  .sidebar-link:active:hover,
+  .sidebar-item:active:hover {
+   background: white !important;
+  }
+  
+  .sidebar-link {
+   background: transparent;
+  }
+  
+  .dropdown-nav-block h4 {
+   padding-left: 1.3rem;
+   font-size: 1.1rem;
+   margin-bottom: 0;
+   color: #646d7f;
+  }
+
+  .sort-symbol {
+   pointer-events: none;
+   font-size: 1.2rem;
+  }
+}
+
