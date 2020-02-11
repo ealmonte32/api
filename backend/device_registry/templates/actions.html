@@ -2,78 +2,397 @@
 
 {% block title %}WoTT - Recommended Actions{% endblock title %}
 
+{% load static %}
+
 {% block dashboard_title %}
   <h1>Recommended Actions{% if device_name %} for {{ device_name }}{% endif %}</h1>
 {% endblock dashboard_title %}
 
 {% block admin_content %}
-  <div class="row">
-    <div class="mb-3 mt-3 w-100" id="alert-container">
+  <div id="actions-tab" class="">
+    <div class="overlay" style="display: none;"></div>
+    <div class="mb-3 w-100" id="alert-container">
       {% for action in actions %}
-        <div class="alert alert-primary alert-outline alert-dismissible alert-recommended" role="alert">
-          <div class="close" style="opacity: initial">
-            {% with action.severity.value as action_severity %}
-            <span class="badge badge-{{ action_severity.1 }} font-weight-light wott-alert-severity">
-              Severity: {{ action_severity.0 }}
-            </span>
-            {% endwith %}
-          </div>
-          <div class="alert-message">
-            <h3 class="alert-heading">
-              {{ action.title|safe }}
-              {% if action.issue_url %}
-                <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
-              {% endif %}
-            </h3>
-            <p>{{ action.html|safe }}</p>
-
-            <span><a class="mb-0" href="{{ action.doc_url }}">Learn More</a></span>
-            {% ifnotequal action.action_id 0 %}
-            <div class="btn-group float-right wott-alert-btn-group"
-                 wott-action
-                 wott-action-id="{{ action.action_id }}"
-                 wott-action-devices="{{ action.devices }}"
-                 wott-action-title="{{ action.title }}">
-              <button type="button" class="btn btn-success mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="null">Resolve</button>
-              <button type="button" class="btn btn-danger mr-1" data-dismiss="alert" wott-snooze wott-snooze-duration="0">Ignore</button>
-              <button type="button" class="btn btn-secondary mr-1 dropdown-toggle" data-toggle="dropdown">Snooze</button>
-              <div class="dropdown-menu">
-                <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24">24 hours</a>
-                <a class="dropdown-item" href="#" data-dismiss="alert" wott-snooze wott-snooze-duration="24*7">7 days</a>
+        <div class="wott-action" role="alert" wott-action-id="{{ action.action_id }}">
+          <div class="full-alert-box mb-3 wott-box-shadow">
+            
+            <div class="d-flex wott-closed-box align-items-center">
+              <div class="recommendation-left-box">
+                <div class="alert-box-text">
+                  <div class="d-flex align-items-center justify-content-between mb-0">
+                    <span class="alert-title">
+                      {{ action.title|safe }}
+                      
+                      {% if action.issue_url %}
+                        <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
+                      {% endif %}
+                    </span>
+                    {% with action.severity.value as action_severity %}
+                    <div class="badge mr-4 mb-1 text-uppercase wott-rect-badge-{{ action_severity.1 }}">
+                      {{ action_severity.0 }}
+                    </div>
+                    {% endwith %}
+                  </div>
+                  <h5 class="alert-instruction mb-0">{{ action.subtitle }}</h5>
+                </div>
+              
+                
+                <div class="dropdown">
+                  <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
+                    VIEW DETAILS
+                    <i class="ml-1 fas fa-caret-right toggle-ra-arrow" wott-action-id="{{ action.action_id }}"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="btn-group-box">
+                <div class="btn-group wott-alert-btn-group d-flex justify-content-around"
+                    wott-action
+                    wott-action-id="{{ action.action_id }}"
+                    wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
+                    wott-action-title="{{ action.title }}">
+                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                          data-dismiss="alert" wott-snooze wott-snooze-duration="0">
+                    <span>
+                      <img id="ignore-img"
+                              class="wott-img-btn"
+                              src="{% static '/media/multiply.svg' %}"
+                              data-src1="{% static '/media/multiply.svg' %}"
+                              data-src2="{% static '/media/close-selected.svg' %}"
+                              onmouseover="hover(this)"
+                              onmouseout="unhover(this)">
+                    </span>
+                    <div class="btn-img-text">IGNORE</div>
+                  </button>
+                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                          data-toggle="dropdown">
+                    <span>
+                      <img id="snooze-img"
+                          class="wott-img-btn"
+                          src="{% static '/media/snooze-icon.svg' %}"
+                          data-src1="{% static '/media/snooze-icon.svg' %}"
+                          data-src2="{% static '/media/snooze-selected.svg' %}"
+                          onmouseover="hover(this)"
+                          onmouseout="unhover(this)">
+                    </span>
+                    <div class="btn-img-text">SNOOZE</div>
+                  </button>
+                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                          data-dismiss="alert" wott-snooze wott-snooze-duration="null" wott-snooze-type="Resolve">
+                    <span>
+                      <img id="resolved-img"
+                          class="wott-img-btn"
+                          src="{% static '/media/resolve-icon.svg' %}"
+                          data-src1="{% static '/media/resolve-icon.svg' %}"
+                          data-src2="{% static '/media/resolve-selected.svg' %}"
+                          onmouseover="hover(this)"
+                          onmouseout="unhover(this)"
+                         ></span>
+                    <div class="btn-img-text">RESOLVED</div>
+                  </button>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" href="#" data-dismiss="alert"
+                       wott-snooze wott-snooze-duration="24" wott-snooze-type="Snooze">24 hours</a>
+                    <a class="dropdown-item" href="#" data-dismiss="alert"
+                       wott-snooze wott-snooze-duration="24*7" wott-snooze-type="Snooze">7 days</a>
+                  </div>
+                </div>
               </div>
             </div>
-            {% endifnotequal %}
+            
+            <section class="wott-open-box mb-4 d-none"
+                     wott-action-id="{{ action.action_id }}"
+                     wott-action-expanded=false>
+              <div class="wott-inner-open-box">
+                <div class="open-box-header d-flex align-items-center justify-content-between">
+                {% if action.action_id > 0 %}
+                  <h4 class="mb-0 open-box-header-text">Affected Nodes:</h4>
+                  {% for d in action.devices|slice:":5" %}
+                    <a href="{% url 'device-detail' d.pk %}" class="wott-node">{{ d.get_name }}</a>
+                  {% endfor %}
+                  <button wott-action-id="{{ action.action_id }}" class="btn wott-btn-header">
+                    VIEW ALL NODES +
+                    <template>
+                    {% for d in action.devices %}
+                      <a class="wott-node-list wott-list-blue" href="{% url 'device-detail' d.pk %}">
+                        {{ d.get_name }}
+                      </a>
+                    {% endfor %}
+                    </template>
+                  </button>
+                {% endif %}
+                </div>
+
+                <div class="actions-instrucions">{{ action.short_html|safe }}</div>
+
+                <span class="line-box d-flex justify-content-between align-items-center wott-learn-more"
+                      wott-action-id="{{ action.action_id }}">
+                  <span class="mb-0 font-weight-bolder" style="pointer-events: none">View Details</span>
+                  <button class="wott-dropdown" style="pointer-events: none">
+                    <span>
+                      <i class="fas fa-caret-right wott-learn-more-arrow"
+                         wott-action-id="{{ action.action_id }}"></i>
+                    </span>
+                  </button>
+                </span>
+                <div class="learn-more-box" style="display: none" wott-action-id="{{ action.action_id }}">
+                  {{ action.long_html|safe }}
+                </div>
+
+                {% if action.terminal_title %}
+                <div class="inner-open-box d-flex align-items-center">
+                  <a href="#" class="nav-open-box">MANUAL</a>
+                  <a href="#" class="nav-open-box2">ANSIBLE</a>
+                </div>
+                <div class="open-box-tab">
+                  <p class="terminal-title">{{ action.terminal_title }}</p>
+                  <div class="terminal-box">
+                    <div class="terminal-header">
+                      <h5>Terminal</h5>
+                    </div>
+                    <div class="terminal-body">
+                      <div class="terminal-text">
+                        <span class="terminal-instructions">{{ action.terminal_code|linebreaksbr }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+              </div>
+            </section>
+
           </div>
         </div>
       {% endfor %}
     </div>
   </div>
 
-  <div class="row" style="display: none; margin-top: -1rem;" id="success-card">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Well Done!</h5>
+  <div class="recommendation-left-box bg-white p-5 mt-2 wott-box-shadow" style="display: none; margin-top: -1rem;" id="success-card">
+    <div class="full-alert-box mb-3">
+      <div class="alert-title">
+        <h5 class="alert-title-big mb-0">Well Done!</h5>
       </div>
-      <div class="card-body">
-        <p><i class="align-middle mr-2" data-feather="check"></i>No recommended tasks.</p>
+      <div class="alert-instruction-big mb-0">
+        <p class="alert-instruction-big"><i class="align-middle mr-2" data-feather="check"></i>No recommended tasks.</p>
       </div>
     </div>
   </div>
+
+<div id="all-nodes">
+  <div class="popover-box wott-scroll-y" style="visibility: hidden; pointer-events: all; z-index: 999;">
+    <div class="wott-popover-header">
+      <div class="wott-popover-header-box">
+        <h1 class="mb-0" id="wott-popover-title">All Nodes</h1>
+        <span id="close-popover-buttton"><img src="http://localhost:8003/media/close.svg" alt="close"></span>
+      </div>
+      <hr class="popover-title-line">
+    </div>
+    <div class="wott-popover-body w-100">
+    </div>
+  </div>
+</div>
+
+
+  <style>
+
+    #actions-tab .line-box {
+      padding: .7rem 2rem;
+    }
+
+    .line-box span {
+      color: #2460c8;;
+    }
+    .actions-instrucions {
+      padding: 0 5.5rem;
+    }
+
+    #actions-tab .line-box {
+      cursor: pointer;
+      background-color:#d9deee;
+    }
+
+    .alert-title-big {
+      font-size: 2rem;
+      color: #2460c8;
+    }
+
+    .alert-instruction-big {
+      font-size: 1.5rem;
+      color: #9298a5;
+      padding-top: 5px;;
+    }
+
+    .look-disable {
+      filter: grayscale(100%);
+      opacity: .5;
+      pointer-events: none;
+    }
+
+    .wott-dropdown {
+      background-color:  transparent;
+      width: auto;
+      padding :4px;
+      border: 0;
+    }
+
+    .learn-more-box {
+      /* background-color:#d9deee; */
+      background-color: #e9edf8;
+      margin: -2.5rem 5.5rem 2.5rem;
+      padding: 2rem 2rem;
+      font-size: .8rem;
+      color:#495057;
+    }
+
+    .learn-more-box h4 {
+      padding: 0.5rem 0 1rem;
+    }
+
+    .wott-node-list {
+      color: #2460c8 !important;
+    }
+
+    /* MODAL */
+
+   #all-nodes .popover-box {
+      padding: 0;
+      color: #495057;
+      position: fixed;
+      overflow: hidden;
+      width: 800px;
+      max-height: 510px;
+      top: 22%;
+      left: 0;
+      right: 0;
+      margin: auto;
+      background-color: white;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      visibility: hidden;
+      pointer-events: all;
+      z-index: 0;
+      word-wrap: break-word;
+    }
+
+    #actions-tab .overlay {
+      position: fixed;
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(7, 26, 61, 0.7);
+      z-index: 990;
+    }
+
+    #all-nodes .wott-popover-body {
+      padding: 2.5rem 0rem 2rem 4rem;
+      word-wrap: break-word;
+    }
+
+    #all-nodes .wott-popover-header {
+      position: sticky !important;
+      top: 0;
+      left: 0;
+      background-color: white;
+      width: 100%;
+    }
+
+    #all-nodes .wott-popover-header-box {
+      padding: 2.5rem 4rem 2rem;
+      margin-bottom: 0 !important;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #all-nodes .wott-scroll-y {
+      overflow-y: scroll;
+    }
+
+    #all-nodes .wott-scroll-x {
+      overflow-x: scroll;
+    }
+
+    #all-nodes .wott-node-list {
+      display: inline-block;
+      width: 100px;
+      white-space: normal;
+      margin: 0;
+      margin-bottom: 2rem;
+      margin-right: 7%;
+      min-width: 17%;
+      max-width: 17%;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+
+    #all-nodes .popover-title {
+      width: 100%;
+      padding: 0.5rem 2.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #all-nodes #wott-popover-title {
+      font-weight: 600;
+    }
+
+    #all-nodes .popover-title-line {
+      width: 100%;
+      margin-left: 0;
+    }
+
+  </style>
 {% endblock admin_content %}
 
 {% block scripts %}
   {{ block.super }}
-  <style>
-  .wott-alert-severity {
-    font-size: small;
-    color: black;
-    text-shadow: none;
-  }
-  .wott-alert-btn-group button {
-    font-size: small;
-  }
-  </style>
   <script>
+   
+    $('.toggle-ra-button').click((e) => {
+      let action_id = $(e.target).attr('wott-action-id'),
+          block = $(`.wott-open-box[wott-action-id=${action_id}]`),
+          expanded = block.attr('wott-action-expanded') === 'true';
+
+      console.log(action_id);
+      block.toggleClass("d-none", expanded);
+      block.toggleClass("d-block", !expanded);
+      block.attr('wott-action-expanded', !expanded);
+      $(`.toggle-ra-arrow[wott-action-id=${action_id}]`)
+          .toggleClass('fa-caret-down', !expanded)
+          .toggleClass('fa-caret-right', expanded);
+    });
+
+    function hover(e) {
+      let obj = document.getElementById(`${e.id}`);
+      let src = obj.getAttribute("data-src2");
+      e.setAttribute('src', src);
+    }
+
+    function unhover(e) {
+      let obj = document.getElementById(`${e.id}`);
+      let src = obj.getAttribute("data-src1");
+      e.setAttribute('src', src);
+    }
+
+    $('.wott-learn-more').click((e) => {
+        e.preventDefault();
+        let action_id = $(e.target).attr('wott-action-id'),
+            block = $(`.learn-more-box[wott-action-id=${action_id}]`),
+            expanded = block.attr('wott-action-expanded') === 'true';
+        console.log(action_id, block);
+        block.css({display: expanded? 'none': 'block'});
+        block.attr('wott-action-expanded', !expanded);
+        $(`.wott-learn-more-arrow[wott-action-id=${action_id}]`)
+            .toggleClass('fa-caret-down', !expanded)
+            .toggleClass('fa-caret-right', expanded);
+    });
 
     /**
      * Snooze an action. Used by the close icon on the alerts.
@@ -90,17 +409,19 @@
               duration: duration
           }),
           contentType: "application/json; charset=utf-8",
-          dataType: "json"
+          success: () => {
+            $(`.wott-action[wott-action-id=${id}]`).toggleClass('d-none')
+          }
       });
     }
 
     $(() => {
         $('[wott-snooze]').click((e) => {
-            let button = $(e.target), parent = button.closest('[wott-action]');
+            let button = $(e.target).closest('[wott-snooze-duration]'), parent = button.closest('[wott-action]');
             let id = eval(parent.attr('wott-action-id')),
                 devices = eval(parent.attr('wott-action-devices')),
                 duration = eval(button.attr('wott-snooze-duration')),
-                snooze_type = duration? "Snooze":  button.text(),
+                snooze_type = button.attr('wott-snooze-type'),
                 title = parent.attr('wott-action-title');
             console.log(id, devices, duration, snooze_type, title);
             snoozeAction(id, devices, duration);
@@ -113,7 +434,56 @@
             });
           {% endif %}
         })
-    })
+    });
+
+  /*
+   *** Modal interaction
+   */
+
+  let modalShown = null;
+
+  $('.wott-btn-header').click((e) => {
+    let btn = $(e.target);
+    {#console.log(action_id, btn.children('template').html());#}
+    e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
+    e.stopPropagation(); // prevent $body.click handler - it will catch "outside click"
+    modalShown = $('.popover-box')[0];
+    let template = $(e.target).children('template');
+    const is_nodes = true;
+    modal(true, template.attr('title'), template.html(), !is_nodes, is_nodes, is_nodes);
+  });
+
+  $('body').click((e) => {
+    if(e.target == modalShown || $(e.target).parents('.popover-box').length) {
+      // clicked on popover link or inside popover
+      return;
+    }
+    if(modalShown) {
+      // clicked anywhere outside the popover while it's shown -> hide it
+      modal(false);
+      modalShown = null;
+    }
+  });
+
+  $('#close-popover-buttton').click(() => {
+      modal(false);
+      modalShown = null;
+  });
+
+  function modal(show, title, html, box_scroll_x, box_scroll_y, body_w100) {
+      $('.overlay').css({display: show? 'block': 'none'});
+      $('.popover-box').css({
+          visibility: (show? 'visible': 'hidden'),
+          pointerEvents: (show? 'all': 'none'),
+          zIndex: (show? 999: 0)
+      });
+      if(!show)
+          return;
+      $('.popover-box').toggleClass('wott-scroll-x', box_scroll_x).toggleClass('wott-scroll-y', box_scroll_y);
+      $('.wott-popover-body').html(html).toggleClass('w-100', body_w100).toggleClass('w-auto', !body_w100);
+      $('#wott-popover-title').text(title);
+  }
+
   </script>
   <script>
     // Listen to mutations to the DOM. If there are no alerts then show a message.
@@ -144,6 +514,7 @@
     observer.observe(targetNode, config);
     // Initial count on load
     countAlerts();
+
+  
   </script>
 {% endblock scripts %}
-

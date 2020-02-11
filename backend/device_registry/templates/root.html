@@ -1,13 +1,14 @@
 {% extends "admin_base.html" %}
 {% load static %}
 
-{% block title %}WoTT - Dashboard{% endblock title %}
+{% block title %}WoTT - Nodes{% endblock title %}
 
 {% block dashboard_title %}
-  <h1 style="margin-bottom: 0">Dashboard</h1>
+  <h1 style="margin-bottom: 0">Nodes List</h1>
 {% endblock dashboard_title %}
 
 {% block admin_content %}
+<div id="node-list-tab">
   <div class="toast fixed-top float-right" role="alert" style="
     left: unset;
     top: 2em;
@@ -34,37 +35,134 @@
     Detected Mirai (botnet) on {{ device.device_id }}. We've proactively blocked the connection to Mirai's Command and Control nodes.</p>
 </div>
 {% endfor %}
+
+<!--FILTER WITH SEARCH INPUT + ADD NODE BUTTON-->
+<div class="d-flex justify-content-between w-100">
+  <div class="d-flex input-with-btn">
+    <!-- <div id="datatables-basic_filter" class="dataTables_filter">
+      <input type="search" class="form-control form-control-sm" placeholder="Search" aria-controls="datatables-basic">
+    </div> -->
+
+    <div class="input-group filter-btn-box">
+      <span class="input-group-append">
+          <div class="input-group-text wott-form-control wott-small-input bg-white border-right-0 pl-4 pr-3"><i class="fa fa-search"></i></div>
+      </span>
+      <div id="datatables-basic_filter" class="dataTables_filter">
+        <input type="search" id="wott-search-field" class="wott-form-control py-2 border-left-0" placeholder="Search" aria-controls="datatables-basic">
+      </div>
+    </div>
+
+    <button class="btn wott-btn-filter" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
+      <span class="mr-2">
+        <img src="{% static '/media/filter-white.svg' %}" alt="filter">
+      </span>
+      <span class="btn-text">Filters</span>
+      <i class="fa fa-sort-down ml-3"></i>
+    </button>
+  </div>
+  <div class="select-all-box d-none">
+    <div id="select-all-info-title">XXX rows selected on page.</div>
+    <a href="#" id="select-all-info-link" onclick="select_all('all', true)">Select all XX items.</a>
+  </div>
+
+  <button type="button" class="btn btn-wott-primary wott-btn-medium" id="admin-inst-btn">
+    <span>Add Node</span>
+    <img class="ml-3" src="{% static '/media/plus.svg' %}" alt="plus">
+  </button>
+</div>
+
+<div class="collapse mt-3" id="collapseExample">
+  <div class="wott-card-body bg-white wott-box-shadow wott-rounded-lg">
+    <form class="filter-collapse-box">
+      <div class="form d-flex w-100 justify-content-between">
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" class="custom-control-input" id="filter-check">
+          <label class="custom-control-label mt-1 wott-checkbox-label-round" for="filter-check"></label>
+        </div>
+        <div class="input-small" id="filter-name-div">
+          <select class="custom-select wott-filter-select" id="filter-selector" >
+          {% for filter_param in filter_params %}
+            <option name="{{ filter_param.0 }}" value="{{ filter_param.2 }}">{{ filter_param.1 }}</option>
+          {% endfor %}
+          </select>
+        </div>
+        <div class="input-small" id="filter-predicate-div">
+
+        </div>
+        <div class="input-medium" id="filter-value-div">
+
+        </div>
+      </div>
+      <button type="submit" class="btn btn-wott-primary wott-btn-medium wott-btn-margin" id="filter-apply">Apply</button>
+    </form>
+  </div>
+
+</div>
+<!--END OF FILTER WITH SEARCH INPUT + ADD NODE BUTTON-->
+
+
+
+
+
     {# Table #}
     <div class="row">
       <div class="col-12">
-        <div class="card">
-          <div class="card-header">
-            <div class="row">
-              <div class="col-6">
-                <h5 class="card-title">Node List</h5>
-                <h6 class="card-subtitle text-muted">View registered nodes.</h6>
-              </div>
-              <div class="col-6">
-                <button type="button" class="btn btn-success" style="float: right;" id="inst-btn">
-                  Add Node
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="card-body">
-            <table id="datatables-basic" class="table table-striped table-responsive-xs" style="width:100%">
+        <div class="">
+          <div class="">
+            <table id="datatables-basic" class="table table-striped table-responsive-xs wott-box-shadow wott-rounded" style="width:100%">
               <thead>
-              <tr>
+
+              <!-- <tr>
                 <th width="5%" id="select-all"></th>
                 {% for column_name in column_names %}
                 <th>{{ column_name }}</th>
                 {% endfor %}
+              </tr> -->
+
+              <!------- the <tr> commented above should look like the one bellow ---->
+
+              <tr role="row">
+                <th width="5%" id="select-all1" class="sorting_asc" rowspan="1" colspan="1" style="width: 37px;" aria-label="">
+                  <div class="btn-group dropdown">
+                    <!-- added wott-select-all-->
+                    <button type="button" class="btn wott-select-all" onclick="toggle_page(this)">
+{#                      <span class="far fa-square" data-toggle="popover" data-placement="top" title="Select/unselect" id="select-all-toggle"></span>#}
+                    </button>
+                  </div>
+                </th>
+                <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 80px;" aria-label="Node Name: activate to sort column ascending">Node Name</th>
+                <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 70px;" aria-label="Hostname: activate to sort column ascending">Hostname</th>
+                <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 91px;" aria-label="Last Ping: activate to sort column ascending">Last Ping</th>
+                <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 76px;" aria-label="Trust Score: activate to sort column ascending">Trust Score</th>
+                <th class="sorting" tabindex="0" aria-controls="datatables-basic" rowspan="1" colspan="1" style="width: 154px;" aria-label="Recommended Actions: activate to sort column ascending">Actions</th><!--Changed from Recommended Actions to Actions-->
               </tr>
               </thead>
+
               <tfoot>
-                <th colspan="6"></th>
+              <th colspan="6"></th>
               </tfoot>
+
               <tbody>
+
+              <!-------The rows should look like the one bellow -->
+                <tr role="row" class="odd"> 
+                  <td class="sorting_1 round" tabindex="0"> <!--ADDED ROUND-->
+                    <input type="checkbox" class="dt-checkbox wott-round-checkbox" id="index1"> <!--ADDED INDEX Must be unique added wott-round-checkbox-->
+                    <label for="index1"></label> <!--ADDED <label> for must match input id-->
+                  </td>
+                  <td><a href="/devices/1/">artem-linux-gf</a></td>
+                  <td>artem-linux-gf</td><td>3&nbsp;months, 2&nbsp;weeks ago</td>
+                  <td>
+                    <div class="position-relative">
+                      <div id="trust-progress-100" class="w-100" role="progressbar"></div> <!--added id=trust-score-100-->
+                      <span id="trust-progress-var" class="justify-content-center d-flex position-absolute">81%</span> <!--added id=trust-score-var-->
+                    </div>
+                  </td>
+                  <!-------Added wott-badge-pill-------->
+                  <td style=""><a class="wott-badge-pill" href="/devices/1/actions/" }="">2</a></td>
+                </tr>
+
+
               </tbody>
             </table>
           </div>
@@ -72,11 +170,12 @@
       </div>
     </div>
   </div>
+  
   {% include "select_all_control.html" %}
   {% include "batch_actions_control.html" %}
 
   <template id="str_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="custom-select wott-filter-select" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="c">contains</option>
@@ -84,11 +183,11 @@
     </select>
   </template>
   <template id="str_value">
-    <input type="text" class="form-control" placeholder="Value">
+    <input type="text" class="custom-select wott-filter-select bg-white wott-rounded-lg" placeholder="Value">
   </template>
 
   <template id="datetime_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="custom-select wott-filter-select" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="lt">greater than</option>
@@ -98,22 +197,22 @@
   <template id="datetime_value">
     <div class="form-row">
       <div class="col">
-        <input type="number" class="form-control" min="0">
+        <input type="number" class="custom-select wott-filter-select bg-white wott-rounded-lg" min="0">
       </div>
       <div class="col">
-        <select class="form-control" id="datetime-scale">
+        <select class="custom-select wott-filter-select" id="datetime-scale">
           <option value="hours">hours</option>
           <option value="days">days</option>
         </select>
       </div>
       <div class="col mt-1">
-        <label for="datetime-scale">ago</label>
+        <label id="ago" for="datetime-scale">ago</label>
       </div>
     </div>
   </template>
 
   <template id="float_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="custom-select wott-filter-select" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="gt">greater than</option>
@@ -121,24 +220,24 @@
     </select>
   </template>
   <template id="float_value">
-    <input type="number" class="form-control" placeholder="Value" step="0.01">
+    <input type="number" class="custom-select wott-filter-select bg-white wott-rounded-lg" placeholder="Value" step="0.01">
   </template>
 
   <template id="bool_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="custom-select wott-filter-select" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
     </select>
   </template>
   <template id="bool_value">
-    <select class="form-control">
+    <select class="custom-select wott-filter-select">
       <option>True</option>
       <option>False</option>
     </select>
   </template>
 
   <template id="tags_options">
-    <select class="form-control" id="filter-predicate">
+    <select class="custom-select wott-filter-select" id="filter-predicate">
       <option value="c">contains</option>
       <option value="nc">not contains</option>
     </select>
@@ -159,7 +258,8 @@
   </template>
 
 
-  <template id="device-list-toolbar-template">
+  
+  <!-- <template id="device-list-toolbar-template">
     <div class="dropdown" id="device-list-columns">
       <button class="btn btn-facebook dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         Columns
@@ -180,115 +280,39 @@
 
     <button class="btn btn-facebook" type="button" data-toggle="collapse" data-target="#collapseExample" id="filters-expand">
       Filters
-    </button>
+    </button> -->
 
     {% if filter %}
-    <span class="ml-3" id="clear-filters">
-      <a href="/" class="align-middle btn-link" style="text-decoration: underline">Clear filters</a>
+    <span id="clear-filters">
+        <a href="." class="wott-blue" style="text-decoration: underline">Clear filters</a>
     </span>
     {% endif %}
 
-    <div class="collapse" id="collapseExample">
-      <div class="card card-body">
-        <form>
-          <div class="form-row mb-3">
-            <div class="custom-control custom-checkbox">
-              <input type="checkbox" class="custom-control-input" id="filter-check">
-              <label class="custom-control-label mt-1" for="filter-check"></label>
-            </div>
-            <div class="col-md-auto">
-              <select class="form-control" id="filter-selector">
-                {% for filter_param in filter_params %}
-                  <option name="{{ filter_param.0 }}" value="{{ filter_param.2 }}">{{ filter_param.1 }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-auto" id="filter-predicate-div">
-              <!-- <template id=..._options> -->
-            </div>
-            <div class="col-md-auto" id="filter-value-div">
-              <!-- <template id=..._value> -->
-            </div>
-            <!--
-            TODO: these buttons should be enabled when we can have multiple filters.
-            <div class="col">
-              <button type="button" class="btn btn-outline-primary" title="Add new filter after this one">
-                <i class="fas fa-plus" ></i>
-              </button>
-              <button type="button" class="btn btn-outline-danger" title="Remove this filter">
-                <i class="fas fa-ban" ></i>
-              </button>
-            </div>
-            -->
-          </div>
-          <button type="submit" class="btn btn-primary float-none" id="filter-apply">Apply</button>
-        </form>
-      </div>
-    </div>
-  </template>
-
-  <div class="modal" tabindex="-1" role="dialog" id="wott-instruction-modal">
-    <div class="modal-dialog modal-lg" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title" id="modal-title-h2">Add new node</h2>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-header">
-          <h4 class="modal-title" id="modal-title"></h4>
-        </div>
-        <div class="modal-body pb-0">
-          <p id="modal-msg" rows="10" class="w-100 mb-0"></p>
-        </div>
-        <div class="alert alert-warning wott-form-alert p-1" role="alert" id="modal-alert">
-          Server error
-        </div>
-        <div class="modal-footer d-flex justify-content-between">
-          <span>
-            <a href="https://github.com/WoTTsecurity/agent#supported-operating-systems">
-                Supported operating systems
-            </a>
-          </span>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <template id="bash_block">
-    <div class="col-12">
-      <div class="row">
-        <div class="col-11">
-          <pre><code class="bash rounded"><!-- text --></code></pre>
-        </div>
-        <div class="col-1">
-          <button type="button" class="btn btn-primary" aria-label="Left Align" btn_id="bash">
-            <span class="fas fa-copy" aria-hidden="true" data-toggle="popover"
-                  data-placement="top" title="Copy to clipboard."></span>
-          </button>
-          <textarea hidden><!-- copy --></textarea>
-        </div>
-      </div>
-    </div>
-  </template>
-
   <template id="trust-score-template">
-    <div class="progress position-relative">
-      <div class="progress-bar bg-white" role="progressbar"
-           style="width: 0000%"></div>
-      <span
-          class="justify-content-center d-flex position-absolute w-100"><!--trust_score_percent-->%</span>
+    <div class="position-relative">
+      <div id="trust-progress-100"  class="w-100" role="progressbar"></div>
+      <span id="trust-progress-var"
+            class="justify-content-center d-flex position-absolute"
+            style="width: 0000%">
+            <!--trust_score_percent-->%
+      </span>
     </div>
   </template>
-{% endblock admin_content %}
+</div>
 
-{% block scripts %}
-    {{ block.super }}
 
-  <style>
-    #device-list-columns {
+<!-- <div class="select2-container select2-container-multi" id="s2id_filter-tags" style="width: 95%;/* border-color: azure; */">
+  <ul class="select2-choices">
+    <li class="select2-search-field">
+      <label for="s2id_autogen1" class="select2-offscreen"></label>
+        <input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="select2-input" id="s2id_autogen1" placeholder="" style="width: 20px;">
+    </li>
+  </ul>
+</div> -->
+
+<style>
+
+#device-list-columns {
       display: inline;
     }
     .toolbar { float: left; }
@@ -300,481 +324,411 @@
     .shepherd-element.shepherd-element-attached-middle.shepherd-element-attached-right .shepherd-arrow {
       right: 5px;
     }
-  </style>
+    
+</style>
+
+{% endblock admin_content %}
+
+{% block scripts %}
+    {{ block.super }}
+
   <script>
-  var table, data_timestamp, data_timer;
-  const UPDATE_INTERVAL = 5000;
-
-  $(() => {
-
-      // last-ping sorting
-      const minute = 60;
-      const hour = 60 * minute;
-      const day = hour * 24;
-      const week = day * 7;
-      const month = day * 30;
-      const year = day * 365;
-      const time_chunks = {
-          'year': year, 'years': year,
-          'month': month, 'months': month,
-          'week': week, 'weeks':week,
-          'day': day, 'days': day,
-          'hour': hour, 'hours': hour,
-          'minute': minute, 'minutes': minute
-          };
-
-      $.extend( $.fn.dataTable.ext.type.order, {
-          "last-ping-pre": function (data){
-              if( !data.endsWith('ago')) return 0;
-              data = data.slice(0, -4);
-              let parts = data.split(',');
-              value = 0;
-              for(let i in parts){
-                let vals = parts[i].trim().replace("\xA0", "\x20").split(" ");
-                value += ( Number(vals[0].trim()) * time_chunks[vals[1].trim()] );
-              }
-              return value;
-          }
-      } );
-
-      // batch control initialization.
-      var batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
-
-      /**
-       *  DataTable Initialization (Devce List)
-       */
-      $('#inst-btn').on('click', show_install_msg );
-      table = $('#datatables-basic').DataTable({
-        processing: true,
-        ajax: dt_ajax,
-        responsive: true,
-        dom: '<"toolbar">frtip',
-        "footerCallback": batch_footer,
-        columns:[
-            {data: null, render: render_checkbox, orderable: false, sortable:false, /*className: 'select-checkbox'*/},
-            {data: 'get_name' , render: render_device_name },
-            {data: 'hostname' },
-            {data: 'last_ping', type: 'last-ping' , orderable: true, sortable:true,},
-            {data: 'trust_score', render: render_trustscore },
-            {data: 'actions', render: render_actions_count }
-        ],
-        select: {
-            style:    'os multi+shift',
-            selector: 'td:first-child'
-        },
-        language: {
-          emptyTable: `Looks like you got no nodes added. Press the <a id="inst-btn-link" href="#" onclick="show_install_msg()">Add Node</a> button to enroll your first
-                       node and get a security audit.`
-        }
-      });
-      // apply column selection
-      $("div.toolbar").html($('#device-list-toolbar-template').html());
-      $('#filters-expand').click((e) => {
-          $(e.target).toggleClass('active');
-      });
-
-      // apply 'select all' features to table.
-      $("#select-all").html($("#select-all-template").html());
-      set_select_all_link_toolbar();
-
-      table.on( 'select', function ( e, dt, type, indexes ) {
-          for(let i in indexes){
-             let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
-             item.checked = true;
-          }
-      } );
-
-      table.on( 'deselect', function ( e, dt, type, indexes ) {
-          for(let i in indexes){
-             let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
-             item.checked = false;
-          }
-      } );
-
-      // data table ajax processing
-      function dt_ajax(data, callback, settings)
-      {
-          serializeUrlParams(data); // add url params (fiter) to payload
-          let orig_data = data;
-          function set_timestamp_callback(d, cb) {
-              data_timestamp = d.timestamp;
-              if(data_timer) {
-                  clearInterval(data_timer);
-              }
-              data_timer = setInterval(() => {
-                  dt_ajax_update();
-              }, UPDATE_INTERVAL);
-              cb(d);
-          }
-          $.ajax({
-              url: '/ajax-devices/list?length=100',
-              type: 'GET',
-              data: data,
-              success: function (data) {
-                  if(data.recordsFiltered > 100)
-                  {
-                      set_timestamp_callback(data, callback);
-                      $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).show();
-                      $.ajax({
-                          url: '/ajax-devices/list?start=100',
-                          type: 'GET',
-                          data: orig_data,
-                          success: function (data) {
-                              set_timestamp_callback(data, callback);
-                          },
-                          error: dt_ajax_fail
-                      });
-                  }
-                  else set_timestamp_callback(data, callback);
-              },
-              error: dt_ajax_fail
-          });
-      }
-      // data table ajax errors processing
-      function dt_ajax_fail(jqXHR, textStatus, errorThrown)
-      {
-          $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).hide();
-          show_dialog(`${textStatus} ${jqXHR.status}`, errorThrown, jqXHR.responseText, 'Data retrieving error');
-      }
-
-      function dt_ajax_update()
-      {
-          let data = {};
-          serializeUrlParams(data);
-          data['since'] = data_timestamp;
-          $.ajax({
-              url: '/ajax-devices/list?',
-              type: 'GET',
-              data: data,
-              success: (d) => {
-                  table.rows.add(d.data).draw(false);
-                  data_timestamp = d.timestamp;
-              }
-          });
-      }
-
-      /**
-       * DataTable footerCallback. Place batch action control to footer
-       */
-      function batch_footer( row, data, start, end, display ) {
-          var api = this.api();
-          $(api.table().footer()).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
-          batchControl.refresh();
-      }
-
-      /**
-       * callback function. called by batch action 'apply' button handler for each table row
-       *
-       * @param action. action object.
-       * @param row - row data. the array of table columns of processed row
-       * @returns {null|string | *} must return pk of object in a row to process batch function
-       * or null if you do not want to apply batch function to this object
-       */
-      function get_object_pk_for_batch( action, row )
-      {
-          return Number(row.id);
-      }
-
-
-      $('#filters-expand').click((e) => {
-          $(e.target).toggleClass('active');
-      });
-
-          $('.form-check-input').click((e) => {
-              var column = table.column( e.target.getAttribute('data-column') );
-              console.log('CLICK', column);
-              column.visible( e.target.checked );
-          });
-
-          $('#filter-selector').change((e) => {
-              updateFilter(e.target.value);
-          });
-
-          $('#filter-apply').click((e) => {
-              e.preventDefault();
-              let query = '/';
-              if($('#filter-check').prop('checked')) {
-                let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
-                let predicate = $('#filter-predicate').val();
-                let value = $('#filter-value-div').children(0).val(),
-                    type = $('#filter-selector').val();
-                if(type == 'datetime') {
-                    value = $('#filter-value-div input').val() + ',' + $('#filter-value-div select').val();
-                } else if(type == 'tags') {
-                    value = $('form').serializeArray()[0].value;
-                    value = Tagulous.parseTags(value).join(',');
+    var table, data_timestamp, data_timer;
+    const UPDATE_INTERVAL = 5000;
+  
+    $(() => {
+  
+        // last-ping sorting
+        const minute = 60;
+        const hour = 60 * minute;
+        const day = hour * 24;
+        const week = day * 7;
+        const month = day * 30;
+        const year = day * 365;
+        const time_chunks = {
+            'year': year, 'years': year,
+            'month': month, 'months': month,
+            'week': week, 'weeks':week,
+            'day': day, 'days': day,
+            'hour': hour, 'hours': hour,
+            'minute': minute, 'minutes': minute
+            };
+  
+        $.extend( $.fn.dataTable.ext.type.order, {
+            "last-ping-pre": function (data){
+                if( !data.endsWith('ago')) return 0;
+                data = data.slice(0, -4);
+                let parts = data.split(',');
+                value = 0;
+                for(let i in parts){
+                  let vals = parts[i].trim().replace("\xA0", "\x20").split(" ");
+                  value += ( Number(vals[0].trim()) * time_chunks[vals[1].trim()] );
                 }
-                query += `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
-              }
-              document.location.replace(query);
-          });
-
-          $('#filter-check').click((e) => {
-            enableFilter(e.target.checked);
-          });
-
-          updateFilter($('#filter-selector')[0].options[0].value);
-
-          {% if filter %}
-          let type = "{{ filter.type }}",
-              value = "{{ filter.value | default_if_none:'' }}";
-          updateFilter(type);
-          setFilter("{{ filter.by }}", "{{ filter.predicate }}", value, type);
-          {% else %}
-          enableFilter(false);
-          {% endif %}
-      });
-
-      function setFilter(name, predicate, value, type) {
-          $(`option[name=${name}`)[0].selected = true;
-          $('#filter-predicate')[0].value = predicate;
-          if(type == 'datetime' && value) {
-              let [n, m] = value.split(',');
-              $('#filter-value-div input').val(n);
-              $('#filter-value-div select').val(m);
-          } else {
-              if(type == 'tags' && value) {
-                  let tags = value.split(',');
-                  value = Tagulous.renderTags(tags);
-              }
-              $('#filter-value-div').children(0).val(value);
+                return value;
+            }
+        } );
+  
+        // batch control initialization.
+        var batchControl = initBatchControls({ get_row_pk: get_object_pk_for_batch });
+  
+        /**
+         *  DataTable Initialization (Devce List)
+         */
+        $('#inst-btn').on('click', show_install_msg );
+        table = $('#datatables-basic').DataTable({
+          processing: true,
+          ajax: dt_ajax,
+          responsive: true,
+          dom: 'rtip',
+          "footerCallback": batch_footer,
+          columns:[
+              {data: null, render: render_checkbox, orderable: false, sortable:false, className: 'round'},
+              {data: 'get_name' , render: render_device_name },
+              {data: 'hostname' },
+              {data: 'last_ping', type: 'last-ping' , orderable: true, sortable:true,},
+              {data: 'trust_score', render: render_trustscore },
+              {data: 'actions', render: render_actions_count }
+          ],
+          select: {
+              style:    'os multi+shift',
+              selector: 'td:first-child'
+          },
+          language: {
+            emptyTable: `Looks like you got no nodes added. Press the <a id="inst-btn-link" href="#" onclick="show_install_msg()">Add Node</a> button to enroll your first
+                         node and get a security audit.`
           }
-
-          $('#filter-check').prop('checked', true);
-          enableFilter(true);
-          if(type == 'tags')
-            Tagulous.select2($('#filter-tags'));
-      }
-
-
-      function copy_bash(e){
-        let text = e.currentTarget.parentElement.children[1].innerText.trim();
-        text = text.replace(/(\r\n|\n)/gm, ' && ');
-        copyToClipboard(text).then(function() {
-          /* clipboard successfully set */
-          console.log("COPIED");
-        }, function() {
-            alert("Cannot copy to clipboard, please enable clipboard access in browser permissions.");
         });
 
-      }
+        $('#wott-search-field').on('input', (e) => {
+            table.search(e.target.value).draw();
+        });
 
-      function bash_block(text){
-          let s = $('#bash_block').html();
-          let copy_text = text.replace(/^(\$ )/gm, '');
-          return s.replace('<!-- text -->', text).replace('&lt;!-- copy --&gt;', copy_text);
-      }
+        // apply column selection
+        $("div.toolbar").html($('#device-list-toolbar-template').html());
+        $('#filters-expand').click((e) => {
+            $(e.target).toggleClass('active');
+        });
+  
+        // apply 'select all' features to table.
+        $("#select-all").html($("#select-all-template").html());
+        set_select_all_link_toolbar();
 
-      function show_install_msg(){
-        $.ajax({
-            url: '/ajax-pairing-keys/add_dev/',
-            type: "POST",
-            data: JSON.stringify({}),
-            contentType: 'application/json',
-        }).done(function (e) {
-            console.log('success');
-            let title = "To add a node, simply SSH in and run the following commands:";
-            let msg = bash_block(
-                     `$ export CLAIM_TOKEN="${e.key}"\n`
-                   + `$ curl -sL https://install.wott.io | sudo -E bash\n`);
-            show_dialog(title, msg);
-            document.querySelectorAll('pre code').forEach((block) => {
-              hljs.highlightBlock(block);
+        table.on( 'select', function ( e, dt, type, indexes ) {
+            for(let i in indexes){
+               let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
+               item.checked = true;
+            }
+        } );
+  
+        table.on( 'deselect', function ( e, dt, type, indexes ) {
+            for(let i in indexes){
+               let item =  table[ type ]( indexes[i] ).nodes().to$().children()[0].children[0];
+               item.checked = false;
+            }
+        } );
+  
+        // data table ajax processing
+        function dt_ajax(data, callback, settings)
+        {
+            serializeUrlParams(data); // add url params (fiter) to payload
+            let orig_data = data;
+            function set_timestamp_callback(d, cb) {
+                data_timestamp = d.timestamp;
+                if(data_timer) {
+                    clearInterval(data_timer);
+                }
+                data_timer = setInterval(() => {
+                    dt_ajax_update();
+                }, UPDATE_INTERVAL);
+                cb(d);
+            }
+            $.ajax({
+                url: '/ajax-devices/list?length=100',
+                type: 'GET',
+                data: data,
+                success: function (data) {
+                    if(data.recordsFiltered > 100)
+                    {
+                        set_timestamp_callback(data, callback);
+                        $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).show();
+                        $.ajax({
+                            url: '/ajax-devices/list?start=100',
+                            type: 'GET',
+                            data: orig_data,
+                            success: function (data) {
+                                set_timestamp_callback(data, callback);
+                            },
+                            error: dt_ajax_fail
+                        });
+                    }
+                    else set_timestamp_callback(data, callback);
+                },
+                error: dt_ajax_fail
             });
-            $("button[btn_id='bash']").on("click", copy_bash);
-        }).fail(function (e) {
-            console.log('error');
-            console.log(e.status, e.responseText);
-            show_dialog('Error', e.status, e.responseText);
-        })
-      }
+        }
+        // data table ajax errors processing
+        function dt_ajax_fail(jqXHR, textStatus, errorThrown)
+        {
+            $('.dataTables_processing', $('#datatables-basic').closest('.dataTables_wrapper')).hide();
+            show_dialog(`${textStatus} ${jqXHR.status}`, errorThrown, jqXHR.responseText, 'Data retrieving error');
+        }
+  
+        function dt_ajax_update()
+        {
+            let data = {};
+            serializeUrlParams(data);
+            data['since'] = data_timestamp;
+            $.ajax({
+                url: '/ajax-devices/list?',
+                type: 'GET',
+                data: data,
+                success: (d) => {
+                    if(d.data.length)
+                      table.rows.add(d.data).draw(false);
+                    data_timestamp = d.timestamp;
+                }
+            });
+        }
+  
+        /**
+         * DataTable footerCallback. Place batch action control to footer
+         */
+        function batch_footer( row, data, start, end, display ) {
+            var api = this.api();
+            $(api.table().footer()).html('<th colspan="6">\n' + $('#batch-footer-tmplate').html() + '\n</th>');
+            batchControl.refresh();
+        }
+  
+        /**
+         * callback function. called by batch action 'apply' button handler for each table row
+         *
+         * @param action. action object.
+         * @param row - row data. the array of table columns of processed row
+         * @returns {null|string | *} must return pk of object in a row to process batch function
+         * or null if you do not want to apply batch function to this object
+         */
+        function get_object_pk_for_batch( action, row )
+        {
+            return Number(row.id);
+        }
+  
+  
+        $('#filters-expand').click((e) => {
+            $(e.target).toggleClass('active');
+        });
+  
+        $('.form-check-input').click((e) => {
+            var column = table.column( e.target.getAttribute('data-column') );
+            console.log('CLICK', column);
+            column.visible( e.target.checked );
+        });
 
-      /***
-       *  setup dialog parameters and toggle on.
-       *  @param title - dialog title
-       *  @param message - dialog message
-       *  @param errors - the errors string to display, if is not null.
-       */
-      function show_dialog(title, message, errors=null, h2_title='Add new node' )
-      {
-          $('#modal-title-h2')[0].innerText = h2_title;
-          $('#modal-title')[0].innerText = title;
-          $('#modal-msg')[0].innerHTML = message;
-          if(errors == null)
-            $('#modal-alert')[0].style.display = 'none';
-          else
-          {
-            $('#modal-alert')[0].style.display = 'block';
-            $('#modal-alert')[0].innerText = errors;
-          }
-          $('#wott-instruction-modal').modal('toggle');
-      }
+        $('#filter-selector').change((e) => {
+            updateFilter(e.target.value);
+        });
 
-      function updateFilter(opt_type) {
-            $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
-            $('#filter-value-div').html($(`#${opt_type}_value`).html());
-            if(opt_type == 'tags')
+        $('#filter-apply').click((e) => {
+            e.preventDefault();
+            let query = '';
+            if($('#filter-check').prop('checked')) {
+              let by = $('#filter-selector')[0].selectedOptions[0].getAttribute('name');
+              let predicate = $('#filter-predicate').val();
+              let value = $('#filter-value-div').children(0).val(),
+                  type = $('#filter-selector').val();
+              if(type == 'datetime') {
+                  value = $('#filter-value-div input').val() + ',' + $('#filter-value-div select').val();
+              } else if(type == 'tags') {
+                  value = $('form').serializeArray()[0].value;
+                  value = Tagulous.parseTags(value).join(',');
+              }
+              query = `?filter_by=${by}&filter_predicate=${predicate}&filter_value=${value}`;
+            }
+            document.location.replace(window.location.pathname+query);
+        });
+
+        $('#filter-check').click((e) => {
+          enableFilter(e.target.checked);
+        });
+
+        updateFilter($('#filter-selector')[0].options[0].value);
+
+        {% if filter %}
+        let type = "{{ filter.type }}",
+            value = "{{ filter.value | default_if_none:'' }}";
+        updateFilter(type);
+        setFilter("{{ filter.by }}", "{{ filter.predicate }}", value, type);
+        {% else %}
+        enableFilter(false);
+        {% endif %}
+    });
+  
+        function setFilter(name, predicate, value, type) {
+            $(`option[name=${name}`)[0].selected = true;
+            $('#filter-predicate')[0].value = predicate;
+            if(type == 'datetime' && value) {
+                let [n, m] = value.split(',');
+                $('#filter-value-div input').val(n);
+                $('#filter-value-div select').val(m);
+            } else {
+                if(type == 'tags' && value) {
+                    let tags = value.split(',');
+                    value = Tagulous.renderTags(tags);
+                }
+                $('#filter-value-div').children(0).val(value);
+            }
+  
+            $('#filter-check').prop('checked', true);
+            enableFilter(true);
+            if(type == 'tags')
               Tagulous.select2($('#filter-tags'));
         }
 
-      function enableFilter(b) {
-          $('.col-md-auto').children().attr('disabled', !b)
-      }
-
-      /**
-       * fill payload with url params
-       * @param payload
-       */
-      function serializeUrlParams(payload)
-      {
-          let hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-          for(let i = 0; i < hashes.length; i++)
-          {
-              let hash = hashes[i].split('=');
-              payload[hash[0]] = hash[1];
+        function updateFilter(opt_type) {
+              $('#filter-predicate-div').html($(`#${opt_type}_options`).html());
+              $('#filter-value-div').html($(`#${opt_type}_value`).html());
+              if(opt_type == 'tags')
+                Tagulous.select2($('#filter-tags'));
           }
-      }
-
-  /**
-   *  datatable cell rendering callback for selection checkbox column
-   * @param data - cell data
-   * @param type - call type (mode)
-   * @param row  - row data
-   * @param meta - meta: [meta.column, meta.row - int]
-   * @returns {string}
-   */
-      function render_checkbox(data, type, row, meta){
-          if(type === 'display'){
-              data = `<input type="checkbox" class="dt-checkbox"></checkbox>`;
+  
+        function enableFilter(b) {
+            $('#filter-name-div,#filter-predicate-div,#filter-value-div').children().attr('disabled', !b)
+        }
+  
+        /**
+         * fill payload with url params
+         * @param payload
+         */
+        function serializeUrlParams(payload)
+        {
+            let hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+            for(let i = 0; i < hashes.length; i++)
+            {
+                let hash = hashes[i].split('=');
+                payload[hash[0]] = hash[1];
+            }
+        }
+  
+    /**
+     *  datatable cell rendering callback for selection checkbox column
+     * @param data - cell data
+     * @param type - call type (mode)
+     * @param row  - row data
+     * @param meta - meta: [meta.column, meta.row - int]
+     * @returns {string}
+     */
+        function render_checkbox(data, type, row, meta){
+            if(type === 'display'){
+                data = `
+                  <input type="checkbox" class="dt-checkbox wott-round-checkbox"></checkbox>
+                  <label></label>
+                `;
+            }
+            return data;
+        }
+  
+    /**
+     * datatable cell rendering callback for node name column
+     * @param data - cell data
+     * @param type - call type (mode)
+     * @param row  - row data
+     * @param meta - meta: [meta.column, meta.row - int]
+     * @returns {string|*}
+     */
+        function render_device_name(data, type, row, meta){
+            if (type == 'sort') return data;
+            return `<a href="/devices/${row['id']}/">${data}</a>`;
+        }
+  
+    /**
+     * datatable cell rendering callback for trustscore column
+     * @param data - cell data
+     * @param type - call type (mode)
+     * @param row  - row data
+     * @param meta - meta: [meta.column, meta.row - int]
+     * @returns {string|*}
+     */
+        function render_trustscore(data, type, row, meta){
+            if (type == 'sort') return data;
+            if (data == null || data == '') return '';
+            let template = $("#trust-score-template").html()
+                .replace('white', row['trust_score_color'])
+                .replace('0000', row['trust_score_percent'])
+                .replace('<!--trust_score_percent-->', row['trust_score_percent']);
+  
+            return template;
+        }
+        $('.toast').toast({delay: 5000});
+        $('.toast').hide();
+  
+        function render_actions_count(data, type, row, meta) {
+            if (type == 'sort') return data;
+            return data.count? `<a class="wott-badge-pill" href="${data.url}"}>${data.count}</span>`: "";
+        }
+  
+    {% if not user.profile.wizard_shown %}
+      $(() => {
+          const tour = new Shepherd.Tour({
+            defaultStepOptions: {
+              cancelIcon: {
+                enabled: true
+              },
+              classes: 'class-1 class-2'
+            },
+            useModalOverlay: true
+          });
+          tour.addSteps([{
+            title: 'Add Node',
+            text: `To get started with WoTT, you need to install
+                the WoTT agent on your node(s). WoTT will then automatically
+                perform a security audit of your node(s) and provide you with
+                customized recommendations based on your particular configuration.`,
+            buttons: [{
+              action: function() {
+                return this.cancel();
+              },
+              secondary: true,
+              text: "Exit"
+            }, {
+              action: function() {
+                return this.next();
+              },
+              text: 'Next'
+            }],
+            canClickTarget: false,
+            attachTo: {
+              element: '#admin-inst-btn',
+              on: 'left'
+          }}, {
+            title: 'Recommended Actions',
+            text: `Recommended Actions are specific security changes tailored to
+              your node(s). We will help you avoid making common security pitfalls,
+              which could put your data and node(s) at risk.`,
+            buttons: [{
+              action: function() {
+                return this.complete();
+              },
+              text: "Finish"
+            }, {
+              action: function() {
+                return this.back();
+              },
+              text: 'Back',
+              secondary: true
+            }],
+            attachTo: {
+              element: '#sidebar-recommended-actions',
+              on: 'right'
+          }}]);
+  
+          tour.start();
+  
+          function wizardShown() {
+              $.post('/user/profile/wizard-complete/')
           }
-          return data;
-      }
+          tour.on('complete', wizardShown).on('cancel', wizardShown);
+          window.tour = tour;
+      });
+    {% endif %}
 
-  /**
-   * datatable cell rendering callback for node name column
-   * @param data - cell data
-   * @param type - call type (mode)
-   * @param row  - row data
-   * @param meta - meta: [meta.column, meta.row - int]
-   * @returns {string|*}
-   */
-      function render_device_name(data, type, row, meta){
-          if (type == 'sort') return data;
-          return `<a href="/devices/${row['id']}/">${data}</a>`;
-      }
-
-  /**
-   * datatable cell rendering callback for trustscore column
-   * @param data - cell data
-   * @param type - call type (mode)
-   * @param row  - row data
-   * @param meta - meta: [meta.column, meta.row - int]
-   * @returns {string|*}
-   */
-      function render_trustscore(data, type, row, meta){
-          if (type == 'sort') return data;
-          if (data == null || data == '') return 'N/A';
-          let template = $("#trust-score-template").html()
-              .replace('white', row['trust_score_color'])
-              .replace('0000', row['trust_score_percent'])
-              .replace('<!--trust_score_percent-->', row['trust_score_percent']);
-
-          return template;
-      }
-      $('.toast').toast({delay: 5000});
-      $('.toast').hide();
-
-      function render_actions_count(data, type, row, meta) {
-          if (type == 'sort') return data;
-          return data? `<a class="badge badge-pill badge-danger" href="${data.url}"}>${data.count}</span>`: "";
-      }
-
-  {% if not user.profile.wizard_shown %}
-    $(() => {
-        let sidebarToggled = false;
-        function toggleSidebar() {
-            return $(".sidebar")
-                .toggleClass("toggled")
-                // Triger resize after animation
-                .one("transitionend", function() {
-                  setTimeout(function() {
-                    window.dispatchEvent(new Event("resize"));
-                    sidebarToggled = true;
-                  }, 100);
-                });
-        }
-        const tour = new Shepherd.Tour({
-          defaultStepOptions: {
-            cancelIcon: {
-              enabled: true
-            },
-            classes: 'class-1 class-2',
-            scrollTo: { behavior: 'smooth', block: 'center' }
-          },
-          useModalOverlay: true
-        });
-        tour.addSteps([{
-          title: 'Add Node',
-          text: `To get started with WoTT, you need to install
-              the WoTT agent on your node(s). WoTT will then automatically
-              perform a security audit of your node(s) and provide you with
-              customized recommendations based on your particular configuration.`,
-          buttons: [{
-            action: function() {
-              return this.cancel();
-            },
-            secondary: true,
-            text: "Exit"
-          }, {
-            action: function() {
-                if($('nav')[0].getBoundingClientRect().x == -250) {
-                    toggleSidebar();
-                }
-              return this.next();
-            },
-            text: 'Next'
-          }],
-          canClickTarget: false,
-          attachTo: {
-            element: '#inst-btn',
-            on: 'left'
-        }}, {
-          title: 'Recommended Actions',
-          text: `Recommended Actions are specific security changes tailored to
-            your node(s). We will help you avoid making common security pitfalls,
-            which could put your data and node(s) at risk.`,
-          buttons: [{
-            action: function() {
-              return this.complete();
-            },
-            text: "Finish"
-          }, {
-            action: function() {
-              return this.back();
-            },
-            text: 'Back',
-            secondary: true
-          }],
-          attachTo: {
-            element: '#sidebar-recommended-actions',
-            // on: 'right'
-        }}]);
-
-        tour.start();
-
-        function wizardShown() {
-            if(sidebarToggled)
-                toggleSidebar();
-            $.post('/user/profile/wizard-complete/')
-        }
-        tour.on('complete', wizardShown).on('cancel', wizardShown);
-        window.tour = tour;
-    });
-  {% endif %}
-
-  {% if MIXPANEL_TOKEN %}
-    $("#inst-btn").on('click', () => mixpanel.track("Add Node"));
-  {% endif %}
-
-  </script>
+    </script>
 {% endblock scripts %}

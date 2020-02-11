@@ -9,42 +9,42 @@
 
 {% block admin_content %}
   {% include 'device_info_top_block.html' %}
-  <div class="row">
+  <div class="row node-profile-software">
     <div class="col-12">
-      <div class="tab">
+      <div class="tab wott-box-shadow">
         {% include 'device_info_tabs.html' with active="software" %}
-        <div class="tab-content">
+        <div class="wott-table-content">
           <div class="tab-pane active" id="software" role="tabpanel">
-            <h4 class="tab-title">Software</h4>
-            <table class="table table-striped table-responsive-xs">
+            <table class="wott-table px-0">
               <tbody>
-              <tr>
-                <th scope="row">Operating System</th>
-                <td>{{ object.deviceinfo.device_operating_system|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Operating System Version</th>
-                <td>{{ object.deviceinfo.device_operating_system_version|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Distribution</th>
-                <td>{{ object.distribution|default_if_none:'N/A' }}</td>
-              </tr>
-              <tr>
-                <th scope="row">End of Life</th>
-                <td id="eol_info">
-                  {% with object.eol_info as eol_info %}
-                    {% if eol_info.passed %}
-                      {% include "badge.html" with icon="exclamation-circle" color="danger" %}
-                    {% endif %}
-                    {{ eol_info.eol|default_if_none:'N/A' }}
-                  {% endwith %}
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Agent Version</th>
-                <td>{{ object.agent_version|default:'N/A' }}</td>
-              </tr>
+                <h4 class="wott-table-title wott-table-py">Software</h4>
+                <tr>
+                  <td class="wott-table-label" scope="row">Operating System</td>
+                  <td class="pl-4">{{ object.deviceinfo.device_operating_system|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <td class="wott-table-label" scope="row">Operating System Version</td>
+                  <td class="pl-4">{{ object.deviceinfo.device_operating_system_version|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <td class="wott-table-label" scope="row">Distribution</td>
+                  <td class="pl-4">{{ object.distribution|default_if_none:'N/A' }}</td>
+                </tr>
+                <tr>
+                  <td class="wott-table-label" scope="row">End of Life</td>
+                  <td class="pl-4" id="eol_info">
+                    {% with object.eol_info as eol_info %}
+                      {% if eol_info.passed %}
+                        {% include "badge.html" with icon="exclamation-circle" color="danger" %}
+                      {% endif %}
+                      {{ eol_info.eol|default_if_none:'N/A' }}
+                    {% endwith %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="wott-table-label" scope="row">Agent Version</td>
+                  <td class="pl-4">{{ object.agent_version|default:'N/A' }}</td>
+                </tr>
               </tbody>
             </table>
           </div>

@@ -1,5 +1,6 @@
 // Fonts
 @import url('https://fonts.googleapis.com/css?family=Open+Sans');
+@import url('https://fonts.googleapis.com/css?family=Muli:300,400,500,600,700,800,900&display=swap');
 
 // Theme variables
 @import "variables";
@@ -14,6 +15,7 @@
 @import "mixins/switch";
 @import "mixins/tabs";
 @import "mixins/wizard";
+@import "mixins/mediaQ";
 
 // 3rd party plugins
 @import "~apexcharts/src/assets/apexcharts";
@@ -50,27 +52,38 @@
 
 // Theme components
 @import "accordion";
+@import "actions";
 @import "alert";
 @import "avatar";
 @import "badge";
 @import "buttons";
 @import "card";
 @import "chart";
+@import "cve";
+@import "dashboard";
 @import "dropdown";
 @import "feather";
 @import "footer";
 @import "forms";
 @import "hamburger";
+@import "login";
+@import "label";
 @import "modal";
+@import "nodes";
 @import "navbar";
+@import "policies";
+@import "profile";
 @import "reboot";
 @import "progress";
+@import "register";
+@import "shadow";
 @import "sidebar";
 @import "tables";
 @import "tabs";
 @import "timeline";
 @import "type";
 @import "wrapper";
+@import "wott-components";
 @import "content";
 @import "main";
 @import "ie";

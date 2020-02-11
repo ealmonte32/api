@@ -3,10 +3,12 @@ import uuid
 from collections import defaultdict
 from typing import NamedTuple, List
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 from django.db import transaction
-from django.db.models import Case, When, Count, F
+from django.db.models import Case, When, Count, Window, Value
 from django.db.models import Q, Sum, Avg, IntegerField, Max
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
@@ -20,9 +22,9 @@ from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, HistoryRecord, Vulnerability, DebPackage
+    RecommendedAction, Vulnerability
 from .models import GlobalPolicy
-from .recommended_actions import ActionMeta, FirewallDisabledAction, Action, Severity
+from .recommended_actions import ActionMeta, FirewallDisabledAction, EnrollAction, GithubAction
 
 
 class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListView):
@@ -62,98 +64,49 @@ class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListV
         return context
 
 
-class RecommendedActionsMixin:
-    def get_actions(self, device_pk=None):
-        actions = []
-
-        if self.request.user.devices.exists():
-            if device_pk is not None:
-                dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
-                device_name = dev.get_name()
-                actions_qs = dev.recommendedaction_set.all()
-            else:
-                device_name = None
-                actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
-
-            # Select all RAs for all user's devices which are not snoozed
-            active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
-
-            # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
-            actions_by_id = defaultdict(list)
-            affected_devices = set()
-            for ra in active_actions:
-                affected_devices.add(ra.device.pk)
-                actions_by_id[ra.action_id].append(ra.device.pk)
-            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
-
-            # Generate Action objects to be rendered on page for every affected RA.
-            for ra_id, device_pks in actions_by_id.items():
-                devices = [affected_devices[d] for d in device_pks]
-                a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
-                actions.append(a)
-        else:  # User has no devices - display the special action.
-            device_name = None
-            actions = [Action(
-                'Enroll your node(s) to unlock this feature',
-                'In order to receive recommended actions, click "Add Node" under "Dashboard" to receive instructions '
-                'on how to enroll your nodes.',
-                action_id=0,
-                devices=[],
-                severity=Severity.LO
-            )]
-
-        # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
-        # and has not set up integration with any Github repo. Only shown on common actions page.
-        if not (self.request.user.profile.github_oauth_token and
-                self.request.user.profile.github_repo_id) and \
-                device_pk is None:
-            actions.append(Action(
-                'Enable our GitHub integration for improved workflow',
-                'Did you know that WoTT integrates directly with GitHub? By enabling this integration, GitHub Issues '
-                'are automatically created and updated for Recommended Actions. You can then easily assign these Issues'
-                ' to team members and integrate them into your sprint planning.\n\n'
-                'Please note that we recommend that you use a private GitHub repository for issues.\n\n'
-                'You can find the GitHub integration settings in under your profile in the upper right-hand corner.',
-                action_id=0,
-                devices=[],
-                severity=Severity.LO
-            ))
-
-        # Sort actions by severity and then by action id, effectively grouping subclasses together.
-        actions.sort(key=lambda a: (a.severity.value, a.action_id))
-
-        return device_name, actions
-
-
-class DashboardView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin, TemplateView):
+class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     template_name = 'dashboard.html'
-    next_actions_count = 5
+
+    def _actions(self):
+        ra_unresolved, ra_resolved_this_week = self.request.user.profile.actions_weekly
+
+        severities = {ra.action_id: ra.severity for ra in ActionMeta.all_classes()}
+        actions = []
+        resolved_count = ra_resolved_this_week.count()
+        if resolved_count < settings.MAX_WEEKLY_RA:
+            ra_unresolved = sorted(ra_unresolved.values_list('action_id', flat=True),
+                                   key=lambda v: severities[v].value[2], reverse=True)
+            for action_id in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
+                a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
+                actions.append(a._replace(resolved=False))
+
+        for action_id in ra_resolved_this_week.values_list('action_id', flat=True)[:settings.MAX_WEEKLY_RA]:
+            a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
+            actions.append(a._replace(resolved=True))
+
+        return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)
 
     def get_context_data(self, **kwargs):
-        week = timezone.timedelta(days=7)
-
         context = super().get_context_data(**kwargs)
 
-        now = timezone.now()
-
-        # TODO: for arbitrary intervals:
-        # SELECT CAST(EXTRACT(EPOCH FROM <date or timestamp>::timestamptz) AS INTEGER) / <nseconds>;
-        cases = [When(sampled_at__range=(now - week * (i + 1), now - week * i), then=i) for i in range(4)]
-
-        history = HistoryRecord.objects \
-            .filter(owner=self.request.user, sampled_at__gte=now - timezone.timedelta(days=28)) \
-            .annotate(week=Case(*cases,output_field=IntegerField())).values('week')\
-            .annotate(sum_ra=Sum('recommended_actions_resolved'), avg_score=Avg('average_trust_score'))
-
-        _, actions = self.get_actions()
-        next_actions = actions[:self.next_actions_count]
-        solved_history = [h['sum_ra'] for h in history]
-        trust_score_history = [h['avg_score'] for h in history]
         context.update(
-            next_actions=next_actions,
-            ra_solved_history=solved_history,
-            trust_score_history=trust_score_history,
-            trust_score=self.request.user.profile.average_trust_score
+            welcome=not self.request.user.devices.exists()
+        )
+        score = self.request.user.profile.average_trust_score
+        actions, resolved_count = self._actions()
+        if score is not None:
+            last_week_score = self.request.user.profile.average_trust_score_last_week
+            context.update(
+                ball_offset=-score * 74 - 38,
+                trust_score={
+                    'current': int(score * 100),
+                    'delta': int(abs(score - last_week_score) * 100),
+                    'arrow': 'up' if score - last_week_score >= 0 else 'down',
+                },
+            )
+        context.update(
+            actions=actions,
+            weekly_progress=int(resolved_count * 100 / settings.MAX_WEEKLY_RA)
         )
         return context
 
@@ -347,6 +300,7 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 self.object.owner = None
                 self.object.claim_token = uuid.uuid4()
                 self.object.save(update_fields=['owner', 'claim_token'])
+                messages.add_message(request, messages.INFO, 'You have successfully revoked your device.')
                 return HttpResponseRedirect(reverse('root'))
             else:
                 form.save()
@@ -386,6 +340,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         has_global_policy = False
+
         try:
             context['firewall'] = self.object.firewallstate
         except FirewallState.DoesNotExist:
@@ -394,6 +349,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
             context['global_policy_form'] = FirewallStateGlobalPolicyForm(instance=self.object.firewallstate)
             has_global_policy = bool(self.object.firewallstate.global_policy)
             context['has_global_policy'] = has_global_policy
+
         try:
             context['portscan'] = self.object.portscan
         except PortScan.DoesNotExist:
@@ -414,17 +370,21 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        # TODO: handle missing portscan and firewallstate instances.
         portscan = self.object.portscan
         firewallstate = self.object.firewallstate
 
+        # Submitted the `FirewallStateGlobalPolicyForm` form.
         if 'global_policy' in request.POST:
             form = FirewallStateGlobalPolicyForm(request.POST, instance=firewallstate)
             if form.is_valid():
+                # TODO: check isn't it enough to do `form.save()` here.
                 firewallstate.global_policy = form.cleaned_data["global_policy"]
                 firewallstate.save(update_fields=['global_policy'])
-
+        # Submitted the `PortsForm` form.
         elif 'is_ports_form' in request.POST:
-            if firewallstate and firewallstate.global_policy:
+            if firewallstate.global_policy:
+                # If some global policy applied to the device - you can't manage its ports.
                 return HttpResponseForbidden()
             ports_form_data = self.object.portscan.ports_form_data()
             form = PortsForm(request.POST, ports_choices=ports_form_data[0])
@@ -435,15 +395,15 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                     out_data.append(ports_form_data[2][port_record_index])
                 portscan.block_ports = out_data
                 firewallstate.policy = form.cleaned_data['policy']
-                self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
                 with transaction.atomic():
                     portscan.save(update_fields=['block_ports'])
                     firewallstate.save(update_fields=['policy'])
                     self.object.update_trust_score = True
                     self.object.save(update_fields=['update_trust_score'])
-
+        # Submitted the `ConnectionsForm` form.
         elif 'is_connections_form' in request.POST:
-            if firewallstate and firewallstate.global_policy:
+            if firewallstate.global_policy:
+                # If some global policy applied to the device - you can't manage its connections.
                 return HttpResponseForbidden()
             connections_form_data = self.object.portscan.connections_form_data()
             form = ConnectionsForm(request.POST, open_connections_choices=connections_form_data[0])
@@ -455,6 +415,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 portscan.block_networks = out_data
                 portscan.save(update_fields=['block_networks'])
 
+        self.object.refresh_from_db()
         self.object.generate_recommended_actions(classes=[FirewallDisabledAction])
         return HttpResponseRedirect(reverse('device-detail-security', kwargs={'pk': kwargs['pk']}))
 
@@ -463,11 +424,11 @@ class DeviceDetailNetworkView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     model = Device
     template_name = 'device_info_network.html'
 
-    def get_queryset(self):
+    def get_queryset(self):  # TODO: put this kind of `get_queryset` method to mixin.
         queryset = super().get_queryset()
         return queryset.filter(owner=self.request.user)
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs):  # TODO: put duplicated `get_context_data` to mixin.
         context = super().get_context_data(**kwargs)
         try:
             context['portscan'] = self.object.portscan
@@ -573,18 +534,68 @@ class PairingKeySaveFileView(LoginRequiredMixin, LoginTrackMixin, View):
         return response
 
 
-class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, RecommendedActionsMixin, TemplateView):
+class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     """
     Display all available to the user (or to the device) recommended actions.
     Handle 2 different url patterns: one for all user's devices, another of particular device.
     """
     template_name = 'actions.html'
 
+    def _actions(self, device_pk=None):
+        actions = []
+
+        if self.request.user.devices.exists():
+            if device_pk is not None:
+                dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
+                device_name = dev.get_name()
+                actions_qs = dev.recommendedaction_set.all()
+            else:
+                device_name = None
+                actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
+
+            # Select all RAs for all user's devices which are not snoozed
+            active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
+
+            # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
+            actions_by_id = defaultdict(list)
+            affected_devices = set()
+            for ra in active_actions:
+                affected_devices.add(ra.device.pk)
+                actions_by_id[ra.action_id].append(ra.device.pk)
+            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
+
+            # Generate Action objects to be rendered on page for every affected RA.
+            for ra_id, device_pks in actions_by_id.items():
+                devices = [affected_devices[d] for d in device_pks]
+                if ActionMeta.is_action_id(ra_id):
+                    # Make sure we have an Action class with this id.
+                    # If we don't (this id is invalid or was removed) - ignore it.
+                    a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
+                    actions.append(a)
+        else:  # User has no devices - display the special action.
+            device_name = None
+            actions = [EnrollAction.action(self.request.user, [])]
+
+        # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
+        # and has not set up integration with any Github repo. Only shown on common actions page.
+        if not (self.request.user.profile.github_oauth_token and
+                self.request.user.profile.github_repo_id) and \
+                device_pk is None:
+            actions.append(GithubAction.action(self.request.user, []))
+
+        # Sort actions by severity and then by action id, effectively grouping subclasses together.
+        actions.sort(key=lambda a: (a.severity.value[2], a.action_id), reverse=True)
+
+        return device_name, actions
+
     def get_context_data(self, **kwargs):
-        device_name, actions = self.get_actions(kwargs.get('device_pk'))
         context = super().get_context_data(**kwargs)
-        context['actions'] = actions
-        context['device_name'] = device_name
+
+        device_name, actions = self._actions(kwargs.get('device_pk'))
+        context.update(
+            actions=actions,
+            device_name=device_name
+        )
         return context
 
 
@@ -597,14 +608,8 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
     class AffectedPackage(NamedTuple):
         name: str
-        devices: List[Device]
-
-        @property
-        def device_urls(self):
-            return [CVEView.Hyperlink(
-                d.get_name(),
-                reverse('device_cve', kwargs={'device_pk': d.pk})
-            ) for d in self.devices]
+        devices_count: int
+        devices: List[NamedTuple]
 
         @property
         def upgrade_command(self):
@@ -626,7 +631,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         @property
         def key(self):
-            return self.urgency, sum([len(p.devices) for p in self.packages])
+            return self.urgency, sum([p.devices_count for p in self.packages])
         
         @property
         def severity(self):
@@ -636,6 +641,19 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         def cve_link(self):
             return CVEView.Hyperlink(self.cve_name, 'http://cve.mitre.org/cgi-bin/cvename.cgi?name=' + self.cve_name)
 
+    @staticmethod
+    def delta(current, last):
+        if current is None or last is None:
+            return
+        return {
+            'count': current,
+            'delta': f'{current - last:+d}'
+        }
+
+    @staticmethod
+    def percent(a, b):
+        return a / b * 100
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
@@ -644,40 +662,126 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         if device_pk is not None:
             device = get_object_or_404(Device, pk=device_pk, owner=user)
             vuln_query = Q(debpackage__device__pk=device_pk)
-            packages_query = Q(device__pk=device_pk)
         else:
             device = None
             vuln_query = Q(debpackage__device__owner=user)
-            packages_query = Q(device__owner=user)
 
-        vulns = Vulnerability.objects.filter(vuln_query, fix_available=True) \
-                                     .values('name').distinct().annotate(max_urgency=Max('urgency'),
-                                                                         pubdate=Max('pub_date'))
-        vuln_info = {v['name']: (v['max_urgency'], v['pubdate']) for v in vulns}
-        packages = DebPackage.objects.filter(packages_query,
-                                             vulnerabilities__isnull=False,
-                                             vulnerabilities__fix_available=True)\
-                                     .annotate(cve_name=F('vulnerabilities__name'))
+        # We gather Vulnerabilities from different sources: Debian Security Tracker (DST) and Ubuntu Security Tracker
+        # (UST). DST and UST often don't agree on severity for the same CVE. Also UST has CVE publication date
+        # (pub_date) while DST has not. But we need to compile the resulting CVE list regardless of those differences.
+        # This is why the code below is so complicated.
 
-        packages_by_cve = defaultdict(set)
-        for p in packages:
-            packages_by_cve[p.cve_name].add(p)
+        # Select all CVEs which affect all user's devices and for every CVE find its publication date by looking through
+        # all CVEs with this name and finding maximal pub_date. By using Max() we avoid NULLs, as they compare as less
+        # than any other non-NULL value.
+        vuln_names = Vulnerability.objects.filter(vuln_query)\
+                                          .values('name').distinct()
+        vuln_pub_dates_qs = Vulnerability.objects.filter(name__in=vuln_names) \
+                                                 .values('name').annotate(pubdate=Max('pub_date')).distinct()
+        # Build a lookup dictionary for CVE publication dates.
+        vuln_pub_dates = {v['name']: v['pubdate'] for v in vuln_pub_dates_qs}
+
+        # Group CVEs selected above by their maximal urgency. We could put this into the huge request below,
+        # but it would work slower.
+        vuln_urgencies = Vulnerability.objects.filter(name__in=vuln_names)\
+                                              .values('name').distinct()\
+                                              .annotate(max_urgency=Max('urgency'))
+        vulns_by_urgency = defaultdict(list)
+        for vuln_urgency in vuln_urgencies:
+            vulns_by_urgency[vuln_urgency['max_urgency']].append(vuln_urgency['name'])
+
+        # For every Vulnerability (cve) on every user's DebPackage (pkg) installed on every user's device (dev) select
+        # the following data:
+        # cve_1 - pkg_1 - dev_1
+        #                   ...
+        # cve_1 - pkg_1 - dev_n1
+        # cve_1 - pkg_2 - dev_1
+        #         ...
+        # cve_1 - pkg_n - dev_nn
+        # ...
+        # cve_n - pkg_n - dev_nn
+        #
+        # This data is then sorted by:
+        # 1) CVE severity
+        # 2) total count of devices affected by a CVE (annotated as cvecnt)
+        # 3) total count of devices where the package is installed (annotated as devcnt)
+        # We have to do this with one request  because the number of CVEs, the number of packages and the number of
+        # devices - any of them may be well over a hundred, and we can't afford to run 100 requests while handling the
+        # web request.
+        devices_packages_cves = Vulnerability.objects.filter(vuln_query, fix_available=True)\
+            .values('name')\
+            .annotate(max_urgency=Case(
+              *[When(name__in=vulns_by_urgency[u], then=Value(u)) for u in Vulnerability.Urgency],
+              output_field=IntegerField()
+            )) \
+            .values('name', 'max_urgency', 'debpackage__pk', 'debpackage__device__pk', 'debpackage__name',
+                    'debpackage__device__name',  'debpackage__device__deviceinfo__fqdn')\
+            .annotate(devcnt=Window(expression=Count('debpackage__name'),
+                                    partition_by=['name', 'debpackage__name']),
+                      cvecnt=Window(expression=Count('debpackage__name'),
+                                    partition_by=['name'])) \
+            .order_by('-max_urgency', '-cvecnt', 'name', '-devcnt', 'debpackage__name', 'debpackage__device__pk')
 
         table_rows = []
-        for cve_name, cve_packages in packages_by_cve.items():
-            plist = sorted([self.AffectedPackage(package.name,
-                                                 # FIXME: this line may need additional optimisation to avoid calling
-                                                 # device_set.filter() every time.
-                                                 [device] if device else list(package.device_set.filter(owner=user)))
-                            for package in cve_packages],
-                           key=lambda package: len(package.devices), reverse=True)
-            urgency, cve_date = vuln_info[cve_name]
-            table_rows.append(self.TableRow(cve_name=cve_name, cve_url='', urgency=urgency,
-                                            cve_date=cve_date, packages=plist))
+        current_row = None
+        current_package = None
+        for device_package_cve in devices_packages_cves:
+            cve_name, package_name, urgency, devices_count,\
+                device_pk, device_name, device_fqdn = (device_package_cve[k] for k in [
+                                                            'name', 'debpackage__name', 'max_urgency', 'devcnt',
+                                                            'debpackage__device__pk', 'debpackage__device__name',
+                                                            'debpackage__device__deviceinfo__fqdn'])
+            # In devices_packages_cves the rows are ordered by cve_name and package_name. This means that they will be
+            # grouped together by cve_name and the rows with the same cve_name will be grouped together by package_name.
+            # Hence we have current_row.cve_name and current_package.name to detect when the cve_name or package_name
+            # changes which means we need a new TableRow or a new AffectedPackage.
+            if not current_row or current_row.cve_name != cve_name:
+                current_row = self.TableRow(cve_name, urgency, [], '', vuln_pub_dates[cve_name])
+                table_rows.append(current_row)
+                current_package = None
+            if not current_package or current_package.name != package_name:
+                current_package = self.AffectedPackage(package_name, devices_count, [])
+                current_row.packages.append(current_package)
+            if device_name or device_fqdn:
+                device_pretty_name = device_name or device_fqdn[:36]
+            else:
+                device_pretty_name = f"device_{device_pk}"
+            current_package.devices.append(self.Hyperlink(href=reverse('device_cve', kwargs={'device_pk': device_pk}),
+                                                          text=device_pretty_name))
 
-        context['table_rows'] = sorted(table_rows,
-                                       key=lambda r: r.key, reverse=True)
+        context['table_rows'] = table_rows
         if device:
             context['device_name'] = device.get_name()
+
+        cve_hi, cve_med, cve_lo = (len(vulns_by_urgency[Vulnerability.Urgency.HIGH]),
+                                   len(vulns_by_urgency[Vulnerability.Urgency.MEDIUM]),
+                                   len(vulns_by_urgency[Vulnerability.Urgency.LOW]))
+        cve_hi_last, cve_med_last, cve_lo_last = self.request.user.profile.cve_count_last_week
+
+        context.update({
+            'radius': "15.91549430918954",
+            'high_color': "#EF2F20",
+            'med_color': "#EF8F20",
+            'low_color': "#23BED6",
+            'cve': {
+                'high': self.delta(cve_hi, cve_hi_last),
+                'medium': self.delta(cve_med, cve_med_last),
+                'low': self.delta(cve_lo, cve_lo_last),
+            }
+        })
+
+        cve_sum = sum((cve_hi, cve_med, cve_lo))
+        if cve_sum:
+            percent_hi = self.percent(cve_hi, cve_sum)
+            percent_med = self.percent(cve_med, cve_sum)
+            percent_lo = self.percent(cve_lo, cve_sum)
+            initial_hi = 35
+            initial_med = 100 - percent_hi + initial_hi
+            initial_lo = 100 - percent_med + initial_med
+            context['cve']['circle'] = {
+                'high': (percent_hi, 100 - percent_hi, initial_hi),
+                'medium': (percent_med, 100 - percent_med, initial_med),
+                'low': (percent_lo, 100 - percent_lo, initial_lo),
+            }
 
         return context

@@ -268,11 +268,11 @@ def file_issues():
             logger.exception('failed to get installation token or list issues')
             continue
 
-        for action_class in recommended_actions.ActionMeta.all_classes(grouped=True):
+        for action_class in recommended_actions.ActionMeta.all_classes():
             logger.debug(f'action class {action_class.action_id}')
             # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
             issue_number = profile.github_issues.get(str(action_class.action_id))
-            description = action_class.get_description(profile.user, additional_context={'devices': 'your nodes'})
+            description = action_class.get_description(profile.user)
             logger.debug(f'issue #{issue_number}')
             try:
                 if description:

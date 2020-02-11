@@ -1,0 +1,21 @@
+{% load widget_tweaks %}
+
+<div class="form-group {% if field.field.required %}required{% endif %} {{ form_group_class }}">
+  <label class="wott-label" for="{{ field.id_for_label }}">{{field.label}}
+    {% if asterisk %}<span class="wott-blue">(*)</span>{% endif %}
+  </label>
+  {% if placeholder %}
+    {% render_field field class+="form-control wott-form-control wott-rounded-lg" class+=field_class placeholder=placeholder %}
+  {% else %}
+    {% render_field field class+="form-control wott-form-control wott-rounded-lg" class+=field_class placeholder=field.label %}
+  {% endif %}
+  {% if field.errors %}
+    <div class="alert alert-warning wott-rounded-lg wott-alert-full mt-3">
+      <ul class="py-1 px-1 mb-0">
+        {% for error in field.errors %}
+          <li><h4>{{ error }}</h4></li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>

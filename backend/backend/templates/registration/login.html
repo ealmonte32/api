@@ -1,66 +1,87 @@
 {% extends "registration/registration_base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}WoTT - {% trans "Log in" %}{% endblock %}
 
 {% block content %}
   <!-- templates/registration/login.html -->
-  <main class="main h-100 w-100">
+  <main class="main h-100 w-100" style="background-image: url({% static 'media/login-bg.png' %});" id="login-page-container">
     <div class="container h-100">
       <div class="row h-100">
-        <div class="col-sm-10 col-md-8 col-lg-6 mx-auto d-table h-100">
-          <div class="d-table-cell align-middle">
-            {% if messages %}
-              {% for message in messages %}
-                <div class="alert alert-success" role="alert">
-                  <div class="alert alert-success text-center" role="alert"><h4><br>{{ message }}</h4></div>
+        <div class="mx-auto d-flex align-items-center">
+         
+          <div class="container-centered">
+            <div id="server-image-container">
+              <img id="server-image-content" src="{% static 'media/server.svg' %}" alt="server"/>
+            </div>
+            <div class="card box-left">
+              <div class="wott-card-body">
+                <div class="form-group text-center">
+                  <img id="wott-logo-login" class="pb-5" src="{% static 'media/logo.svg' %}" alt="Wott">
+                  <h1 class="pt-3 pb-1 mb-4" id="login-question">New to Wott?</h1>
+                  <div class="mb-5">
+                    <p>Register for free!</p>
+                    <p>Create your account today.</p>
+                  </div>
+                  <div class="pt-3">
+                    <a href="{% url 'registration_register' %}">
+                      <input class="btn wott-btn wott-btn-full btn-wott-primary" value="Register">
+                    </a> 
+                  </div>  
                 </div>
-              {% endfor %}
-            {% endif %}
-            <div class="card">
-              <div class="card-body">
-                <div class="m-sm-4">
+              </div>
+            </div>
+            <div class="card box-right">
+              <div class="wott-card-body">
+                <div class="m-xl-4 m-sm-3">
+                  <h1 class="text-center" id="login-greetings">Welcome Back!</h1>
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                        <!-- Password or email incorrect message -->
+                          <div class="alert alert-warning wott-rounded-lg wott-alert-full"><h4>{{ error }}</h4></div>
+                        {% endfor %}
+                    {% endif %}
+                    {% if messages %}
+                        {% for message in messages %}
+                         <!-- Logout success message -->
+                          <div class="alert" role="alert">
+                            <div class="alert wott-alert-full wott-rounded-lg text-center" role="alert"><h4>{{ message }}</h4></div>
+                          </div>
+                        {% endfor %}
+                    {% endif %}
                   <form method="POST" action="">
                     {% csrf_token %}
                     <div class="form-group">
-                      <label for="username">E-mail</label>
-                      <input class="form-control form-control-lg" type="text" name="username"
-                             placeholder="E-mail" id="username"/>
+                      <label class="wott-label" for="username">Email</label>
+                      <input class="form-control wott-form-control wott-rounded-lg form-control-lg" type="text" name="username"
+                            placeholder="Your email" id="username"/>
                       {% if form.username.errors %}
                         {% for error in form.username.errors %}
                           <label class="error form-text invalid-feedback small"
-                                 style="display: block">{{ error | escape }}</label>
+                                style="display: block">{{ error | escape }}</label>
                         {% endfor %}
                       {% endif %}
                     </div>
-                    <div class="form-group">
-                      <label>Password</label>
-                      <input class="form-control form-control-lg" type="password" name="password"
-                             placeholder="Enter your password"/>
+                    <div class="form-group mb-4">
+                      <label class="wott-label">Password</label>
+                      <input style="background-color: white;" class="form-control wott-rounded-lg wott-form-control form-control-lg" type="password" name="password"
+                            placeholder="Your password"/>
                       {% if form.password.errors %}
                         {% for error in form.password.errors %}
                           <label class="error form-text invalid-feedback small"
-                                 style="display: block">{{ error | escape }}</label>
+                                style="display: block">{{ error | escape }}</label>
                         {% endfor %}
                       {% endif %}
                     </div>
                     <div class="form-group">
-                      <small>
-                        <a href="{% url 'auth_password_reset' %}">Forgot password?</a>
-                      </small>
-                      <div class="form-group">
-                        <small>
-                          <a href="{% url 'registration_register' %}">Register</a>
-                        </small>
+                      <div class="text-center btn-margin-top">
+                        <input type="submit" class="btn wott-btn wott-btn-full btn-wott-primary py-1" value="Log In"/>
                       </div>
-                        {% if form.non_field_errors %}
-                            {% for error in form.non_field_errors %}
-                                <div class="alert alert-warning">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                      <div class="text-center mt-3">
-                        <input type="submit" class="btn btn-lg btn-primary" value="Sign In"/>
-                      </div>
+                    </div>
+                    <div class="form-group text-center mt-4">
+                      <a id="forgot-password-link" href="{% url 'auth_password_reset' %}">Forgot Password?</a>
+                    </div>
                   </form>
                 </div>
               </div>

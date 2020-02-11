@@ -1,0 +1,110 @@
+// Settings Sidebar Nav
+
+#settings-nav {
+  border-top-left-radius: $wott-border-radius-lg;
+  border-bottom-left-radius: $wott-border-radius-lg;
+  min-height: 600px;
+
+  .sidebar-item h4 {
+    margin-bottom: 0;
+    font-size: .95rem;
+    font-weight: 600;
+    width: 65%;
+  }
+
+  .sidebar-item img {
+    padding-right: 5%;
+  }
+
+  .sidebar-item.active {
+    border-right: 5px solid $wott-blue;
+  }
+}
+
+#inner-settings {
+  border-radius: $wott-border-radius-lg;
+}
+
+.inner-profile-tab {
+  padding: 4rem 5rem;
+}
+
+// Profile tab
+
+#profile-tab {
+  background-color: #F7F9FF;
+  border-radius: $wott-border-radius-lg;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  border-left: 0px;
+  
+
+  .btn-wott-primary {
+    border: 0;
+  }
+
+  .wott-btn {
+    font-size: .9rem;
+    height: 50px;
+  }
+
+  .form-control:disabled, .form-control[readonly] {
+    background-color:#EBF1FF;
+    }
+  @include mQ(992px) {
+    .content {
+      width: 100%;
+    }
+  }
+
+  .btn-wott-primary {
+    border: 0;
+  }
+
+  .wott-btn {
+    font-size: .95rem;
+    height: 50px;
+  }
+}
+
+#btn-profile-update {
+  width: 40%;
+  margin-top: .8rem;
+}
+
+// Password change
+
+#password-change-box {
+  padding: 4rem 5rem;
+}
+
+#password-change-box {
+  .btn-wott-primary {
+    width: 40%;
+    height: 50px;
+    font-size: .9rem;
+    border: 0;
+  }
+}
+
+// API Token Tab
+
+.api-title {
+  font-size: 2.1rem;
+}
+
+#token-code {
+  font-size: .9rem;
+}
+
+
+.inner-profile-tab {
+  .wott-btn {
+    height: 50px;
+    width: 40%;
+  }
+}
+
+.api-title {
+  font-size: 2.1rem;
+}

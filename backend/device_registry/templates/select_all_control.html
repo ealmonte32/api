@@ -51,26 +51,25 @@
         select_toolbar.innerHTML = $('#select-all-link-btn-template').html();
         select_toolbar.classList.add('selectall-toolbar');
         var dt_wrapper = $(`#${dt_id}_wrapper`)[0];
-        dt_wrapper.insertBefore(select_toolbar, dt_filter);
+        //! dt_wrapper.insertBefore(select_toolbar, dt_filter);
       }
 
       /* select all control for table */
       function clear_select_all_info(){
-          $("#select-all-info-title").html('');
-          $("#select-all-info-link").html('');
+          $('.select-all-box').toggleClass('d-block', false);
+          $('.select-all-box').toggleClass('d-none', true);
       }
 
       function toggle_page(e){
-          let toggle_control = $('#select-all-toggle');
-          let state = toggle_control.hasClass("fa-check-square");
+          let toggle_control = $('.wott-select-all');
+          let state = toggle_control.hasClass("wott-select-all-focus");
+          toggle_control.focus();
 
           if(!state){
-              toggle_control.addClass("fa-check-square");
-              toggle_control.removeClass("fa-square");
+              toggle_control.addClass("wott-select-all-focus");
               select_all('current', true);
           } else {
-              toggle_control.removeClass("fa-check-square");
-              toggle_control.addClass("fa-square");
+              toggle_control.removeClass("wott-select-all-focus");
               deselect_all('all');
           }
       }
@@ -108,6 +107,8 @@
               if ( total > on_page && page == 'current'){
                   $("#select-all-info-title").html(`${on_page} rows selected on page.`);
                   $("#select-all-info-link").html(`Select all ${total} items.`);
+                  $('.select-all-box').toggleClass('d-block', true);
+                  $('.select-all-box').toggleClass('d-none', false);
                   return;
               }
           }

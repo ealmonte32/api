@@ -17,7 +17,7 @@ class ProfileViewsTest(TestCase):
     def test_get(self):
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Profile Settings')
+        self.assertContains(response, 'Settings')
         self.assertEqual(self.user0.profile.last_active, timezone.localdate())
 
     def test_post(self):
@@ -102,8 +102,7 @@ class RegistrationViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user1@gmail.com')
         self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions</a>',
+        self.assertInHTML('<h4>Recommended Actions</h4>',
                           response.rendered_content)
         # Load the profile page for checking its content.
         response = self.client.get(reverse('profile'))
@@ -124,8 +123,7 @@ class RegistrationViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'user2@gmail.com')
         self.assertContains(response, "Congratulations! We won&#39;t charge you for this plan for now.")
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions</a>',
+        self.assertInHTML('<h4>Recommended Actions</h4>',
                           response.rendered_content)
         self.client.logout()
         self.client.login(username='user2@gmail.com', password='SomeStrong56_Pass')

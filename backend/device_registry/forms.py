@@ -41,7 +41,7 @@ class DeviceAttrsForm(forms.ModelForm):
 
 class PortsForm(forms.Form):
     policy = forms.ChoiceField(choices=FirewallState.POLICY_CHOICES,
-                               widget=forms.Select(attrs={'class': 'form-control'}))
+                               widget=forms.Select(attrs={'class': 'wott-form-control custom-select'}))
     open_ports = forms.MultipleChoiceField(
         required=False,
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'list-unstyled'}))
@@ -70,7 +70,7 @@ class FirewallStateGlobalPolicyForm(forms.ModelForm):
         model = FirewallState
         fields = ['global_policy']
         widgets = {
-            'global_policy': forms.Select(attrs={'class': 'form-control'}),
+            'global_policy': forms.Select(attrs={'class': 'wott-form-control custom-select'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -83,6 +83,10 @@ class GlobalPolicyForm(forms.ModelForm):
     class Meta:
         model = GlobalPolicy
         fields = ['name', 'policy', 'ports']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['policy'].widget.attrs['class'] = 'custom-select'
 
     def clean_ports(self):
         data = self.cleaned_data['ports']

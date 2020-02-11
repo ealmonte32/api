@@ -21,6 +21,7 @@ phonenumbers==8.10.23
 django-prometheus==1.0.15
 django-registration-redux==2.6
 django-tagulous==0.14.1
+django-widget-tweaks==1.4.5
 djangorestframework==3.10.3
 dockerignore-generate==1.0.7
 freezegun==0.3.11

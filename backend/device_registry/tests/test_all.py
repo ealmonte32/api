@@ -1,8 +1,9 @@
 import json
 import sys
-from statistics import mean
+from collections import defaultdict
 from unittest.mock import patch
 
+from dateutil.relativedelta import relativedelta, TU, SU
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -20,9 +21,10 @@ from freezegun import freeze_time
 
 from device_registry import ca_helper
 from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
-    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction
+    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
+from device_registry.recommended_actions import BaseAction, ActionMeta, Severity
 from device_registry.views import CVEView
 from profile_page.models import Profile
 
@@ -371,6 +373,43 @@ class DeviceModelTest(TestCase):
         self.device0.save()
         self.assertFalse(self.device0.cpu_vulnerable)
 
+    def test_ra_last_week(self):
+        now = timezone.now()
+        # Last week's tuesday
+        last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
+        ra0 = RecommendedAction.objects.create(device=self.device0, action_id=1,
+                                               status=RecommendedAction.Status.NOT_AFFECTED)
+        ra1 = RecommendedAction.objects.create(device=self.device0, action_id=2,
+                                               status=RecommendedAction.Status.NOT_AFFECTED)
+        ra2 = RecommendedAction.objects.create(device=self.device0, action_id=3,
+                                               status=RecommendedAction.Status.SNOOZED_UNTIL_PING)
+
+        self.assertEqual(self.device0.actions_count_last_week, 0)
+        self.assertEqual(self.device0.actions_count_delta['count'], 0)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'up')
+
+        with freeze_time(last_tuesday):
+            ra0.status = RecommendedAction.Status.AFFECTED
+            ra0.save()
+            self.device0.sample_history()
+        with freeze_time(last_tuesday + timezone.timedelta(days=1)):
+            ra1.status = RecommendedAction.Status.AFFECTED
+            ra1.save()
+            self.device0.sample_history()
+        self.assertEqual(self.device0.actions_count_last_week, 2)
+
+        ra2.status = RecommendedAction.Status.AFFECTED
+        ra2.save()
+        self.assertEqual(self.device0.actions_count_delta['count'], 1)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'up')
+
+        ra0.status = RecommendedAction.Status.NOT_AFFECTED
+        ra2.status = RecommendedAction.Status.NOT_AFFECTED
+        ra0.save()
+        ra2.save()
+        self.assertEqual(self.device0.actions_count_last_week, 2)
+        self.assertEqual(self.device0.actions_count_delta['count'], 1)
+        self.assertEqual(self.device0.actions_count_delta['arrow'], 'down')
 
 class FormsTests(TestCase):
     def setUp(self):
@@ -569,7 +608,7 @@ class DeviceDetailViewTests(TestCase):
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Firewall Ports Policy')
-        self.assertInHTML('<span id="ports-table-column-1">Allowed</span>', response.rendered_content)
+        self.assertInHTML('<span class="pl-1" id="ports-table-column-1">Allowed</span>', response.rendered_content)
 
     def test_open_ports_global_policy(self):
         self.client.login(username='test', password='123')
@@ -635,7 +674,7 @@ class DeviceDetailViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(self.url2)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<pre>pi:')
+        self.assertContains(response, '<pre class="mb-0">pi:')
         self.assertContains(response, 'success: 1')
 
     def test_insecure_services(self):
@@ -644,8 +683,8 @@ class DeviceDetailViewTests(TestCase):
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, '>telnetd<')
-        self.assertNotContains(response, '>fingerd<')
+        self.assertNotContains(response, 'telnetd')
+        self.assertNotContains(response, 'fingerd')
         self.assertNotContains(response, 'No insecure services detected')
 
         self.device.set_deb_packages([
@@ -658,8 +697,8 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, '>telnetd<')
-        self.assertNotContains(response, '>fingerd<')
+        self.assertNotContains(response, 'telnetd')
+        self.assertNotContains(response, 'fingerd')
         self.assertContains(response, 'No insecure services detected')
         self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
                              [{'name': 'python2', 'version': 'VERSION', 'arch': 'i386',
@@ -676,8 +715,8 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'telnetd</li>')
-        self.assertContains(response, 'fingerd</li>')
+        self.assertContains(response, 'telnetd')
+        self.assertContains(response, 'fingerd')
         self.assertNotContains(response, 'No insecure services detected')
         self.assertListEqual(list(self.device.deb_packages.values('name', 'version', 'arch', 'os_release_codename')),
                              [{'name': 'telnetd', 'version': 'VERSION', 'arch': 'i386',
@@ -703,7 +742,7 @@ class DeviceDetailViewTests(TestCase):
         self.device.save()
 
         response = self.client.get(url)
-        self.assertInHTML("""<th scope="row">Patched against Heartbleed</th>
+        self.assertInHTML("""<th class="wott-table-label" scope="row">Patched against Heartbleed</th>
                              <td>
                                <span class="p-1 text-success"><i class="fas fa-check" ></i></span>
                                Yes
@@ -715,7 +754,7 @@ class DeviceDetailViewTests(TestCase):
         self.device.deb_packages.first().vulnerabilities.add(v)
 
         response = self.client.get(url)
-        self.assertInHTML("""<th scope="row">Patched against Heartbleed</th>
+        self.assertInHTML("""<th class="wott-table-label" scope="row">Patched against Heartbleed</th>
                              <td>
                                <span class="p-1 text-danger"><i class="fas fa-exclamation-circle" ></i></span>
                                No
@@ -756,20 +795,20 @@ class DeviceDetailViewTests(TestCase):
         url = reverse('device-detail-software', kwargs={'pk': self.device.pk})
         # Unknown distro.
         response = self.client.get(url)
-        self.assertInHTML('<td id="eol_info">N/A</td>', response.rendered_content)
+        self.assertInHTML('<td class="pl-4" id="eol_info">N/A</td>', response.rendered_content)
         # Supported distro version.
         self.device.os_release = {'distro': 'raspbian', 'version': '10', 'codename': 'buster',
                                   'distro_root': 'debian', 'full_version': '10 (buster)'}
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
         # print(response.content)
-        self.assertInHTML('<td id="eol_info">July 1, 2022</td>', response.rendered_content)
+        self.assertInHTML('<td class="pl-4" id="eol_info">July 1, 2022</td>', response.rendered_content)
         # Outdated distro version.
         self.device.os_release = {'distro': 'debian', 'version': '7', 'codename': 'wheezy',
                                   'distro_root': 'debian', 'full_version': '7 (wheezy)'}
         self.device.save(update_fields=['os_release'])
         response = self.client.get(url)
-        self.assertInHTML('<td id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
+        self.assertInHTML('<td class="pl-4" id="eol_info"><span class="p-1 text-danger"><i class="fas fa-exclamation-circle" >'
                           '</i></span>May 31, 2018</td>', response.rendered_content)
 
     def test_default_credentials(self):
@@ -966,8 +1005,8 @@ class RootViewTests(TestCase):
         self.assertEqual(self.device1.actions_count, 2)
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">2</span></a>',
+        self.assertInHTML('<div class="badge wott-badge-pill">'
+                          '<span id="actions-sidebar" class="wott-badge-text">2</span></div>',
                           response.rendered_content)
 
     def test_recommended_actions_zero(self):
@@ -976,8 +1015,8 @@ class RootViewTests(TestCase):
         self.assertEqual(self.user.profile.actions_count, 0)
         response = self.client.get(reverse('root'))
         self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<a class="sidebar-link" id="sidebar-recommended-actions" href="/actions/">'
-                          'Recommended Actions<span class="badge badge-pill badge-danger ml-2">0</span></a>',
+        self.assertInHTML('<div class="badge wott-badge-pill">'
+                          '<span id="actions-sidebar" class="wott-badge-text">0</span></div>',
                           response.rendered_content, count=0)  # check that there is NO badge
 
 
@@ -1051,13 +1090,9 @@ class GlobalPolicyEditViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
-                                      'name="name" value="gp1" maxlength="32" class="form-control" placeholder="Name" '
-                                      'title="" required id="id_name"></div>')
+        self.assertContains(response, '<input type="text" name="name" value="gp1"')
         self.assertContains(response, '<option value="1" selected>Allow by default</option>')
-        self.assertContains(response, '<div class="form-group"><label for="id_ports">Ports</label><textarea '
-                                      'name="ports" cols="40" rows="10" class="form-control" placeholder="Ports" '
-                                      'title="" id="id_ports">\n[]</textarea></div>')
+        self.assertContains(response, '[]</textarea>')
 
     def test_post(self):
         self.client.login(username='test', password='123')
@@ -1066,9 +1101,7 @@ class GlobalPolicyEditViewTests(TestCase):
         self.assertRedirects(response, '/policies/')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
-                                      'name="name" value="My policy" maxlength="32" class="form-control" '
-                                      'placeholder="Name" title="" required id="id_name"></div>')
+        self.assertContains(response, '<input type="text" name="name" value="My policy"')
         self.assertContains(response, '<option value="2" selected>Block by default</option>')
 
     def test_post_non_unique_name(self):
@@ -1108,9 +1141,7 @@ class GlobalPolicyCreateViewTests(TestCase):
         gp = GlobalPolicy.objects.all()[0]
         response = self.client.get(reverse('edit_global_policy', kwargs={'pk': gp.pk}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<div class="form-group"><label for="id_name">Name</label><input type="text" '
-                                      'name="name" value="My policy" maxlength="32" class="form-control" '
-                                      'placeholder="Name" title="" required id="id_name"></div>')
+        self.assertContains(response, '<input type="text" name="name" value="My policy"')
         self.assertContains(response, '<option value="2" selected>Block by default</option>')
 
     def test_post_non_unique_name(self):
@@ -1139,7 +1170,7 @@ class GlobalPoliciesListViewTests(TestCase):
         self.client.login(username='test', password='123')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '<h5 class="card-title">Policies</h5>')
+        self.assertContains(response, '<th class="col-3">Firewall Ports Policy</th>')
 
 
 class GlobalPolicyFormTests(TestCase):
@@ -1266,7 +1297,7 @@ class ClaimDeviceViewTests(TestCase):
             mixpanel_instance.track.assert_called_once_with(self.user.email, 'First Node')
 
 
-class DasboardViewTests(TestCase):
+class DashboardViewTests(TestCase):
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test')
@@ -1280,86 +1311,94 @@ class DasboardViewTests(TestCase):
             device_id='device0.d.wott-dev.local',
             owner=self.user
         )
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            owner=self.user
+        )
 
-    def test_history(self):
-        self.device0.generate_recommended_actions()
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
 
-        now = timezone.now()
-        scores = [d / 28.0 for d in range(28)]
-        scores_weeks = [mean(scores[w*7:(w+1)*7]) for w in range(4)]
-        solved_ra = [i // 6 for i in range(28)]
-        solved_ra_weeks = [sum(solved_ra[w*7:(w+1)*7]) for w in range(4)]
+        severities = [Severity.LO, Severity.HI, Severity.MED, Severity.MED,
+                      Severity.HI, Severity.MED, Severity.MED, Severity.HI]
+        cls.test_actions = []
+        for i in range(len(severities)):
+            class TestActionOne(BaseAction, metaclass=ActionMeta):
+                """
+                A simple dummy action class with specified severity.
+                """
+                action_id = 9990 + i
+                severity = severities[i]
+                action_config = defaultdict(str)
 
-        # For each day of 4 weeks set trust score provided by "scores" array
-        # and set the number of resolved RAs provided by "solved_ra" array. Then
-        # compare the per-week trust score average and RA sum calculated by the view
-        # with the simple calculations provided here (scores_weeks and solved_ra_weeks)
-        for d in range(28):
-            with freeze_time(now - timezone.timedelta(days=d)):
-                self.device0.trust_score = scores[d]
-                self.device0.save()
-                solved_today = solved_ra[d]
+            cls.test_actions.append(TestActionOne)
 
-                # Can't simply update part of selected objects, will throw
-                #  "Cannot update a query once a slice has been taken". Instead I'm selecting pks, slicing them and then
-                # making a new query with them.
-                ras_list = self.device0.recommendedaction_set.all()[:solved_today].values_list('pk', flat=True)
-                ras = self.device0.recommendedaction_set.filter(pk__in=ras_list)
-                self.assertEqual(ras.count(), solved_today)
-                ras.update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
-
-                self.profile.sample_history()
-
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(all(
-            abs(a - b) <= sys.float_info.epsilon
-            for a, b in zip(scores_weeks, response.context_data['trust_score_history'])
-        ))
-        self.assertListEqual(solved_ra_weeks, response.context_data['ra_solved_history'])
-        self.assertLessEqual(abs(scores[-1] - response.context_data['trust_score']), sys.float_info.epsilon * 2)
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        for a in cls.test_actions:
+            ActionMeta.unregister(a)
 
     def test_empty(self):
-        now = timezone.now()
-        self.device0.generate_recommended_actions()
-
-        # Trust score will be None here. We want to make sure it doesn't
-        # break per-week calculation
-        with freeze_time(now - timezone.timedelta(days=3)):
-            self.profile.sample_history()
-
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual([None], response.context_data['trust_score_history'])
-        self.assertListEqual([0], response.context_data['ra_solved_history'])
+        self.assertEqual(response.context_data['weekly_progress'], 0)
+        self.assertListEqual(response.context_data['actions'], [])
 
-    def test_incomplete(self):
-        now = timezone.now()
-        self.device0.generate_recommended_actions()
+    def test_weekly_ra(self):
+        today = timezone.now()
+        RecommendedAction.objects.bulk_create([
+            # Both devices affected - counts as one RA.
+            # This one is low severity and will be displaced by three other RAs below.
+            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device0,
+                              status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device1,
+                              status=RecommendedAction.Status.AFFECTED),
 
-        # We want to make sure incomplete data, such as empty (None) trust score
-        # combined with complete data doesn't break per-week calculation.
-        with freeze_time(now - timezone.timedelta(days=2)):
-            # Trust score is None, RAs count is 1
-            ra0 = self.device0.recommendedaction_set.all()[0]
-            ra0.resolved_at = timezone.now()
-            ra0.save()
-            self.profile.sample_history()
-        with freeze_time(now - timezone.timedelta(days=1)):
-            # Trust score is 0.5, RAs count is 0
-            self.device0.trust_score = 0.5
-            self.device0.save()
-            self.profile.sample_history()
-        with freeze_time(now):
-            # Trust score is 0.4, RAs count is 0
-            self.device0.trust_score = 0.4
-            self.device0.save()
-            self.profile.sample_history()
+            # both devices affected - counts as one RA
+            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
+            # one device is affected, second was never affected (and never fixed)
+            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+
+            # one device is affected, second fixed - still not fixed
+            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+
+            # fixed on both devices - completely fixed
+            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+
+            # one never affected, another one fixed - completely fixed
+            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today),
+
+            # resolved a week ago - doesn't count
+            RecommendedAction(action_id=self.test_actions[6].action_id, device=self.device1,
+                              status=RecommendedAction.Status.NOT_AFFECTED,
+                              resolved_at=today - timezone.timedelta(days=7)),
+
+            # snoozed - doesn't count
+            RecommendedAction(action_id=self.test_actions[7].action_id, device=self.device1,
+                              status=RecommendedAction.Status.SNOOZED_FOREVER)
+        ])
+        # expected result: 1, 2, 3 - unfixed, 4, 5 - fixed
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual([(0.4 + 0.5) / 2], response.context_data['trust_score_history'])
-        self.assertListEqual([1], response.context_data['ra_solved_history'])
+        self.assertListEqual([(a.action_id, a.resolved) for a in response.context_data['actions']],
+                             [(self.test_actions[1].action_id, False),
+                              (self.test_actions[2].action_id, False),
+                              (self.test_actions[3].action_id, False),
+                              (self.test_actions[4].action_id, True),
+                              (self.test_actions[5].action_id, True)])
+        self.assertEqual(response.context_data['weekly_progress'], 40)
 
 
 class CVEViewTests(TestCase):
@@ -1413,6 +1452,11 @@ class CVEViewTests(TestCase):
         self.device0.deb_packages.set(self.packages)
         self.device_unrelated.deb_packages.set(self.packages)
 
+    @staticmethod
+    def _hyperlinks(devices):
+        return [CVEView.Hyperlink(text=device.get_name(), href=reverse('device_cve', kwargs={'device_pk': device.pk}))
+                for device in devices]
+
     def test_sort_package_hosts_affected(self):
         self.packages[0].vulnerabilities.set(self.vulns)
         self.packages[1].vulnerabilities.set(self.vulns[1:])
@@ -1423,11 +1467,11 @@ class CVEViewTests(TestCase):
         self.assertListEqual(response.context_data['table_rows'], [
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
                 # These two AffectedPackage's should be sorted by hosts_affected
-                CVEView.AffectedPackage('one_second', [self.device0, self.device1]),
-                CVEView.AffectedPackage('one_first', [self.device0])
+                CVEView.AffectedPackage('one_second', 2, self._hyperlinks([self.device0, self.device1])),
+                CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0]))
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0])
+                CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0]))
             ])
         ])
 
@@ -1441,15 +1485,14 @@ class CVEViewTests(TestCase):
         self.assertListEqual(response.context_data['table_rows'], [
             # These two TableRow's should be sorted by urgency
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.HIGH, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0]),
-                CVEView.AffectedPackage('one_second', [self.device0])
+                CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0])),
+                CVEView.AffectedPackage('one_second', 1, self._hyperlinks([self.device0]))
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0]),
-                CVEView.AffectedPackage('one_second', [self.device0])
+                CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0])),
+                CVEView.AffectedPackage('one_second', 1, self._hyperlinks([self.device0]))
             ])
         ])
-        self.assertEqual(len(response.context_data['table_rows'][0].packages[0].device_urls), 1)
 
     def test_sort_total_hosts_affected(self):
         self.packages[0].vulnerabilities.set(self.vulns)
@@ -1460,11 +1503,11 @@ class CVEViewTests(TestCase):
         self.assertListEqual(response.context_data['table_rows'], [
             # These two TableRow's should be sorted by the sum of hosts_affected
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0]),
-                CVEView.AffectedPackage('one_second', [self.device0])
+                CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0])),
+                CVEView.AffectedPackage('one_second', 1, self._hyperlinks([self.device0]))
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0])
+                CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0]))
             ])
         ])
 
@@ -1479,16 +1522,51 @@ class CVEViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(response.context_data['table_rows'], [
             CVEView.TableRow(cve_name='CVE-2018-2', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0]),
-                CVEView.AffectedPackage('one_second', [self.device0])
+                CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0])),
+                CVEView.AffectedPackage('one_second', 1, self._hyperlinks([self.device0]))
             ], cve_date=self.today),
             CVEView.TableRow(cve_name='CVE-2018-1', cve_url='', urgency=Vulnerability.Urgency.LOW, packages=[
-                CVEView.AffectedPackage('one_first', [self.device0])
+                CVEView.AffectedPackage('one_first', 1, self._hyperlinks([self.device0]))
             ])
         ])
 
-    def test_cve_count(self):
-        vulns = [
+
+class CVECountTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('test')
+        self.user.set_password('123')
+        self.user.save()
+        self.user_unrelated = User.objects.create_user('unrelated')
+        self.client.login(username='test', password='123')
+        self.profile = Profile.objects.create(user=self.user)
+
+        self.device0 = Device.objects.create(
+            device_id='device0.d.wott-dev.local',
+            owner=self.user,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'stretch'}
+        )
+        self.device_unrelated = Device.objects.create(
+            device_id='device-unrelated.d.wott-dev.local',
+            owner=self.user_unrelated
+        )
+        self.url = reverse('cve')
+        self.device_url = reverse('device_cve', kwargs={'device_pk': self.device0.pk})
+        self.today = timezone.now().date()
+
+        self.packages = [
+            DebPackage(name='one_first', version='version_one', source_name='one_source', source_version='one_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='one_second', version='version_one', source_name='one_source', source_version='one_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_first', version='version_two', source_name='two_source', source_version='two_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_second', version='version_two', source_name='two_source', source_version='two_version',
+                       arch=DebPackage.Arch.i386),
+        ]
+        DebPackage.objects.bulk_create(self.packages)
+        self.vulns = [
             Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.HIGH, fix_available=True),
             Vulnerability(os_release_codename='buster', name='CVE-2018-2', package='', is_binary=False,
@@ -1506,7 +1584,31 @@ class CVEViewTests(TestCase):
             Vulnerability(os_release_codename='stretch', name='CVE-2018-7', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False)
         ]
-        Vulnerability.objects.bulk_create(vulns)
-        self.packages[0].vulnerabilities.set(vulns)
-        self.packages[1].vulnerabilities.set(vulns)
+        Vulnerability.objects.bulk_create(self.vulns)
+        self.packages[0].vulnerabilities.set(self.vulns)
+        self.packages[1].vulnerabilities.set(self.vulns)
+
+        self.device0.deb_packages.set(self.packages)
+        self.device_unrelated.deb_packages.set(self.packages)
+
+    def test_cve_count(self):
         self.assertDictEqual(self.device0.cve_count, {'high': 1, 'med': 2, 'low': 3})
+
+    def test_cve_count_history(self):
+        self.profile.sample_history()
+        history_record = HistoryRecord.objects.get()
+        self.assertEquals(history_record.cve_high_count, 1)
+        self.assertEquals(history_record.cve_medium_count, 2)
+        self.assertEquals(history_record.cve_low_count, 3)
+
+    def test_cve_count_last_week(self):
+        now = timezone.now()
+        # Last week's tuesday
+        last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
+
+        with freeze_time(last_tuesday):
+            self.profile.sample_history()
+        with freeze_time(last_tuesday + timezone.timedelta(days=1)):
+            self.profile.sample_history()
+
+        self.assertTupleEqual(self.profile.cve_count_last_week, (1, 2, 3))

@@ -1,0 +1,20 @@
+{% load static %}
+{% load highlight_selector %}
+
+<li class="sidebar-item {% if url_name|is_menu_highlight_id:url %}active{% endif %}">
+  <a class="sidebar-link" id={{ id }} href="{% url url %}">
+    <img src="
+      {% if url_name|is_menu_highlight_id:url %}
+        {% static image_selected %}
+      {% else %}
+        {% static image %}
+      {% endif %}
+    " alt="{{ url }}">
+    <h4>{{ label }}</h4>
+  {% if badge %}
+    <div class="badge wott-badge-pill">
+      <span id="actions-sidebar" class="wott-badge-text">{{ badge }}</span>
+    </div>
+  {% endif %}
+  </a>
+</li>

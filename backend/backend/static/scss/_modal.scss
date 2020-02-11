@@ -10,3 +10,191 @@
     border-color: rgba(255, 255, 255, 0.33)
   }
 }
+
+
+// ---------------- Wott Modal -------------------- //
+
+
+/* the class bellow change the behavior of a  native bootstrap class */
+.modal-backdrop {
+  background-color:rgba(7, 26, 61, 0.7) !important;
+}
+
+.wott-line-split {
+  height: 1rem;
+  margin: 0rem 0rem 2rem;
+  border-top: 1px solid rgba(0,0,0,.1);
+}
+
+
+.wott-modal-container {
+  padding: 0;
+  color: #495057;
+  position: fixed;
+  overflow-y: scroll;
+  width: 800px;
+  max-height: 510px;
+  top: 23%;
+  left: 0;
+  right: 0;
+  margin: auto;
+  background-color: white;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  display: none;
+  z-index: 1050;
+  word-wrap: break-word;
+  height: auto;
+  outline: none;
+  .wott-img-btn {
+    border: 0;
+    background-color: white;
+  }
+  
+  .wott-img-btn:focus {
+    outline: none;
+  }
+  
+  .wott-img-btn img {
+    width: 90%;
+  }
+    
+  .svg-inline--fa.fa-w-14 {
+      width: 1rem;
+      height: 30px;
+  }
+  
+  .hljs {
+    padding: 1.5rem 2rem;
+    background: #263E67;
+    opacity: 1;
+    padding: 2rem;
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+    font-size: .85rem;
+  }
+  
+  .hljs-built_in,  .hljs-string {
+  color: #0086b3 !important;
+  }
+  
+  .wott-btn-inside-bash {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 10px;
+    right: 12px;
+    padding: .3rem;
+    border-radius: 8px;
+    background-color: #EDF1FE;
+    color: #495057;
+    text-transform: uppercase;
+    font-size: .58rem;
+    font-weight: 800;
+    width: 161px;
+    border: none;
+  }
+  
+  .wott-btn-inside-bash:hover {
+    background-color: #2460c8 !important;
+    color: white !important;
+  }
+  
+  .wott-modal-footer {
+    padding: 0 2.5rem 2rem;
+    margin-top: -15px;
+  }
+  
+  .wott-modal-footer a {
+    color: #1549A3;
+    font-weight: 600;
+  }
+  
+  .wott-bash-title {
+    padding: .7rem 2rem .5rem;
+    font-size: .85rem;
+    font-weight: 700;
+    background-color: #1A2F53;
+    color:white;
+    border-top-right-radius: 8px;
+    border-top-left-radius: 8px;
+    margin-bottom: -18px;
+    
+  }
+  
+  .fa-copy {
+    fill: none !important;
+  }
+  
+  .wott-left-title-btn {
+    padding-right: 12px;
+  
+  }
+  
+  .wott-modal-alert-box {
+    margin-bottom: 50px;
+    display: flex;
+    justify-content: center;;
+  }
+  
+  .wott-modal-alert {
+    width: auto;
+    padding: .8rem 4.5rem !important;
+    display: inline-block;
+    background-color: #e9edf7; 
+    border: none;
+    border-radius: 8px;
+    font-size: .9rem;
+    text-transform: uppercase;
+    color: #2460c8;
+    font-weight: 700;
+  }
+  
+  .wott-modal-container pre {
+    margin-bottom: 0;
+  }
+  
+  .wott-modal-body {
+    padding: 1rem 2.5rem 0rem;
+    word-wrap: break-word;
+    position: relative;
+  }
+  
+  .wott-modal-header {
+    position: sticky !important;
+    top: 0;
+    left: 0;
+    background-color: white;
+    width: 100%;
+    z-index: 10;
+  }
+  
+  .wott-modal-header-box {
+    padding: 2rem 2.5rem 1.5rem;
+    margin-bottom: 0 !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgb(216,216,216, 0.5)
+  
+  }
+  
+  .wott-modal-instructions {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0px;
+    font-size: .95rem;
+  }
+  
+  .wott-modal-title {
+    margin-bottom: 0;
+    font-weight: 600;
+    font-size: 1.8rem;
+  }
+}  
+

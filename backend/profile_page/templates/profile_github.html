@@ -1,28 +1,35 @@
 {% extends "profile_base.html" %}
 {% load bootstrap4 %}
+{% load widget_tweaks %}
 
 {% block profile_content %}
-  <div class="card">
-    <div class="card-header">
-      <h5 class="card-title mb-0">GitHub Repository</h5>
-    </div>
-    <div class="card-body">
-      {% if github_authorized %}
+
+  <div class="inner-profile-tab">
+    {% if github_authorized %}
+      {% if form.repo.field.choices.1 %} {# if choices are not empty (first element is a None) #}
       <form method="POST" action="">
         {% csrf_token %}
-        {% bootstrap_form form %}
+        <div class="form-group is-valid">
+          <label class="wott-label" for="{{ form.repo.id_for_label }}">Choose your GitHub Repository</label>
+          {% render_field form.repo class+="custom-select form-control wott-form-control wott-rounded-lg" %}
+        </div>
         {% buttons %}
-          <button type="submit" class="btn btn-primary">Save changes</button>
-          <button type="button" class="btn btn-secondary" onclick="installGithub()">Install App</button>
+          <button type="submit" class="btn wott-btn btn-wott-primary mr-3">Save changes</button>
+          <button type="button" class="btn wott-btn btn-wott-secondary" onclick="installGithub()">Install App</button>
         {% endbuttons %}
       </form>
-      {% elif github_authorized is False %}
-        <button onclick="authorizeGithub()" class="btn btn-primary">Authorize GitHub</button>
       {% else %}
-        GitHub Integration is not available.
+        <h2 class="mb-4 api-title font-weight-bold py-2">Install wott-bot</h2>
+        <button type="button" class="btn wott-btn btn-wott-secondary" onclick="installGithub()">Install App</button>
       {% endif %}
-    </div>
+    {% elif github_authorized is False %}
+      <h2 class="mb-4 api-title font-weight-bold py-2">Authorize access to GitHub</h2>
+      <button onclick="authorizeGithub()" class="btn wott-btn btn-wott-primary">Authorize</button>
+    {% else %}
+      <h2 class="mb-4 api-title font-weight-bold py-2">GitHub Integration is not available.</h2>
+    {% endif %}
   </div>
+
 {% endblock %}
 
 {% block scripts %}

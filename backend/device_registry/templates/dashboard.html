@@ -1,10 +1,226 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Title</title>
-</head>
-<body>
+{% extends "admin_base.html" %}
 
-</body>
-</html>
+{% block title %}WoTT - Dashboard{% endblock title %}
+
+{% block dashboard_title %}
+  <h1 style="margin-bottom: 0">Dashboard</h1>
+{% endblock dashboard_title %}
+
+{% load static %}
+
+{% block admin_content %}
+ 
+<div class="dashboard-tab">
+  <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});
+          {% if not welcome %}display: none !important;{% endif %}">
+    <div class="left-box py-4">
+      <h1 class="big-text text-center">Welcome User!</h1><!--Include user first name if it exists-->
+      <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p>
+      <p class="text-center pb-4 close-text">You can start your journey by adding a node.</p>
+      <button type="button" class="btn wott-btn btn-wott-primary d-block m-auto" id="inst-btn">
+        Add Node
+        <img class="plus" src="{% static '/media/plus.svg' %}" alt="plus">
+      </button>
+    </div>
+    <div id="server-welcome-dashboard">
+      <img src="{% static '/media/server.svg'%}" alt="server">
+    </div>
+  </div>
+
+  <section class="top-section pt-2 {% if not welcome %}d-none{% endif %}" id="welcome-overlay">
+    <div class="weekly-card-container card mb-0 wott-box-shadow">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="title-left-box wott-blue">Weekly Recommended Actions</h3>
+        <div class="weekly-progress">
+          <div class="graphic-title wott-font-light-blue">Weekly Progress</div>
+          <div id="week-progress-100">  
+            <span id="week-progress-var-fake">
+              <p class="mb-0" id="week-progres-text">75%</p>
+            </span>
+          </div>
+        </div>
+      </div>
+      <ul class="weekly-card-body">
+        <li class="d-flex justify-content-between">
+          <div class="d-flex flex-column">
+            <div class="round">
+              <input type="checkbox" id="weekly-ra-1 disable"/>
+              <label for="weekly-ra-1"></label>
+            </div>
+            <h3 class="list-title mb-0 wott-blue">Default credentials detected</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+          </div>
+          <div class="rect-badge-high wott-bg-blue">HIGH</div>
+        </li>
+        <li class="d-flex justify-content-between">
+          <div class="d-flex flex-column">
+            <div class="round">
+              <input type="checkbox" id="weekly-ra-2 disable" />
+              <label for="weekly-ra-2"></label>
+            </div>
+            <h3 class="list-title mb-0 wott-blue">Default credentials detected</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+          </div>
+          <div class="rect-badge-high wott-bg-blue">HIGH</div>
+        </li>
+        <li class="d-flex justify-content-between">
+          <div class="d-flex flex-column">
+            <div class="round">
+              <input type="checkbox" id="weekly-ra-3 disable"/>
+              <label for="weekly-ra-3"></label>
+            </div>
+            <h3 class="list-title mb-0 wott-blue">Permissive Firewall policy detected</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+          </div>
+          <div class="rect-badge-high wott-bg-blue">HIGH</div>
+        </li>
+        <li class="d-flex justify-content-between">
+          <div class="d-flex flex-column">
+            <div class="round">
+              <input type="checkbox" id="weekly-ra-4 disable" checked="checked" />
+              <label for="weekly-ra-4"></label>
+            </div>
+            <h3 class="list-title mb-0 wott-blue solved-dash">Valnerable packages found</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+          </div>
+          <div class="rect-badge-medium wott-bg-light-blue">MEDIUM</div>
+        </li>
+        <li class="d-flex justify-content-between">
+          <div class="d-flex flex-column">
+            <div class="round">
+              <input type="checkbox" id="weekly-ra-5 disable" checked="checked"/>
+              <label for="weekly-ra-5"></label>
+            </div>
+            <h3 class="list-title mb-0 wott-blue solved-dash">Default credentials detected</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+          </div>
+          <div class="rect-badge-low wott-bg-light-blue">LOW</div>
+        </li>
+      </ul>
+    </div>
+    <section class="right-graphic-container">
+      <div class="graph-title">Your Trust Score</div>
+      <div class="graph-half-moon">
+  
+        <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
+          <defs>
+            <lineargradient id="grad3" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#527ec9;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#7cacff;stop-opacity:1" />
+            </lineargradient>
+          </defs>
+          <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+          <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
+          
+          <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad3)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle>
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#7cacff" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle>
+          
+          <g class="chart-text">
+            <text id="cve-priority" x="50%" y="50%" class="chart-number">
+              80
+            </text>
+            <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
+              of 100
+            </text>
+            <text x="50%" y="50%" class="chart-label2">
+            </text>
+            <text x="50%" y="50%" class="chart-label3">
+              good
+            </text>
+          </g>
+        </svg>
+  
+      </div>
+      <div class="graph-footer wott-font-light-blue"><i class="fas fa-sort-down"></i><span> UP</span> 5% OVER THE LAST WEEK</div>
+    </section>
+  </section>
+
+  <!-- -------------------- WIHTOUT WELCOME BOX ----------------------------------- -->
+  <section class="top-section pt-2 {% if welcome %}d-none{% endif %}">
+    <div class="weekly-card-container card mb-0 wott-box-shadow">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="title-left-box">Weekly Recommended Actions</h3>
+        <div class="weekly-progress">
+          <div class="graphic-title">Weekly Progress</div>
+          <div id="week-progress-100">  
+            <span id="week-progress-var" style="width: {{ weekly_progress }}%">
+              <p class="mb-0" id="week-progres-text" >{{ weekly_progress }}</p>
+            </span>
+          </div>
+        </div>
+      </div>
+      <ul class="weekly-card-body">
+      {% for action in actions %}
+        <li class="d-flex justify-content-between">
+          <div class="d-flex flex-column">
+            <div class="round">
+              <input type="checkbox"
+                     id="weekly-ra-{{forloop.counter}}"
+                     {% if action.resolved %}checked{% endif %}
+                     disabled style="pointer-events: none"/>
+              <label for="weekly-ra-{{forloop.counter}}" style="pointer-events: none"></label>
+            </div>
+            <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">{{ action.title }}</h3>
+            <h3 class="list-subtitle mb-0">{{ action.subtitle }}</h3>
+          </div>
+        {% with action.severity.value as action_severity %}
+          <div class="rect-badge-{{ action_severity.0|lower }}">{{ action_severity.0|upper }}</div>
+        {% endwith %}
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
+    <section class="right-graphic-container">
+      <div class="graph-title">Your Trust Score</div>
+      <div class="graph-half-moon">
+  
+        <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
+          <defs>
+            <lineargradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:rgb(0,135,243);stop-opacity:1" />
+              <stop offset="100%" style="stop-color:rgb(6,210,233);stop-opacity:1" />
+            </lineargradient>
+            <lineargradient id="grad3" x1="50%" y1="50%" x2="50%" y2="50%">
+              <stop offset="0%" style="stop-color:rgb(0,135,243);stop-opacity:1" />
+              <stop offset="100%" style="stop-color:white;stop-opacity:1" />
+            </lineargradient>
+          </defs>
+          <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+          <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
+          
+          <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad2)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="4.5"></circle>
+          <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="3"></circle>
+          
+          <g class="chart-text">
+            <text id="cve-priority" x="50%" y="50%" class="chart-number">
+              {{ trust_score.current }}
+            </text>
+            <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
+              of 100 <!--HARDCODE-->
+            </text>
+            <text x="50%" y="50%" class="chart-label2">
+            </text>
+            <text x="50%" y="50%" class="chart-label3">
+              good <!--HARCODE-->
+            </text>
+          </g>
+        </svg>
+  
+      </div>
+      <div class="graph-footer">
+        <i class="fas fa-sort-{{ trust_score.arrow }}"></i>
+        <span> {{ trust_score.arrow|upper }}</span>
+        {{ trust_score.delta }}
+        OVER THE LAST WEEK
+      </div>
+    </section>
+  </section>
+</div>
+{% endblock admin_content %}
+
+{% block scripts %}
+{{ block.super }}
+
+{% endblock scripts %}

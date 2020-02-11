@@ -1,92 +1,257 @@
 {% extends "admin_base.html" %}
-
 {% block title %}WoTT - CVE list{% endblock title %}
 
 {% block dashboard_title %}
-  <h1 style="margin-bottom: 0">CVE list{% if device_name %} for {{ device_name }}{% endif %}</h1>
+  <h1 style="margin-bottom: 0">Vulnerabilities{% if device_name %} for {{ device_name }}{% endif %}</h1>
 {% endblock dashboard_title %}
+
+{% load static %}
 
 {% block admin_content %}
   <!-- cve.html -->
-  <div class="container-fluid p-0">
-    <div class="card">
-      <div class="card-body">
-        <table class="table table-striped table-responsive-xs" >
-          <thead>
-            <th>CVE</th>
-            <th>Date</th>
-            <th>Severity</th>
-            <th>Packages Affected</th>
-            {% if not device_name %}
-            <th>Nodes Affected</th>
+  <div class="cve-tab">
+    <div class="overlay"></div>
+
+    <section class="top-section background-blue">
+
+      <div class="left-container wott-rounded-lg wott-box-shadow">
+        <div class="inner-left-box">
+          <h3 class="title-left-box">Vulnerabilities Overview</h3>
+          <div class="cards-container">
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="title-mini-card High font-strong">HIGH</span>
+              <h1>{{ cve.high.count }}</h1>
+            {% if cve.high.delta %}
+              <p class="legend-mini-card wott-list-blue">{{ cve.high.delta }} LAST WEEK</p>
             {% endif %}
-            <th>Solve</th>
-          </thead>
-          <tbody>
-          {% for row in table_rows %}
-          <tr>
-            <td>
-              <a href="{{ row.cve_link.href }}">{{ row.cve_link.text }}</a>
-            </td>
-            <td>{{ row.cve_date|date:"Y-m-d"|default:"N/A" }}</td>
-            <td>{{ row.severity }}</td>
-            <td>
-              {% for p in row.packages %}
-                {{ p.name }}
-                <br>
-              {% endfor %}
-            </td>
-            {% if not device_name %}
-            <td>
-              {% for p in row.packages %}
-                <a href="#" class="wott-popover">
-                  {{ p.device_urls|length }}
-                  <template>
-                    {% for du in p.device_urls %}
-                      <a href="{{ du.href }}">{{  du.text }}</a><br>
-                    {% endfor %}
-                  </template>
-                </a>
-                <br>
-              {% endfor %}
-            </td>
+            </div>
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="title-mini-card Medium font-strong">MEDIUM</span>
+              <h1>{{ cve.medium.count }}</h1>
+            {% if cve.medium.delta %}
+              <p class="legend-mini-card wott-list-blue">{{ cve.medium.delta }} LAST WEEK</p>
             {% endif %}
-            <td>
-              {% for p in row.packages %}
-                <a href="#" class="wott-popover">
-                  Instructions
-                  <template>
-                    Run the following command:
-                    <pre>{{ p.upgrade_command }}</pre>
-                  </template>
-                </a>
-                <br>
-              {% endfor %}
-            </td>
-          </tr>
-          {% endfor %}
-          </tbody>
-        </table>
+            </div>
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="title-mini-card Low font-strong">LOW</span>
+              <h1>{{ cve.low.count }}</h1>
+            {% if cve.low.delta %}
+              <p class="legend-mini-card wott-list-blue">{{ cve.low.delta }} LAST WEEK</p>
+            {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="inner-right-box wott-rounded-lg">
+          <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
+          {% if cve.circle %}
+            <circle id="high-circle-segment" class="donut-segment" cx="21" cy="21" r={{ radius }} fill="transparent"
+                    stroke={{ high_color }} stroke-width="3" stroke-dasharray="{{ cve.circle.high.0 }} {{ cve.circle.high.1 }}" stroke-dashoffset="{{ cve.circle.high.2 }}"></circle>
+            <circle id="medium-circle-segment" class="donut-segment" cx="21" cy="21" r={{ radius }} fill="transparent"
+                    stroke={{ med_color }} stroke-width="3" stroke-dasharray="{{ cve.circle.medium.0 }} {{ cve.circle.medium.1 }}" stroke-dashoffset="{{ cve.circle.medium.2 }}"></circle>
+            <circle id="low-circle-segment" class="donut-segment" cx="21" cy="21" r={{ radius }} fill="transparent"
+                    stroke={{ low_color }} stroke-width="3" stroke-dasharray="{{ cve.circle.low.0 }} {{ cve.circle.low.1 }}" stroke-dashoffset="{{ cve.circle.low.2 }}"></circle>
+            <circle class="donut-hole" cx="21" cy="21" r={{ radius }} fill="transparent"></circle>
+          {% else %}
+            <circle class="donut-ring" cx="21" cy="21" r={{ radius }} fill="transparent" stroke="#d2d3d4" stroke-width="3"></circle>
+          {% endif %}
+            <g class="circle-text">
+              <text id="cve-priority" x="50%" y="50%" class="circle-number">
+              </text>
+              <text id="severity-inner-text" x="50%" y="50%" class="circle-label">
+              </text>
+              <text x="50%" y="50%" class="circle-label2">
+                priority
+              </text>
+              <text x="50%" y="50%" class="circle-label3">
+                cve
+              </text>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <!-- The container below will be used in further layout improvements -->
+      <!-- <div class="right-container"></div> -->
+
+    </section>
+
+
+    <section class="my-4">
+          <table class="container-fluid wott-rounded-lg wott-box-shadow" >
+            <div class="table-header">
+              <thead>
+                <tr class="row">
+                  <th class="col-2 wott-blue pl-5 pr-0">CVE NAME</th>
+                  <th class="col-2 px-0 text-center">DATE</th>
+                  <th class="col-1 px-0">SEVERITY</th>
+                  <th class="col-4 pl-3 pr-0">PACKAGE AFFECTED</th>
+                  {% if not device_name %}
+                  <th class="col-sm-auto text-center px-0">NODES AFFECTED</th>
+                  {% endif %}
+                  <th id="solve-header" class="col-sm-auto">SOLVE</th>
+                </tr>
+              </thead>
+            </div>
+            <tbody>
+            {% for row in table_rows %}
+            <tr class="row border-table">
+              <td class="col-2 pl-3 pr-0 d-flex align-items-center medium-text font-weight-bold">
+                <span class="pr-3 bullet-lg {{ row.severity }} pb-1">&#8226</span>
+                <a href="{{ row.cve_link.href }}">{{ row.cve_link.text }}</a>
+              </td>
+              <td class="col-2 d-flex align-items-center justify-content-center px-0 medium-text">{{ row.cve_date|date:"Y-m-d"|default:"N/A" }}</td>
+              <td class="col-1 d-flex align-items-center font-strong {{ row.severity }} medium-text px-0">{{ row.severity }}</td>
+              <td class="col-4 d-flex align-items-center pl-3 pr-0 small-text">
+                {% for p in row.packages %}
+                 {{ p.name }}
+                  <br>
+                {% endfor %}
+              </td>
+              {% if not device_name %}
+              <td class="col-1 text-center small-text">
+                {% for p in row.packages %}
+                  <a href="#" id="device-url" class="wott-popover">
+                    {{ p.devices_count }}
+                    <template title="Nodes Affected" data-type="nodes">
+                      {% for du in p.devices %}
+                        <a class="wott-node-list wott-list-blue" href="{{ du.href }}">&#8226 {{  du.text }}</a>
+                      {% endfor %}
+                    </template>
+                  </a>
+                  <br>
+                {% endfor %}
+              </td>
+              {% endif %}
+              <td id="solve-cel" class="col-2 small-text">
+                {% for p in row.packages %}
+                  <a href="#" class="wott-popover">
+                    Instructions
+                    <template title="Instructions" data-type="instructions"> 
+                      <div class="instructions-box mb-4">
+                        <div class="instructions-header">
+                          <h5>Terminal</h5>
+                        </div>
+                        <div class="instructions-body">
+                          <div class="instructions-text">
+                            <div class="instructions-instructions">
+                              <p>{{ p.upgrade_command }}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>      
+                    </template>
+                  </a>
+                  <br>
+                {% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+    </section>
+
+    <div class="popover-box"> <!--use wott-scroll-y for nodelist and wott-scroll-x for instructions-->
+      <div class="wott-popover-header">
+        <div class="wott-popover-header-box">
+          <h1 class="mb-0" id="wott-popover-title">TEXT GO HERE</h1>
+          <span id="close-popover-buttton"><img src="{% static '/media/close.svg' %}" alt="close"></span>
+        </div>
+        <hr class="popover-title-line">
+      </div>
+      <div class="wott-popover-body"><!--nodeList include w-100 | instructions include w-auto-->
       </div>
     </div>
+
   </div>
+
 {% endblock admin_content %}
 
 {% block scripts %}
 {{ block.super }}
 
   <script>
-  $(function () {
-    $('[data-toggle="popover"]').popover()
+  /*
+   *** Modal interaction
+   */
+
+  let modalShown = null;
+
+  $('.wott-popover').click((e) => {
+    e.preventDefault(); // prevent scrolling to the top (because <a href="#">)
+    e.stopPropagation(); // prevent $body.click handler - it will catch "outside click"
+    modalShown = $('.popover-box')[0];
+    //s = 'sudo apt-get ipsun cors socket asdasdaasdasdasdasdasdasdassjnvjkdbfwekfjclsa;kflaksdmf;lskdfmlasdkfjasfdnskjfansdj';
+    let template = $(e.target).children('template');
+    let is_nodes = template.attr('data-type') == 'nodes';
+    modal(true, template.attr('title'), template.html(), !is_nodes, is_nodes, is_nodes);
   });
 
-  $('.wott-popover').popover({
-    html: true,
-    trigger: 'click',
-    title: 'Details',
-    content: function() {
-        return $(this).children('template').html();
+  $('body').click((e) => {
+    if(e.target == modalShown || $(e.target).parents('.popover-box').length) {
+      // clicked on popover link or inside popover
+      return;
     }
-  })
+    if(modalShown) {
+      // clicked anywhere outside the popover while it's shown -> hide it
+      modal(false);
+      modalShown = null;
+    }
+  });
+
+  $('#close-popover-buttton').click(() => {
+      modal(false);
+      modalShown = null;
+  });
+
+  function modal(show, title, html, box_scroll_x, box_scroll_y, body_w100) {
+      $('.overlay').css({display: show? 'block': 'none'});
+      $('.popover-box').css({
+          visibility: (show? 'visible': 'hidden'),
+          pointerEvents: (show? 'all': 'none'),
+          zIndex: (show? 999: 0)
+      });
+      if(!show)
+          return;
+      $('.popover-box').toggleClass('wott-scroll-x', box_scroll_x).toggleClass('wott-scroll-y', box_scroll_y);
+      $('.wott-popover-body').html(html).toggleClass('w-100', body_w100).toggleClass('w-auto', !body_w100);
+      $('#wott-popover-title').text(title);
+  }
+
+  /*
+   *** Colored circle interaction
+   */
+
+  let selectedSector = null;
+  const sectorValues = {
+      high: {{ cve.high.count }},
+      medium: {{ cve.medium.count }},
+      low: {{ cve.low.count }}
+  };
+  function selectSector(sector, text) {
+    const colors = {
+      high: '#EF2F20',
+      medium: '#EF8F20',
+      low: '#23BED6'
+    };
+    if(selectedSector)
+        $(`#${selectedSector}-circle-segment`).css({strokeWidth: 3});
+    $(`#${sector}-circle-segment`).css({strokeWidth: 4});
+    $('#cve-priority').css({fill: colors[sector]}).text(text);
+    $('#severity-inner-text').text(sector);
+    selectedSector = sector;
+  }
+  $('.donut-segment').hover((e) => {
+    const sectors = {
+      'high-circle-segment': 'high',
+      'medium-circle-segment': 'medium',
+      'low-circle-segment': 'low',
+    };
+    let sector = sectors[e.target.id];
+    if(sector) {
+        selectSector(sector, sectorValues[sector]);
+    }
+  });
+
+  selectSector('high', sectorValues.high);
+
   </script>
 {% endblock scripts %}
