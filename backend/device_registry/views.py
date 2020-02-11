@@ -574,7 +574,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                     actions.append(a)
         else:  # User has no devices - display the special action.
             device_name = None
-            actions = [EnrollAction.action(self.request.user, [])]
+            actions = [EnrollAction.get_user_context(self.request.user)]
 
         # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
         # and has not set up integration with any Github repo. Only shown on common actions page.

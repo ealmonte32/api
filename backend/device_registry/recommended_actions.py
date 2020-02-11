@@ -219,7 +219,6 @@ class BaseAction:
         :return:
         """
         context = cls.get_context(devices=devices, device_pk=device_pk)
-        context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
         return cls._create_action(user.profile, context, [d for d in devices])
 
     @classmethod
@@ -592,3 +591,9 @@ class GithubAction(BaseAction, metaclass=ActionMeta):
 class EnrollAction(BaseAction, metaclass=ActionMeta):
     action_id = -2
     severity = Severity.LO
+
+    @classmethod
+    def get_user_context(cls, user):
+        context = {'key': user.profile.pairing_key.key}
+
+        return EnrollAction._create_action(user.profile, context, [])

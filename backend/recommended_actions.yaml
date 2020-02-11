@@ -341,5 +341,5 @@
 
     [Supported Operating Systems](https://github.com/WoTTsecurity/agent#supported-operating-systems\)
   terminal_code: |
-    $ export CLAIM_TOKEN="x"
+    $ export CLAIM_TOKEN="{key}"
     $ curl -sL https://install.wott.io | sudo -E bash

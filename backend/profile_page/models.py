@@ -13,7 +13,7 @@ from dateutil.relativedelta import relativedelta, MO, SU
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability
+from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability, PairingKey
 from device_registry.celery_tasks import github
 from device_registry.recommended_actions import ActionMeta
 
@@ -173,3 +173,13 @@ class Profile(models.Model):
             return cve_history['cve_high'], cve_history['cve_med'], cve_history['cve_lo']
         else:
             return 0, 0, 0
+
+    @property
+    def pairing_key(self):
+        default_comment = "Key used for the 'Add node' functionality"
+        pairing_key = PairingKey.objects.filter(owner=self.user, comment=default_comment)
+        if not pairing_key.exists():
+            pairing_key = PairingKey.objects.create(owner=self.user, comment=default_comment)
+        else:
+            pairing_key = pairing_key[0]
+        return pairing_key
