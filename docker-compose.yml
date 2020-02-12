@@ -24,7 +24,6 @@ services:
     depends_on:
       - python-base
       - psql
-      - wott-static
 
   dash-dev:
     hostname: dash-dev0
