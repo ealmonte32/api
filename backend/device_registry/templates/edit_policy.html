@@ -34,6 +34,18 @@
       </div>
     </div>
   </div>
+  <style>
+  .jconfirm.jconfirm-light .jconfirm-box {
+    border-radius: 8px;
+    padding: 1.5rem 2rem .25rem; 
+    width: 400px;
+  }
+
+  .jconfirm-box button {
+    text-transform: capitalize !important;
+  }
+  
+  </style>
 {% endblock admin_content %}
 
 {% block scripts %}
@@ -69,14 +81,14 @@
                           content: 'This policy applied to <b>' + data.devices_nr + '</b> devices.<br>Are you sure you want to delete it?',
                           icon: 'fa fa-question-circle',
                           buttons: {
+                              cancel: {
+                                  btnClass: 'btn-wott-tertiary'
+                              },
                               delete: {
-                                  btnClass: 'btn-danger',
+                                  btnClass: 'wott-btn-danger',
                                   action: function () {
                                       deletePolicy('{% url "delete_global_policy" object.pk %}');
                                   }
-                              },
-                              cancel: {
-                                  btnClass: 'btn-secondary'
                               }
                           }
                       });
@@ -97,14 +109,14 @@
                           content: 'This policy applied to <b>' + data.devices_nr + '</b> devices.<br>Are you sure you want to modify it?',
                           icon: 'fa fa-question-circle',
                           buttons: {
+                              cancel: {
+                                  btnClass: 'btn-wott-tertiary'
+                              },
                               modify: {
-                                  btnClass: 'btn-danger',
+                                  btnClass: 'wott-btn-danger',
                                   action: function () {
                                       $('#edit-policy-form').submit();
                                   }
-                              },
-                              cancel: {
-                                  btnClass: 'btn-secondary'
                               }
                           }
                       });
