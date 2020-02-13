@@ -216,7 +216,7 @@
   short: |
     It appears that you have enabled protocol 1 for OpenSSH. This protocol is outdated and insecure, consider exclusively using protocol 2.
   long: |
-    SSH (Secure Shell) is a method to remote lnogin to a server. SSH is usually secure, however if used with the default settings, can be vulnerable to attacks from unwanted parties. By default, the SSH config file is preset with some values allowing for new developers to get used to setting up SSH servers. However, this often exposes vulnerabilities by not being restrictive enough.
+    SSH (Secure Shell) is a method to remote login to a server. SSH is usually secure, however if used with the default settings, can be vulnerable to attacks from unwanted parties. By default, the SSH config file is preset with some values allowing for new developers to get used to setting up SSH servers. However, this often exposes vulnerabilities by not being restrictive enough.
 
     We've detected that the option to use protocol 1 in `Protocol` is enabled. Protocol 1 is insecure compared to protocol 2 as it is vulnerable to insertion attacks and is weak cryptographically. By default OpenSSH will opt to use protocol 2 and in failing that, protocol 1. However, the option to use protocol 1 at all is still unsafe. We suggest that you remove the secondary preference for protocol 1 and disable it as an option at all.
 
