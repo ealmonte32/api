@@ -11,6 +11,7 @@
     Alternatively, implement more rules to your permissive policy (although this is still not recommended). Both ingress and egress traffic can be configured to go through different firewall policies. Make sure to check both for security weaknesses.
 
     You can configure your firewall directly using the WoTT Dashboard either on a per-node basis (available under the Security tab) or using a group policy.
+
 - title: Default credentials detected
   id: 1
   subtitle: consider changing your credentials
@@ -26,6 +27,7 @@
 #  terminal_code: |
 #    $ code one
 #    # code too
+
 - title: An FTP service has been detected
   id: 7
   subtitle: consider disabling FTP and switching to a new service
@@ -60,6 +62,7 @@
     To uninstall your FTP server, run the following command:
   terminal_code: |
     $ sudo apt-get purge ${{FTP-PACKAGE}}
+
 - title: Insecure service found ({service})
   subtitle: uninstall service
   id: 1000
@@ -72,6 +75,7 @@
     To uninstall the insecure service, run:
   terminal_code: |
     $ sudo apt-get purge {service}
+
 - title: Agent forwarding enabled for OpenSSH
   id: 2004
   subtitle: consider disabling this
@@ -89,6 +93,21 @@
     ```
 
     For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    Find your sshd_config file
+    $ find /etc -iname sshd_config
+
+    Open the file above in your favorite editor
+    $ sudo vim /path/to/sshd_config
+
+    Find the line that says 'AllowAgentForwarding', and change it into 'AllowAgentForwarding no'.
+    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
+
+    Once you've added the line, make sure to restart SSH by running
+    $ sudo service ssh restart
+
 - title: Password authentication enabled for OpenSSH
   id: 2003
   subtitle: consider disabling this
@@ -112,6 +131,21 @@
     Once you've updated the configuration, make sure to restart the SSH server using `sudo service ssh restart`.
 
     For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    Find your sshd_config file
+    $ find /etc -iname sshd_config
+
+    Open the file above in your favorite editor
+    $ sudo vim /path/to/sshd_config
+
+    Find the line that says 'PasswordAuthentication', and change it into 'PasswordAuthentication no'.
+    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
+
+    Once you've added the line, make sure to restart SSH by running
+    $ sudo service ssh restart
+
 - title: Root login enabled for OpenSSH
   id: 2002
   subtitle: consider disabling this
@@ -129,6 +163,21 @@
     Once you've updated the configuration, make sure to restart the SSH server using `sudo service ssh restart`.
 
     For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    Find your sshd_config file
+    $ find /etc -iname sshd_config
+
+    Open the file above in your favorite editor
+    $ sudo vim /path/to/sshd_config
+
+    Find the line that says 'PermitRootLogin', and change it into 'PermitRootLogin no'.
+    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
+
+    Once you've added the line, make sure to restart SSH by running
+    $ sudo service ssh restart
+
 - title: Empty passwords permitted for OpenSSH
   id: 2001
   subtitle: consider disabling this
@@ -146,13 +195,28 @@
     ```
 
     For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    Find your sshd_config file
+    $ find /etc -iname sshd_config
+
+    Open the file above in your favorite editor
+    $ sudo vim /path/to/sshd_config
+
+    Find the line that says 'PermitEmptyPasswords', and change it into 'PermitEmptyPasswords no'.
+    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
+
+    Once you've added the line, make sure to restart SSH by running
+    $ sudo service ssh restart
+
 - title: Insecure protocol option enabled for OpenSSH
   id: 2005
   subtitle: consider disabling this
   short: |
     It appears that you have enabled protocol 1 for OpenSSH. This protocol is outdated and insecure, consider exclusively using protocol 2.
   long: |
-    SSH (Secure Shell) is a method to remote login to a server. SSH is usually secure, however if used with the default settings, can be vulnerable to attacks from unwanted parties. By default, the SSH config file is preset with some values allowing for new developers to get used to setting up SSH servers. However, this often exposes vulnerabilities by not being restrictive enough.
+    SSH (Secure Shell) is a method to remote lnogin to a server. SSH is usually secure, however if used with the default settings, can be vulnerable to attacks from unwanted parties. By default, the SSH config file is preset with some values allowing for new developers to get used to setting up SSH servers. However, this often exposes vulnerabilities by not being restrictive enough.
 
     We've detected that the option to use protocol 1 in `Protocol` is enabled. Protocol 1 is insecure compared to protocol 2 as it is vulnerable to insertion attacks and is weak cryptographically. By default OpenSSH will opt to use protocol 2 and in failing that, protocol 1. However, the option to use protocol 1 at all is still unsafe. We suggest that you remove the secondary preference for protocol 1 and disable it as an option at all.
 
@@ -163,6 +227,21 @@
     ```
 
     For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    Find your sshd_config file
+    $ find /etc -iname sshd_config
+
+    Open the file above in your favorite editor
+    $ sudo vim /path/to/sshd_config
+
+    Find the line that says 'Protocol', and change it into 'Protocol 2'.
+    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
+
+    Once you've added the line, make sure to restart SSH by running
+    $ sudo service ssh restart
+
 - title: Automatic security updates not enabled
   id: 6
   subtitle: enable automatic security updates
@@ -193,6 +272,15 @@
     APT::Periodic::Unattended-Upgrade "x";
     ```
     We recommend setting most of these to `1` to get daily updates. `AutocleanInterval` can be done weekly, so set to `7`.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    Install the 'unattended-upgrades' package by running
+    $ sudo apt-get install unattended-upgrades
+
+    The defaults should be sufficient for most use cases, but if you want to tweak the settings, you can either use the instructions in the detailed view above, or use the TUI tool (which provides fewer options)
+    $ sudo dpkg-reconfigure unattended-upgrades
+
 - title: Remote access on MongoDB detected
   id: 3001
   subtitle: consider disabling remote access
@@ -200,6 +288,7 @@
     We detected that a MongoDB instance may be accessible remotely. This may allow a remote attacker to gain access to your database and leak customer data. According to [Shodan](\https://www.shodan.io/\), there are over 70,000 publicly exposed MongoDB servers. Don't be one of them. Consider either blocking port 27017 through the WoTT firewall management tool, or reconfigure MongoDB to only listen on localhost.
   long: |
     MongoDB is a widely used NoSQL database. Unfortunately, the default configuration in MongoDB until relatively recently was to bind on all public interfaces (rather than just localhost). Because of this, many MongoDB servers were made publicly accessible. To make matters worse, by default, MongoDB does not require any authentication, meaning that the potential attacker only needed to know the public IP of the server in order to connect and access your customer data.
+
 
     We recommend that you either reconfigure your MongoDB instance to only listen on localhost (assuming the appserver talking to MongoDB runs on the same server), or creating a firewall policy to only allow connections from your appservers to port 27017 on your node. You can do the latter using WoTT's firewall management tool. You can read more about MongoDB's ports [here](https://docs.mongodb.com/manual/reference/default-mongodb-port/\).
 
@@ -220,13 +309,27 @@
 
     In most configurations, remote access is usually disabled. However, depending on the configuration and environment, it may be necessary to allow network access to your MySQL access (such as if you have other servers on the network talking to the server). In such instances, it is recommended that you configure a locked down firewall policy that only allows access from these servers. Failure to do so, may expose your MySQL server to the rogue actors on the internet, which may cause leakage of customer data.
 
-    WoTT's firewall management tool has a feature that allows you to block the port 3306, which is the port used by MySQL for remote access. If no network access is needed, we recommend that you can reconfigure the MySQL configuration file to only listen on localhost. To do so, find your config file usually located at `/etc/mysql/my.cnf` and add or edit the following line:
+    WoTT's firewall management tool has a feature that allows you to block the port 3306, which is the port used by MySQL for remote access. If no network access is needed, we recommend that you can reconfigure the MySQL configuration file to only listen on localhost. To do so, find your configuration file usually located at `/etc/mysql/my.cnf` (but varies between distributions) and add or edit the following line:
 
     ```
     bind-address=127.0.0.1
     ```
 
     Please remember to restart your MySQL instance as this will not take effect until you do so.
+
+  terminal_title: |
+    To update the disable remote/network access on your MySQL/MariaDB instance, take the following steps
+  terminal_code: |
+    Find your file MySQL/MariDB configuration file
+    $ sudo find /etc -type f -name my.cnf -o -name mysqld.cnf -o -name 50-server.cnf
+
+    Once located, open the file in your favorite editor
+    $ sudo vim /path/from/command/above
+
+    Once inside the file, locate line 'bind-address' and set it to 'bind-address=127.0.0.1'.
+    With that done, restart the server
+    $ sudo service mysql restart
+
 - title: No root password set for MySQL/MariaDB server
   id: 10
   subtitle: NO SUBTITLE
@@ -237,11 +340,12 @@
 
     We highly recommend you set a root password as soon as possible. However, for applications, it is important to have separate, application specific credentials with locked down permission to the given database to reduce the blast radios in case the the credentials get leaked.
 
-    **Pro tip**: If you are using `mysqladmin` and pass on the password from the command line, make sure to add a space before the command to avoid it being stored in your shell's history.
+    **Pro-tip**: If you are using `mysqladmin` and pass on the password from the command line, make sure to add a space before the command to avoid it being stored in your shell's history.
   terminal_title: |
     To update the root password, use the following command. Please note that on Ubuntu, you may need to use `sudo` to run the command below.
   terminal_code: |
     $ mysqladmin -u root password NEWPASSWORD
+
 - title: Your Memcached instance may be publicly accessible
   id: 3003
   subtitle: reconfigure Memcached
@@ -252,20 +356,20 @@
 
     We also recommend that you disable UDP (and just use TCP) in Memcached as in early in 2018, an exploit in Memcached's UDP communication was discovered. Using this exploit, an attacker was able to use a publicly exposed Memcached server to relay a payload and attack a 3rd party server/service, leading to large scale attacks across the internet.
 
-    To make these changes, edit your Mamcached's config file (often `/etc/sysconfig/memcached`) and make sure to have the following under your 'OPTIONS' section:
+  terminal_title: |
+    To reconfigure Memcached, run take the following steps
+  terminal_code: |
+    Find your memcached configuration file
+    $ find /etc -iname memcached.conf
 
-    ```
-    OPTIONS="-l 127.0.0.1 -U 0"
-    ```
+    Edit the file using your favorite editor
+    $ sudo vim /path/to/memcached.conf
 
-    * The '-l 127.0.0.1' means that Memcached will only listen on the loopback interface (i.e. only accessible from within the server)
-    * '-U 0' disables UDP traffic
+    You now need to add (or modify) two lines. Edit (or add) a line for '-l 127.0.0.1' and another one for '-U 0'.
 
-    When done, restart the server by running:
-
-    ```
+    When you're done, restart memcached by running
     $ sudo service memcached restart
-    ```
+
 - title: System contains Meltdown and/or Spectre vulnerabilities
   id: 12
   subtitle: update your system
@@ -282,6 +386,7 @@
   terminal_code: |
     $ sudo apt-get update
     $ sudo apt-get upgrade
+
 - title: A Redis instance may be publicly accessible
   id: 3004
   subtitle: NO SUBTITLE
@@ -294,32 +399,31 @@
 
     If you don't need your Redis installation to be accessible over the network, we recommend that you re-configure Redis to only bind on the loopback/localhost interface to avoid this. If on the other hand you do need your Redis instance to be accessible over the network, we recommend that you create a firewall policy that only allows a select number of servers to talk to the Redis instance, while also setting a Redis password.
 
-    To reconfigure Redis to only listen on localhost, edit the Redis config file (usually `/etc/redis/redis.conf`) and change the bind option to the following:
-
-    ```
-    bind 127.0.0.1
-    ```
-
-    We would also recommend that you enabling password protection as well. You can do this by adding the following line to your configuration file:
-
-    ```
-    requirepass yourPasswordHere
-    ```
-
-    Please note that you need to restart Redis in order for the changes to apply. You can do that by running:
-
-    ```
-    $ sudo service redis restart
-    ```
-
     If you need network access to Redis, you can create a firewall policy using the WoTT Dashboard. By default, Redis uses port 6379/tcp.
+  terminal_title: |
+    To reconfigure Redis, take the following steps
+  terminal_code: |
+    Find the Redis configuration file
+    $ find /etc -iname redis.conf
+
+    Open the configuration file using your favorite editor
+    $ vim /path/to/redis.conf
+
+    Locate the line 'bind' and change it to 'bind 127.0.0.1'. Do note that lines starting with '#' will be ignored.
+
+    You may also want to add the line 'requirepass SuperSecretPassword' to add authentication to your Redis server. Please note that you also need to configure this in your clients. Otherwise they will be unable to connect.
+
+    When you're done, restart Redis by running
+    $ sudo service redis restart
+
+
 - title: Vulnerable packages found
   id: 3
   subtitle: update or remove packages
   short: |
     Vulnerable packages have been found. These packages may be exploitable by an attacker to gain access to, or escalate permissions, on your servers. Make sure packages are up to date. You can learn more about the exact packages under the [Vulnerabilities tab](/cve).
   long: |
-    Packages are a key part of most Linux based operating systems software. Typically when installing additional software onto Linux systems, it comes in pre-compiled packages. Depending on your Linux distribution, the package manager will differ (e.g. Debian/Ubuntu users `.deb` packages whereas RedHat/Fedora/Amazon uses '.rpm. packages).
+    Packages are a key part of most Linux based operating systems software. Typically when installing additional software onto Linux systems, it comes in pre-compiled packages. Depending on your Linux distribution, the package manager will differ (e.g. Debian/Ubuntu users `.deb` packages whereas RedHat/Fedora/Amazon uses '.rpm'. packages).
 
     Over time, if not updated, these packages often become vulnerable to security risks leaving them open to exploitation from external attackers. These operating system packages can then be used by an attacker to gain access to your server, or to escalate permission them.
 
@@ -333,6 +437,7 @@
   terminal_code: |
     $ sudo apt-get update
     $ sudo apt-get upgrade
+
 - title: Enable our GitHub integration for improved workflow
   id: -1
   subtitle: Streamline the remediation process and assign issues to team members.
@@ -342,6 +447,7 @@
     To get started with WoTT's GitHub integration, click the menu in the upper right-hand side of your screen and select 'GitHub Integration' and follow the steps.
 
     Your Recommended Actions will then automatically be turned into GitHub Issues as they appear. Moreover, we will also automatically update said GitHub issues as the Recommended Actions are being updated. For instance, if the Recommended Action has been resolved, the GitHub Issue will automatically get closed.
+
 - title: Install the agent on your node(s) to get started
   id: -2
   subtitle: Without any nodes, we can't provide you with any insights.
