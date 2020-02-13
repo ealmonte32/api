@@ -88,7 +88,7 @@
     AllowAgentForwarding no
     ```
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security)
+    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
 - title: Password authentication enabled for OpenSSH
   id: 2003
   subtitle: consider disabling this
@@ -111,7 +111,7 @@
 
     Once you've updated the configuration, make sure to restart the SSH server using `sudo service ssh restart`.
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security)
+    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
 - title: Root login enabled for OpenSSH
   id: 2002
   subtitle: consider disabling this
@@ -128,7 +128,7 @@
 
     Once you've updated the configuration, make sure to restart the SSH server using `sudo service ssh restart`.
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security\).
+    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
 - title: Empty passwords permitted for OpenSSH
   id: 2001
   subtitle: consider disabling this
@@ -145,7 +145,7 @@
     PermitEmptyPasswords no
     ```
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security)
+    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
 - title: Insecure protocol option enabled for OpenSSH
   id: 2005
   subtitle: consider disabling this
@@ -162,7 +162,7 @@
     Protocol 2
     ```
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security)
+    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
 - title: Automatic security updates not enabled
   id: 6
   subtitle: enable automatic security updates
