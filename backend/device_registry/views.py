@@ -8,8 +8,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Case, When, Count, Window, Value
-from django.db.models import Q, Sum, Avg, IntegerField, Max
+from django.db.models import Case, When, Count, Window, Value, F, Q, IntegerField, Max
+from django.db.models.functions import Round, Coalesce
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
@@ -37,16 +37,20 @@ class RootView(LoginRequiredMixin, LoginTrackMixin, DeviceListFilterMixin, ListV
         queryset = super().get_queryset()
         common_query = Q(owner=self.request.user, deviceinfo__detected_mirai=True)
         query = self.get_filter_q(set_filter_dict=True)
-        return queryset.filter(common_query & query).distinct()
+        if self.request.GET.get('filter_by') == 'trust-score':
+            return queryset.annotate(trust_score_prcnt=Round(Coalesce(F('trust_score'), 0.0) * 100)).filter(
+                common_query & query).distinct()
+        else:
+            return queryset.filter(common_query & query).distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         avg_trust_score = self.request.user.profile.average_trust_score
         context.update(
             avg_trust_score=avg_trust_score,
-            avg_trust_score_percent=int(avg_trust_score * 100) if avg_trust_score is not None else None,
+            avg_trust_score_percent=round(avg_trust_score * 100) if avg_trust_score is not None else None,
             avg_trust_score_color=get_bootstrap_color(
-                int(avg_trust_score * 100)) if avg_trust_score is not None else None,
+                round(avg_trust_score * 100)) if avg_trust_score is not None else None,
             active_inactive=Device.get_active_inactive(self.request.user),
             column_names=[
                 'Node Name',
@@ -99,14 +103,14 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             context.update(
                 ball_offset=-score * 74 - 38,
                 trust_score={
-                    'current': int(score * 100),
-                    'delta': int(abs(score - last_week_score) * 100),
+                    'current': round(score * 100),
+                    'delta': round(abs(score - last_week_score) * 100),
                     'arrow': 'up' if score - last_week_score >= 0 else 'down',
                 },
             )
         context.update(
             actions=actions,
-            weekly_progress=int(resolved_count * 100 / settings.MAX_WEEKLY_RA)
+            weekly_progress=round(resolved_count * 100 / settings.MAX_WEEKLY_RA)
         )
         return context
 

@@ -12,10 +12,11 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models.query import QuerySet
 from django.urls import reverse
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, F
+from django.db.models.query import QuerySet
+from django.db.models.functions import Round, Coalesce
 
 from google.cloud import datastore
 from rest_framework import status
@@ -843,7 +844,7 @@ class DeviceListFilterMixin:
             'datetime'
         ),
         'trust-score': (
-            'trust_score',
+            'trust_score_prcnt',
             'Trust Score',
             'float'
         ),
@@ -881,7 +882,7 @@ class DeviceListFilterMixin:
         }
     }
 
-    def get_filter_q(self, set_filter_dict=False, *args, **kwargs):
+    def get_filter_q(self, set_filter_dict=False):
         """
         Create Device List Filter Query Object
         GET params:
@@ -908,6 +909,7 @@ class DeviceListFilterMixin:
 
             query_by, _, query_type = self.FILTER_FIELDS[filter_by]
             invert = filter_predicate[0] == 'n'
+            orig_filter_predicate = filter_predicate  # Keep original value for restoring filter in the UI.
             if invert:
                 filter_predicate = filter_predicate[1:]
             if filter_predicate not in ['', 'eq', 'c', 'lt', 'gt']:
@@ -919,7 +921,7 @@ class DeviceListFilterMixin:
             if set_filter_dict:
                 self.filter_dict = {
                     'by': filter_by,
-                    'predicate': filter_predicate,
+                    'predicate': orig_filter_predicate,
                     'value': filter_value,
                     'type': query_type
                 }
@@ -1007,8 +1009,12 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         length = self._get_int_arg('length', -1, -1)  # page length or -1 for all [-1..oo)
         queryset = self.get_queryset(*args, **kwargs)
         self.ajax_info['recordsTotal'] = queryset.count()  # total unfiltered records count
-        query = self.get_filter_q(*args, **kwargs)  # our filters
-        devices = queryset.filter(query).distinct()
+        query = self.get_filter_q()  # our filters
+        if self.request.GET.get('filter_by') == 'trust-score':
+            devices = queryset.annotate(trust_score_prcnt=Round(Coalesce(F('trust_score'), 0.0) * 100)).filter(
+                query).distinct()
+        else:
+            devices = queryset.filter(query).distinct()
         self.ajax_info['recordsFiltered'] = devices.count()  # total filtered records count
         self.ajax_info['timestamp'] = timezone.now()  # timestamp to be used by UI in "since" param to receive new nodes
         if length == -1:  # currently we have only 2 "modes":
