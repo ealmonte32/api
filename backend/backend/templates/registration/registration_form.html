@@ -19,22 +19,23 @@
         <div id="register-head" class="d-flex bg-white">
           <h1 id="register-title">Register</h1>
           <picture class="d-flex align-items-center align-items-end">
-            <img src="{% static '/media/logo.svg' %}" alt=""/>
+            <a href="/"><img src="{% static '/media/logo.svg' %}" alt="Wott Log"/></a>
           </picture> 
         </div>
 
-        <div class="p-0 mb-0">
-          <form id="register-form" method="post" action="">
+        <div class="p-0 mb-0 position-relative">
+          <form id="register-form" class="position-relative" method="post" action="">
             {% csrf_token %}
             
             <div class="input-fields-box d-flex">
               <div class="box-left pb-2">
                 {% include "form_field.html" with field=form.email asterisk=True %}
                 {% include "form_field.html" with field=form.password1 asterisk=True %}
-                {% include "form_field.html" with field=form.password2 %}
+                {% include "form_field.html" with field=form.password2 asterisk=True %}
                 {% include "form_field.html" with field=form.payment_plan %}
+                <h5 id="required-text" class="wott-blue position-absolute">* Required</h5>
               </div>
-
+              
               <div class="box-right pb-2">
                 {% include "form_field.html" with field=form.first_name %}
                 {% include "form_field.html" with field=form.last_name %}
@@ -42,10 +43,10 @@
                 {% include "form_field.html" with field=form.phone %}
               </div>
             </div>
-
-            <div class="form-group box-bottom text-center mb-0 pb-4">
+            
+            <div class="form-group box-bottom text-center mb-0 pt-3 pb-4">
               {% buttons %}
-                <button type="submit" class="wott-btn btn-wott-primary w-25">{% trans 'Get Started' %}</button>
+              <button type="submit" class="wott-btn btn-wott-primary w-25">{% trans 'Get Started' %}</button>
               {% endbuttons %}
             </div>
           </form>
