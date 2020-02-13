@@ -1015,8 +1015,11 @@ class DeviceListAjaxView(ListAPIView, DeviceListFilterMixin):
         queryset = self.get_queryset(*args, **kwargs)
         self.ajax_info['recordsTotal'] = queryset.count()  # total unfiltered records count
         query = self.get_filter_q()  # our filters
-        devices = queryset.annotate(trust_score_prcnt=Round(Coalesce(F('trust_score'), 0.0) * 100)).filter(
-            query).distinct()
+        if self.request.GET.get('filter_by') == 'trust-score':
+            devices = queryset.annotate(trust_score_prcnt=Round(Coalesce(F('trust_score'), 0.0) * 100)).filter(
+                query).distinct()
+        else:
+            devices = queryset.filter(query).distinct()
         self.ajax_info['recordsFiltered'] = devices.count()  # total filtered records count
         self.ajax_info['timestamp'] = timezone.now()  # timestamp to be used by UI in "since" param to receive new nodes
         if length == -1:  # currently we have only 2 "modes":
