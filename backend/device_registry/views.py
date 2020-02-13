@@ -81,7 +81,10 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             ra_unresolved = sorted(ra_unresolved.values_list('action_id', flat=True),
                                    key=lambda v: severities[v].value[2], reverse=True)
             for action_id in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
-                a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
+                affected_devices = Device.objects.filter(owner=self.request.user,
+                    recommendedaction__in=RecommendedAction.objects.filter(
+                    RecommendedAction.get_affected_query(), action_id=action_id)).distinct()
+                a = ActionMeta.get_class(action_id).action(self.request.user, affected_devices, None)
                 actions.append(a._replace(resolved=False))
 
         for action_id in ra_resolved_this_week.values_list('action_id', flat=True)[:settings.MAX_WEEKLY_RA]:
@@ -578,7 +581,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                     actions.append(a)
         else:  # User has no devices - display the special action.
             device_name = None
-            actions = [EnrollAction.action(self.request.user, [])]
+            actions = [EnrollAction.get_user_context(self.request.user)]
 
         # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
         # and has not set up integration with any Github repo. Only shown on common actions page.

@@ -146,7 +146,7 @@
                   <a href="#" class="nav-open-box2">ANSIBLE</a>
                 </div>
                 <div class="open-box-tab">
-                  <p class="terminal-title">{{ action.terminal_title }}</p>
+                  <p class="terminal-title">{{ action.terminal_title_html|safe }}</p>
                   <div class="terminal-box">
                     <div class="terminal-header">
                       <h5>Terminal</h5>
@@ -364,8 +364,12 @@
   <script>
    
     $('.toggle-ra-button').click((e) => {
-      let action_id = $(e.target).attr('wott-action-id'),
-          block = $(`.wott-open-box[wott-action-id=${action_id}]`),
+      let action_id = $(e.target).attr('wott-action-id');
+      toggleRA(action_id);
+    });
+
+    function toggleRA(action_id, scroll=false) {
+      let block = $(`.wott-open-box[wott-action-id=${action_id}]`),
           expanded = block.attr('wott-action-expanded') === 'true';
 
       console.log(action_id);
@@ -373,9 +377,11 @@
       block.toggleClass("d-block", !expanded);
       block.attr('wott-action-expanded', !expanded);
       $(`.toggle-ra-arrow[wott-action-id=${action_id}]`)
-          .toggleClass('fa-caret-down', !expanded)
-          .toggleClass('fa-caret-right', expanded);
-    });
+        .toggleClass('fa-caret-down', !expanded)
+        .toggleClass('fa-caret-right', expanded);
+      if(scroll)
+        $('html,body').animate({scrollTop: $(`.btn-group[wott-action-id=${action_id}]`).offset().top});
+    }
 
     function hover(e) {
       let obj = document.getElementById(`${e.id}`);
@@ -441,7 +447,13 @@
                 // TODO: affected service
             });
           {% endif %}
-        })
+        });
+
+        let anchor = document.location.hash;
+        if(anchor) {
+          let action_id = anchor.slice(1);
+          toggleRA(action_id, true);
+        }
     });
 
   /*

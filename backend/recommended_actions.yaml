@@ -1,6 +1,5 @@
 - title: Permissive firewall policy detected
   id: 2
-  subtitle: change to a more restrictive policy
   short: |
     Permissive firewall policy detected. Permissive firewall policies permit all traffic unless otherwise specified. Note that you can have different firewall policies for incoming (ingress) and outgoing (egress) traffic, so check both. Consider changing your policy to be more restrictive, either by implementing rules to your permissive policy, or setting it to restrictive.
   long: |
@@ -14,7 +13,6 @@
 
 - title: Default credentials detected
   id: 1
-  subtitle: consider changing your credentials
   short: |
     We've detected default or weak credentials, such as ones predetermined at manufacturing, or common credentials; classic examples of this include having 'password' as your password. Change your credentials to something more secure.
   long: |
@@ -30,7 +28,6 @@
 
 - title: An FTP service has been detected
   id: 7
-  subtitle: consider disabling FTP and switching to a new service
   short: |
     We have detected an FTP service. FTP is an insecure method of transferring files, as they are unencrypted and run on
     insecure protocols. Consider switching to a more secure service such as SFTP or FTPS.
@@ -64,7 +61,6 @@
     $ sudo apt-get purge ${{FTP-PACKAGE}}
 
 - title: Insecure service found ({service})
-  subtitle: uninstall service
   id: 1000
   short: |
     We have detected {service} installed. This service may either be outdated or inherently insecure.
@@ -78,7 +74,6 @@
 
 - title: Agent forwarding enabled for OpenSSH
   id: 2004
-  subtitle: consider disabling this
   short: |
     It appears that you have Agent forwarding enabled in your OpenSSH config. If enabled, an attacker who have already compromised the server could use this to steal your SSH keys.
   long: |
@@ -110,7 +105,6 @@
 
 - title: Password authentication enabled for OpenSSH
   id: 2003
-  subtitle: consider disabling this
   short: |
     It appears that you have password authentication enabled in your OpenSSH config which may leave your entire machine vulnerable to brute-force attacks.
   long: |
@@ -148,7 +142,6 @@
 
 - title: Root login enabled for OpenSSH
   id: 2002
-  subtitle: consider disabling this
   short: |
     It appears that you have root login enabled in your OpenSSH config which increases the probability of a the node being compromised from a brute-force attack (in particular if you have not disabled password authentication).
   long: |
@@ -180,7 +173,6 @@
 
 - title: Empty passwords permitted for OpenSSH
   id: 2001
-  subtitle: consider disabling this
   short: |
     It appears that you have empty passwords enabled in your OpenSSH config. If enabled, an attacker may be able to access your system without a password.
   long: |
@@ -212,7 +204,6 @@
 
 - title: Insecure protocol option enabled for OpenSSH
   id: 2005
-  subtitle: consider disabling this
   short: |
     It appears that you have enabled protocol 1 for OpenSSH. This protocol is outdated and insecure, consider exclusively using protocol 2.
   long: |
@@ -244,7 +235,6 @@
 
 - title: Automatic security updates not enabled
   id: 6
-  subtitle: enable automatic security updates
   short: |
     Automatic security updates may not be enabled. By enabling this feature, your node will automatically install security updates as they become available, which reduce the attack surface of your node.
   long: |
@@ -283,7 +273,6 @@
 
 - title: Remote access on MongoDB detected
   id: 3001
-  subtitle: consider disabling remote access
   short: |
     We detected that a MongoDB instance may be accessible remotely. This may allow a remote attacker to gain access to your database and leak customer data. According to [Shodan](\https://www.shodan.io/\), there are over 70,000 publicly exposed MongoDB servers. Don't be one of them. Consider either blocking port 27017 through the WoTT firewall management tool, or reconfigure MongoDB to only listen on localhost.
   long: |
@@ -308,7 +297,6 @@
 
 - title: Remote access on MySQL/MariaDB instance detected
   id: 3002
-  subtitle: consider disabling remote access
   short: |
     We detected that a MySQL/MariaDB instance may be accessible remotely. Consider either blocking port 3306 through the WoTT firewall management tool, or reconfigure MySQL to only listen on localhost to prevent customer data leakage.
   long: |
@@ -339,7 +327,6 @@
 
 - title: No root password set for MySQL/MariaDB server
   id: 10
-  subtitle: NO SUBTITLE
   short: |
     We have detected that you may have set a root password for MySQL/MariaDB. Not having a root password set makes it easy for anyone with access to the server (or the network where the server is hosted) to copy all customer data from the database. It is recommended that you set a password as soon as possible.
   long: |
@@ -355,7 +342,6 @@
 
 - title: Your Memcached instance may be publicly accessible
   id: 3003
-  subtitle: reconfigure Memcached
   short: |
     Your Memcached instance may be accessible remotely. This is likely due to use of a default configuration. According to [Shodan](\https://www.shodan.io/\), there are over 57,000 publicly exposed Memcached servers on the internet. We recommend that you reconfigure this service to avoid leaking customer data.
   long: |
@@ -379,7 +365,6 @@
 
 - title: System contains Meltdown and/or Spectre vulnerabilities
   id: 12
-  subtitle: update your system
   short: |
     Your system appears to be vulnerable to the [Meltdown](https://meltdownattack.com/meltdown.pdf) and [Spectre](https://spectreattack.com/spectre.pdf) attacks. This could compromise your data by allowing unwanted access to sensitive data through bypassing hardware restrictions.
   long: |
@@ -396,7 +381,6 @@
 
 - title: A Redis instance may be publicly accessible
   id: 3004
-  subtitle: NO SUBTITLE
   short: |
     Your Redis instance may be publicly accessible. This could cause accidental customer data leakage. According to [Shodan](\https://www.shodan.io/\), there are over 640,000 publicly exposed Redis servers on the internet. Consider re-configuring your Redis to listen only on the localhost, or add a lock down the access to Redis using a firewall if it needs to be accessible on the network.
   long: |
@@ -426,7 +410,6 @@
 
 - title: Vulnerable packages found
   id: 3
-  subtitle: update or remove packages
   short: |
     Vulnerable packages have been found. These packages may be exploitable by an attacker to gain access to, or escalate permissions, on your servers. Make sure packages are up to date. You can learn more about the exact packages under the [Vulnerabilities tab](/cve).
   long: |
@@ -471,5 +454,5 @@
 
     [Supported Operating Systems](https://github.com/WoTTsecurity/agent#supported-operating-systems\)
   terminal_code: |
-    $ export CLAIM_TOKEN="x"
+    $ export CLAIM_TOKEN="{key}"
     $ curl -sL https://install.wott.io | sudo -E bash

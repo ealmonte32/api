@@ -84,6 +84,10 @@ class Action(NamedTuple):
     def long_html(self):
         return markdown.markdown(self.long)
 
+    @property
+    def terminal_title_html(self):
+        return markdown.markdown(self.terminal_title)
+
 
 INSECURE_SERVICES = [
     InsecureService('fingerd', 1, Severity.MED),
@@ -118,6 +122,11 @@ PUBLIC_SERVICE_PORTS = {
     'redis-server': PubliclyAccessiblePort(6379, 'Redis', 4)
 }
 
+SUBTITLES = {
+    Severity.HI: 'Please consider changing this as soon as possible',
+    Severity.MED: 'This could put you at risk',
+    Severity.LO: 'Resolve this to improve your security posture'
+}
 
 def device_link(device, absolute=False):
     """Create a device's page html link code"""
@@ -188,7 +197,7 @@ class BaseAction:
         issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
         return Action(
             title=cls.action_config['title'].format(**context),
-            subtitle=cls.action_config['subtitle'].format(**context),
+            subtitle=cls.action_config.get('subtitle', SUBTITLES[cls.severity]).format(**context),
             short=cls.action_config['short'].format(**context),
             long=cls.action_config['long'].format(**context),
             terminal_title=cls.action_config.get('terminal_title', '').format(**context),
@@ -210,7 +219,6 @@ class BaseAction:
         :return:
         """
         context = cls.get_context(devices=devices, device_pk=device_pk)
-        context['devices'] = ', '.join([device_link(dev) for dev in devices]) if device_pk is None else 'this node'
         return cls._create_action(user.profile, context, [d for d in devices])
 
     @classmethod
@@ -583,3 +591,9 @@ class GithubAction(BaseAction, metaclass=ActionMeta):
 class EnrollAction(BaseAction, metaclass=ActionMeta):
     action_id = -2
     severity = Severity.LO
+
+    @classmethod
+    def get_user_context(cls, user):
+        context = {'key': user.profile.pairing_key.key}
+
+        return EnrollAction._create_action(user.profile, context, [])
