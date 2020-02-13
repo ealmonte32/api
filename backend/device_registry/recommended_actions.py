@@ -350,7 +350,7 @@ class ActionMeta(type):
 
     @classmethod
     def load_config(meta):
-        config = yaml.load(open('recommended_actions.yaml'), Loader=yaml.Loader)
+        config = yaml.load(open('recommended_actions.yaml'), Loader=yaml.FullLoader)
         meta._config = {e['id']: e for e in config}
 
     @classmethod
