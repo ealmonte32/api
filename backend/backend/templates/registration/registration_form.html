@@ -24,7 +24,6 @@
         </div>
 
         <div class="p-0 mb-0 position-relative">
-          <h5 id="required-text" class="wott-blue position-absolute">* Required</h5>
           <form id="register-form" class="position-relative" method="post" action="">
             {% csrf_token %}
             
@@ -34,8 +33,9 @@
                 {% include "form_field.html" with field=form.password1 asterisk=True %}
                 {% include "form_field.html" with field=form.password2 asterisk=True %}
                 {% include "form_field.html" with field=form.payment_plan %}
+                <h5 id="required-text" class="wott-blue position-absolute">* Required</h5>
               </div>
-
+              
               <div class="box-right pb-2">
                 {% include "form_field.html" with field=form.first_name %}
                 {% include "form_field.html" with field=form.last_name %}
@@ -43,10 +43,10 @@
                 {% include "form_field.html" with field=form.phone %}
               </div>
             </div>
-
-            <div class="form-group box-bottom text-center mb-0 pb-4">
+            
+            <div class="form-group box-bottom text-center mb-0 pt-3 pb-4">
               {% buttons %}
-                <button type="submit" class="wott-btn btn-wott-primary w-25">{% trans 'Get Started' %}</button>
+              <button type="submit" class="wott-btn btn-wott-primary w-25">{% trans 'Get Started' %}</button>
               {% endbuttons %}
             </div>
           </form>
@@ -56,10 +56,10 @@
     </main>
   </div>
   <style>
-  #required-text {
-    left: 10px;
-    top: 10px;
+  /* #required-text {
+    left: 120px;
+    bottom: 80px;
     z-index: 990;
-  }
+  } */
   </style>
 {% endblock content %}

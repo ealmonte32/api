@@ -27,16 +27,16 @@
                         <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
                       {% endif %}
                     </span>
-                    {% with action.severity.value as action_severity %}
-                    <div class="badge mr-4  text-uppercase wott-rect-badge-{{ action_severity.1 }}">
-                      {{ action_severity.0 }}
-                    </div>
-                    {% endwith %}
                   </div>
                   <h5 class="alert-instruction mb-0">{{ action.subtitle }}</h5>
                   <h5 class="alert-instruction mb-0 mt-2">Affected Nodes: {{ action.devices|length }}</h5>
                 </div>
-              
+                
+                {% with action.severity.value as action_severity %}
+                <div class="badge mr-4 mb-2 text-uppercase wott-rect-badge-{{ action_severity.1 }}">
+                  {{ action_severity.0 }}
+                </div>
+                {% endwith %}
                 
                 <div class="dropdown">
                   <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
