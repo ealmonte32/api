@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models import Q, Avg, Max, Window, Count
+from django.db.models.functions import Coalesce
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -166,7 +167,9 @@ class Profile(models.Model):
         cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,
                                                    sampled_at__date__lt=this_monday)\
             .values('cve_high_count', 'cve_medium_count', 'cve_low_count')\
-            .annotate(cve_high=Max('cve_high_count'), cve_med=Max('cve_medium_count'), cve_lo=Max('cve_low_count'))\
+            .annotate(cve_high=Coalesce(Max('cve_high_count'), 0),
+                      cve_med=Coalesce(Max('cve_medium_count'), 0),
+                      cve_lo=Coalesce(Max('cve_low_count'), 0))\
             .values('cve_high', 'cve_med', 'cve_lo')
         if cve_history.exists():
             cve_history = cve_history.first()

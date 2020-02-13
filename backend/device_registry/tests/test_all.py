@@ -1601,7 +1601,27 @@ class CVECountTests(TestCase):
         self.assertEquals(history_record.cve_medium_count, 2)
         self.assertEquals(history_record.cve_low_count, 3)
 
+    def test_cve_count_empty_history(self):
+        now = timezone.now()
+        # Last week's tuesday
+        last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
+
+        with freeze_time(last_tuesday):
+            self.profile.sample_history()
+        with freeze_time(last_tuesday + timezone.timedelta(days=1)):
+            self.profile.sample_history()
+
+        # Last week's history without CVE counts - a week after this code was merged.
+        HistoryRecord.objects.all().update(cve_high_count=None,
+                                           cve_medium_count=None,
+                                           cve_low_count=None)
+        # Make sure it's not (None, None, None)
+        self.assertTupleEqual(self.profile.cve_count_last_week, (0, 0, 0))
+
     def test_cve_count_last_week(self):
+        # No history -> all CVE counts should be 0
+        self.assertTupleEqual(self.profile.cve_count_last_week, (0, 0, 0))
+
         now = timezone.now()
         # Last week's tuesday
         last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
