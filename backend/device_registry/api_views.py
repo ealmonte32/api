@@ -650,11 +650,7 @@ def autocomplete(request, tag_model):
 
 @login_required
 def autocomplete_tags(request):
-    return autocomplete(
-        request,
-        Tag.objects.filter_or_initial(device__owner=request.user).distinct() |
-        Tag.objects.filter_or_initial(credential__owner=request.user).distinct()
-    )
+    return autocomplete(request, Tag.objects.filter(device__owner=request.user).distinct())
 
 
 class PairingKeysQSMixin(object):
@@ -953,8 +949,7 @@ class DeviceListFilterMixin:
                 if filter_value:
                     filter_value = [unquote(v) for v in filter_value]
                     if len(filter_value) != Tag.objects.filter(device__owner=self.request.user,
-                                                               name__in=filter_value)\
-                                                       .distinct().count():
+                                                               name__in=filter_value).distinct().count():
                         raise ValidationError('tags argument list is invalid.')
 
             if isinstance(query_by, list):
