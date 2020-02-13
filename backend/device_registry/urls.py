@@ -108,11 +108,7 @@ if settings.IS_DASH or settings.IS_CELERY:
         path('devices/<int:device_pk>/actions/', views.RecommendedActionsView.as_view(), name='device_actions'),
         path('cve/', views.CVEView.as_view(), name='cve'),
         path('devices/<int:device_pk>/cve/', views.CVEView.as_view(), name='device_cve'),
-        path(
-            'ajax/tags/autocomplete/',
-            api_views.autocomplete_tags,
-            name='ajax-tags-autocomplete',
-        ),
+        path('ajax/tags/autocomplete/', api_views.autocomplete_tags, name='ajax-tags-autocomplete'),
         path('pairing-keys/',
              views.PairingKeysView.as_view(),
              name='pairing-keys'),

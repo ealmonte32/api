@@ -442,7 +442,7 @@ class Device(models.Model):
 
     def trust_score_percent(self):
         if self.trust_score:
-            return int(self.trust_score * 100)
+            return round(self.trust_score * 100)
         else:
             return 0
 
