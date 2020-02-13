@@ -116,7 +116,7 @@
                     <template>
                     {% for d in action.devices %}
                       <a class="wott-node-list wott-list-blue" href="{% url 'device-detail' d.pk %}">
-                        {{ d.get_name }}
+                        &#8226 {{ d.get_name }}
                       </a>
                     {% endfor %}
                     </template>
