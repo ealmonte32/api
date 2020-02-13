@@ -57,6 +57,12 @@ class Profile(models.Model):
 
     @property
     def actions_weekly(self):
+        """
+        Gather RAs resolved this week and unresolved RAs.
+        Resolved are those which were truly resolved (not snoozed).
+        Unresolved are those which affect user's device(s) and are not snoozed.
+        :return: a tuple of QuerySets: unresolved, resolved
+        """
         now = timezone.now()
         sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
         this_monday = sunday + relativedelta(days=1)  # This week's monday
@@ -67,12 +73,12 @@ class Profile(models.Model):
                                                                        status=RecommendedAction.Status.NOT_AFFECTED,
                                                                        resolved_at__gte=this_monday) \
             .values('action_id')  # resolved this week (not completely)
-        ra_unresolved = RecommendedAction.objects.filter(RecommendedAction.get_affected_query(),
+        ra_unresolved = RecommendedAction.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
                                                          device__owner=self.user,
                                                          action_id__in=all_ids) \
-            .values('action_id').distinct()  # unresolved
+            .values('action_id').distinct()  # unresolved (incl. snoozed)
         ra_resolved_this_week = ra_maybe_resolved_this_week.exclude(action_id__in=ra_unresolved).distinct()
-        return ra_unresolved, ra_resolved_this_week
+        return ra_unresolved.filter(RecommendedAction.get_affected_query()), ra_resolved_this_week
 
     @property
     def actions_resolved_since_monday(self):
