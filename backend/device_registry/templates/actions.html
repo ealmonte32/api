@@ -46,7 +46,7 @@
               </div>
               
               <div class="btn-group-box">
-                <div class="btn-group wott-alert-btn-group d-flex justify-content-around"
+                <div class="btn-group wott-alert-btn-group d-flex justify-content-around align-items-baseline"
                     wott-action
                     wott-action-id="{{ action.action_id }}"
                     wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
@@ -88,9 +88,9 @@
                           onmouseover="hover(this)"
                           onmouseout="unhover(this)"
                          ></span>
-                    <div class="btn-img-text">RESOLVED</div>
+                    <div class="btn-img-text">MARK AS<br>RESOLVED</div>
                   </button>
-                  <div class="dropdown-menu">
+                  <div class="dropdown-menu wott-box-shadow">
                     <a class="dropdown-item" href="#" data-dismiss="alert"
                        wott-snooze wott-snooze-duration="24" wott-snooze-type="Snooze">24 hours</a>
                     <a class="dropdown-item" href="#" data-dismiss="alert"
@@ -195,6 +195,14 @@
 
   <style>
 
+    .btn-img-text {
+      font-size: .6rem !important;
+    }
+
+    .btn-group-box {
+      padding-top: 1.2rem;
+    }
+
     #actions-tab .line-box {
       padding: .7rem 2rem;
     }
@@ -236,7 +244,6 @@
     }
 
     .learn-more-box {
-      /* background-color:#d9deee; */
       background-color: #e9edf8;
       margin: -2.5rem 5.5rem 2.5rem;
       padding: 2rem 2rem;
