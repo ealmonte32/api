@@ -1612,9 +1612,9 @@ class CVECountTests(TestCase):
             self.profile.sample_history()
 
         # Last week's history without CVE counts - a week after this code was merged.
-        HistoryRecord.objects.all().update(cve_high_count=None,
-                                           cve_medium_count=None,
-                                           cve_low_count=None)
+        HistoryRecord.objects.update(cve_high_count=None,
+                                     cve_medium_count=None,
+                                     cve_low_count=None)
         # Make sure it's not (None, None, None)
         self.assertTupleEqual(self.profile.cve_count_last_week, (0, 0, 0))
 
