@@ -177,9 +177,9 @@ class Profile(models.Model):
     @property
     def pairing_key(self):
         default_comment = "Key used for the 'Add node' functionality"
-        pairing_key = PairingKey.objects.filter(owner=self.user, comment=default_comment)
-        if not pairing_key.exists():
+        pairing_keys = PairingKey.objects.filter(owner=self.user, comment=default_comment)
+        if not pairing_keys.exists():
             pairing_key = PairingKey.objects.create(owner=self.user, comment=default_comment)
         else:
-            pairing_key = pairing_key[0]
+            pairing_key = pairing_keys[0]
         return pairing_key
