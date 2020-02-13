@@ -5,6 +5,10 @@
   border-bottom-left-radius: $wott-border-radius-lg;
   min-height: 600px;
 
+  .sidebar-item {
+    padding-left: 1rem;
+  }
+
   .sidebar-item h4 {
     margin-bottom: 0;
     font-size: .95rem;
@@ -19,6 +23,11 @@
   .sidebar-item.active {
     border-right: 5px solid $wott-blue;
   }
+
+  .sidebar-item:hover, .sidebar-link:hover {
+    background-color: #f5f7fc;
+}
+
 }
 
 #inner-settings {

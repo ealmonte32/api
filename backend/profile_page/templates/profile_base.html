@@ -15,8 +15,8 @@
   <div class="container-fluid">
 
     <div id="inner-settings" class="row wott-box-shadow">
-      <div id="settings-nav" class="card mb-0 border-0 h-auto col-md-3 pr-0">
-        <div class="border-0 bg-white pl-2 py-2 my-2">
+      <div id="settings-nav" class="card mb-0 border-0 h-auto w-25 pr-0">
+        <div class="border-0 bg-white py-3 wott-border-radius-lg">
           {% include "menu_item.html" with tab=tab_account url='profile' image='/media/account.svg' image_selected='/media/account-selected.svg' label="Account" %}
           {% include "menu_item.html" with tab=tab_password url='profile_password' image='/media/password.svg' image_selected='/media/password-selected.svg' label="Password" %}
           {% include "menu_item.html" with tab=tab_api_token url='profile_token' image='/media/api.svg' image_selected='/media/api-selected.svg' label="API Token" %}
@@ -26,7 +26,7 @@
         </div>
       </div>
 
-      <div class="col-md-9 py-0">
+      <div class="w-75 py-0">
         <div class="tab-content">
           <div class="tab-pane fade show active" id="account" role="tabpanel">
             {% block profile_content %}

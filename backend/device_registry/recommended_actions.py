@@ -3,12 +3,12 @@ from enum import Enum
 from typing import NamedTuple, List, Union
 from urllib.parse import urljoin
 
-import yaml
 from django.conf import settings
 from django.db.models import Q, QuerySet
 from django.urls import reverse
 from django.utils import timezone
 
+import yaml
 import markdown
 
 
@@ -358,7 +358,7 @@ class ActionMeta(type):
 
     @classmethod
     def load_config(meta):
-        config = yaml.load(open('recommended_actions.yaml'))
+        config = yaml.load(open('recommended_actions.yaml'), Loader=yaml.FullLoader)
         meta._config = {e['id']: e for e in config}
 
     @classmethod

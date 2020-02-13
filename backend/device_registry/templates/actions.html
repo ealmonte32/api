@@ -19,7 +19,7 @@
             <div class="d-flex wott-closed-box align-items-center">
               <div class="recommendation-left-box">
                 <div class="alert-box-text">
-                  <div class="d-flex align-items-center justify-content-between mb-0">
+                  <div class="d-flex align-items-end justify-content-between mb-0">
                     <span class="alert-title">
                       {{ action.title|safe }}
                       
@@ -27,15 +27,16 @@
                         <a href="{{ action.issue_url }}"><i class="fab fa-github"></i></a>
                       {% endif %}
                     </span>
-                    {% with action.severity.value as action_severity %}
-                    <div class="badge mr-4 mb-1 text-uppercase wott-rect-badge-{{ action_severity.1 }}">
-                      {{ action_severity.0 }}
-                    </div>
-                    {% endwith %}
                   </div>
                   <h5 class="alert-instruction mb-0">{{ action.subtitle }}</h5>
+                  <h5 class="alert-instruction mb-0 mt-2">Affected Nodes: {{ action.devices|length }}</h5>
                 </div>
-              
+                
+                {% with action.severity.value as action_severity %}
+                <div class="badge mr-4 mb-2 text-uppercase wott-rect-badge-{{ action_severity.1 }}">
+                  {{ action_severity.0 }}
+                </div>
+                {% endwith %}
                 
                 <div class="dropdown">
                   <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
@@ -46,7 +47,7 @@
               </div>
               
               <div class="btn-group-box">
-                <div class="btn-group wott-alert-btn-group d-flex justify-content-around"
+                <div class="btn-group wott-alert-btn-group d-flex justify-content-around align-items-baseline"
                     wott-action
                     wott-action-id="{{ action.action_id }}"
                     wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
@@ -88,9 +89,9 @@
                           onmouseover="hover(this)"
                           onmouseout="unhover(this)"
                          ></span>
-                    <div class="btn-img-text">RESOLVED</div>
+                    <div class="btn-img-text">MARK AS<br>RESOLVED</div>
                   </button>
-                  <div class="dropdown-menu">
+                  <div class="dropdown-menu wott-box-shadow">
                     <a class="dropdown-item" href="#" data-dismiss="alert"
                        wott-snooze wott-snooze-duration="24" wott-snooze-type="Snooze">24 hours</a>
                     <a class="dropdown-item" href="#" data-dismiss="alert"
@@ -195,6 +196,14 @@
 
   <style>
 
+    .btn-img-text {
+      font-size: .6rem !important;
+    }
+
+    .btn-group-box {
+      padding-top: 1.2rem;
+    }
+
     #actions-tab .line-box {
       padding: .7rem 2rem;
     }
@@ -236,7 +245,6 @@
     }
 
     .learn-more-box {
-      /* background-color:#d9deee; */
       background-color: #e9edf8;
       margin: -2.5rem 5.5rem 2.5rem;
       padding: 2rem 2rem;
