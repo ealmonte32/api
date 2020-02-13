@@ -289,16 +289,23 @@
   long: |
     MongoDB is a widely used NoSQL database. Unfortunately, the default configuration in MongoDB until relatively recently was to bind on all public interfaces (rather than just localhost). Because of this, many MongoDB servers were made publicly accessible. To make matters worse, by default, MongoDB does not require any authentication, meaning that the potential attacker only needed to know the public IP of the server in order to connect and access your customer data.
 
-
     We recommend that you either reconfigure your MongoDB instance to only listen on localhost (assuming the appserver talking to MongoDB runs on the same server), or creating a firewall policy to only allow connections from your appservers to port 27017 on your node. You can do the latter using WoTT's firewall management tool. You can read more about MongoDB's ports [here](https://docs.mongodb.com/manual/reference/default-mongodb-port/\).
 
-    To reconfigure your MongoDB instance to only listen on localhost, edit the config file (usually `/etc/mongod.conf`) and add/edit the following line:
 
-    ```
-    bind_ip = 127.0.0.1
-    ```
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    Start by locating your MongoDB configuration file
+    $ find /etc -name mongodb.conf -o -name mongod.conf
 
-    Please remember to restart your MongoDB instance as this change will not take effect until you do so. For more information on how to securely configure your MongoDB instance, WoTT has a step-by-step guide to aid you.
+    Open the file using your favorite editor
+    $ sudo vim /path/to/file
+
+    Find the line 'bind_ip' (or add the line if it doesn't exist) and modify it to say 'bind_ip = 127.0.0.1'.
+
+    With that done, restart MongoDB to apply the changes
+    $ service mongodb restart
+
 - title: Remote access on MySQL/MariaDB instance detected
   id: 3002
   subtitle: consider disabling remote access
