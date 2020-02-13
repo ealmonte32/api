@@ -158,10 +158,21 @@
               <input type="checkbox"
                      id="weekly-ra-{{forloop.counter}}"
                      {% if action.resolved %}checked{% endif %}
-                     disabled style="pointer-events: none"/>
-              <label for="weekly-ra-{{forloop.counter}}" style="pointer-events: none"></label>
+                     {% if action.resolved %}disabled{% endif %}
+                     wott-action-id="{{ action.action_id }}"
+                     wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
+              />
+              <label for="weekly-ra-{{forloop.counter}}"></label>
             </div>
-            <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">{{ action.title }}</h3>
+            <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">
+            {% if not action.resolved %}
+              <a class="black-link" href="{% url "actions" %}#{{ action.action_id }}">
+                {{ action.title }}
+              </a>
+            {% else %}
+              {{ action.title }}
+            {% endif %}
+            </h3>
             <h3 class="list-subtitle mb-0">{{ action.subtitle }}</h3>
           </div>
         {% with action.severity.value as action_severity %}
@@ -222,5 +233,32 @@
 
 {% block scripts %}
 {{ block.super }}
+<script>
+  /**
+   * Snooze an action. Used by the close icon on the alerts.
+   * @param id - action id
+   * @param devices - list of device ids
+   */
+  function snoozeAction(id, devices, duration, onSuccess) {
+    $.ajax({
+        url: '/snooze-action/',
+        type:"POST",
+        data: JSON.stringify({
+            action_id: id,
+            device_ids: devices,
+            duration: duration
+        }),
+        contentType: "application/json; charset=utf-8",
+        success: onSuccess
+    });
+  }
 
+  $(`input[wott-action-id]`).click((e) => {
+      let action_id = $(e.target).attr('wott-action-id'),
+          devices = eval($(e.target).attr('wott-action-devices'));
+      console.log('CLICK', action_id, devices);
+      // snooze action as "Resolve" and reload the page.
+      snoozeAction(action_id, devices, null, window.location.reload.bind(window.location));
+  })
+</script>
 {% endblock scripts %}

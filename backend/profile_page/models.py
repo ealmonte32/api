@@ -13,7 +13,7 @@ from dateutil.relativedelta import relativedelta, MO, SU
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability
+from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability, PairingKey
 from device_registry.celery_tasks import github
 from device_registry.recommended_actions import ActionMeta
 
@@ -57,6 +57,12 @@ class Profile(models.Model):
 
     @property
     def actions_weekly(self):
+        """
+        Gather RAs resolved this week and unresolved RAs.
+        Resolved are those which were truly resolved (not snoozed).
+        Unresolved are those which affect user's device(s) and are not snoozed.
+        :return: a tuple of QuerySets: unresolved, resolved
+        """
         now = timezone.now()
         sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
         this_monday = sunday + relativedelta(days=1)  # This week's monday
@@ -67,12 +73,12 @@ class Profile(models.Model):
                                                                        status=RecommendedAction.Status.NOT_AFFECTED,
                                                                        resolved_at__gte=this_monday) \
             .values('action_id')  # resolved this week (not completely)
-        ra_unresolved = RecommendedAction.objects.filter(device__owner=self.user,
-                                                         action_id__in=all_ids,
-                                                         status=RecommendedAction.Status.AFFECTED) \
-            .values('action_id').distinct()  # unresolved
+        ra_unresolved = RecommendedAction.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
+                                                         device__owner=self.user,
+                                                         action_id__in=all_ids) \
+            .values('action_id').distinct()  # unresolved (incl. snoozed)
         ra_resolved_this_week = ra_maybe_resolved_this_week.exclude(action_id__in=ra_unresolved).distinct()
-        return ra_unresolved, ra_resolved_this_week
+        return ra_unresolved.filter(RecommendedAction.get_affected_query()), ra_resolved_this_week
 
     @property
     def actions_resolved_since_monday(self):
@@ -173,3 +179,13 @@ class Profile(models.Model):
             return cve_history['cve_high'], cve_history['cve_med'], cve_history['cve_lo']
         else:
             return 0, 0, 0
+
+    @property
+    def pairing_key(self):
+        default_comment = "Key used for the 'Add node' functionality"
+        pairing_keys = PairingKey.objects.filter(owner=self.user, comment=default_comment)
+        if not pairing_keys.exists():
+            pairing_key = PairingKey.objects.create(owner=self.user, comment=default_comment)
+        else:
+            pairing_key = pairing_keys[0]
+        return pairing_key
