@@ -145,7 +145,7 @@
           <div class="graphic-title">Weekly Progress</div>
           <div id="week-progress-100">  
             <span id="week-progress-var" style="width: {{ weekly_progress }}%">
-              <p class="mb-0 {% if weekly_progress < 5 %}graph-less-5{% endif %}" id="week-progres-text" >{{ weekly_progress }}</p>
+              <p class="my-0 {% if weekly_progress < 25 %}graph-less-25{% endif %}" id="week-progres-text" >{{ weekly_progress }}</p>
             </span>
           </div>
         </div>
@@ -229,19 +229,6 @@
     </section>
   </section>
 </div>
-<style>
-.graph-less-5 {
-  color:#2460c8 !important;
-  margin-left: 10px;
-  display: flex;
-  margin-top: 0px !important
-}
-
-.graph-less-5:after {
-  content:'%';
-}
-
-</style>
 {% endblock admin_content %}
 
 {% block scripts %}
