@@ -620,7 +620,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
 
         @property
         def upgrade_command(self):
-            return f'apt-get update && apt-get install -y {self.name}'
+            return f'$ apt-get update && apt-get install -y {self.name} && apt-get autoremove'
 
     class TableRow(NamedTuple):
         cve_name: str
@@ -639,7 +639,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         @property
         def key(self):
             return self.urgency, sum([p.devices_count for p in self.packages])
-        
+
         @property
         def severity(self):
             return self.urgencies[self.urgency]
