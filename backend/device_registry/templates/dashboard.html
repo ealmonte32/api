@@ -15,8 +15,11 @@
           {% if not welcome %}display: none !important;{% endif %}">
     <div class="left-box py-4">
       <h1 class="big-text text-center">Welcome User!</h1><!--Include user first name if it exists-->
-      <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p>
-      <p class="text-center pb-4 close-text">You can start your journey by adding a node.</p>
+      <!-- <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p> -->
+      <div id="did-you-know-box" class="position-relative">
+        
+      </div>
+      <p class="text-center close-text mb-3">You can start your journey by adding a node.</p>
       <button type="button" class="btn wott-btn btn-wott-primary d-block m-auto" id="inst-btn">
         Add Node
         <img class="plus" src="{% static '/media/plus.svg' %}" alt="plus">
@@ -261,5 +264,21 @@
       // snooze action as "Resolve" and reload the page.
       snoozeAction(action_id, devices, null, document.location.reload.bind(document.location));
   })
+
+  let text_arr = [
+    '<p class="wott-warn-box">Did you know that there are over 70,000 publicly exposed MongoDB servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? Many, if not most, of these don\'t even require a password. <strong>Don\'t let this be you.</strong></p>', 
+    '<p class="wott-warn-box">Did you know that there are over 57,000 publicly exposed Memcached servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don\'t let this be you.</strong></p>',
+    '<p class="wott-warn-box">Did you know that there are over 640,000 publicly exposed Redis servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don\'t let this be you.</strong></p>'
+    ];
+
+  function random_text() {
+    return text_arr[Math.floor(Math.random() * text_arr.length)];
+  }
+
+  window.onload = () => {
+    document.getElementById('did-you-know-box').innerHTML = random_text();
+  }
+ 
+  
 </script>
 {% endblock scripts %}
