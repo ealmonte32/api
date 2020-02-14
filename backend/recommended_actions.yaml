@@ -92,7 +92,7 @@
     Here are the steps to resolve this issue.
   terminal_code: |
     Find your sshd_config file
-    $ find /etc -iname sshd_config
+    $ sudo find /etc -iname sshd_config
 
     Open the file above in your favorite editor
     $ sudo vim /path/to/sshd_config
@@ -129,7 +129,7 @@
     Here are the steps to resolve this issue.
   terminal_code: |
     Find your sshd_config file
-    $ find /etc -iname sshd_config
+    $ sudo find /etc -iname sshd_config
 
     Open the file above in your favorite editor
     $ sudo vim /path/to/sshd_config
@@ -160,7 +160,7 @@
     Here are the steps to resolve this issue.
   terminal_code: |
     Find your sshd_config file
-    $ find /etc -iname sshd_config
+    $ sudo find /etc -iname sshd_config
 
     Open the file above in your favorite editor
     $ sudo vim /path/to/sshd_config
@@ -191,7 +191,7 @@
     Here are the steps to resolve this issue.
   terminal_code: |
     Find your sshd_config file
-    $ find /etc -iname sshd_config
+    $ sudo find /etc -iname sshd_config
 
     Open the file above in your favorite editor
     $ sudo vim /path/to/sshd_config
@@ -222,7 +222,7 @@
     Here are the steps to resolve this issue.
   terminal_code: |
     Find your sshd_config file
-    $ find /etc -iname sshd_config
+    $ sudo find /etc -iname sshd_config
 
     Open the file above in your favorite editor
     $ sudo vim /path/to/sshd_config
@@ -285,7 +285,7 @@
     Here are the steps to resolve this issue.
   terminal_code: |
     Start by locating your MongoDB configuration file
-    $ find /etc -name mongodb.conf -o -name mongod.conf
+    $ sudo find /etc -name mongodb.conf -o -name mongod.conf
 
     Open the file using your favorite editor
     $ sudo vim /path/to/file
@@ -316,7 +316,7 @@
     To update the disable remote/network access on your MySQL/MariaDB instance, take the following steps
   terminal_code: |
     Find your file MySQL/MariDB configuration file
-    $ sudo find /etc -type f -name my.cnf -o -name mysqld.cnf -o -name 50-server.cnf
+    $ sudo find /etc -name my.cnf -o -name mysqld.cnf -o -name 50-server.cnf
 
     Once located, open the file in your favorite editor
     $ sudo vim /path/from/command/above
@@ -353,7 +353,7 @@
     To reconfigure Memcached, run take the following steps
   terminal_code: |
     Find your memcached configuration file
-    $ find /etc -iname memcached.conf
+    $ sudo find /etc -iname memcached.conf
 
     Edit the file using your favorite editor
     $ sudo vim /path/to/memcached.conf
@@ -395,7 +395,7 @@
     To reconfigure Redis, take the following steps
   terminal_code: |
     Find the Redis configuration file
-    $ find /etc -iname redis.conf
+    $ sudo find /etc -iname redis.conf
 
     Open the configuration file using your favorite editor
     $ vim /path/to/redis.conf
