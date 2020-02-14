@@ -149,8 +149,8 @@ class GenerateActionsTest(TestCase):
     def test_snooze(self):
         self.TestActionOne.affected = True
         self.TestActionTwo.affected = True
-        self.device.snooze_action(self.TestActionOne.action_id, RecommendedAction.Status.SNOOZED_FOREVER)
-        self.check_actions_status(RecommendedAction.Status.SNOOZED_FOREVER, RecommendedAction.Status.AFFECTED)
+        self.device.snooze_action(self.TestActionOne.action_id, RecommendedAction.Status.SNOOZED_UNTIL_PING)
+        self.check_actions_status(RecommendedAction.Status.SNOOZED_UNTIL_PING, RecommendedAction.Status.AFFECTED)
 
         self.TestActionOne.affected = False
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
@@ -297,8 +297,9 @@ class SnoozeTest(TestCase):
         self.common_actions_url = reverse('actions')
         self.snooze_url = reverse('snooze_action')
 
-    def _assertHasAction(self, has_action):
-        self.device.generate_recommended_actions(classes=[self.TestAction])
+    def _assertHasAction(self, has_action, generate=True):
+        if generate:
+            self.device.generate_recommended_actions(classes=[self.TestAction])
         response = self.client.get(self.common_actions_url)
         self.assertEqual(response.status_code, 200)
         if has_action:
@@ -317,9 +318,8 @@ class SnoozeTest(TestCase):
     def test_snooze_until_ping(self):
         self._assertHasAction(True)
         self.snooze_action(None)
-        self._assertHasAction(False)
-        self.device.snooze_action(self.TestAction.action_id, RecommendedAction.Status.AFFECTED)
-        self._assertHasAction(True)
+        self._assertHasAction(False, False)  # Don't generate RAs -> will stay "fixed"
+        self._assertHasAction(True, True)    # Generate RAs -> will be "unfixed" again
 
     def test_snooze_interval(self):
         self._assertHasAction(True)

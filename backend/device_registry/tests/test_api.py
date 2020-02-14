@@ -1359,7 +1359,7 @@ class SnoozeActionViewTest(APITestCase):
         self.device.refresh_from_db()
         actions = self.device.recommendedaction_set.filter(action_id=self.action_class.action_id)
         self.assertQuerysetEqual(actions.values_list('action_id', flat=True), [str(self.action_class.action_id)])
-        self.assertEqual(actions[0].status, RecommendedAction.Status.SNOOZED_UNTIL_PING)
+        self.assertEqual(actions[0].status, RecommendedAction.Status.NOT_AFFECTED)
         self.assertEqual(self.device.actions_count, 1)
 
     def test_snooze_forever(self):

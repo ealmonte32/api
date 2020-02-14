@@ -1044,7 +1044,7 @@ class SnoozeActionView(APIView):
             action_id = serializer.validated_data['action_id']
             duration = serializer.validated_data['duration']
             if duration is None:
-                snoozed = RecommendedAction.Status.SNOOZED_UNTIL_PING
+                snoozed = RecommendedAction.Status.NOT_AFFECTED
             elif duration == 0:
                 snoozed = RecommendedAction.Status.SNOOZED_FOREVER
             else:
