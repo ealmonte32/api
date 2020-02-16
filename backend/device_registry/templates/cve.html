@@ -157,7 +157,7 @@
         </div>
         <hr class="popover-title-line">
       </div>
-      <div class="wott-popover-body"><!--nodeList include w-100 | instructions include w-auto-->
+      <div class="wott-popover-body"><!--nodeList include w-100, d-flex and flex-wrap| instructions include w-auto-->
       </div>
     </div>
 
@@ -212,7 +212,7 @@
       if(!show)
           return;
       $('.popover-box').toggleClass('wott-scroll-x', box_scroll_x).toggleClass('wott-scroll-y', box_scroll_y);
-      $('.wott-popover-body').html(html).toggleClass('w-100', body_w100).toggleClass('w-auto', !body_w100);
+      $('.wott-popover-body').html(html).toggleClass('w-100 d-flex flex-wrap', body_w100).toggleClass('w-auto', !body_w100);
       $('#wott-popover-title').text(title);
   }
 
