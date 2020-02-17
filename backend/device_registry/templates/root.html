@@ -279,6 +279,18 @@
       </span>
     </div>
   </template>
+
+  <template id="trust-score-template-zero">
+    <div class="position-relative">
+      <div id="trust-progress-100"  class="w-100" role="progressbar"></div>
+      <span id="trust-progress-var"
+            class="zero-trust d-flex position-absolute"
+            style="width: 0000%">
+            <!--trust_score_percent-->
+      </span>
+    </div>
+  </template>
+
 </div>
 
 
@@ -292,6 +304,12 @@
 </div> -->
 
 <style>
+
+  .zero-trust {
+    margin-left: 10px;
+    color: gray !important;
+    justify-content: flex-start !important;
+  }
 
 #device-list-columns {
       display: inline;
@@ -629,14 +647,19 @@
      * @returns {string|*}
      */
         function render_trustscore(data, type, row, meta){
-            if (type == 'sort') return data;
-            if (data == null || data == '') return '';
-            let template = $("#trust-score-template").html()
+          let template = '';
+          if (type == 'sort') return data;
+          if (data == null || data == '') return '';
+          if (row['trust_score_percent'] == 0) {
+            template = $("#trust-score-template-zero").html()
+            .replace('<!--trust_score_percent-->', 'calculating...');             
+          } else {
+              template = $("#trust-score-template").html()
                 .replace('white', row['trust_score_color'])
                 .replace('0000', row['trust_score_percent'])
                 .replace('<!--trust_score_percent-->', row['trust_score_percent']);
-  
-            return template;
+          }
+          return template;
         }
         $('.toast').toast({delay: 5000});
         $('.toast').hide();
