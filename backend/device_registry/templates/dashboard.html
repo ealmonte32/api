@@ -156,13 +156,14 @@
           <div class="d-flex flex-column">
             <div class="round">
               <input type="checkbox"
-                     id="weekly-ra-{{forloop.counter}}"
+                     id="weekly-ra-{{action.action_id}}"
                      {% if action.resolved %}checked{% endif %}
                      {% if action.resolved %}disabled{% endif %}
+                     autocomplete="off"
                      wott-action-id="{{ action.action_id }}"
                      wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
               />
-              <label for="weekly-ra-{{forloop.counter}}"></label>
+              <label for="weekly-ra-{{action.action_id}}"></label>
             </div>
             <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">
             {% if not action.resolved %}
@@ -258,7 +259,7 @@
           devices = eval($(e.target).attr('wott-action-devices'));
       console.log('CLICK', action_id, devices);
       // snooze action as "Resolve" and reload the page.
-      snoozeAction(action_id, devices, null, window.location.reload.bind(window.location));
+      snoozeAction(action_id, devices, null, document.location.reload.bind(document.location));
   })
 </script>
 {% endblock scripts %}

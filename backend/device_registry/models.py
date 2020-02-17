@@ -145,6 +145,8 @@ class Device(models.Model):
         action.status = snoozed
         if snoozed == RecommendedAction.Status.SNOOZED_UNTIL_TIME:
             action.snoozed_until = timezone.now() + datetime.timedelta(hours=duration)
+        elif snoozed == RecommendedAction.Status.NOT_AFFECTED:
+            action.resolved_at = timezone.now()
         else:
             action.snoozed_until = None
         action.save()
