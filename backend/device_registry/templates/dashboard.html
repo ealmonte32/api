@@ -233,6 +233,14 @@
     </section>
   </section>
 </div>
+
+<!-- HTML Obj with texts for Did you know box -->
+<div style="display:none" id="random-text-template">
+  <p class="wott-warn-box">Did you know that there are over 70,000 publicly exposed MongoDB servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? Many, if not most, of these don't even require a password. <strong>Don't let this be you.</strong></p>
+  <p class="wott-warn-box">Did you know that there are over 57,000 publicly exposed Memcached servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don't let this be you.</strong></p>
+  <p class="wott-warn-box">Did you know that there are over 640,000 publicly exposed Redis servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don't let this be you.</strong></p>
+</div>
+
 {% endblock admin_content %}
 
 {% block scripts %}
@@ -265,19 +273,16 @@
       snoozeAction(action_id, devices, null, document.location.reload.bind(document.location));
   })
 
-  let text_arr = [
-    '<p class="wott-warn-box">Did you know that there are over 70,000 publicly exposed MongoDB servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? Many, if not most, of these don\'t even require a password. <strong>Don\'t let this be you.</strong></p>', 
-    '<p class="wott-warn-box">Did you know that there are over 57,000 publicly exposed Memcached servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don\'t let this be you.</strong></p>',
-    '<p class="wott-warn-box">Did you know that there are over 640,000 publicly exposed Redis servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don\'t let this be you.</strong></p>'
-    ];
 
-  function random_text() {
-    return text_arr[Math.floor(Math.random() * text_arr.length)];
+  function random_text(text_list) {
+    let text = text_list[Math.floor(Math.random() * text_list.length)];
+    return text.outerHTML;
   }
 
-  window.onload = () => {
-    document.getElementById('did-you-know-box').innerHTML = random_text();
-  }
+  $(() => {
+    let children_paragraph = $('#random-text-template').children();
+    $('#did-you-know-box').html(random_text([...children_paragraph]));
+  });
  
   
 </script>
