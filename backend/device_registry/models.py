@@ -119,8 +119,8 @@ class Device(models.Model):
 
     @property
     def default_password(self):
-        if self.default_password_users:
-            return True
+        if self.default_password_users is not None:
+            return bool(self.default_password_users)
         elif not hasattr(self, 'deviceinfo'):
             return None
         else:
