@@ -25,7 +25,7 @@ django-widget-tweaks==1.4.5
 djangorestframework==3.10.3
 dockerignore-generate==1.0.7
 freezegun==0.3.11
-gitpython==3.0.4
+GitPython==3.0.8
 google-api-core==1.14.0
 google-auth==1.6.3
 google-cloud-bigquery==1.15.0
