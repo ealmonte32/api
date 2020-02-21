@@ -49,7 +49,7 @@
           </div>
           <div id="action-solved-block" class="sidebar-bottom-item">
             <p>Actions Solved</p>
-            <p id="action-solved">{{ user.profile.actions_resolved_since_monday }}/{% settings_value "MAX_WEEKLY_RA" %}</p>
+{#            <p id="action-solved">{{ user.profile.actions_resolved_since_monday }}/{% settings_value "MAX_WEEKLY_RA" %}</p>#}
           </div>
           <div id="action-solved-graph">
             <span id="action-solved-var"></span>
@@ -180,7 +180,7 @@
   <script type="text/javascript">
     $(() => {
         feather.replace();
-        $('#action-solved-var').width("{% widthratio user.profile.actions_resolved_since_monday 5 100 %}%");
+        {#$('#action-solved-var').width("{% widthratio user.profile.actions_resolved_since_monday 5 100 %}%");#}
         $('#trust-graph-var').width("{% widthratio user.profile.average_trust_score 1 100 %}%");
     });
 

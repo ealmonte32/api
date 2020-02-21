@@ -67,7 +67,8 @@ class Action(NamedTuple):
     subtitle: str
     short: str
     long: str
-    action_id: int
+    action_class: str
+    action_param: str
     devices: List[int]
     severity: Severity
     terminal_title: str = None
@@ -142,11 +143,15 @@ class BaseAction:
 
     It's a parent for all specific base action classes.
     """
-    severity = Severity.LO
     doc_url = 'https://wott.io/documentation/faq'
 
     @classmethod
+    def severity(cls, param=None):
+        raise NotImplementedError
+
+    @classmethod
     def affected_devices(cls, qs: QuerySet) -> QuerySet:
+        raise NotImplementedError
         """
         Select all devices which are affected by this recommended action.
         This method is to be used during migration when a new RA is added. It is supposed to be optimized for quick
@@ -170,7 +175,7 @@ class BaseAction:
         raise NotImplementedError
 
     @classmethod
-    def get_context(cls, devices, device_pk=None) -> dict:
+    def get_context(cls, param) -> dict:
         """
         Method for producing a tuple of values used (as string formatting parameters)
          for action description text rendering.
@@ -181,7 +186,7 @@ class BaseAction:
         return {}
 
     @classmethod
-    def _create_action(cls, profile, context, devices_list) -> Action:
+    def _create_action(cls, profile, context, devices_list, param=None) -> Action:
         """
         Create an Action object with title and description supplied by this class (cls), action description context,
         devices list and profile's github issue info (which can be empty).
@@ -190,27 +195,32 @@ class BaseAction:
         :param devices_list: list of Device ids
         :return: Action
         """
-        if hasattr(cls, 'group_action'):
-            issue_number = profile.github_issues.get(str(cls.group_action.action_id))
+        # if hasattr(cls, 'group_action'):
+        #     issue_number = profile.github_issues.get(str(cls.group_action.action_id))
+        # else:
+        #     issue_number = profile.github_issues.get(str(cls.action_id))
+        issue_url = '' #f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
+        if param is not None and param in cls.action_config:
+            action_config = cls.action_config[param]
         else:
-            issue_number = profile.github_issues.get(str(cls.action_id))
-        issue_url = f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
+            action_config = cls.action_config
         return Action(
-            title=cls.action_config['title'].format(**context),
-            subtitle=cls.action_config.get('subtitle', SUBTITLES[cls.severity]).format(**context),
-            short=cls.action_config['short'].format(**context),
-            long=cls.action_config['long'].format(**context),
-            terminal_title=cls.action_config.get('terminal_title', '').format(**context),
-            terminal_code=cls.action_config.get('terminal_code', '').format(**context),
-            action_id=cls.action_id,
+            title=action_config['title'].format(**context),
+            subtitle=action_config.get('subtitle', SUBTITLES[cls.severity(param)]).format(**context),
+            short=action_config['short'].format(**context),
+            long=action_config['long'].format(**context),
+            terminal_title=action_config.get('terminal_title', '').format(**context),
+            terminal_code=action_config.get('terminal_code', '').format(**context),
+            action_class=cls.__name__,
+            action_param=param,
             devices=devices_list,
-            severity=cls.severity,
+            severity=cls.severity(param),
             issue_url=issue_url,
             doc_url=cls.doc_url
         )
 
     @classmethod
-    def action(cls, user, devices, device_pk=None) -> Action:
+    def action(cls, user, devices, param=None) -> Action:
         """
         Generate a list of Action objects for the user. Excludes snoozed actions.
         :param user: the owner of the processed devices.
@@ -218,11 +228,11 @@ class BaseAction:
         :param device_pk: if given, then only one device with this pk is processed.
         :return:
         """
-        context = cls.get_context(devices=devices, device_pk=device_pk)
-        return cls._create_action(user.profile, context, [d for d in devices])
+        context = cls.get_context(param)
+        return cls._create_action(user.profile, context, [d for d in devices], param)
 
     @classmethod
-    def get_description(cls, user, body=None, additional_context=None) -> (str, str):
+    def get_description(cls, user, param=None, body=None, additional_context=None) -> (str, str):
         """
         Generate a Markdown-formatted descriptive text for this recommended action.
         Mainly used for filing Github issues. Does not exclude snoozed actions. Uses
@@ -234,7 +244,9 @@ class BaseAction:
         """
         from .models import RecommendedAction
         day_ago = timezone.now() - timedelta(hours=24)
-        actions = RecommendedAction.objects.filter(device__owner=user, action_id=cls.action_id,
+        actions = RecommendedAction.objects.filter(device__owner=user,
+                                                   action_class=cls.__name__,
+                                                   action_param=param,
                                                    device__last_ping__gte=day_ago)\
                                            .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]
@@ -245,70 +257,16 @@ class BaseAction:
                                  device=device_link(a.device, absolute=True))
                          for a in actions]
         resolved = '\n'.join(affected_list)
-        context = cls.get_context(affected_devices)
+        context = cls.get_context(param)
         if additional_context is not None:
             context.update(additional_context)
-        if 'subject' in context:
-            # Workaround for AutoUpdatesAction three-way logic
-            context['subject'] = ''
-        body_text = cls.action_config['long'] if body is None else body
+        if param is not None and param in cls.action_config:
+            action_config = cls.action_config[param]
+        else:
+            action_config = cls.action_config
+        body_text = action_config['long'] if body is None else body
         action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
-        return cls.action_config['title'], action_text
-
-
-class GroupedAction:
-    """
-    Recommended Action which has subclasses. Can produce grouped description by merging descriptions of subclasses.
-    A BaseAction class will be registered as a GroupedAction subclass if: it specifies grouped_action field and
-    is has ActionMeta metaclass. Example:
-
-        class Grouped(GroupedAction):
-            group_action_main = "group main"
-            group_action_title = "group title"
-
-        class SomeBaseAction(BaseAction, metaclass=ActionMeta):
-            grouped_action = Grouped
-
-        class SomeConcreteAction(SomeBaseAction, metaclass=ActionMeta):
-            group_action_section_title = "concrete title"
-            group_action_section_body = "concrete body"
-
-    Here, SomeConcreteAction will be registered subclass for Grouped. Then the result of Grouped.get_description()
-    will be:
-        "group title"
-        group main
-
-        concrete title
-        concrete body
-    It is designed for easy addition of subclasses. If you declare a number of classes similar to SomeConcreteAction
-    they will be registered automatically.
-
-    GroupedAction classes must have group_action_main and group_action_title declared. The registered subclasses must
-    have group_action_section_title and group_action_section_body declared.
-    """
-    @classmethod
-    def get_description(cls, user, **kwargs):
-        """
-        Behaves like BaseAction.get_description(), but merges descriptions from all subclasses, prepending
-        group_action_main. The result looks like this:
-          group_action_main
-
-          group_action_section_title
-          description
-
-          group_action_section_title
-          description
-
-          ...
-        """
-        action_text = ''
-        for subclass in cls.subclasses:
-            description = subclass.get_description(user, body=subclass.group_action_section_body, **kwargs)
-            if description:
-                action_text += f"\n\n### {subclass.group_action_section_title} ###\n\n" + description[1]
-        if not action_text:
-            return
-        return cls.group_action_title, cls.group_action_main + action_text
+        return action_config['title'], action_text
 
 
 class ActionMeta(type):
@@ -318,8 +276,6 @@ class ActionMeta(type):
     grouped_action field).
     """
     _action_classes = {}
-    _grouped_action_classes = set()
-    _ungrouped_action_classes = {}
     _config = {}
 
     def __new__(meta, *args, **kwargs):
@@ -328,38 +284,30 @@ class ActionMeta(type):
         :return: The declared class type.
         """
         cls = type.__new__(meta, *args, **kwargs)  # Create the class type
-        if cls.action_id in meta._action_classes or cls.action_id in meta._ungrouped_action_classes:
+        if cls.__name__ in meta._action_classes:
             raise ValueError('This action_id already exists')
-        if hasattr(cls, 'group_action'):
-            # If the class has this attribute then it should be registered as a subclass to the grouped action class
-            # specified by group_action.
-            group_action = cls.group_action
-            meta._ungrouped_action_classes[cls.action_id] = cls
-            if not hasattr(group_action, 'subclasses'):
-                # The GroupedAction class does not have 'subclasses' declared initially because then it would be the
-                # same for all its child classes.
-                setattr(group_action, 'subclasses', [])
-            group_action.subclasses.append(cls)
-            meta._grouped_action_classes.add(group_action)
-        else:
-            meta._action_classes[cls.action_id] = cls
+        meta._action_classes[cls.__name__] = cls
 
         if not meta._config:
             meta.load_config()
         if not hasattr(cls, 'action_config'):
             # If action_cofig is specified as a class attribute it won't be loaded from the config file.
             # Mostly makes sense for testing.
-            if hasattr(cls, 'config_id'):
-                config_id = cls.config_id
-            else:
-                config_id = cls.action_id
-            cls.action_config = meta._config.get(config_id)
+            cls.action_config = meta._config.get(cls.__name__)
         return cls
 
     @classmethod
     def load_config(meta):
         config = yaml.load(open('recommended_actions.yaml'), Loader=yaml.FullLoader)
-        meta._config = {e['id']: e for e in config}
+        for e in config:
+            cls = e['class']
+            param = e.get('param')
+            if param:
+                if not cls in meta._config:
+                    meta._config[cls] = {}
+                meta._config[cls][param] = e
+            else:
+                meta._config[cls] = e
 
     @classmethod
     def unregister(meta, cls):
@@ -368,10 +316,10 @@ class ActionMeta(type):
         :param cls:
         :return:
         """
-        del meta._action_classes[cls.action_id]
+        del meta._action_classes[cls.__name__]
 
     @classmethod
-    def all_classes(meta, grouped=False) -> List[Union[BaseAction, GroupedAction]]:
+    def all_classes(meta) -> List[BaseAction]:
         """
         Get a list of all registered action classes. Depending on value of "grouped", will return either
         regular and grouped classes, or regular and subclasses.
@@ -381,22 +329,20 @@ class ActionMeta(type):
 
         # Classes with action_id < 0 are "special": they are for a user, not for device(s).
         # We don't store those in database.
-        regular = [c for c in meta._action_classes.values() if c.action_id > 0]
-        return regular + (list(meta._grouped_action_classes) if grouped
-                          else list(meta._ungrouped_action_classes.values()))
+        return [c for c in meta._action_classes.values() if not getattr(c, 'is_user_action', False)]
 
     @classmethod
-    def is_action_id(meta, id) -> bool:
+    def is_action_class(meta, id) -> bool:
         """
         Whether the provided action id is registered (has metaclass=ActionMeta)
         :param id:
         :return:
         """
-        return id in meta._action_classes or id in meta._ungrouped_action_classes
+        return id in meta._action_classes
 
     @classmethod
     def get_class(meta, id):
-        return meta._action_classes.get(id) or meta._ungrouped_action_classes.get(id)
+        return meta._action_classes.get(id)
 
 
 # Below is the code for real actions classes.
@@ -404,196 +350,190 @@ class ActionMeta(type):
 
 # Default username/password used action.
 class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
-    action_id = 1
-    severity = Severity.HI
-
-    @classmethod
-    def affected_devices(cls, qs):
-        return qs.filter(Q(deviceinfo__default_password=True) |
-                         Q(default_password_users__len__gt=0))
+    # @classmethod
+    # def affected_devices(cls, qs):
+    #     return qs.filter(Q(deviceinfo__default_password=True) |
+    #                      Q(default_password_users__len__gt=0))
 
     @classmethod
     def is_affected(cls, device) -> bool:
-        return device.default_password
+        return device.default_password is True
+
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.HI
 
 
 # Firewall disabled action.
 class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
-    action_id = 2
-    severity = Severity.MED
-
-    @classmethod
-    def affected_devices(cls, qs):
-        from .models import FirewallState, GlobalPolicy
-        return qs.exclude(
-            (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
-            Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
+    # @classmethod
+    # def affected_devices(cls, qs):
+    #     from .models import FirewallState, GlobalPolicy
+    #     return qs.exclude(
+    #         (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
+    #         Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
 
     @classmethod
     def is_affected(cls, device) -> bool:
         from .models import FirewallState, GlobalPolicy
         firewallstate = getattr(device, 'firewallstate', None)
         return firewallstate is not None and \
-               (firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK \
-                if firewallstate.global_policy is None \
+               (firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK
+                if firewallstate.global_policy is None
                 else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
+
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.MED
 
 
 # Vulnerable packages found action.
 class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
-    action_id = 3
-    severity = Severity.MED
-
-    @classmethod
-    def affected_devices(cls, qs):
-        return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
+    # @classmethod
+    # def affected_devices(cls, qs):
+    #     return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
 
     @classmethod
     def is_affected(cls, device) -> bool:
         return device.deb_packages.filter(vulnerabilities__isnull=False).exists()
 
-
-class InsecureServicesGroupAction(GroupedAction):
-    action_id = 1000
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.MED
 
 
 # Insecure services found action.
-class BaseInsecureServicesAction(BaseAction):
-    config_id = 1000
-    group_action = InsecureServicesGroupAction
+class InsecureServicesAction(BaseAction, metaclass=ActionMeta):
+    @classmethod
+    def get_context(cls, param):
+        return {'service': param}
+
+    # @classmethod
+    # def affected_devices(cls, qs):
+    #     return qs.exclude(deb_packages_hash='').filter(
+    #         deb_packages__name=cls.service_name).distinct()
 
     @classmethod
-    def get_context(cls, devices, device_pk=None):
-        return {'service': cls.service_name}
+    def is_affected(cls, device):
+        affected = {}
+        for name, sub_id, severity in INSECURE_SERVICES:
+            affected[name] = device.deb_packages.filter(name=name).exists()
+        return affected
 
     @classmethod
-    def affected_devices(cls, qs):
-        return qs.exclude(deb_packages_hash='').filter(
-            deb_packages__name=cls.service_name).distinct()
+    def severity(cls, param):
+        return next(s.severity for s in INSECURE_SERVICES if s.name == param)
 
+
+class OpensshIssueAction(BaseAction, metaclass=ActionMeta):
     @classmethod
-    def is_affected(cls, device) -> bool:
-        return device.deb_packages.filter(name=cls.service_name).exists()
-
-
-for name, sub_id, severity in INSECURE_SERVICES:
-    class ConcreteInsecureServicesAction(BaseInsecureServicesAction, metaclass=ActionMeta):
-        action_id = sub_id + InsecureServicesGroupAction.action_id
-        severity = severity
-        service_name = name
-
-
-# OpenSSH configuration issues found action.
-class OpensshIssueGroupAction(GroupedAction):
-    action_id = 2000
-
-
-class BaseOpensshIssueAction(BaseAction):
-    group_action = OpensshIssueGroupAction
-
-    @classmethod
-    def get_context(cls, devices, device_pk=None):
-        safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[cls.sshd_param]
-        return dict(param_name=cls.sshd_param,
+    def get_context(cls, param):
+        safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[param]
+        return dict(param_name=param,
                     safe_value=safe_value,
                     doc_url=doc_url)
 
     @classmethod
-    def is_affected(cls, device) -> bool:
-        issues = device.sshd_issues
-        return cls.sshd_param in issues if issues is not None else False
+    def is_affected(cls, device):
+        affected = {}
+        for param in cls.action_config.keys():
+            issues = device.sshd_issues
+            affected[param] = param in issues if issues is not None else False
+        return affected
 
-
-for param_name, param_info in SSHD_CONFIG_PARAMS_INFO.items():
-    class ConcreteOpensshIssueAction(BaseOpensshIssueAction, metaclass=ActionMeta):
-        _, doc_url, sub_id, severity = param_info
-        action_id = OpensshIssueGroupAction.action_id + sub_id
-        sshd_param = param_name
+    @classmethod
+    def severity(cls, param):
+        return SSHD_CONFIG_PARAMS_INFO[param].severity
 
 
 # Automatic security update disabled action.
 class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
-    action_id = 6
-    severity = Severity.HI
-
-    @classmethod
-    def affected_devices(cls, qs):
-        return qs.filter(auto_upgrades=False)
+    # @classmethod
+    # def affected_devices(cls, qs):
+    #     return qs.filter(auto_upgrades=False)
 
     @classmethod
     def is_affected(cls, device) -> bool:
         return device.auto_upgrades is False
 
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.HI
+
 
 # FTP listening on port 21 action.
 class FtpServerAction(BaseAction, metaclass=ActionMeta):
-    action_id = 7
-    severity = Severity.MED
-
     @classmethod
     def is_affected(cls, device) -> bool:
         return device.is_ftp_public is True
 
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.MED
+
 
 # MySQL root default password action.
 class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
-    action_id = 10
-    severity = Severity.HI
-
-    @classmethod
-    def affected_devices(cls, qs):
-        return qs.filter(mysql_root_access=True)
+    # @classmethod
+    # def affected_devices(cls, qs):
+    #     return qs.filter(mysql_root_access=True)
 
     @classmethod
     def is_affected(cls, device) -> bool:
         return device.mysql_root_access is True
 
-
-class PubliclyAccessibleServiceGroupAction(GroupedAction):
-    action_id = 3000
-
-
-class BasePubliclyAccessibleServiceAction(BaseAction):
-    group_action = PubliclyAccessibleServiceGroupAction
-    severity = Severity.HI
-
     @classmethod
-    def get_context(cls, devices, device_pk=None):
-        return dict(service=cls.service_name, port=cls.port)
+    def severity(cls, param=None):
+        return Severity.HI
 
+
+class PubliclyAccessibleServiceAction(BaseAction, metaclass=ActionMeta):
     @classmethod
-    def is_affected(cls, device) -> bool:
-        services = device.public_services
-        return cls.service in services if services is not None else False
-
-
-for service, service_info in PUBLIC_SERVICE_PORTS.items():
-    class ConcretePubliclyAccessibleServiceAction(BasePubliclyAccessibleServiceAction, metaclass=ActionMeta):
+    def get_context(cls, param):
+        service_info = PUBLIC_SERVICE_PORTS[param]
         port, service_name, sub_id = service_info
-        action_id = sub_id + PubliclyAccessibleServiceGroupAction.action_id
-        service = service
+        return dict(service=service_name, port=port)
+
+    @classmethod
+    def is_affected(cls, device):
+        services = device.public_services
+        affected = {}
+        for service in PUBLIC_SERVICE_PORTS.keys():
+            affected[service] = service in services if services is not None else False
+        return affected
+
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.HI
 
 
 class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):
-    action_id = 12
-    severity = Severity.HI
+    @classmethod
+    def is_affected(cls, device):
+        return device.cpu_vulnerable is True
 
     @classmethod
-    def is_affected(cls, device) -> bool:
-        return device.cpu_vulnerable is True
+    def severity(cls, param=None):
+        return Severity.HI
 
 
 class GithubAction(BaseAction, metaclass=ActionMeta):
-    action_id = -1
-    severity = Severity.LO
+    is_user_action = True
+
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.LO
 
 
 class EnrollAction(BaseAction, metaclass=ActionMeta):
-    action_id = -2
-    severity = Severity.LO
+    is_user_action = True
 
     @classmethod
     def get_user_context(cls, user):
         context = {'key': user.profile.pairing_key.key}
 
         return EnrollAction._create_action(user.profile, context, [])
+
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.LO

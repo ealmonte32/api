@@ -1041,7 +1041,8 @@ class SnoozeActionView(APIView):
         serializer.is_valid(raise_exception=True)
         devices = request.user.devices.filter(pk__in=serializer.validated_data['device_ids'])
         for dev in devices:
-            action_id = serializer.validated_data['action_id']
+            action_class = serializer.validated_data['action_class']
+            action_param = serializer.validated_data['action_param']
             duration = serializer.validated_data['duration']
             if duration is None:
                 snoozed = RecommendedAction.Status.NOT_AFFECTED
@@ -1049,5 +1050,5 @@ class SnoozeActionView(APIView):
                 snoozed = RecommendedAction.Status.SNOOZED_FOREVER
             else:
                 snoozed = RecommendedAction.Status.SNOOZED_UNTIL_TIME
-            dev.snooze_action(action_id, snoozed, duration)
+            dev.snooze_action(action_class, action_param, snoozed, duration)
         return Response(status=status.HTTP_200_OK)

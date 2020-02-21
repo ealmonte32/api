@@ -568,16 +568,17 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             affected_devices = set()
             for ra in active_actions:
                 affected_devices.add(ra.device.pk)
-                actions_by_id[ra.action_id].append(ra.device.pk)
+                actions_by_id[(ra.action_class, ra.action_param)].append(ra.device.pk)
             affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
 
             # Generate Action objects to be rendered on page for every affected RA.
             for ra_id, device_pks in actions_by_id.items():
                 devices = [affected_devices[d] for d in device_pks]
-                if ActionMeta.is_action_id(ra_id):
+                ra_class, ra_param = ra_id
+                if ActionMeta.is_action_class(ra_class):
                     # Make sure we have an Action class with this id.
                     # If we don't (this id is invalid or was removed) - ignore it.
-                    a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
+                    a = ActionMeta.get_class(ra_class).action(self.request.user, devices, ra_param)
                     actions.append(a)
         else:  # User has no devices - display the special action.
             device_name = None
@@ -591,7 +592,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             actions.append(GithubAction.action(self.request.user, []))
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.
-        actions.sort(key=lambda a: (a.severity.value[2], a.action_id), reverse=True)
+        actions.sort(key=lambda a: (a.severity.value[2], a.action_class), reverse=True)
 
         return device_name, actions
 

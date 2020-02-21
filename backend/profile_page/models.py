@@ -54,7 +54,7 @@ class Profile(models.Model):
     def actions_count(self):
         return RecommendedAction.objects.filter(
             Q(device__owner=self.user) & RecommendedAction.get_affected_query()) \
-            .values('action_id').distinct().count()
+            .values('action_class', 'action_param').distinct().count()
 
     @property
     def actions_weekly(self):

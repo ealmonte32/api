@@ -1457,6 +1457,55 @@ class CVEViewTests(TestCase):
         return [CVEView.Hyperlink(text=device.get_name(), href=reverse('device_cve', kwargs={'device_pk': device.pk}))
                 for device in devices]
 
+    def test_no_fix_available(self):
+        self.device0.deb_packages.clear()
+        vulns = [
+            Vulnerability(os_release_codename='stretch', name='CVE-2019-1', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2019-2', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False),
+            Vulnerability(os_release_codename='bionic', name='CVE-2019-1', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False),
+            Vulnerability(os_release_codename='bionic', name='CVE-2019-2', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True)
+        ]
+        Vulnerability.objects.bulk_create(vulns)
+
+        packages = [
+            DebPackage(name='uno_first', version='version_uno', source_name='uno_source', source_version='uno_version',
+                       arch=DebPackage.Arch.i386, os_release_codename='stretch'),
+            DebPackage(name='duo_first', version='version_uno', source_name='uno_source', source_version='uno_version',
+                       arch=DebPackage.Arch.i386, os_release_codename='stretch'),
+            DebPackage(name='uno_first', version='version_uno', source_name='uno_source', source_version='uno_version',
+                       arch=DebPackage.Arch.i386, os_release_codename='bionic'),
+            DebPackage(name='duo_first', version='version_uno', source_name='uno_source', source_version='uno_version',
+                       arch=DebPackage.Arch.i386, os_release_codename='bionic')
+        ]
+        DebPackage.objects.bulk_create(packages)
+        packages[0].vulnerabilities.add(vulns[0])
+        packages[1].vulnerabilities.add(vulns[1])
+        packages[2].vulnerabilities.add(vulns[2])
+        packages[3].vulnerabilities.add(vulns[3])
+
+        device0 = Device.objects.create(
+            device_id='device10.d.wott-dev.local',
+            owner=self.user,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'stretch'}
+        )
+        device0.deb_packages.set(packages[:2])
+
+        device1 = Device.objects.create(
+            device_id='device11.d.wott-dev.local',
+            owner=self.user,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'bionic'}
+        )
+        device1.deb_packages.set(packages[2:])
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
     def test_sort_package_hosts_affected(self):
         self.packages[0].vulnerabilities.set(self.vulns)
         self.packages[1].vulnerabilities.set(self.vulns[1:])

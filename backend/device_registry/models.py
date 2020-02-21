@@ -7,7 +7,8 @@ from typing import NamedTuple
 from dateutil.relativedelta import relativedelta, SU, MO
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Max, Window, Count
+from django.db.models import Q, Max, Window, Count, Value
+from django.db.models.functions import Concat
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -140,8 +141,9 @@ class Device(models.Model):
                 eol_info_dict['passed'] = distro.end_of_life <= timezone.now().date()
         return eol_info_dict
 
-    def snooze_action(self, action_id, snoozed, duration=None):
-        action, _ = RecommendedAction.objects.get_or_create(action_id=action_id, device=self)
+    def snooze_action(self, action_class, action_param, snoozed, duration=None):
+        action, _ = RecommendedAction.objects.get_or_create(action_class=action_class, action_param=action_param,
+                                                            device=self)
         action.status = snoozed
         if snoozed == RecommendedAction.Status.SNOOZED_UNTIL_TIME:
             action.snoozed_until = timezone.now() + datetime.timedelta(hours=duration)
@@ -544,30 +546,39 @@ class Device(models.Model):
         :param classes: if supplied, limit the scope of this method to this list of BaseAction classes.
         :return:
         """
-        ra_all = self.recommendedaction_set.all().values_list('action_id', flat=True)
+        ra_all = self.recommendedaction_set.all().values_list('action_class', 'action_param')
         ra_affected = self.recommendedaction_set.exclude(status=RecommendedAction.Status.NOT_AFFECTED)\
-                                                .values_list('action_id', flat=True)
+                                                .values_list('action_class', 'action_param')
         newly_affected = []
         newly_not_affected = []
         added = []
         for action_class in ActionMeta.all_classes() if classes is None else classes:
-            is_affected = action_class.is_affected(self)
-            if action_class.action_id not in ra_all:
-                # If a RecommendedAction object for some RA does not exist it will be created.
-                added.append((action_class.action_id, is_affected))
-            elif is_affected and action_class.action_id not in ra_affected:
-                # A RecommendedAction object is not in AFFECTED status, but the RA affects the device
-                newly_affected.append(action_class.action_id)
-            elif not is_affected and action_class.action_id in ra_affected:
-                # A RecommendedAction object is in AFFECTED or SNOOZED_* status, but the RA doesn't affect the device
-                newly_not_affected.append(action_class.action_id)
-        n_affected = self.recommendedaction_set.filter(action_id__in=newly_affected)\
+            affected_params = action_class.is_affected(self)
+            if type(affected_params) is bool:
+                affected_params = {None: affected_params}
+            for param, is_affected in affected_params.items():
+                action_class_name = action_class.__name__
+                if (action_class_name, param) not in ra_all:
+                    # If a RecommendedAction object for some RA does not exist it will be created.
+                    added.append((action_class_name, param, is_affected))
+                elif is_affected and (action_class_name, param) not in ra_affected:
+                    # A RecommendedAction object is not in AFFECTED status, but the RA affects the device
+                    newly_affected.append((action_class_name, param))
+                elif not is_affected and (action_class_name, param) in ra_affected:
+                    # A RecommendedAction object is in AFFECTED or SNOOZED_ status, but the RA doesn't affect the device
+                    newly_not_affected.append((action_class_name, param))
+        n_affected = self.recommendedaction_set\
+            .annotate(class_param=Concat('action_class', Value(':'), 'action_param'))\
+            .filter(class_param__in=[f'{name}:{"" if param is None else param}' for name, param in newly_affected])\
             .update(status=RecommendedAction.Status.AFFECTED)
-        n_unaffected = self.recommendedaction_set.filter(action_id__in=newly_not_affected)\
+        n_unaffected = self.recommendedaction_set\
+            .annotate(class_param=Concat('action_class', Value(':'), 'action_param'))\
+            .filter(class_param__in=[f'{name}:{"" if param is None else param}' for name, param in newly_not_affected])\
             .update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
-        ra_new = [RecommendedAction(action_id=action_id, device=self,
-                                    status=RecommendedAction.Status.AFFECTED if affected else
-                                    RecommendedAction.Status.NOT_AFFECTED) for action_id, affected in added]
+        ra_new = [RecommendedAction(action_class=action_class_name, action_param=param, device=self,
+                                    status=(RecommendedAction.Status.AFFECTED
+                                            if is_affected else RecommendedAction.Status.NOT_AFFECTED))
+                  for action_class_name, param, is_affected in added]
         self.recommendedaction_set.bulk_create(ra_new)
         return n_affected, n_unaffected, len(ra_new)
 
@@ -927,7 +938,7 @@ class Distro(models.Model):
 
 class RecommendedAction(models.Model):
     class Meta:
-        unique_together = ['device', 'action_id']
+        unique_together = ['device', 'action_class', 'action_param']
 
     class Status(IntEnum):
         AFFECTED = 0
@@ -943,7 +954,8 @@ class RecommendedAction(models.Model):
                  snoozed_until__lt=timezone.now())
 
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
-    action_id = models.PositiveSmallIntegerField()
+    action_class = models.CharField(max_length=64)
+    action_param = models.CharField(max_length=128, null=True, blank=True)
     status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Status],
                                               default=Status.AFFECTED.value)
     snoozed_until = models.DateTimeField(null=True, blank=True)
@@ -951,6 +963,9 @@ class RecommendedAction(models.Model):
 
     @classmethod
     def update_all_devices(cls, classes=None):
+        # FIXME: implement this again
+        return
+
         """
         Generate RAs for all devices which don't have them. Tries to do this in bulk by using .affected_devices()
         therefore if it's written properly this method will execute quickly.
