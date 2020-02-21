@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from typing import NamedTuple, List, Union
@@ -144,6 +145,7 @@ class BaseAction:
     It's a parent for all specific base action classes.
     """
     doc_url = 'https://wott.io/documentation/faq'
+    has_param = False
 
     @classmethod
     def severity(cls, param=None):
@@ -151,7 +153,6 @@ class BaseAction:
 
     @classmethod
     def affected_devices(cls, qs: QuerySet) -> QuerySet:
-        raise NotImplementedError
         """
         Select all devices which are affected by this recommended action.
         This method is to be used during migration when a new RA is added. It is supposed to be optimized for quick
@@ -161,9 +162,17 @@ class BaseAction:
         :return: QuerySet
         """
         from .models import Device
-        return Device.objects.filter(pk__in=[
-            dev.pk for dev in qs if cls.is_affected(dev)
-        ])
+        if cls.has_param:
+            result = defaultdict(list)
+            for dev in qs:
+                for param, val in cls.is_affected(dev).items():
+                    if val:
+                        result[param].append(dev)
+            return result
+        else:
+            return Device.objects.filter(pk__in=[
+                dev.pk for dev in qs if cls.is_affected(dev)
+            ])
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -284,8 +293,10 @@ class ActionMeta(type):
         :return: The declared class type.
         """
         cls = type.__new__(meta, *args, **kwargs)  # Create the class type
+        if hasattr(cls, 'action_class'):
+            cls.__name__ = cls.action_class
         if cls.__name__ in meta._action_classes:
-            raise ValueError('This action_id already exists')
+            raise ValueError('This action class already exists')
         meta._action_classes[cls.__name__] = cls
 
         if not meta._config:
@@ -350,14 +361,19 @@ class ActionMeta(type):
 
 # Default username/password used action.
 class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
-    # @classmethod
-    # def affected_devices(cls, qs):
-    #     return qs.filter(Q(deviceinfo__default_password=True) |
-    #                      Q(default_password_users__len__gt=0))
+    has_param = True
+
+    @classmethod
+    def affected_devices(cls, qs):
+        all_users = defaultdict(list)
+        for d in qs.filter(default_password_users__isnull=False, default_password_users__len__gt=0):
+            for u in d.default_password_users:
+                all_users[u].append(d)
+        return all_users
 
     @classmethod
     def is_affected(cls, device) -> bool:
-        return device.default_password is True
+        return {u: True for u in device.default_password_users} if device.default_password_users else {}
 
     @classmethod
     def severity(cls, param=None):
@@ -366,12 +382,12 @@ class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
 
 # Firewall disabled action.
 class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
-    # @classmethod
-    # def affected_devices(cls, qs):
-    #     from .models import FirewallState, GlobalPolicy
-    #     return qs.exclude(
-    #         (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
-    #         Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
+    @classmethod
+    def affected_devices(cls, qs):
+        from .models import FirewallState, GlobalPolicy
+        return qs.exclude(
+            (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
+            Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -389,9 +405,9 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
 
 # Vulnerable packages found action.
 class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
-    # @classmethod
-    # def affected_devices(cls, qs):
-    #     return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
+    @classmethod
+    def affected_devices(cls, qs):
+        return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -404,19 +420,24 @@ class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
 
 # Insecure services found action.
 class InsecureServicesAction(BaseAction, metaclass=ActionMeta):
+    has_param = True
+
     @classmethod
     def get_context(cls, param):
         return {'service': param}
 
-    # @classmethod
-    # def affected_devices(cls, qs):
-    #     return qs.exclude(deb_packages_hash='').filter(
-    #         deb_packages__name=cls.service_name).distinct()
+    @classmethod
+    def affected_devices(cls, qs):
+        affected = {}
+        for name, _, _ in INSECURE_SERVICES:
+            affected[name] = qs.exclude(deb_packages_hash='').filter(
+                deb_packages__name=name).distinct()
+        return affected
 
     @classmethod
     def is_affected(cls, device):
         affected = {}
-        for name, sub_id, severity in INSECURE_SERVICES:
+        for name, _, _ in INSECURE_SERVICES:
             affected[name] = device.deb_packages.filter(name=name).exists()
         return affected
 
@@ -426,6 +447,8 @@ class InsecureServicesAction(BaseAction, metaclass=ActionMeta):
 
 
 class OpensshIssueAction(BaseAction, metaclass=ActionMeta):
+    has_param = True
+
     @classmethod
     def get_context(cls, param):
         safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[param]
@@ -448,9 +471,9 @@ class OpensshIssueAction(BaseAction, metaclass=ActionMeta):
 
 # Automatic security update disabled action.
 class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
-    # @classmethod
-    # def affected_devices(cls, qs):
-    #     return qs.filter(auto_upgrades=False)
+    @classmethod
+    def affected_devices(cls, qs):
+        return qs.filter(auto_upgrades=False)
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -474,9 +497,9 @@ class FtpServerAction(BaseAction, metaclass=ActionMeta):
 
 # MySQL root default password action.
 class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
-    # @classmethod
-    # def affected_devices(cls, qs):
-    #     return qs.filter(mysql_root_access=True)
+    @classmethod
+    def affected_devices(cls, qs):
+        return qs.filter(mysql_root_access=True)
 
     @classmethod
     def is_affected(cls, device) -> bool:
@@ -488,6 +511,8 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
 
 
 class PubliclyAccessibleServiceAction(BaseAction, metaclass=ActionMeta):
+    has_param = True
+
     @classmethod
     def get_context(cls, param):
         service_info = PUBLIC_SERVICE_PORTS[param]

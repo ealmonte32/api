@@ -389,7 +389,7 @@ class TestsMixin:
         # No action at the beginning.
         self.device.generate_recommended_actions()
         affected = self.action_class.is_affected(self.device)
-        if type(affected) is bool:
+        if not self.action_class.has_param:
             self.assertFalse(affected)
         else:
             self.assertFalse(any(affected.values()))
@@ -402,7 +402,7 @@ class TestsMixin:
         self.enable_action()
         self.device.generate_recommended_actions()
         affected = self.action_class.is_affected(self.device)
-        if type(affected) is bool:
+        if not self.action_class.has_param:
             self.assertTrue(affected)
         else:
             self.assertTrue(any(affected.values()))
@@ -428,12 +428,7 @@ class DefaultCredentialsActionTest(TestsMixin, TestCase):
     action_class = DefaultCredentialsAction
 
     def enable_action(self):
-        self.device.deviceinfo.default_password = True
-        self.device.deviceinfo.save(update_fields=['default_password'])
-
-
-class DefaultCredentialsUsersTest(DefaultCredentialsActionTest):
-    def enable_action(self):
+        self.param = 'pi'
         self.device.default_password_users = ['pi']
         self.device.save(update_fields=['default_password_users'])
 

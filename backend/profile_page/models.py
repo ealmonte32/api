@@ -4,8 +4,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models import Q, Avg, Max, Window, Count
-from django.db.models.functions import Coalesce
+from django.db.models import Q, Avg, Max, Window, Count, Value
+from django.db.models.functions import Coalesce, Concat
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -67,18 +67,23 @@ class Profile(models.Model):
         now = timezone.now()
         sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
         this_monday = sunday + relativedelta(days=1)  # This week's monday
-        all_ids = [ra.action_id for ra in ActionMeta.all_classes()]
+        all_ids = [ra.__name__ for ra in ActionMeta.all_classes()]
 
         ra_maybe_resolved_this_week = RecommendedAction.objects.filter(device__owner=self.user,
-                                                                       action_id__in=all_ids,
+                                                                       action_class__in=all_ids,
                                                                        status=RecommendedAction.Status.NOT_AFFECTED,
                                                                        resolved_at__gte=this_monday) \
-            .values('action_id')  # resolved this week (not completely)
+            .values('action_class', 'action_param')  # resolved this week (not completely)
         ra_unresolved = RecommendedAction.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
                                                          device__owner=self.user,
-                                                         action_id__in=all_ids) \
-            .values('action_id').distinct()  # unresolved (incl. snoozed)
-        ra_resolved_this_week = ra_maybe_resolved_this_week.exclude(action_id__in=ra_unresolved).distinct()
+                                                         action_class__in=all_ids) \
+            .values('action_class', 'action_param').distinct()  # unresolved (incl. snoozed)
+        ra_resolved_this_week = ra_maybe_resolved_this_week \
+            .annotate(class_param=Concat('action_class', Value(':'), 'action_param')) \
+            .exclude(class_param__in=ra_unresolved
+                     .annotate(class_param=Concat('action_class', Value(':'), 'action_param'))
+                     .values('class_param'))\
+            .distinct()
         return ra_unresolved.filter(RecommendedAction.get_affected_query()), ra_resolved_this_week
 
     @property
@@ -136,7 +141,7 @@ class Profile(models.Model):
             status=RecommendedAction.Status.NOT_AFFECTED,
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
-        ).values('action_id').distinct().count()
+        ).values('action_class', 'action_param').distinct().count()
 
         cve_hi, cve_med, cve_lo = self.cve_count
         HistoryRecord.objects.create(owner=self.user,

@@ -74,21 +74,23 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     def _actions(self):
         ra_unresolved, ra_resolved_this_week = self.request.user.profile.actions_weekly
 
-        severities = {ra.action_id: ra.severity for ra in ActionMeta.all_classes()}
         actions = []
         resolved_count = ra_resolved_this_week.count()
         if resolved_count < settings.MAX_WEEKLY_RA:
-            ra_unresolved = sorted(ra_unresolved.values_list('action_id', flat=True),
-                                   key=lambda v: severities[v].value[2], reverse=True)
-            for action_id in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
+            ra_unresolved = sorted(ra_unresolved,
+                                   key=lambda v: ActionMeta.get_class(v['action_class']).severity(v['action_param']).value[2],
+                                   reverse=True)
+            for a in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 affected_devices = Device.objects.filter(owner=self.request.user,
                     recommendedaction__in=RecommendedAction.objects.filter(
-                    RecommendedAction.get_affected_query(), action_id=action_id)).distinct()
-                a = ActionMeta.get_class(action_id).action(self.request.user, affected_devices, None)
+                    RecommendedAction.get_affected_query(),
+                        action_class=a['action_class'], action_param=a['action_param']
+                    )).distinct()
+                a = ActionMeta.get_class(a['action_class']).action(self.request.user, affected_devices, a['action_param'])
                 actions.append(a._replace(resolved=False))
 
-        for action_id in ra_resolved_this_week.values_list('action_id', flat=True)[:settings.MAX_WEEKLY_RA]:
-            a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
+        for class_param in ra_resolved_this_week[:settings.MAX_WEEKLY_RA]:
+            a = ActionMeta.get_class(class_param['action_class']).action(self.request.user, [], class_param['action_param'])
             actions.append(a._replace(resolved=True))
 
         return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)

@@ -554,7 +554,7 @@ class Device(models.Model):
         added = []
         for action_class in ActionMeta.all_classes() if classes is None else classes:
             affected_params = action_class.is_affected(self)
-            if type(affected_params) is bool:
+            if not action_class.has_param:
                 affected_params = {None: affected_params}
             for param, is_affected in affected_params.items():
                 action_class_name = action_class.__name__
@@ -963,9 +963,6 @@ class RecommendedAction(models.Model):
 
     @classmethod
     def update_all_devices(cls, classes=None):
-        # FIXME: implement this again
-        return
-
         """
         Generate RAs for all devices which don't have them. Tries to do this in bulk by using .affected_devices()
         therefore if it's written properly this method will execute quickly.
@@ -979,17 +976,22 @@ class RecommendedAction(models.Model):
             classes = ActionMeta.all_classes()
         for action_class in classes:
             # Select devices which were not yet processed with this RA.
-            qs = Device.objects.exclude(Q(recommendedaction__action_id=action_class.action_id) |
+            qs = Device.objects.exclude(Q(recommendedaction__action_class=action_class.__name__) |
                                         Q(owner__isnull=True)).only('pk')
             if not qs.exists():
                 continue
-            all_devices = set(qs)
-            affected = set(action_class.affected_devices(qs))
-            not_affected = all_devices.difference(affected)
-            created += [cls(device=d, action_id=action_class.action_id, status=cls.Status.NOT_AFFECTED)
-                        for d in not_affected] + \
-                       [cls(device=d, action_id=action_class.action_id, status=cls.Status.AFFECTED)
-                        for d in affected]
+            affected = action_class.affected_devices(qs)
+            if action_class.has_param:
+                for param, param_affected in affected.items():
+                    param_affected = set(param_affected)
+                    created += [cls(device=d,
+                                    action_class=action_class.__name__, action_param=param,
+                                    status=cls.Status.AFFECTED)
+                                for d in param_affected]
+            else:
+                affected = set(affected)
+                created += [cls(device=d, action_class=action_class.__name__, status=cls.Status.AFFECTED)
+                            for d in affected]
         cls.objects.bulk_create(created)
         return len(created)
 

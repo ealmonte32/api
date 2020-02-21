@@ -377,11 +377,11 @@ class DeviceModelTest(TestCase):
         now = timezone.now()
         # Last week's tuesday
         last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
-        ra0 = RecommendedAction.objects.create(device=self.device0, action_id=1,
+        ra0 = RecommendedAction.objects.create(device=self.device0, action_class='ClassOne',
                                                status=RecommendedAction.Status.NOT_AFFECTED)
-        ra1 = RecommendedAction.objects.create(device=self.device0, action_id=2,
+        ra1 = RecommendedAction.objects.create(device=self.device0, action_class='ClassTwo',
                                                status=RecommendedAction.Status.NOT_AFFECTED)
-        ra2 = RecommendedAction.objects.create(device=self.device0, action_id=3,
+        ra2 = RecommendedAction.objects.create(device=self.device0, action_class='ClassThree',
                                                status=RecommendedAction.Status.SNOOZED_UNTIL_PING)
 
         self.assertEqual(self.device0.actions_count_last_week, 0)
@@ -886,12 +886,12 @@ class RootViewTests(TestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user,
             certificate=TEST_CERT,
-            last_ping=timezone.now() - timezone.timedelta(days=2, hours=23)
+            last_ping=timezone.now() - timezone.timedelta(days=2, hours=23),
+            default_password_users=['pi']
         )
         DeviceInfo.objects.create(
             device=self.device1,
             fqdn='SecondFqdn',
-            default_password=True,
             detected_mirai=True,
         )
         PortScan.objects.create(device=self.device0)
@@ -1328,9 +1328,13 @@ class DashboardViewTests(TestCase):
                 """
                 A simple dummy action class with specified severity.
                 """
-                action_id = 9990 + i
-                severity = severities[i]
                 action_config = defaultdict(str)
+                action_class = 'TestActionOne' + str(i)
+                _severity = severities[i]
+
+                @classmethod
+                def severity(cls, param=None):
+                    return cls._severity
 
             cls.test_actions.append(TestActionOne)
 
@@ -1351,53 +1355,65 @@ class DashboardViewTests(TestCase):
         RecommendedAction.objects.bulk_create([
             # Both devices affected - counts as one RA.
             # This one is low severity and will be displaced by three other RAs below.
-            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device0,
-                              status=RecommendedAction.Status.AFFECTED),
-            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device1,
-                              status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_class=self.test_actions[0].__name__, action_param=None,
+                              device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_class=self.test_actions[0].__name__, action_param=None,
+                              device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # both devices affected - counts as one RA
-            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device0, status=RecommendedAction.Status.AFFECTED),
-            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_class=self.test_actions[1].__name__, action_param=None,
+                              device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_class=self.test_actions[1].__name__, action_param=None,
+                              device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # one device is affected, second was never affected (and never fixed)
-            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
-            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_class=self.test_actions[2].__name__, action_param=None,
+                              device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_class=self.test_actions[2].__name__, action_param=None,
+                              device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # one device is affected, second fixed - still not fixed
-            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedAction(action_class=self.test_actions[3].__name__, action_param=None,
+                              device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
-            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedAction(action_class=self.test_actions[3].__name__, action_param=None,
+                              device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # fixed on both devices - completely fixed
-            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedAction(action_class=self.test_actions[4].__name__, action_param=None,
+                              device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
-            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedAction(action_class=self.test_actions[4].__name__, action_param=None,
+                              device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
 
             # one never affected, another one fixed - completely fixed
-            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
-            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedAction(action_class=self.test_actions[5].__name__, action_param=None,
+                              device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedAction(action_class=self.test_actions[5].__name__, action_param=None,
+                              device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
 
             # resolved a week ago - doesn't count
-            RecommendedAction(action_id=self.test_actions[6].action_id, device=self.device1,
+            RecommendedAction(action_class=self.test_actions[6].__name__, action_param=None,
+                              device=self.device1,
                               status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today - timezone.timedelta(days=7)),
 
             # snoozed - doesn't count
-            RecommendedAction(action_id=self.test_actions[7].action_id, device=self.device1,
+            RecommendedAction(action_class=self.test_actions[7].__name__, action_param=None,
+                              device=self.device1,
                               status=RecommendedAction.Status.SNOOZED_FOREVER)
         ])
         # expected result: 1, 2, 3 - unfixed, 4, 5 - fixed
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual([(a.action_id, a.resolved) for a in response.context_data['actions']],
-                             [(self.test_actions[1].action_id, False),
-                              (self.test_actions[2].action_id, False),
-                              (self.test_actions[3].action_id, False),
-                              (self.test_actions[4].action_id, True),
-                              (self.test_actions[5].action_id, True)])
+        self.assertListEqual([(a.action_class, a.resolved) for a in response.context_data['actions']],
+                             [(self.test_actions[1].__name__, False),
+                              (self.test_actions[2].__name__, False),
+                              (self.test_actions[3].__name__, False),
+                              (self.test_actions[4].__name__, True),
+                              (self.test_actions[5].__name__, True)])
         self.assertEqual(response.context_data['weekly_progress'], 40)
 
 
