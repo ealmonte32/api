@@ -6,7 +6,7 @@
 
     <div class="wott-card-body inner-profile-tab">
         <form method="POST" action="" id="id_payments_form" class>
-            <input type="hidden" name="csrfmiddlewaretoken" value="xksNwSe5FtDgSm1f0uoKLdFIEbr41SCbeOGYlNOGkA40nt0ecb71cnoODQnNbItu">
+            {% csrf_token %}
             <div class="form-group">
                 <label class="wott-label" for="id_payment_plan">Payment plan</label>
                 <select name="payment_plan" placeholder="" class="form-control form-control wott-form-control wott-rounded-lg wott-rounded-lg" title="" id="id_payment_plan">
@@ -61,26 +61,6 @@
               <button type="submit" class="btn wott-btn btn-wott-primary">Submit</button>
             </div>
         </form>
-
-      <!-- <form method="POST" action="" id="id_payments_form">
-        {% bootstrap_form_errors form type='non_fields' %}
-        {% csrf_token %}
-        {% bootstrap_field form.payment_plan %}
-        {% bootstrap_field form.subscription_status %}
-        {% bootstrap_field form.current_period_ends %}
-        {% bootstrap_field form.total_sum %}
-        {% bootstrap_field form.nodes_number %}
-        {% bootstrap_field form.nodes_number_hidden %}
-        {% bootstrap_field form.payment_method_id %}
-        <div class="card-form-group form-group d-none">
-          <label for="id_card_element">Credit or debit card</label>
-          <div id="id_card_element"></div>
-          <div id="id_card_errors" role="alert" style="color:red;"></div>
-        </div>
-        {% buttons %}
-          <button type="submit" class="btn btn-lg btn-primary">Submit</button>
-        {% endbuttons %}
-      </form> -->
     </div>
   </div>
   <style>

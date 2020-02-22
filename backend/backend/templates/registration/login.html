@@ -39,13 +39,13 @@
                     {% if form.non_field_errors %}
                         {% for error in form.non_field_errors %}
                         <!-- Password or email incorrect message -->
-                          <div class="alert alert-warning wott-rounded-lg wott-alert-full"><h4>{{ error }}</h4></div>
+                          <div class="wott-rounded-lg wott-alert-full mb-3"><h4>{{ error }}</h4></div>
                         {% endfor %}
                     {% endif %}
                     {% if messages %}
                         {% for message in messages %}
                          <!-- Logout success message -->          
-                          <div class="wott-alert-full wott-rounded-lg text-center" role="alert"><h4>{{ message }}</h4></div> 
+                          <div class="wott-alert-full wott-rounded-lg text-center mb-3" role="alert"><h4>{{ message }}</h4></div> 
                         {% endfor %}
                     {% endif %}
                   <form method="POST" action="">
