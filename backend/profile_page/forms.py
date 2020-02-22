@@ -70,11 +70,11 @@ class RegistrationForm(RegistrationFormUniqueEmail):
     total_sum = forms.IntegerField(required=False, initial=settings.WOTT_PRICE_PER_NODE, disabled=True,
                                    label="You'll be charged (USD, after the 30 days free trial period end)",
                                    widget=forms.NumberInput(attrs={'placeholder': ''}))
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field_name in self.fields:
-            self.fields[field_name].widget.attrs['placeholder'] = ''
+    # the function bellow is duplicated with line 92, @Roman please check if we can remove it
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     for field_name in self.fields:
+    #         self.fields[field_name].widget.attrs['placeholder'] = ''
 
     def clean(self):
         self._validate_unique = True

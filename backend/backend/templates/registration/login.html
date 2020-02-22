@@ -44,10 +44,8 @@
                     {% endif %}
                     {% if messages %}
                         {% for message in messages %}
-                         <!-- Logout success message -->
-                          <div class="alert" role="alert">
-                            <div class="alert wott-alert-full wott-rounded-lg text-center" role="alert"><h4>{{ message }}</h4></div>
-                          </div>
+                         <!-- Logout success message -->          
+                          <div class="wott-alert-full wott-rounded-lg text-center" role="alert"><h4>{{ message }}</h4></div> 
                         {% endfor %}
                     {% endif %}
                   <form method="POST" action="">

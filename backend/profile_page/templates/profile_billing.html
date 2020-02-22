@@ -2,12 +2,67 @@
 {% load bootstrap4 %}
 
 {% block profile_content %}
-  <div class="card">
-    <div class="card-header">
-      <h5 class="card-title mb-0">Billing</h5>
-    </div>
-    <div class="card-body">
-      <form method="POST" action="" id="id_payments_form">
+  <div id="billing">
+
+    <div class="wott-card-body inner-profile-tab">
+        <form method="POST" action="" id="id_payments_form" class>
+            <input type="hidden" name="csrfmiddlewaretoken" value="xksNwSe5FtDgSm1f0uoKLdFIEbr41SCbeOGYlNOGkA40nt0ecb71cnoODQnNbItu">
+            <div class="form-group">
+                <label class="wott-label" for="id_payment_plan">Payment plan</label>
+                <select name="payment_plan" placeholder="" class="form-control form-control wott-form-control wott-rounded-lg wott-rounded-lg" title="" id="id_payment_plan">
+                    <option value="1" selected="">Free (1 node limit)</option>
+                    <option value="2">Standard</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="wott-label" for="id_subscription_status">Subscription status</label>
+                <input type="text" name="subscription_status" placeholder="" class="form-control wott-form-control wott-rounded-lg" title="" disabled="" id="id_subscription_status">
+            </div>
+            <div class="form-group">
+                <label class="wott-label" for="id_current_period_ends">Current billing period ends</label>
+                <input type="text" name="current_period_ends" placeholder="" class="form-control wott-form-control wott-rounded-lg" title="" disabled="" id="id_current_period_ends">
+            </div>
+            <div class="form-group">
+                <label class="wott-label" for="id_total_sum">Monthly charge</label>
+                <div class="wott-dolar-input">
+                    <input type="number" name="total_sum" placeholder="" value="0" class="form-control wott-form-control wott-blue wott-rounded-lg" title="" disabled="" id="id_total_sum">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="wott-label" for="id_nodes_number">Paid nodes (In addition to the first free node)</label>
+                <input type="number" name="nodes_number" placeholder="" min="1" class="form-control wott-form-control wott-rounded-lg" title="" disabled="" id="id_nodes_number">
+            </div>
+            <input type="hidden" name="nodes_number_hidden" placeholder="" id="id_nodes_number_hidden">
+            <input type="hidden" name="payment_method_id" placeholder="" id="id_payment_method_id">
+            <div class="card-form-group form-group d-none">
+                <label class="wott-label" for="id_card_element">Credit or debit card</label>
+                <div id="id_card_element" class="StripeElement StripeElement--empty form-control wott-form-control wott-payment-card-inner-box">
+                    <div class="__PrivateStripeElement" style="margin: 0px !important; padding: 0px !important; border: none !important; display: block !important; background: transparent !important; position: relative !important; opacity: 1 !important;">
+                        <iframe frameborder="0" allowtransparency="true" scrolling="no" name="__privateStripeFrame5" allowpaymentrequest="true" src="https://js.stripe.com/v3/elements-inner-card-bc2f035b775981ac56c3f018e0d98bd1.html#style[base][color]=%2332325d&amp;style[base][fontFamily]=%22Helvetica+Neue%22%2C+Helvetica%2C+sans-serif&amp;style[base][fontSmoothing]=antialiased&amp;style[base][fontSize]=16px&amp;style[base][::placeholder][color]=%23aab7c4&amp;style[invalid][color]=%23fa755a&amp;style[invalid][iconColor]=%23fa755a&amp;componentName=card&amp;wait=false&amp;rtl=false&amp;keyMode=test&amp;apiKey=pk_test_380KNHna4diAHvGVsucQ3pel00xbqUaSQf&amp;origin=http%3A%2F%2Flocalhost%3A8000&amp;referrer=http%3A%2F%2Flocalhost%3A8000%2Fuser%2Fprofile%2Fpayment%2F&amp;controllerId=__privateStripeController1" title="Secure payment input frame" style="border: none !important; margin: 0px !important; padding: 0px !important; width: 1px !important; min-width: 100% !important; overflow: hidden !important; display: block !important; user-select: none !important; height: 19.2px;"></iframe><input class="__PrivateStripeElement-input" aria-hidden="true" aria-label=" " autocomplete="false" maxlength="1" style="border: none !important; display: block !important; position: absolute !important; height: 1px !important; top: 0px !important; left: 0px !important; padding: 0px !important; margin: 0px !important; width: 100% !important; opacity: 0 !important; background: transparent !important; pointer-events: none !important; font-size: 16px !important;">
+                    </div>
+                </div>
+                <div id="id_card_errors" role="alert" style="color:#FF5649;"></div>
+            </div>
+
+             <!--The code block below is to be used to show error messages from Stripe-->
+            <!--Here it's suposed to loop a non_field_error, but it could be changed to messages etc... -->
+
+            {% if form.non_field_errors %}
+              <div class="wott-payment-card-box">
+                {% for error in form.non_field_errors %}
+                    <div class="wott-rounded-lg wott-alert-full mt-3">
+                      <h4 class="wott-medium-text">{{ error }}</h4>
+                    </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="form-group mt-4">
+              <button type="submit" class="btn wott-btn btn-wott-primary">Submit</button>
+            </div>
+        </form>
+
+      <!-- <form method="POST" action="" id="id_payments_form">
         {% bootstrap_form_errors form type='non_fields' %}
         {% csrf_token %}
         {% bootstrap_field form.payment_plan %}
@@ -25,9 +80,41 @@
         {% buttons %}
           <button type="submit" class="btn btn-lg btn-primary">Submit</button>
         {% endbuttons %}
-      </form>
+      </form> -->
     </div>
   </div>
+  <style>
+    .StripeElement--complete {
+        background-color: #e9f3f5 !important;
+    }
+
+    .wott-payment-card-inner-box {
+    background-color: white;
+    padding: 1.2rem 1.5rem;
+    border: 2px solid #cddef7;
+    min-height: 50px;
+  }
+
+  #id_total_sum {
+      padding-left: 25px;
+  }
+
+  .wott-dolar-input {
+    position: relative;
+  }
+
+  .wott-dolar-input:before {
+    content:"$";
+    position: absolute;
+    top: 21px;
+    left: 13px;
+    height: 30px;
+    width: 40px;
+    color: #2460c8;
+    z-index: 999;
+  }
+
+  </style>
 {% endblock %}
 
 {% block js %}
@@ -56,8 +143,8 @@
               }
           },
           invalid: {
-              color: '#fa755a',
-              iconColor: '#fa755a'
+              color: '#FF5649',
+              iconColor: '#FF5649'
           }
       };
 
@@ -95,6 +182,8 @@
               if (payment_plan_id === '1') {  // Enabled standard plan.
                   $('.card-form-group').removeClass('d-none');  // Unhide card section.
                   handle_stripe_submission = true;
+                  document.getElementById('id_card_element').scrollIntoView({ behavior: 'smooth' });
+
               }
           } else if (new_payment_plan_id === '1') {
               $('.card-form-group').addClass('d-none');  // Hide card section.
@@ -102,7 +191,7 @@
               if (nodes_number)
                   $('#id_total_sum').val(nodes_number * price_per_node);
               else
-                  $('#id_total_sum').val('');
+                  $('#id_total_sum').val('0');
               $('#id_nodes_number').attr('disabled', true);
               handle_stripe_submission = false;
           }

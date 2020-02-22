@@ -46,3 +46,28 @@
   padding: 20px;
   font-weight: 600;
 }
+
+// easy-wott-colors
+
+.wott-blue {
+  color: $wott-blue;
+}
+
+.wott-danger {
+  color: #FF5649;
+}
+
+// Fonts and text rules
+
+.wott-medium-text {
+  font-size: 1.1rem !important;
+  margin-bottom: 14px;
+  font-weight: 600
+}
+
+.wott-small-text {
+  font-size: .8rem !important;
+  font-weight: 400;
+  margin-bottom: 0;
+  line-height: 1rem !important;
+}

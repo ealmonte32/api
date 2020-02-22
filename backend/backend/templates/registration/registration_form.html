@@ -4,6 +4,7 @@
 {% load static %}
 
 {% load bootstrap4 %}
+{% load widget_tweaks %}
 
 {% block title %}WoTT - {% trans "Register for an account" %}{% endblock %}
 
@@ -22,33 +23,138 @@
         </div>
         <div class="p-0 mb-0 position-relative">
           <form id="register-form" class="position-relative" method="post" action="">
-            {% bootstrap_form_errors form type='non_fields' %}
+            <!-- {% bootstrap_form_errors form type='non_fields' %} --> 
             {% csrf_token %}
-            <input type="hidden" value=1 id="remembered-nodes-number">
-            {% bootstrap_field form.email %}
-            {% bootstrap_field form.password1 %}
-            {% bootstrap_field form.password2 %}
-            {% bootstrap_field form.first_name %}
-            {% bootstrap_field form.last_name %}
-            {% bootstrap_field form.company %}
-            {% bootstrap_field form.phone %}
-            {% bootstrap_field form.payment_plan %}
-            {% bootstrap_field form.total_sum form_group_class="free-hidden form-group d-none" %}
+
+            <div class="input-fields-box d-flex">
+              <div class="box-left pb-0">
+                <input type="hidden" value=1 id="remembered-nodes-number">
+                {% include "form_field.html" with field=form.email asterisk=True %}
+                {% include "form_field.html" with field=form.password1 asterisk=True %}
+                {% include "form_field.html" with field=form.password2 asterisk=True placeholder='Confirm Your Password' %}
+                {% include "form_field.html" with field=form.company placeholder='Optional' %}
+                <h5 id="required-text" class="wott-blue mb-0">* Required</h5>
+              </div>
+              
+              <div class="box-right pb-0">
+                {% include "form_field.html" with field=form.first_name placeholder='Optional' %}
+                {% include "form_field.html" with field=form.last_name placeholder='Optional' %}
+                {% include "form_field.html" with field=form.phone placeholder='Optional'%}
+                {% include "form_field.html" with field=form.payment_plan %}
+                <h5 class="mb-0" style="color: transparent">Required</h5>
+              </div>
+            </div>
+
+            <section id="payment-container" class="free-hidden d-none">
+              <div class="input-fields-box d-flex">
+                <div class="box-left pb-2 pt-4 ">
+                  <div class="form-group required">
+                    <label class="wott-label" for="id_nodes_number">Nodes Number<p class="wott-small-text">(In addition to the first free node)</p></label>
+                    <input type="number" name="nodes_number" value="1" min="1" class="form-control wott-form-control wott-border-radius-lg" title="" required="" id="id_nodes_number">
+                  </div>
+                </div>
+  
+                <div class="box-right pb-2 pt-4 ">
+                  <div class="form-group">
+                    <label class="wott-label" for="id_total_sum">You'll be charged in USD<p class="wott-small-text">(after the 30 days free trial period end)</p></label>
+                    <div class="wott-dolar-input">
+                      <input type="number" name="total_sum" value="9" placeholder="" class="form-control wott-form-control wott-border-radius-lg wott-blue" title="" disabled="" id="id_total_sum">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="input-fields-box wott-payment-card-box ">
+                <input type="hidden" name="payment_method_id" id="id_payment_method_id">
+                <label class="wott-label" for="id_card_element">Credit or Debit Card</label>
+                <div class=" wott-border-radius-lg wott-payment-card-inner-box">
+                  <div id="id_card_element" class="StripeElement StripeElement--empty"></div>
+                  <div class="pt-1" id="id_card_errors" role="alert" style="color: #FF5649;"></div>
+                </div>
+              </div>
+            </section>
+            
+            <!--The code block below is to be used to show error messages from Stripe-->
+            <!--Here it's suposed to loop a non_field_error, but it could be changed to messages etc ...-->
+
+            {% if form.non_field_errors %}
+              <div class="wott-payment-card-box pt-4">
+                {% for error in form.non_field_errors %}
+                    <div class="wott-rounded-lg wott-alert-full mt-3">
+                      <h4 class="wott-medium-text">{{ error }}</h4>
+                    </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- {% bootstrap_field form.total_sum form_group_class="free-hidden form-group d-none" %}
             {% bootstrap_field form.nodes_number form_group_class="free-hidden form-group d-none" %}
-            {% bootstrap_field form.payment_method_id %}
-            <div class="free-hidden form-group d-none">
+            {% bootstrap_field form.payment_method_id %} -->
+            <!-- <div class="free-hidden form-group d-none">
               <label for="id_card_element">Credit or debit card</label>
               <div id="id_card_element"></div>
               <div id="id_card_errors" role="alert" style="color:red;"></div>
+            </div> -->
+
+            <div class="form-group box-bottom text-center mb-0 py-4">
+              {% buttons %}
+              <button type="submit" class="wott-btn btn-wott-primary w-25">{% trans 'Get Started' %}</button>
+              {% endbuttons %}
             </div>
-            {% buttons %}
-              <button type="submit" class="btn btn-lg btn-primary">Submit</button>
-            {% endbuttons %}
           </form>
         </div>
       </div>
     </main>
   </div>
+  <style>
+  
+  .wott-payment-card-box {
+    padding: 0rem 3.5rem;
+    background-color: #f4f6fb;
+    margin-bottom: 0px;
+  }
+
+  .wott-payment-card-inner-box {
+    background-color: white;
+    padding: 1.2rem 1.5rem;
+    border: 2px solid #cddef7;
+    min-height: 50px;
+  }
+
+  .wott-payment-container {
+    border-top: 1px solid lightgray;
+    margin-top: 1rem;
+    background-color: #f4f6fb;
+  }
+
+  .wott-dolar-input {
+    position: relative;
+  }
+
+  .wott-dolar-input:after {
+    content:"$";
+    position: absolute;
+    top: 21px;
+    left: 13px;
+    height: 30px;
+    width: 40px;
+    color: #2460c8;
+    z-index: 999;
+  }
+  
+  #id_total_sum {
+    padding-left: 25px;
+  }
+
+  #server-container-register {
+    right: -155px !important;
+    width: auto !important;
+  }
+
+  #server-image-content {
+    width: 240px !important;
+  }
+  </style>
 {% endblock content %}
 
 {% block js %}
@@ -80,6 +186,7 @@
               $('#id_nodes_number').val($('#remembered-nodes-number').val());
               $('.free-hidden').removeClass('d-none');
               handle_stripe_submission = true;
+              document.getElementById('id_card_element').scrollIntoView({ behavior: 'smooth' });
           }
       });
 
@@ -109,8 +216,8 @@
               }
           },
           invalid: {
-              color: '#fa755a',
-              iconColor: '#fa755a'
+              color: '#FF5649',
+              iconColor: '#FF5649'
           }
       };
 

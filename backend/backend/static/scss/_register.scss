@@ -1,32 +1,31 @@
-
 #register-form {
-
   .box-right {
-    padding: 7vh 3.98rem;
-    padding-right: 7.5rem;
-    background-color: #f4f6fb;
     border-bottom-right-radius: $wott-border-radius-lg;
-    z-index: 1;
+    padding-right: 7.5rem;
     @include media-breakpoint-down(lg) {
       padding-right: 3.5rem;
     }
   }
 
-  .box-left .wott-label{
-    font-size: 1.1rem;
-    margin-bottom: 14px;
-    font-weight: 600;
-  }
-
   .box-left {
-    background-color: #f4f6fb;
-    padding: 7vh 3.98rem;
-    padding-left: 7.5rem;
     border-bottom-left-radius: $wott-border-radius-lg;
+    padding-left: 7.5rem;
     @include media-breakpoint-down(lg) {
       padding-left: 3.5rem;
     }
   } 
+
+  .box-right, .box-left {
+    padding: 7vh 3.98rem;
+    background-color: #f4f6fb;
+    z-index: 1;
+  }
+
+  .wott-label{
+    font-size: 1.1rem !important;
+    margin-bottom: 14px !important;
+    font-weight: 600 !important;
+  }
 
   .box-bottom {
     background-color:#f4f6fb;
@@ -40,10 +39,6 @@
   .wott-btn {
     border: 0;
   }
-}
-
-.wott-blue {
-  color: $wott-blue;
 }
 
 #register-title {
@@ -84,7 +79,6 @@
 
 
 #register-container {
-  
   .main {
       overflow-y: visible;
   }

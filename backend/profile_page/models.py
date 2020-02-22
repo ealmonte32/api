@@ -31,8 +31,8 @@ class Profile(models.Model):
     PAYMENT_PLAN_STANDARD = 2
     PAYMENT_PLAN_ENTERPRISE = 3
     PAYMENT_PLAN_CHOICES = (
-        (PAYMENT_PLAN_FREE, 'Free (1 node limit)'),
-        (PAYMENT_PLAN_STANDARD, 'Standard (paid per node) with 1 month free trial'),
+        (PAYMENT_PLAN_FREE, 'Free'),
+        (PAYMENT_PLAN_STANDARD, 'Standard'),
         (PAYMENT_PLAN_ENTERPRISE, 'Enterprise')
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
