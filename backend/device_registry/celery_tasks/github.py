@@ -268,6 +268,11 @@ def file_issues():
             logger.exception('failed to get installation token or list issues')
             continue
 
+        # FIXME:
+        #  select all action_class and action_param from database;
+        #  for every action_class and action_param:
+        #    if affected: call get_description(profile.user, action_param), open and update the issue;
+        #    else: close the issue if not already closed
         for action_class in recommended_actions.ActionMeta.all_classes():
             logger.debug(f'action class {action_class.action_id}')
             # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here

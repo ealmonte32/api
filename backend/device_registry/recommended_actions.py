@@ -195,7 +195,7 @@ class BaseAction:
         return {}
 
     @classmethod
-    def _create_action(cls, profile, context, devices_list, param=None) -> Action:
+    def _create_action(cls, context, devices_list, param=None) -> Action:
         """
         Create an Action object with title and description supplied by this class (cls), action description context,
         devices list and profile's github issue info (which can be empty).
@@ -229,7 +229,7 @@ class BaseAction:
         )
 
     @classmethod
-    def action(cls, user, devices, param=None) -> Action:
+    def action(cls, devices, param=None) -> Action:
         """
         Generate a list of Action objects for the user. Excludes snoozed actions.
         :param user: the owner of the processed devices.
@@ -238,7 +238,7 @@ class BaseAction:
         :return:
         """
         context = cls.get_context(param)
-        return cls._create_action(user.profile, context, [d for d in devices], param)
+        return cls._create_action(context, devices, param)
 
     @classmethod
     def get_description(cls, user, param=None, body=None, additional_context=None) -> (str, str):
@@ -557,7 +557,7 @@ class EnrollAction(BaseAction, metaclass=ActionMeta):
     def get_user_context(cls, user):
         context = {'key': user.profile.pairing_key.key}
 
-        return EnrollAction._create_action(user.profile, context, [])
+        return EnrollAction._create_action(context, [])
 
     @classmethod
     def severity(cls, param=None):

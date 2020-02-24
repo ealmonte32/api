@@ -86,11 +86,11 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                     RecommendedAction.get_affected_query(),
                         action_class=a['action_class'], action_param=a['action_param']
                     )).distinct()
-                a = ActionMeta.get_class(a['action_class']).action(self.request.user, affected_devices, a['action_param'])
+                a = ActionMeta.get_class(a['action_class']).action(affected_devices, a['action_param'])
                 actions.append(a._replace(resolved=False))
 
         for class_param in ra_resolved_this_week[:settings.MAX_WEEKLY_RA]:
-            a = ActionMeta.get_class(class_param['action_class']).action(self.request.user, [], class_param['action_param'])
+            a = ActionMeta.get_class(class_param['action_class']).action([], class_param['action_param'])
             actions.append(a._replace(resolved=True))
 
         return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)
@@ -580,7 +580,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 if ActionMeta.is_action_class(ra_class):
                     # Make sure we have an Action class with this id.
                     # If we don't (this id is invalid or was removed) - ignore it.
-                    a = ActionMeta.get_class(ra_class).action(self.request.user, devices, ra_param)
+                    a = ActionMeta.get_class(ra_class).action(devices, ra_param)
                     actions.append(a)
         else:  # User has no devices - display the special action.
             device_name = None
@@ -591,7 +591,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         if not (self.request.user.profile.github_oauth_token and
                 self.request.user.profile.github_repo_id) and \
                 device_pk is None:
-            actions.append(GithubAction.action(self.request.user, []))
+            actions.append(GithubAction.action([]))
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.
         actions.sort(key=lambda a: (a.severity.value[2], a.action_class), reverse=True)
