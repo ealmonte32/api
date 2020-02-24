@@ -411,6 +411,26 @@ class DeviceModelTest(TestCase):
         self.assertEqual(self.device0.actions_count_delta['count'], 1)
         self.assertEqual(self.device0.actions_count_delta['arrow'], 'down')
 
+    def test_default_creds_fix(self):
+        self.device0.default_password_users = ['one', 'two']
+        self.device0.generate_recommended_actions()
+        ra = RecommendedAction.objects.get(device=self.device0,
+                                      status=RecommendedAction.Status.AFFECTED,
+                                      action_class='DefaultCredentialsAction',
+                                      action_param='two')
+
+        self.device0.default_password_users = ['one']
+        self.device0.save(update_fields=['default_password_users'])
+        self.device0.generate_recommended_actions()
+        ra = RecommendedAction.objects.get(device=self.device0,
+                                           status=RecommendedAction.Status.NOT_AFFECTED,
+                                           action_class='DefaultCredentialsAction',
+                                           action_param='two')
+        ra = RecommendedAction.objects.get(device=self.device0,
+                                           status=RecommendedAction.Status.AFFECTED,
+                                           action_class='DefaultCredentialsAction',
+                                           action_param='one')
+
 class FormsTests(TestCase):
     def setUp(self):
         User = get_user_model()

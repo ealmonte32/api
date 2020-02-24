@@ -553,11 +553,17 @@ class Device(models.Model):
         newly_not_affected = []
         added = []
         for action_class in ActionMeta.all_classes() if classes is None else classes:
+            action_class_name = action_class.__name__
             affected_params = action_class.is_affected(self)
             if not action_class.has_param:
                 affected_params = {None: affected_params}
+            else:
+                # if a param was removed -> counts as fixed
+                were_affected = set(p for c, p in ra_affected if c == action_class_name)
+                now_affected = set(p for p, v in affected_params.items() if v)
+                not_affected_anymore = were_affected.difference(now_affected)
+                affected_params.update({p: False for p in not_affected_anymore})
             for param, is_affected in affected_params.items():
-                action_class_name = action_class.__name__
                 if (action_class_name, param) not in ra_all:
                     # If a RecommendedAction object for some RA does not exist it will be created.
                     added.append((action_class_name, param, is_affected))
@@ -567,14 +573,27 @@ class Device(models.Model):
                 elif not is_affected and (action_class_name, param) in ra_affected:
                     # A RecommendedAction object is in AFFECTED or SNOOZED_ status, but the RA doesn't affect the device
                     newly_not_affected.append((action_class_name, param))
-        n_affected = self.recommendedaction_set\
-            .annotate(class_param=Concat('action_class', Value(':'), 'action_param'))\
-            .filter(class_param__in=[f'{name}:{"" if param is None else param}' for name, param in newly_affected])\
-            .update(status=RecommendedAction.Status.AFFECTED)
-        n_unaffected = self.recommendedaction_set\
-            .annotate(class_param=Concat('action_class', Value(':'), 'action_param'))\
-            .filter(class_param__in=[f'{name}:{"" if param is None else param}' for name, param in newly_not_affected])\
-            .update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
+
+        if newly_affected:
+            newly_affected_q = Q()
+            for name, param in newly_affected:
+                newly_affected_q.add(Q(action_class=name, action_param=param), Q.OR)
+            n_affected = self.recommendedaction_set\
+                .filter(newly_affected_q)\
+                .update(status=RecommendedAction.Status.AFFECTED)
+        else:
+            n_affected = 0
+
+        if newly_not_affected:
+            newly_not_affected_q = Q()
+            for name, param in newly_not_affected:
+                newly_not_affected_q.add(Q(action_class=name, action_param=param), Q.OR)
+            n_unaffected = self.recommendedaction_set\
+                .filter(newly_not_affected_q)\
+                .update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
+        else:
+            n_unaffected = 0
+
         ra_new = [RecommendedAction(action_class=action_class_name, action_param=param, device=self,
                                     status=(RecommendedAction.Status.AFFECTED
                                             if is_affected else RecommendedAction.Status.NOT_AFFECTED))

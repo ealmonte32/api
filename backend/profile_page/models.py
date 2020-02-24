@@ -78,11 +78,12 @@ class Profile(models.Model):
                                                          device__owner=self.user,
                                                          action_class__in=all_ids) \
             .values('action_class', 'action_param').distinct()  # unresolved (incl. snoozed)
+
+        exclude_condition = Q()
+        for a in ra_unresolved:
+            exclude_condition.add(Q(action_class=a['action_class'], action_param=a['action_param']), Q.OR)
         ra_resolved_this_week = ra_maybe_resolved_this_week \
-            .annotate(class_param=Concat('action_class', Value(':'), 'action_param')) \
-            .exclude(class_param__in=ra_unresolved
-                     .annotate(class_param=Concat('action_class', Value(':'), 'action_param'))
-                     .values('class_param'))\
+            .exclude(exclude_condition)\
             .distinct()
         return ra_unresolved.filter(RecommendedAction.get_affected_query()), ra_resolved_this_week
 
