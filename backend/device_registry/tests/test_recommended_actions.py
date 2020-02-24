@@ -9,7 +9,7 @@ from device_registry.recommended_actions import DefaultCredentialsAction, Firewa
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
     FtpServerAction, CpuVulnerableAction, BaseAction, ActionMeta, Action, \
     PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
-    SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity
+    SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus
 
 from freezegun import freeze_time
 
@@ -84,24 +84,24 @@ class GenerateActionsTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
 
-        class TestActionOne(BaseAction, metaclass=ActionMeta):
+        class TestActionOne(SimpleAction, metaclass=ActionMeta):
             """
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             affected = False
 
             @classmethod
-            def is_affected(cls, device) -> bool:
+            def _is_affected(cls, device) -> bool:
                 return cls.affected
 
-        class TestActionTwo(BaseAction, metaclass=ActionMeta):
+        class TestActionTwo(SimpleAction, metaclass=ActionMeta):
             """
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             affected = False
 
             @classmethod
-            def is_affected(cls, device) -> bool:
+            def _is_affected(cls, device) -> bool:
                 return cls.affected
 
         cls.TestActionOne = TestActionOne
@@ -178,7 +178,7 @@ class ResolvedTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
 
-        class TestAction(BaseAction, metaclass=ActionMeta):
+        class TestAction(SimpleAction, metaclass=ActionMeta):
             """
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
@@ -191,7 +191,7 @@ class ResolvedTest(TestCase):
             }
 
             @classmethod
-            def is_affected(cls, device) -> bool:
+            def _is_affected(cls, device) -> bool:
                 return device == cls.affected_device
 
         cls.TestAction = TestAction
@@ -261,7 +261,7 @@ class SnoozeTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
 
-        class TestAction(BaseAction, metaclass=ActionMeta):
+        class TestAction(SimpleAction, metaclass=ActionMeta):
             """
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
@@ -271,14 +271,11 @@ class SnoozeTest(TestCase):
                 'short': '',
                 'long': ''
             }
+            _severity = Severity.LO
 
             @classmethod
-            def is_affected(cls, device) -> bool:
+            def _is_affected(cls, device) -> bool:
                 return True
-
-            @classmethod
-            def severity(cls, param=None):
-                return Severity.LO
 
         cls.TestAction = TestAction
 
@@ -355,6 +352,9 @@ class TestsMixin:
      is that otherwise the Django test runner considers the base test class as
      a regular test class and run its tests which isn't what we want from it.
     """
+
+    param = None
+
     def setUp(self):
         User = get_user_model()
         self.user = User.objects.create_user('test')
@@ -370,7 +370,6 @@ class TestsMixin:
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
         self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
-        self.param = None
 
     def assertOneAction(self, url):
         self.assertEqual(self.device.actions_count, 1)
@@ -389,23 +388,17 @@ class TestsMixin:
         # No action at the beginning.
         self.device.generate_recommended_actions()
         affected = self.action_class.is_affected(self.device)
-        if not self.action_class.has_param:
-            self.assertFalse(affected)
-        else:
-            self.assertFalse(any(affected.values()))
+        self.assertFalse(any(a.affected for a in affected))
         # self.assertFalse(self.action_class.affected_devices(self.user.devices.all()).exists())
         self.assertNoAction(self.common_actions_url)
         self.assertNoAction(self.device_actions_url)
-        self.assertIsNone(self.action_class.get_description(self.user))
+        self.assertIsNone(self.action_class.get_description(self.user, self.param))
 
         # Enable the action.
         self.enable_action()
         self.device.generate_recommended_actions()
         affected = self.action_class.is_affected(self.device)
-        if not self.action_class.has_param:
-            self.assertTrue(affected)
-        else:
-            self.assertTrue(any(affected.values()))
+        self.assertIn(ParamStatus(self.param, True), affected)
         # self.assertTrue(self.action_class.affected_devices(self.user.devices.all()).exists())
         self.check_action(self.assertOneAction(self.common_actions_url))
         self.check_action(self.assertOneAction(self.device_actions_url))
@@ -426,9 +419,9 @@ class TestsMixin:
 
 class DefaultCredentialsActionTest(TestsMixin, TestCase):
     action_class = DefaultCredentialsAction
+    param = 'pi'
 
     def enable_action(self):
-        self.param = 'pi'
         self.device.default_password_users = ['pi']
         self.device.save(update_fields=['default_password_users'])
 

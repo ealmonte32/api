@@ -91,6 +91,16 @@ class Action(NamedTuple):
         return markdown.markdown(self.terminal_title)
 
 
+class ParamStatus(NamedTuple):
+    param: str
+    affected: bool
+
+
+class ParamStatusQS(NamedTuple):
+    param: str
+    affected: QuerySet
+
+
 INSECURE_SERVICES = [
     InsecureService('fingerd', 1, Severity.MED),
     InsecureService('tftpd', 2, Severity.MED),
@@ -152,7 +162,7 @@ class BaseAction:
         raise NotImplementedError
 
     @classmethod
-    def affected_devices(cls, qs: QuerySet) -> QuerySet:
+    def affected_devices(cls, qs: QuerySet) -> List[ParamStatusQS]:
         """
         Select all devices which are affected by this recommended action.
         This method is to be used during migration when a new RA is added. It is supposed to be optimized for quick
@@ -161,21 +171,10 @@ class BaseAction:
         :param qs: QuerySet of Device which will be additionally filtered.
         :return: QuerySet
         """
-        from .models import Device
-        if cls.has_param:
-            result = defaultdict(list)
-            for dev in qs:
-                for param, val in cls.is_affected(dev).items():
-                    if val:
-                        result[param].append(dev)
-            return result
-        else:
-            return Device.objects.filter(pk__in=[
-                dev.pk for dev in qs if cls.is_affected(dev)
-            ])
+        raise NotImplementedError
 
     @classmethod
-    def is_affected(cls, device) -> bool:
+    def is_affected(cls, device) -> List[ParamStatus]:
         """
         Whether the supplied device is affected by this RA.
         :param device: a Device
@@ -185,6 +184,10 @@ class BaseAction:
 
     @classmethod
     def get_context(cls, param) -> dict:
+        return cls._get_context(param)
+
+    @classmethod
+    def _get_context(cls, param) -> dict:
         """
         Method for producing a tuple of values used (as string formatting parameters)
          for action description text rendering.
@@ -241,14 +244,12 @@ class BaseAction:
         return cls._create_action(context, devices, param)
 
     @classmethod
-    def get_description(cls, user, param=None, body=None, additional_context=None) -> (str, str):
+    def _get_description(cls, user, param, action_config) -> (str, str):
         """
         Generate a Markdown-formatted descriptive text for this recommended action.
         Mainly used for filing Github issues. Does not exclude snoozed actions. Uses
         cls.action_description as a template and formats it using cls.get_context().
         :param user: the owner of the processed devices.
-        :param body: if given, will be used as template instead of cls.action_description.
-        :param additional_context: additional context for formatting the body.
         :return: (title, text)
         """
         from .models import RecommendedAction
@@ -267,15 +268,57 @@ class BaseAction:
                          for a in actions]
         resolved = '\n'.join(affected_list)
         context = cls.get_context(param)
-        if additional_context is not None:
-            context.update(additional_context)
-        if param is not None and param in cls.action_config:
+        body_text = action_config['long']
+        action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
+        return action_config['title'], action_text
+
+
+class SimpleAction(BaseAction):
+    @classmethod
+    def severity(cls, param=None):
+        return cls._severity
+
+    @classmethod
+    def get_description(cls, user, param=None):
+        return super()._get_description(user, param, cls.action_config)
+
+    @classmethod
+    def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        from .models import Device
+        return [ParamStatusQS(None, Device.objects.filter(pk__in=[
+            dev.pk for dev in qs if cls.is_affected(dev)
+        ]))]
+
+    @classmethod
+    def is_affected(cls, device) -> List[ParamStatus]:
+        return [ParamStatus(None, cls._is_affected(device))]
+
+
+class ParamAction(BaseAction):
+    has_param = True
+
+    @classmethod
+    def get_description(cls, user, param):
+        if param in cls.action_config:
             action_config = cls.action_config[param]
         else:
             action_config = cls.action_config
-        body_text = action_config['long'] if body is None else body
-        action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
-        return action_config['title'], action_text
+        return super()._get_description(user, param, action_config)
+
+    @classmethod
+    def get_context(cls, param):
+        if param is None:
+            raise NotImplementedError
+        return cls._get_context(param)
+
+    @classmethod
+    def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        result = defaultdict(list)
+        for dev in qs:
+            for param, val in cls.is_affected(dev):
+                if val:
+                    result[param].append(dev)
+        return [ParamStatusQS(param, devices) for param, devices in result.items()]
 
 
 class ActionMeta(type):
@@ -359,29 +402,8 @@ class ActionMeta(type):
 # Below is the code for real actions classes.
 # Don't forget to add metaclass=ActionMeta.
 
-# Default username/password used action.
-class DefaultCredentialsAction(BaseAction, metaclass=ActionMeta):
-    has_param = True
-
-    @classmethod
-    def affected_devices(cls, qs):
-        all_users = defaultdict(list)
-        for d in qs.filter(default_password_users__isnull=False, default_password_users__len__gt=0):
-            for u in d.default_password_users:
-                all_users[u].append(d)
-        return all_users
-
-    @classmethod
-    def is_affected(cls, device) -> bool:
-        return {u: True for u in device.default_password_users} if device.default_password_users else {}
-
-    @classmethod
-    def severity(cls, param=None):
-        return Severity.HI
-
-
 # Firewall disabled action.
-class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
+class FirewallDisabledAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
     def affected_devices(cls, qs):
         from .models import FirewallState, GlobalPolicy
@@ -390,7 +412,7 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
             Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
 
     @classmethod
-    def is_affected(cls, device) -> bool:
+    def _is_affected(cls, device) -> bool:
         from .models import FirewallState, GlobalPolicy
         firewallstate = getattr(device, 'firewallstate', None)
         return firewallstate is not None and \
@@ -404,13 +426,13 @@ class FirewallDisabledAction(BaseAction, metaclass=ActionMeta):
 
 
 # Vulnerable packages found action.
-class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
+class VulnerablePackagesAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
     def affected_devices(cls, qs):
         return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
 
     @classmethod
-    def is_affected(cls, device) -> bool:
+    def _is_affected(cls, device) -> bool:
         return device.deb_packages.filter(vulnerabilities__isnull=False).exists()
 
     @classmethod
@@ -418,65 +440,14 @@ class VulnerablePackagesAction(BaseAction, metaclass=ActionMeta):
         return Severity.MED
 
 
-# Insecure services found action.
-class InsecureServicesAction(BaseAction, metaclass=ActionMeta):
-    has_param = True
-
-    @classmethod
-    def get_context(cls, param):
-        return {'service': param}
-
-    @classmethod
-    def affected_devices(cls, qs):
-        affected = {}
-        for name, _, _ in INSECURE_SERVICES:
-            affected[name] = qs.exclude(deb_packages_hash='').filter(
-                deb_packages__name=name).distinct()
-        return affected
-
-    @classmethod
-    def is_affected(cls, device):
-        affected = {}
-        for name, _, _ in INSECURE_SERVICES:
-            affected[name] = device.deb_packages.filter(name=name).exists()
-        return affected
-
-    @classmethod
-    def severity(cls, param):
-        return next(s.severity for s in INSECURE_SERVICES if s.name == param)
-
-
-class OpensshIssueAction(BaseAction, metaclass=ActionMeta):
-    has_param = True
-
-    @classmethod
-    def get_context(cls, param):
-        safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[param]
-        return dict(param_name=param,
-                    safe_value=safe_value,
-                    doc_url=doc_url)
-
-    @classmethod
-    def is_affected(cls, device):
-        affected = {}
-        for param in cls.action_config.keys():
-            issues = device.sshd_issues
-            affected[param] = param in issues if issues is not None else False
-        return affected
-
-    @classmethod
-    def severity(cls, param):
-        return SSHD_CONFIG_PARAMS_INFO[param].severity
-
-
 # Automatic security update disabled action.
-class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
+class AutoUpdatesAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
     def affected_devices(cls, qs):
         return qs.filter(auto_upgrades=False)
 
     @classmethod
-    def is_affected(cls, device) -> bool:
+    def _is_affected(cls, device) -> bool:
         return device.auto_upgrades is False
 
     @classmethod
@@ -485,9 +456,9 @@ class AutoUpdatesAction(BaseAction, metaclass=ActionMeta):
 
 
 # FTP listening on port 21 action.
-class FtpServerAction(BaseAction, metaclass=ActionMeta):
+class FtpServerAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
-    def is_affected(cls, device) -> bool:
+    def _is_affected(cls, device) -> bool:
         return device.is_ftp_public is True
 
     @classmethod
@@ -496,13 +467,13 @@ class FtpServerAction(BaseAction, metaclass=ActionMeta):
 
 
 # MySQL root default password action.
-class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
+class MySQLDefaultRootPasswordAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
     def affected_devices(cls, qs):
         return qs.filter(mysql_root_access=True)
 
     @classmethod
-    def is_affected(cls, device) -> bool:
+    def _is_affected(cls, device) -> bool:
         return device.mysql_root_access is True
 
     @classmethod
@@ -510,11 +481,9 @@ class MySQLDefaultRootPasswordAction(BaseAction, metaclass=ActionMeta):
         return Severity.HI
 
 
-class PubliclyAccessibleServiceAction(BaseAction, metaclass=ActionMeta):
-    has_param = True
-
+class PubliclyAccessibleServiceAction(ParamAction, metaclass=ActionMeta):
     @classmethod
-    def get_context(cls, param):
+    def _get_context(cls, param):
         service_info = PUBLIC_SERVICE_PORTS[param]
         port, service_name, sub_id = service_info
         return dict(service=service_name, port=port)
@@ -522,25 +491,86 @@ class PubliclyAccessibleServiceAction(BaseAction, metaclass=ActionMeta):
     @classmethod
     def is_affected(cls, device):
         services = device.public_services
-        affected = {}
-        for service in PUBLIC_SERVICE_PORTS.keys():
-            affected[service] = service in services if services is not None else False
-        return affected
+        return [ParamStatus(service, service in services if services is not None else False)
+                for service in PUBLIC_SERVICE_PORTS.keys()]
 
     @classmethod
     def severity(cls, param=None):
         return Severity.HI
 
 
-class CpuVulnerableAction(BaseAction, metaclass=ActionMeta):
+class CpuVulnerableAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
-    def is_affected(cls, device):
+    def _is_affected(cls, device):
         return device.cpu_vulnerable is True
 
     @classmethod
     def severity(cls, param=None):
         return Severity.HI
 
+
+# --- Parameterized actions ---
+
+# Default username/password used action.
+class DefaultCredentialsAction(ParamAction, metaclass=ActionMeta):
+    @classmethod
+    def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        all_users = defaultdict(list)
+        for d in qs.filter(default_password_users__isnull=False, default_password_users__len__gt=0):
+            for u in d.default_password_users:
+                all_users[u].append(d)
+        return [ParamStatusQS(p, d) for p, d in all_users.items()]
+
+    @classmethod
+    def is_affected(cls, device) -> List[ParamStatus]:
+        return [ParamStatus(u, True) for u in device.default_password_users] if device.default_password_users else []
+
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.HI
+
+
+class InsecureServicesAction(ParamAction, metaclass=ActionMeta):
+    @classmethod
+    def _get_context(cls, param):
+        return {'service': param}
+
+    @classmethod
+    def affected_devices(cls, qs):
+        return [ParamStatusQS(name, qs.exclude(deb_packages_hash='').filter(
+                deb_packages__name=name).distinct()) for name, _, _ in INSECURE_SERVICES]
+
+    @classmethod
+    def is_affected(cls, device) -> List[ParamStatus]:
+        return [ParamStatus(name, device.deb_packages.filter(name=name).exists()) for name, _, _ in INSECURE_SERVICES]
+
+    @classmethod
+    def severity(cls, param):
+        return next(s.severity for s in INSECURE_SERVICES if s.name == param)
+
+
+class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
+    @classmethod
+    def _get_context(cls, param):
+        safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[param]
+        return dict(param_name=param,
+                    safe_value=safe_value,
+                    doc_url=doc_url)
+
+    @classmethod
+    def is_affected(cls, device):
+        affected = []
+        for param in cls.action_config.keys():
+            issues = device.sshd_issues
+            affected.append(ParamStatus(param, param in issues if issues is not None else False))
+        return affected
+
+    @classmethod
+    def severity(cls, param):
+        return SSHD_CONFIG_PARAMS_INFO[param].severity
+
+
+# --- Fleet-wide actions ---
 
 class GithubAction(BaseAction, metaclass=ActionMeta):
     is_user_action = True
@@ -556,7 +586,6 @@ class EnrollAction(BaseAction, metaclass=ActionMeta):
     @classmethod
     def get_user_context(cls, user):
         context = {'key': user.profile.pairing_key.key}
-
         return EnrollAction._create_action(context, [])
 
     @classmethod

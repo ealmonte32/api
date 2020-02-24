@@ -24,7 +24,7 @@ from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState
     GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
-from device_registry.recommended_actions import BaseAction, ActionMeta, Severity
+from device_registry.recommended_actions import ActionMeta, Severity, SimpleAction
 from device_registry.views import CVEView
 from profile_page.models import Profile
 
@@ -1344,17 +1344,13 @@ class DashboardViewTests(TestCase):
                       Severity.HI, Severity.MED, Severity.MED, Severity.HI]
         cls.test_actions = []
         for i in range(len(severities)):
-            class TestActionOne(BaseAction, metaclass=ActionMeta):
+            class TestActionOne(SimpleAction, metaclass=ActionMeta):
                 """
                 A simple dummy action class with specified severity.
                 """
                 action_config = defaultdict(str)
                 action_class = 'TestActionOne' + str(i)
                 _severity = severities[i]
-
-                @classmethod
-                def severity(cls, param=None):
-                    return cls._severity
 
             cls.test_actions.append(TestActionOne)
 

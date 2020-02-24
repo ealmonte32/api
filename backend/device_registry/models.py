@@ -18,7 +18,8 @@ import tagulous.models
 import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
-from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, PUBLIC_SERVICE_PORTS
+from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, PUBLIC_SERVICE_PORTS, \
+    ParamStatus
 
 apt_pkg.init()
 
@@ -555,15 +556,13 @@ class Device(models.Model):
         for action_class in ActionMeta.all_classes() if classes is None else classes:
             action_class_name = action_class.__name__
             affected_params = action_class.is_affected(self)
-            if not action_class.has_param:
-                affected_params = {None: affected_params}
-            else:
+            if action_class.has_param:
                 # if a param was removed -> counts as fixed
                 were_affected = set(p for c, p in ra_affected if c == action_class_name)
-                now_affected = set(p for p, v in affected_params.items() if v)
+                now_affected = set(p for p, v in affected_params if v)
                 not_affected_anymore = were_affected.difference(now_affected)
-                affected_params.update({p: False for p in not_affected_anymore})
-            for param, is_affected in affected_params.items():
+                affected_params.extend(ParamStatus(p, False) for p in not_affected_anymore)
+            for param, is_affected in affected_params:
                 if (action_class_name, param) not in ra_all:
                     # If a RecommendedAction object for some RA does not exist it will be created.
                     added.append((action_class_name, param, is_affected))
@@ -1000,17 +999,12 @@ class RecommendedAction(models.Model):
             if not qs.exists():
                 continue
             affected = action_class.affected_devices(qs)
-            if action_class.has_param:
-                for param, param_affected in affected.items():
-                    param_affected = set(param_affected)
-                    created += [cls(device=d,
-                                    action_class=action_class.__name__, action_param=param,
-                                    status=cls.Status.AFFECTED)
-                                for d in param_affected]
-            else:
-                affected = set(affected)
-                created += [cls(device=d, action_class=action_class.__name__, status=cls.Status.AFFECTED)
-                            for d in affected]
+            for param, param_affected in affected:
+                param_affected = set(param_affected)
+                created += [cls(device=d,
+                                action_class=action_class.__name__, action_param=param,
+                                status=cls.Status.AFFECTED)
+                            for d in param_affected]
         cls.objects.bulk_create(created)
         return len(created)
 
