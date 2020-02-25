@@ -72,11 +72,13 @@ class Action(NamedTuple):
     action_param: str
     devices: List[int]
     severity: Severity
+    fleet_wide: bool
     terminal_title: str = None
     terminal_code: str = None
     doc_url: str = '/'
     issue_url: str = None
     resolved: bool = None
+    id: int = 0
 
     @property
     def short_html(self):
@@ -228,7 +230,8 @@ class BaseAction:
             devices=devices_list,
             severity=cls.severity(param),
             issue_url=issue_url,
-            doc_url=cls.doc_url
+            doc_url=cls.doc_url,
+            fleet_wide=getattr(cls, 'is_user_action', False)
         )
 
     @classmethod
@@ -283,11 +286,12 @@ class SimpleAction(BaseAction):
         return super()._get_description(user, param, cls.action_config)
 
     @classmethod
+    def _affected_devices(cls, qs) -> List:
+        return [dev for dev in qs if cls._is_affected(dev)]
+
+    @classmethod
     def affected_devices(cls, qs) -> List[ParamStatusQS]:
-        from .models import Device
-        return [ParamStatusQS(None, Device.objects.filter(pk__in=[
-            dev.pk for dev in qs if cls.is_affected(dev)
-        ]))]
+        return [ParamStatusQS(None, cls._affected_devices(qs))]
 
     @classmethod
     def is_affected(cls, device) -> List[ParamStatus]:
@@ -405,7 +409,7 @@ class ActionMeta(type):
 # Firewall disabled action.
 class FirewallDisabledAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
-    def affected_devices(cls, qs):
+    def _affected_devices(cls, qs):
         from .models import FirewallState, GlobalPolicy
         return qs.exclude(
             (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
@@ -428,7 +432,7 @@ class FirewallDisabledAction(SimpleAction, metaclass=ActionMeta):
 # Vulnerable packages found action.
 class VulnerablePackagesAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
-    def affected_devices(cls, qs):
+    def _affected_devices(cls, qs):
         return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
 
     @classmethod
@@ -443,7 +447,7 @@ class VulnerablePackagesAction(SimpleAction, metaclass=ActionMeta):
 # Automatic security update disabled action.
 class AutoUpdatesAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
-    def affected_devices(cls, qs):
+    def _affected_devices(cls, qs):
         return qs.filter(auto_upgrades=False)
 
     @classmethod
@@ -469,7 +473,7 @@ class FtpServerAction(SimpleAction, metaclass=ActionMeta):
 # MySQL root default password action.
 class MySQLDefaultRootPasswordAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
-    def affected_devices(cls, qs):
+    def _affected_devices(cls, qs):
         return qs.filter(mysql_root_access=True)
 
     @classmethod

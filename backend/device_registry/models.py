@@ -984,6 +984,17 @@ class RecommendedAction(models.Model):
     action_class = models.CharField(max_length=64)
     action_param = models.CharField(max_length=128, null=True, blank=True)
 
+
+class RecommendedActionStatus(models.Model):
+    class Meta:
+        unique_together = ['device', 'ra']
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    ra = models.ForeignKey(RecommendedAction, on_delete=models.CASCADE)
+    status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in RecommendedAction.Status],
+                                              default=RecommendedAction.Status.AFFECTED.value)
+    snoozed_until = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
     @classmethod
     def update_all_devices(cls, classes=None):
         """
@@ -999,30 +1010,20 @@ class RecommendedAction(models.Model):
             classes = ActionMeta.all_classes()
         for action_class in classes:
             # Select devices which were not yet processed with this RA.
-            qs = Device.objects.exclude(Q(recommendedaction__action_class=action_class.__name__) |
+            qs = Device.objects.exclude(Q(recommendedactionstatus__ra__action_class=action_class.__name__) |
                                         Q(owner__isnull=True)).only('pk')
             if not qs.exists():
                 continue
             affected = action_class.affected_devices(qs)
             for param, param_affected in affected:
+                ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class.__name__, action_param=param)
                 param_affected = set(param_affected)
                 created += [cls(device=d,
-                                action_class=action_class.__name__, action_param=param,
-                                status=cls.Status.AFFECTED)
+                                ra=ra,
+                                status=RecommendedAction.Status.AFFECTED)
                             for d in param_affected]
         cls.objects.bulk_create(created)
         return len(created)
-
-
-class RecommendedActionStatus(models.Model):
-    class Meta:
-        unique_together = ['device', 'ra']
-    device = models.ForeignKey(Device, on_delete=models.CASCADE)
-    ra = models.ForeignKey(RecommendedAction, on_delete=models.CASCADE)
-    status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in RecommendedAction.Status],
-                                              default=RecommendedAction.Status.AFFECTED.value)
-    snoozed_until = models.DateTimeField(null=True, blank=True)
-    resolved_at = models.DateTimeField(null=True, blank=True)
 
 
 class HistoryRecord(models.Model):

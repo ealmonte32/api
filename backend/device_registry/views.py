@@ -75,6 +75,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         ra_unresolved, ra_resolved_this_week = self.request.user.profile.actions_weekly
 
         actions = []
+        i = 0
         resolved_count = ra_resolved_this_week.count()
         if resolved_count < settings.MAX_WEEKLY_RA:
             ra_unresolved = sorted(ra_unresolved,
@@ -87,11 +88,13 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                         ra__action_class=a['ra__action_class'], ra__action_param=a['ra__action_param']
                     )).distinct()
                 a = ActionMeta.get_class(a['ra__action_class']).action(affected_devices, a['ra__action_param'])
-                actions.append(a._replace(resolved=False))
+                actions.append(a._replace(resolved=False, id=i))
+                i += 1
 
         for class_param in ra_resolved_this_week[:settings.MAX_WEEKLY_RA]:
             a = ActionMeta.get_class(class_param['ra__action_class']).action([], class_param['ra__action_param'])
-            actions.append(a._replace(resolved=True))
+            actions.append(a._replace(resolved=True, id=i))
+            i += 1
 
         return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)
 
@@ -574,6 +577,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
 
             # Generate Action objects to be rendered on page for every affected RA.
+            i = 0
             for ra_id, device_pks in actions_by_id.items():
                 devices = [affected_devices[d] for d in device_pks]
                 ra_class, ra_param = ra_id
@@ -581,7 +585,8 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                     # Make sure we have an Action class with this id.
                     # If we don't (this id is invalid or was removed) - ignore it.
                     a = ActionMeta.get_class(ra_class).action(devices, ra_param)
-                    actions.append(a)
+                    actions.append(a._replace(id=i))
+                    i += 1
         else:  # User has no devices - display the special action.
             device_name = None
             actions = [EnrollAction.get_user_context(self.request.user)]
