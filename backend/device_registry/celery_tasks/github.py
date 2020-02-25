@@ -12,6 +12,7 @@ from agithub.base import IncompleteRequest
 from jwt import JWT, jwk_from_pem
 
 from device_registry import recommended_actions
+from device_registry.models import RecommendedActionStatus, GithubIssue
 
 HEADERS = {'Accept': 'application/vnd.github.machine-man-preview+json'}
 logger = logging.getLogger('django')
@@ -268,39 +269,40 @@ def file_issues():
             logger.exception('failed to get installation token or list issues')
             continue
 
-        # FIXME:
-        #  select all action_class and action_param from database;
-        #  for every action_class and action_param:
-        #    if affected: call get_description(profile.user, action_param), open and update the issue;
-        #    else: close the issue if not already closed
-        for action_class in recommended_actions.ActionMeta.all_classes():
-            logger.debug(f'action class {action_class.action_id}')
-            # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
-            issue_number = profile.github_issues.get(str(action_class.action_id))
-            description = action_class.get_description(profile.user)
-            logger.debug(f'issue #{issue_number}')
+        ra_classes = RecommendedActionStatus.objects\
+            .filter(device__owner=profile.user)\
+            .values_list('ra__action_class', 'ra__action_param').distinct()
+        for ra_class, ra_param in ra_classes:
+            issue = GithubIssue.objects.filter(owner=profile.user)
+            action_class = recommended_actions.ActionMeta.get_class(ra_class)
+            description = action_class.get_description(profile.user, ra_param)
             try:
                 if description:
                     title, text = description
-                    if issue_number:
-                        # Issue was created and opened/closed by us. Cloud also be locked in which case it will be
-                        # neither in 'open' nor in 'closed' because we can't comment in a locked issue.
+                    if issue.exists():
+                        issue = issue.first()
+                        issue_number = issue.number
                         if issue_number in issues['open'] + issues['closed']:
                             # Issue was opened or closed (and reopened above) by us and not locked => add comment
                             last_updated = timezone.now().strftime('%Y-%m-%d %H:%M')
                             github_repo.update_issue(issue_number, text +
                                                      f"\n\n*Last updated: {last_updated} UTC*")
                             counter += 1
+                            issue.closed = False
+                            issue.save(update_fields=['closed'])
                     else:
                         issue_number = github_repo.create_issue(title, text)
+                        issue = GithubIssue.objects.create(number=issue_number, owner=profile.user)
                         counter += 1
-                else:
+                elif issue.exists():
+                    issue = issue.first()
+                    issue_number = issue.number
                     if issue_number in issues['open']:
                         github_repo.close_issue(issue_number)
                         counter += 1
+                        issue.closed = True
+                        issue.save(update_fields=['closed'])
             except GithubError:
                 logger.exception('failed to process the issue')
-            else:
-                profile.github_issues[str(action_class.action_id)] = issue_number
-        profile.save(update_fields=['github_issues'])
+
     return counter

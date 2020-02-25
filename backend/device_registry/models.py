@@ -959,9 +959,10 @@ class Distro(models.Model):
 
 
 class GithubIssue(models.Model):
-    url: models.URLField()
-    number: models.IntegerField()
-    closed: models.BooleanField(default=False)
+    url = models.URLField(blank=True, null=True)
+    number = models.IntegerField()
+    closed = models.BooleanField(default=False)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 
 class RecommendedAction(models.Model):
