@@ -12,7 +12,7 @@ from agithub.base import IncompleteRequest
 from jwt import JWT, jwk_from_pem
 
 from device_registry import recommended_actions
-from device_registry.models import RecommendedActionStatus, GithubIssue
+from device_registry.models import RecommendedActionStatus, GithubIssue, RecommendedAction
 
 HEADERS = {'Accept': 'application/vnd.github.machine-man-preview+json'}
 logger = logging.getLogger('django')
@@ -245,8 +245,6 @@ def get_device_link(device):
 
 def file_issues():
     from profile_page.models import Profile
-
-    day_ago = timezone.now() - timedelta(hours=24)
     counter = 0
 
     for profile in Profile.objects.exclude(
@@ -273,35 +271,29 @@ def file_issues():
             .filter(device__owner=profile.user)\
             .values_list('ra__action_class', 'ra__action_param').distinct()
         for ra_class, ra_param in ra_classes:
-            issue = GithubIssue.objects.filter(owner=profile.user)
+            ra = RecommendedAction.objects.get(action_class=ra_class, action_param=ra_param)
+            issue, issue_created = GithubIssue.objects.get_or_create(owner=profile.user, ra=ra)
             action_class = recommended_actions.ActionMeta.get_class(ra_class)
             description = action_class.get_description(profile.user, ra_param)
             try:
                 if description:
                     title, text = description
-                    if issue.exists():
-                        issue = issue.first()
-                        issue_number = issue.number
-                        if issue_number in issues['open'] + issues['closed']:
-                            # Issue was opened or closed (and reopened above) by us and not locked => add comment
-                            last_updated = timezone.now().strftime('%Y-%m-%d %H:%M')
-                            github_repo.update_issue(issue_number, text +
-                                                     f"\n\n*Last updated: {last_updated} UTC*")
-                            counter += 1
-                            issue.closed = False
-                            issue.save(update_fields=['closed'])
-                    else:
-                        issue_number = github_repo.create_issue(title, text)
-                        issue = GithubIssue.objects.create(number=issue_number, owner=profile.user)
-                        counter += 1
-                elif issue.exists():
-                    issue = issue.first()
-                    issue_number = issue.number
-                    if issue_number in issues['open']:
-                        github_repo.close_issue(issue_number)
-                        counter += 1
-                        issue.closed = True
+                    if not issue_created and issue.number in issues['open'] + issues['closed']:
+                        # Issue was opened or closed (and reopened above) by us and not locked => add comment
+                        last_updated = timezone.now().strftime('%Y-%m-%d %H:%M')
+                        github_repo.update_issue(issue.number, text +
+                                                 f"\n\n*Last updated: {last_updated} UTC*")
+                        issue.closed = False
                         issue.save(update_fields=['closed'])
+                    else:
+                        issue.number = github_repo.create_issue(title, text)
+                        issue.save(update_fields=['number'])
+                    counter += 1
+                elif not issue_created and issue.number in issues['open']:
+                    github_repo.close_issue(issue.number)
+                    issue.closed = True
+                    issue.save(update_fields=['closed'])
+                    counter += 1
             except GithubError:
                 logger.exception('failed to process the issue')
 

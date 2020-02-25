@@ -958,13 +958,6 @@ class Distro(models.Model):
     end_of_life = models.DateField()
 
 
-class GithubIssue(models.Model):
-    url = models.URLField(blank=True, null=True)
-    number = models.IntegerField()
-    closed = models.BooleanField(default=False)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-
-
 class RecommendedAction(models.Model):
     class Meta:
         unique_together = ['action_class', 'action_param']
@@ -1025,6 +1018,14 @@ class RecommendedActionStatus(models.Model):
                             for d in param_affected]
         cls.objects.bulk_create(created)
         return len(created)
+
+
+class GithubIssue(models.Model):
+    ra = models.ForeignKey(RecommendedAction, on_delete=models.CASCADE)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    url = models.URLField(blank=True, null=True)
+    number = models.IntegerField(default=0)
+    closed = models.BooleanField(default=False)
 
 
 class HistoryRecord(models.Model):

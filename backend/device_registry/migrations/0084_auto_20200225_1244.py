@@ -23,9 +23,10 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('url', models.URLField(blank=True, null=True)),
-                ('number', models.IntegerField()),
+                ('number', models.IntegerField(default=0)),
                 ('closed', models.BooleanField(default=False)),
                 ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ('ra', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='device_registry.RecommendedAction'))
             ],
         ),
         migrations.RemoveField(

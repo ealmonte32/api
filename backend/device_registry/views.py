@@ -22,7 +22,7 @@ from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, Vulnerability, RecommendedActionStatus
+    RecommendedAction, Vulnerability, RecommendedActionStatus, GithubIssue
 from .models import GlobalPolicy
 from .recommended_actions import ActionMeta, FirewallDisabledAction, EnrollAction, GithubAction
 
@@ -584,8 +584,13 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 if ActionMeta.is_action_class(ra_class):
                     # Make sure we have an Action class with this id.
                     # If we don't (this id is invalid or was removed) - ignore it.
+                    issue = GithubIssue.objects.filter(ra__action_class=ra_class, ra__action_param=ra_param).first()
+                    if issue and issue.number and self.request.user.profile.github_repo_id:
+                        issue_url = f'{self.request.user.profile.github_repo_url}/issues/{issue.number}'
+                    else:
+                        issue_url = None
                     a = ActionMeta.get_class(ra_class).action(devices, ra_param)
-                    actions.append(a._replace(id=i))
+                    actions.append(a._replace(id=i, issue_url=issue_url))
                     i += 1
         else:  # User has no devices - display the special action.
             device_name = None

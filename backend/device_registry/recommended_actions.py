@@ -209,11 +209,6 @@ class BaseAction:
         :param devices_list: list of Device ids
         :return: Action
         """
-        # if hasattr(cls, 'group_action'):
-        #     issue_number = profile.github_issues.get(str(cls.group_action.action_id))
-        # else:
-        #     issue_number = profile.github_issues.get(str(cls.action_id))
-        issue_url = '' #f'{profile.github_repo_url}/issues/{issue_number}' if issue_number else None
         if param is not None and param in cls.action_config:
             action_config = cls.action_config[param]
         else:
@@ -229,7 +224,6 @@ class BaseAction:
             action_param=param,
             devices=devices_list,
             severity=cls.severity(param),
-            issue_url=issue_url,
             doc_url=cls.doc_url,
             fleet_wide=getattr(cls, 'is_user_action', False)
         )

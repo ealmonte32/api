@@ -83,7 +83,7 @@ class GithubTest(TestCase):
     def test_update_ra_open(self):
         ra = RecommendedAction.objects.create(action_class=self.TestAction.__name__, action_param='param')
         RecommendedActionStatus.objects.create(device=self.device, status=RecommendedAction.Status.AFFECTED, ra=ra)
-        issue = GithubIssue.objects.create(number=TEST_ISSUE_ID, owner=self.user)
+        issue = GithubIssue.objects.create(number=TEST_ISSUE_ID, owner=self.user, ra=ra)
         mockGithubRepo.list_issues.return_value = {
             'open': [TEST_ISSUE_ID],
             'closed': []
@@ -100,7 +100,7 @@ class GithubTest(TestCase):
     def test_update_ra_closed(self):
         ra = RecommendedAction.objects.create(action_class=self.TestAction.__name__, action_param='param')
         RecommendedActionStatus.objects.create(device=self.device, status=RecommendedAction.Status.AFFECTED, ra=ra)
-        issue = GithubIssue.objects.create(number=TEST_ISSUE_ID, owner=self.user, closed=True)
+        issue = GithubIssue.objects.create(number=TEST_ISSUE_ID, owner=self.user, closed=True, ra=ra)
         mockGithubRepo.list_issues.return_value = {
             'open': [],
             'closed': [TEST_ISSUE_ID]
@@ -118,7 +118,7 @@ class GithubTest(TestCase):
         ra = RecommendedAction.objects.create(action_class=self.TestAction.__name__, action_param='param')
         RecommendedActionStatus.objects.create(device=self.device, status=RecommendedAction.Status.NOT_AFFECTED,
                                                resolved_at=timezone.now(), ra=ra)
-        issue = GithubIssue.objects.create(number=TEST_ISSUE_ID, owner=self.user)
+        issue = GithubIssue.objects.create(number=TEST_ISSUE_ID, owner=self.user, ra=ra)
         mockGithubRepo.list_issues.return_value = {
             'open': [TEST_ISSUE_ID],
             'closed': []
@@ -137,7 +137,7 @@ class GithubTest(TestCase):
                                                ra=ra)
         RecommendedActionStatus.objects.create(device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
                                                resolved_at=timezone.now(), ra=ra)
-        issue = GithubIssue.objects.create(number=TEST_ISSUE_ID, owner=self.user)
+        issue = GithubIssue.objects.create(number=TEST_ISSUE_ID, owner=self.user, ra=ra)
         mockGithubRepo.list_issues.return_value = {
             'open': [TEST_ISSUE_ID],
             'closed': []
