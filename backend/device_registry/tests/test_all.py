@@ -21,7 +21,7 @@ from freezegun import freeze_time
 
 from device_registry import ca_helper
 from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
-    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord
+    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord, RecommendedActionStatus
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 from device_registry.recommended_actions import ActionMeta, Severity, SimpleAction
@@ -377,12 +377,15 @@ class DeviceModelTest(TestCase):
         now = timezone.now()
         # Last week's tuesday
         last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
-        ra0 = RecommendedAction.objects.create(device=self.device0, action_class='ClassOne',
-                                               status=RecommendedAction.Status.NOT_AFFECTED)
-        ra1 = RecommendedAction.objects.create(device=self.device0, action_class='ClassTwo',
-                                               status=RecommendedAction.Status.NOT_AFFECTED)
-        ra2 = RecommendedAction.objects.create(device=self.device0, action_class='ClassThree',
-                                               status=RecommendedAction.Status.SNOOZED_UNTIL_PING)
+        ra0 = RecommendedActionStatus.objects.create(device=self.device0,
+                                                     ra=RecommendedAction.objects.create(action_class='ClassOne'),
+                                                     status=RecommendedAction.Status.NOT_AFFECTED)
+        ra1 = RecommendedActionStatus.objects.create(device=self.device0,
+                                                     ra=RecommendedAction.objects.create(action_class='ClassTwo'),
+                                                     status=RecommendedAction.Status.NOT_AFFECTED)
+        ra2 = RecommendedActionStatus.objects.create(device=self.device0,
+                                                     ra=RecommendedAction.objects.create(action_class='ClassThree'),
+                                                     status=RecommendedAction.Status.SNOOZED_UNTIL_PING)
 
         self.assertEqual(self.device0.actions_count_last_week, 0)
         self.assertEqual(self.device0.actions_count_delta['count'], 0)
@@ -414,22 +417,22 @@ class DeviceModelTest(TestCase):
     def test_default_creds_fix(self):
         self.device0.default_password_users = ['one', 'two']
         self.device0.generate_recommended_actions()
-        ra = RecommendedAction.objects.get(device=self.device0,
+        ra = RecommendedActionStatus.objects.get(device=self.device0,
                                       status=RecommendedAction.Status.AFFECTED,
-                                      action_class='DefaultCredentialsAction',
-                                      action_param='two')
+                                      ra__action_class='DefaultCredentialsAction',
+                                      ra__action_param='two')
 
         self.device0.default_password_users = ['one']
         self.device0.save(update_fields=['default_password_users'])
         self.device0.generate_recommended_actions()
-        ra = RecommendedAction.objects.get(device=self.device0,
+        ra = RecommendedActionStatus.objects.get(device=self.device0,
                                            status=RecommendedAction.Status.NOT_AFFECTED,
-                                           action_class='DefaultCredentialsAction',
-                                           action_param='two')
-        ra = RecommendedAction.objects.get(device=self.device0,
+                                           ra__action_class='DefaultCredentialsAction',
+                                           ra__action_param='two')
+        ra = RecommendedActionStatus.objects.get(device=self.device0,
                                            status=RecommendedAction.Status.AFFECTED,
-                                           action_class='DefaultCredentialsAction',
-                                           action_param='one')
+                                           ra__action_class='DefaultCredentialsAction',
+                                           ra__action_param='one')
 
 class FormsTests(TestCase):
     def setUp(self):
@@ -1335,6 +1338,8 @@ class DashboardViewTests(TestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user
         )
+        RecommendedAction.objects.bulk_create([RecommendedAction(action_class=c.__name__, action_param=None)
+                    for c in self.test_actions])
 
     @classmethod
     def setUpClass(cls):
@@ -1368,56 +1373,56 @@ class DashboardViewTests(TestCase):
 
     def test_weekly_ra(self):
         today = timezone.now()
-        RecommendedAction.objects.bulk_create([
+        RecommendedActionStatus.objects.bulk_create([
             # Both devices affected - counts as one RA.
             # This one is low severity and will be displaced by three other RAs below.
-            RecommendedAction(action_class=self.test_actions[0].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[0].__name__, action_param=None),
                               device=self.device0, status=RecommendedAction.Status.AFFECTED),
-            RecommendedAction(action_class=self.test_actions[0].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[0].__name__, action_param=None),
                               device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # both devices affected - counts as one RA
-            RecommendedAction(action_class=self.test_actions[1].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[1].__name__, action_param=None),
                               device=self.device0, status=RecommendedAction.Status.AFFECTED),
-            RecommendedAction(action_class=self.test_actions[1].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[1].__name__, action_param=None),
                               device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # one device is affected, second was never affected (and never fixed)
-            RecommendedAction(action_class=self.test_actions[2].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[2].__name__, action_param=None),
                               device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
-            RecommendedAction(action_class=self.test_actions[2].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[2].__name__, action_param=None),
                               device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # one device is affected, second fixed - still not fixed
-            RecommendedAction(action_class=self.test_actions[3].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[3].__name__, action_param=None),
                               device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
-            RecommendedAction(action_class=self.test_actions[3].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[3].__name__, action_param=None),
                               device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # fixed on both devices - completely fixed
-            RecommendedAction(action_class=self.test_actions[4].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[4].__name__, action_param=None),
                               device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
-            RecommendedAction(action_class=self.test_actions[4].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[4].__name__, action_param=None),
                               device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
 
             # one never affected, another one fixed - completely fixed
-            RecommendedAction(action_class=self.test_actions[5].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[5].__name__, action_param=None),
                               device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
-            RecommendedAction(action_class=self.test_actions[5].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[5].__name__, action_param=None),
                               device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
 
             # resolved a week ago - doesn't count
-            RecommendedAction(action_class=self.test_actions[6].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[6].__name__, action_param=None),
                               device=self.device1,
                               status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today - timezone.timedelta(days=7)),
 
             # snoozed - doesn't count
-            RecommendedAction(action_class=self.test_actions[7].__name__, action_param=None,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[7].__name__, action_param=None),
                               device=self.device1,
                               status=RecommendedAction.Status.SNOOZED_FOREVER)
         ])

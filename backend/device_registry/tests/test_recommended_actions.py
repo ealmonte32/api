@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
-    GlobalPolicy, RecommendedAction
+    GlobalPolicy, RecommendedAction, RecommendedActionStatus
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
     VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
     FtpServerAction, CpuVulnerableAction, BaseAction, ActionMeta, Action, \
@@ -124,11 +124,11 @@ class GenerateActionsTest(TestCase):
 
     def check_actions_status(self, status_one, status_two, classes=None):
         self.device.generate_recommended_actions(classes)
-        self.assertQuerysetEqual(self.device.recommendedaction_set
-                                 .filter(action_class__in=[self.TestActionOne.__name__,
+        self.assertQuerysetEqual(self.device.recommendedactionstatus_set
+                                 .filter(ra__action_class__in=[self.TestActionOne.__name__,
                                                            self.TestActionTwo.__name__])
-                                 .order_by('action_class')
-                                 .values_list('action_class', 'status'),
+                                 .order_by('ra__action_class')
+                                 .values_list('ra__action_class', 'status'),
                                  [(self.TestActionOne.__name__, status_one.value),
                                   (self.TestActionTwo.__name__, status_two.value)],
                                  transform=lambda v: v)
@@ -169,7 +169,7 @@ class GenerateActionsTest(TestCase):
         with freeze_time(now):
             self.TestActionOne.affected = False
             self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
-        ra = RecommendedAction.objects.get(device=self.device, action_class=self.TestActionOne.__name__)
+        ra = RecommendedActionStatus.objects.get(device=self.device, ra__action_class=self.TestActionOne.__name__)
         self.assertEquals(ra.resolved_at, now)
 
 

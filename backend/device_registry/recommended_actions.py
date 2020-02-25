@@ -252,11 +252,11 @@ class BaseAction:
         :param user: the owner of the processed devices.
         :return: (title, text)
         """
-        from .models import RecommendedAction
+        from .models import RecommendedAction, RecommendedActionStatus
         day_ago = timezone.now() - timedelta(hours=24)
-        actions = RecommendedAction.objects.filter(device__owner=user,
-                                                   action_class=cls.__name__,
-                                                   action_param=param,
+        actions = RecommendedActionStatus.objects.filter(device__owner=user,
+                                                   ra__action_class=cls.__name__,
+                                                   ra__action_param=param,
                                                    device__last_ping__gte=day_ago)\
                                            .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]

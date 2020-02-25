@@ -71,10 +71,10 @@ class Migration(migrations.Migration):
             name='recommendedaction',
             unique_together={('device', 'action_class', 'action_param')},
         ),
-        migrations.RunPython(convert_action_id),
+        # migrations.RunPython(convert_action_id),
         migrations.RemoveField(
             model_name='recommendedaction',
             name='action_id',
         ),
-        migrations.RunPython(update_default_credentials),
+        # migrations.RunPython(update_default_credentials),
     ]

@@ -14,7 +14,8 @@ from dateutil.relativedelta import relativedelta, MO, SU
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability, PairingKey
+from device_registry.models import RecommendedAction, RecommendedActionStatus, \
+    Device, HistoryRecord, Vulnerability, PairingKey
 from device_registry.celery_tasks import github
 from device_registry.recommended_actions import ActionMeta
 
@@ -52,9 +53,9 @@ class Profile(models.Model):
 
     @property
     def actions_count(self):
-        return RecommendedAction.objects.filter(
+        return RecommendedActionStatus.objects.filter(
             Q(device__owner=self.user) & RecommendedAction.get_affected_query()) \
-            .values('action_class', 'action_param').distinct().count()
+            .values('ra__action_class', 'ra__action_param').distinct().count()
 
     @property
     def actions_weekly(self):
@@ -67,21 +68,18 @@ class Profile(models.Model):
         now = timezone.now()
         sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
         this_monday = sunday + relativedelta(days=1)  # This week's monday
-        all_ids = [ra.__name__ for ra in ActionMeta.all_classes()]
 
-        ra_maybe_resolved_this_week = RecommendedAction.objects.filter(device__owner=self.user,
-                                                                       action_class__in=all_ids,
+        ra_maybe_resolved_this_week = RecommendedActionStatus.objects.filter(device__owner=self.user,
                                                                        status=RecommendedAction.Status.NOT_AFFECTED,
                                                                        resolved_at__gte=this_monday) \
-            .values('action_class', 'action_param')  # resolved this week (not completely)
-        ra_unresolved = RecommendedAction.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
-                                                         device__owner=self.user,
-                                                         action_class__in=all_ids) \
-            .values('action_class', 'action_param').distinct()  # unresolved (incl. snoozed)
+            .values('ra__action_class', 'ra__action_param')  # resolved this week (not completely)
+        ra_unresolved = RecommendedActionStatus.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
+                                                         device__owner=self.user) \
+            .values('ra__action_class', 'ra__action_param').distinct()  # unresolved (incl. snoozed)
 
         exclude_condition = Q()
         for a in ra_unresolved:
-            exclude_condition.add(Q(action_class=a['action_class'], action_param=a['action_param']), Q.OR)
+            exclude_condition.add(Q(ra__action_class=a['ra__action_class'], ra__action_param=a['ra__action_param']), Q.OR)
         ra_resolved_this_week = ra_maybe_resolved_this_week \
             .exclude(exclude_condition)\
             .distinct()
@@ -138,11 +136,11 @@ class Profile(models.Model):
         """
         now = timezone.now()
         day_ago = now - timezone.timedelta(hours=24)
-        ra_resolved = RecommendedAction.objects.filter(
+        ra_resolved = RecommendedActionStatus.objects.filter(
             status=RecommendedAction.Status.NOT_AFFECTED,
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
-        ).values('action_class', 'action_param').distinct().count()
+        ).values('ra__action_class', 'ra__action_param').distinct().count()
 
         cve_hi, cve_med, cve_lo = self.cve_count
         HistoryRecord.objects.create(owner=self.user,

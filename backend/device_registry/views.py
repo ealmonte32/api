@@ -22,7 +22,7 @@ from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, Vulnerability
+    RecommendedAction, Vulnerability, RecommendedActionStatus
 from .models import GlobalPolicy
 from .recommended_actions import ActionMeta, FirewallDisabledAction, EnrollAction, GithubAction
 
@@ -78,19 +78,19 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         resolved_count = ra_resolved_this_week.count()
         if resolved_count < settings.MAX_WEEKLY_RA:
             ra_unresolved = sorted(ra_unresolved,
-                                   key=lambda v: ActionMeta.get_class(v['action_class']).severity(v['action_param']).value[2],
+                                   key=lambda v: ActionMeta.get_class(v['ra__action_class']).severity(v['ra__action_param']).value[2],
                                    reverse=True)
             for a in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 affected_devices = Device.objects.filter(owner=self.request.user,
-                    recommendedaction__in=RecommendedAction.objects.filter(
+                    recommendedactionstatus__in=RecommendedActionStatus.objects.filter(
                     RecommendedAction.get_affected_query(),
-                        action_class=a['action_class'], action_param=a['action_param']
+                        ra__action_class=a['ra__action_class'], ra__action_param=a['ra__action_param']
                     )).distinct()
-                a = ActionMeta.get_class(a['action_class']).action(affected_devices, a['action_param'])
+                a = ActionMeta.get_class(a['ra__action_class']).action(affected_devices, a['ra__action_param'])
                 actions.append(a._replace(resolved=False))
 
         for class_param in ra_resolved_this_week[:settings.MAX_WEEKLY_RA]:
-            a = ActionMeta.get_class(class_param['action_class']).action([], class_param['action_param'])
+            a = ActionMeta.get_class(class_param['ra__action_class']).action([], class_param['ra__action_param'])
             actions.append(a._replace(resolved=True))
 
         return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)
@@ -557,10 +557,10 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             if device_pk is not None:
                 dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
                 device_name = dev.get_name()
-                actions_qs = dev.recommendedaction_set.all()
+                actions_qs = dev.recommendedactionstatus_set.all()
             else:
                 device_name = None
-                actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
+                actions_qs = RecommendedActionStatus.objects.filter(device__owner=self.request.user).order_by('device__pk')
 
             # Select all RAs for all user's devices which are not snoozed
             active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
@@ -570,7 +570,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             affected_devices = set()
             for ra in active_actions:
                 affected_devices.add(ra.device.pk)
-                actions_by_id[(ra.action_class, ra.action_param)].append(ra.device.pk)
+                actions_by_id[(ra.ra.action_class, ra.ra.action_param)].append(ra.device.pk)
             affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
 
             # Generate Action objects to be rendered on page for every affected RA.

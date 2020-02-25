@@ -143,8 +143,8 @@ class Device(models.Model):
         return eol_info_dict
 
     def snooze_action(self, action_class, action_param, snoozed, duration=None):
-        action, _ = RecommendedAction.objects.get_or_create(action_class=action_class, action_param=action_param,
-                                                            device=self)
+        ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class, action_param=action_param)
+        action, _ = RecommendedActionStatus.objects.get_or_create(device=self, ra=ra)
         action.status = snoozed
         if snoozed == RecommendedAction.Status.SNOOZED_UNTIL_TIME:
             action.snoozed_until = timezone.now() + datetime.timedelta(hours=duration)
@@ -321,7 +321,7 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
-        return self.recommendedaction_set.filter(RecommendedAction.get_affected_query()).count()
+        return self.recommendedactionstatus_set.filter(RecommendedAction.get_affected_query()).count()
 
     def _get_listening_sockets(self, port):
         return [r for r in self.portscan.scan_info if
@@ -547,9 +547,11 @@ class Device(models.Model):
         :param classes: if supplied, limit the scope of this method to this list of BaseAction classes.
         :return:
         """
-        ra_all = self.recommendedaction_set.all().values_list('action_class', 'action_param')
-        ra_affected = self.recommendedaction_set.exclude(status=RecommendedAction.Status.NOT_AFFECTED)\
-                                                .values_list('action_class', 'action_param')
+        ra_all = self.recommendedactionstatus_set\
+            .values_list('ra__action_class', 'ra__action_param')
+        ra_affected = self.recommendedactionstatus_set\
+            .exclude(status=RecommendedAction.Status.NOT_AFFECTED)\
+            .values_list('ra__action_class', 'ra__action_param')
         newly_affected = []
         newly_not_affected = []
         added = []
@@ -576,8 +578,8 @@ class Device(models.Model):
         if newly_affected:
             newly_affected_q = Q()
             for name, param in newly_affected:
-                newly_affected_q.add(Q(action_class=name, action_param=param), Q.OR)
-            n_affected = self.recommendedaction_set\
+                newly_affected_q.add(Q(ra__action_class=name, ra__action_param=param), Q.OR)
+            n_affected = self.recommendedactionstatus_set\
                 .filter(newly_affected_q)\
                 .update(status=RecommendedAction.Status.AFFECTED)
         else:
@@ -586,19 +588,21 @@ class Device(models.Model):
         if newly_not_affected:
             newly_not_affected_q = Q()
             for name, param in newly_not_affected:
-                newly_not_affected_q.add(Q(action_class=name, action_param=param), Q.OR)
-            n_unaffected = self.recommendedaction_set\
+                newly_not_affected_q.add(Q(ra__action_class=name, ra__action_param=param), Q.OR)
+            n_unaffected = self.recommendedactionstatus_set\
                 .filter(newly_not_affected_q)\
                 .update(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now())
         else:
             n_unaffected = 0
 
-        ra_new = [RecommendedAction(action_class=action_class_name, action_param=param, device=self,
-                                    status=(RecommendedAction.Status.AFFECTED
-                                            if is_affected else RecommendedAction.Status.NOT_AFFECTED))
-                  for action_class_name, param, is_affected in added]
-        self.recommendedaction_set.bulk_create(ra_new)
-        return n_affected, n_unaffected, len(ra_new)
+        ra_status_new = []
+        for action_class_name, param, is_affected in added:
+            ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class_name, action_param=param)
+            status = (RecommendedAction.Status.AFFECTED if is_affected else RecommendedAction.Status.NOT_AFFECTED)
+            ra_status_new.append(RecommendedActionStatus(ra=ra, device=self,
+                                                   status=status))
+        self.recommendedactionstatus_set.bulk_create(ra_status_new)
+        return n_affected, n_unaffected, len(ra_status_new)
 
 
 class DeviceInfo(models.Model):
@@ -954,9 +958,15 @@ class Distro(models.Model):
     end_of_life = models.DateField()
 
 
+class GithubIssue(models.Model):
+    url: models.URLField()
+    number: models.IntegerField()
+    closed: models.BooleanField(default=False)
+
+
 class RecommendedAction(models.Model):
     class Meta:
-        unique_together = ['device', 'action_class', 'action_param']
+        unique_together = ['action_class', 'action_param']
 
     class Status(IntEnum):
         AFFECTED = 0
@@ -971,13 +981,8 @@ class RecommendedAction(models.Model):
                Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
                  snoozed_until__lt=timezone.now())
 
-    device = models.ForeignKey(Device, on_delete=models.CASCADE)
     action_class = models.CharField(max_length=64)
     action_param = models.CharField(max_length=128, null=True, blank=True)
-    status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Status],
-                                              default=Status.AFFECTED.value)
-    snoozed_until = models.DateTimeField(null=True, blank=True)
-    resolved_at = models.DateTimeField(null=True, blank=True)
 
     @classmethod
     def update_all_devices(cls, classes=None):
@@ -1007,6 +1012,17 @@ class RecommendedAction(models.Model):
                             for d in param_affected]
         cls.objects.bulk_create(created)
         return len(created)
+
+
+class RecommendedActionStatus(models.Model):
+    class Meta:
+        unique_together = ['device', 'ra']
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    ra = models.ForeignKey(RecommendedAction, on_delete=models.CASCADE)
+    status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in RecommendedAction.Status],
+                                              default=RecommendedAction.Status.AFFECTED.value)
+    snoozed_until = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
 
 
 class HistoryRecord(models.Model):
