@@ -49,7 +49,6 @@ class Profile(models.Model):
     github_repo_url = models.URLField(blank=True)
     github_random_state = models.CharField(blank=True, max_length=32)
     github_oauth_token = models.CharField(blank=True, max_length=64)
-    github_issues = JSONField(blank=True, default=dict)
 
     @property
     def actions_count(self):

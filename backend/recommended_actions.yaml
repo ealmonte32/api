@@ -13,7 +13,7 @@
 
     **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 3.6)
 
-- title: Default credentials detected
+- title: Default credentials detected for user "{username}"
   class: DefaultCredentialsAction
   short: |
     We've detected default or weak credentials, such as ones predetermined at manufacturing, or common credentials; classic examples of this include having 'password' as your password. Change your credentials to something more secure.
@@ -23,10 +23,10 @@
     The most common devices that use default credentials are typically, but not limited to, IoT devices, such as internet modems, cameras, and PCB based technologies such as Raspberry Pis; some virtual machines appliances, and some Linux distributions with a default root or admin user. These credentials are intended to be temporary and updated by the user shortly after set up.
 
     WoTT's agent automatically scans your devices against data from Mirai and against other common credentials. We strongly recommend that you quickly resolve this issue by changing your password to a more secure one. Avoid passwords such as 123, password, and other variations of, and do not distribute your password to anyone. To be more secure, consider changing username as well. Default credentials will lower your node's Trust Score.
-#  terminal_title: None for now. Later to be replaced with a passwd command.
-#  terminal_code: |
-#    $ code one
-#    # code too
+  terminal_title: |
+    To change the password, run this command:
+  terminal_code: |
+    $ sudo passwd {username}
 
 - title: An FTP service has been detected
   class: FtpServerAction

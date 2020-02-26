@@ -527,6 +527,10 @@ class DefaultCredentialsAction(ParamAction, metaclass=ActionMeta):
     def severity(cls, param=None):
         return Severity.HI
 
+    @classmethod
+    def _get_context(cls, param) -> dict:
+        return {'username': param}
+
 
 class InsecureServicesAction(ParamAction, metaclass=ActionMeta):
     @classmethod
