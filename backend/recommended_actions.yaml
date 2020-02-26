@@ -68,7 +68,7 @@
     We have detected {service} installed. This service may either be outdated or inherently insecure.
     It is recommended that you uninstall this service as soon as possible.
   long: |
-    There are multiple generations of services. Many older services, like Telnet, RSH, and FTP are still readily available in most Linux distributions. However, it is generally considered bad practice to use these nowadays as they are often unencrypted in transit, meaning that sensitive data, such as passwords and content can be intercepted in transit. Moreover, older and insecure services may expose your system to attacks. We recommend for your security to either uninstall these services or disable them and use more secure alternatives that provide better security.
+    There are multiple generations of services. Many older services, like Telnet TFTP, fingerd and RSH are still readily available in most Linux distributions. However, it is generally considered bad practice to use these nowadays as they are often unencrypted in transit, meaning that sensitive data, such as passwords and content can be intercepted in transit. Moreover, older and insecure services may expose your system to attacks. We recommend for your security to either uninstall these services or disable them and use more secure alternatives that provide better security.
 
     **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 2.1)
   terminal_title: |
