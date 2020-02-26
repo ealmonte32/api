@@ -36,20 +36,32 @@ def convert_action_id(apps, schema_editor):
         3: ('VulnerablePackagesAction', None)
     }
     RecommendedActionModel = apps.get_model('device_registry', 'RecommendedAction')
-    RecommendedActionModel.objects.update(action_class=Case(
-        *[When(action_id=k, then=Value(v[0])) for k, v in actions.items()],
-    ), action_param=Case(
-        *[When(action_id=k, then=Value(v[1])) for k, v in actions.items()],
-    ))
+    newra = {}
+    for action_id, class_param in actions.items():
+        newra[action_id] = RecommendedActionModel(action_class=class_param[0], action_param=class_param[1], action_id=0)
+    RecommendedActionModel.objects.bulk_create(newra.values())
+
+    RecommendedActionStatusModel = apps.get_model('device_registry', 'RecommendedActionStatus')
+    objs = []
+    for ra in RecommendedActionModel.objects.exclude(action_id=0):
+        if ra.action_id in newra:
+            objs.append(RecommendedActionStatusModel(status=ra.status, snoozed_until=ra.snoozed_until,
+                                                     resolved_at=ra.resolved_at, device=ra.device, ra=newra[ra.action_id]))
+    RecommendedActionStatusModel.objects.bulk_create(objs)
 
     id_DefaultCredentialsAction = 1
     RecommendedActionModel.objects.filter(action_id=id_DefaultCredentialsAction).delete()
+    RecommendedActionModel.objects.exclude(action_id=0).delete()
 
-
-def update_default_credentials(apps, schema_editor):
-    from device_registry.models import RecommendedAction
-    from device_registry.recommended_actions import DefaultCredentialsAction
-    RecommendedAction.update_all_devices(classes=[DefaultCredentialsAction])
+    Profile = apps.get_model('profile_page', 'Profile')
+    GithubIssue = apps.get_model('device_registry', 'GithubIssue')
+    issues = []
+    for p in Profile.objects.exclude(github_issues={}):
+        for ra_id, number in p.github_issues.items():
+            ra_id = int(ra_id)
+            if number and ra_id in newra:
+                issues.append(GithubIssue(number=number, owner=p.user, ra=newra[ra_id]))
+    GithubIssue.objects.bulk_create(issues)
 
 
 class Migration(migrations.Migration):
@@ -57,6 +69,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ('device_registry', '0082_devicehistoryrecord'),
+        ('profile_page', '0011_merge_20191126_0607')
     ]
 
     operations = [
@@ -71,10 +84,7 @@ class Migration(migrations.Migration):
             name='action_param',
             field=models.CharField(blank=True, max_length=128, null=True),
         ),
-        migrations.AlterUniqueTogether(
-            name='recommendedaction',
-            unique_together={('action_class', 'action_param')},
-        ),
+
         migrations.CreateModel(
             name='GithubIssue',
             fields=[
@@ -86,38 +96,33 @@ class Migration(migrations.Migration):
                 ('ra', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='device_registry.RecommendedAction')),
             ],
         ),
-        migrations.RemoveField(
-            model_name='recommendedaction',
-            name='action_id',
-        ),
-        migrations.RemoveField(
-            model_name='recommendedaction',
-            name='device',
-        ),
-        migrations.RemoveField(
-            model_name='recommendedaction',
-            name='resolved_at',
-        ),
-        migrations.RemoveField(
-            model_name='recommendedaction',
-            name='snoozed_until',
-        ),
-        migrations.RemoveField(
-            model_name='recommendedaction',
-            name='status',
-        ),
+
         migrations.CreateModel(
             name='RecommendedActionStatus',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.PositiveSmallIntegerField(choices=[(device_registry.models.Status(0), 0), (device_registry.models.Status(1), 1), (device_registry.models.Status(2), 2), (device_registry.models.Status(3), 3), (device_registry.models.Status(4), 4)], default=0)),
+                ('status', models.PositiveSmallIntegerField(
+                    choices=[(device_registry.models.RecommendedAction.Status(0), 0),
+                             (device_registry.models.RecommendedAction.Status(1), 1),
+                             (device_registry.models.RecommendedAction.Status(2), 2),
+                             (device_registry.models.RecommendedAction.Status(3), 3),
+                             (device_registry.models.RecommendedAction.Status(4), 4)], default=0)),
                 ('snoozed_until', models.DateTimeField(blank=True, null=True)),
                 ('resolved_at', models.DateTimeField(blank=True, null=True)),
                 ('device', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='device_registry.Device')),
-                ('ra', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='device_registry.RecommendedAction')),
+                ('ra', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,
+                                         to='device_registry.RecommendedAction')),
             ],
             options={
                 'unique_together': {('device', 'ra')},
             },
         ),
+
+        migrations.AlterField(
+            model_name='recommendedaction',
+            name='device',
+            field=models.ForeignKey(to='device_registry.Device', on_delete=models.CASCADE, null=True)
+        ),
+
+        migrations.RunPython(convert_action_id)
     ]

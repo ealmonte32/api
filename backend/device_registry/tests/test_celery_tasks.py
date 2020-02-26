@@ -146,8 +146,8 @@ class GithubTest(TestCase):
         self.assertEqual(github.file_issues(), 1)
         number, text = mockGithubRepo.update_issue.call_args[0]
         self.assertEqual(number, TEST_ISSUE_ID)
-        self.assertIn('#### Resolved on: ####\n- [ ] [testdevice]', text)
-        self.assertIn('- [x] [testdevice1]', text)
+        self.assertIn('\n- [ ] [testdevice]', text)
+        self.assertIn('\n- [x] [testdevice1]', text)
 
         issue.refresh_from_db()
         self.assertFalse(issue.closed)
