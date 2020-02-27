@@ -141,12 +141,10 @@
   }
 
   .node-title {
-    white-space: nowrap;
-    text-overflow: ellipsis;
     overflow: hidden;
     padding-bottom: 6px;
-    font-size: 2.8rem;
     color: white;
+    word-break: break-all
   }
 
   .wott-badge-pill-light {
@@ -192,6 +190,27 @@
     font-size: .8rem;
     font-weight: 800;
     text-transform: uppercase;
+  }
+
+  .node-title-lg {
+    font-size: 2.8rem;
+    @include mQ(1300px) {
+      font-size: 2rem;
+    }
+  }
+  
+  .node-title-md {
+    font-size: 1.8rem;
+    @include mQ(1300px) {
+      font-size: 1.3rem;
+    }
+  }
+  
+  .node-title-sm {
+    font-size: 1.2rem;
+    @include mQ(1300px) {
+      font-size: 1rem;
+    }
   }
 }
 
