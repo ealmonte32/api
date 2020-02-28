@@ -514,7 +514,8 @@ class Device(models.Model):
     @property
     def actions_count_last_week(self):
         now = timezone.now()
-        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
+        sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
         this_monday = sunday + relativedelta(days=1)  # This week's monday
 
