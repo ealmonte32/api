@@ -95,17 +95,7 @@
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
-    Find your sshd_config file
-    $ sudo find /etc -iname sshd_config
-
-    Open the file above in your favorite editor
-    $ sudo vim /path/to/sshd_config
-
-    Find the line that says 'AllowAgentForwarding', and change it into 'AllowAgentForwarding no'.
-    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
-
-    Once you've added the line, make sure to restart SSH by running
-    $ sudo service ssh restart
+    $ sudo wott-agent patch openssh-agent-forwarding
 
 - title: Password authentication enabled for OpenSSH
   id: 2003
@@ -132,17 +122,7 @@
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
-    Find your sshd_config file
-    $ sudo find /etc -iname sshd_config
-
-    Open the file above in your favorite editor
-    $ sudo vim /path/to/sshd_config
-
-    Find the line that says 'PasswordAuthentication', and change it into 'PasswordAuthentication no'.
-    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
-
-    Once you've added the line, make sure to restart SSH by running
-    $ sudo service ssh restart
+    $ sudo wott-agent patch openssh-password-auth
 
 - title: Root login enabled for OpenSSH
   id: 2002
@@ -167,17 +147,7 @@
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
-    Find your sshd_config file
-    $ sudo find /etc -iname sshd_config
-
-    Open the file above in your favorite editor
-    $ sudo vim /path/to/sshd_config
-
-    Find the line that says 'PermitRootLogin', and change it into 'PermitRootLogin no'.
-    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
-
-    Once you've added the line, make sure to restart SSH by running
-    $ sudo service ssh restart
+    $ sudo wott-agent patch openssh-root-login
 
 - title: Empty passwords permitted for OpenSSH
   id: 2001
@@ -202,17 +172,7 @@
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
-    Find your sshd_config file
-    $ sudo find /etc -iname sshd_config
-
-    Open the file above in your favorite editor
-    $ sudo vim /path/to/sshd_config
-
-    Find the line that says 'PermitEmptyPasswords', and change it into 'PermitEmptyPasswords no'.
-    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
-
-    Once you've added the line, make sure to restart SSH by running
-    $ sudo service ssh restart
+    $ sudo wott-agent patch openssh-empty-password
 
 - title: Insecure protocol option enabled for OpenSSH
   id: 2005
@@ -237,17 +197,7 @@
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
-    Find your sshd_config file
-    $ sudo find /etc -iname sshd_config
-
-    Open the file above in your favorite editor
-    $ sudo vim /path/to/sshd_config
-
-    Find the line that says 'Protocol', and change it into 'Protocol 2'.
-    If the line does not exist, add it. Also, please note that lines starting with '#' are disabled
-
-    Once you've added the line, make sure to restart SSH by running
-    $ sudo service ssh restart
+    $ sudo wott-agent patch openssh-protocol
 
 - title: Automatic security updates not enabled
   id: 6
