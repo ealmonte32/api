@@ -272,11 +272,13 @@
   <template id="trust-score-template">
     <div class="position-relative">
       <div id="trust-progress-100"  class="w-100" role="progressbar"></div>
+
+      <!-- prepend class justify-content-center or zero-trust -->
       <span id="trust-progress-var"
-            class="justify-content-center d-flex position-absolute"
-            style="width: 0000%">
-            <!--trust_score_percent-->%
+            class="d-flex position-absolute"> <!-- set css.width -->
+            <!--"$trust_score_percent %" or "calculating..."-->
       </span>
+
     </div>
   </template>
 </div>
@@ -629,15 +631,25 @@
      * @returns {string|*}
      */
         function render_trustscore(data, type, row, meta){
-            if (type == 'sort') return data;
-            if (data == null || data == '') return '';
-            let template = $("#trust-score-template").html()
-                .replace('white', row['trust_score_color'])
-                .replace('0000', row['trust_score_percent'])
-                .replace('<!--trust_score_percent-->', row['trust_score_percent']);
-  
-            return template;
+          if (type == 'sort') return data;
+
+          let template = $("#trust-score-template").clone(),
+              score = row['trust_score_percent'],
+              progress_var = template.contents().children('#trust-progress-var');
+          if (!score) {
+              progress_var
+                  .addClass('zero-trust')
+                  .text('Calculating...')
+                  .css({width: 0});
+          } else {
+              progress_var
+                  .addClass('justify-content-center')
+                  .text(score+" %")
+                  .css({width: score+'%'});
+          }
+          return template.html();
         }
+
         $('.toast').toast({delay: 5000});
         $('.toast').hide();
   
