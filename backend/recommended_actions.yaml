@@ -108,8 +108,6 @@
 
     Where possible, it is ideal to completely remove the need for passwords to improve your security posture.
 
-    **Warning:** Before you disable password authentication, make sure that you have [generated and installed](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-1604) your SSH keys on the remote server. Failure to do so will result in that you will be locked out of your server.
-
     Edit the `/etc/ssh/sshd_config` file like so:
 
     ```
@@ -124,6 +122,8 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-password-auth
 
+    **Warning:** Before you disable password authentication, make sure that you have [generated and installed](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-1604) your SSH keys on the remote server. Failure to do so will result in that you will be locked out of your server.
+    
 - title: Root login enabled for OpenSSH
   id: 2002
   short: |
