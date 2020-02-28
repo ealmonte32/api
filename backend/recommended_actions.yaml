@@ -119,11 +119,12 @@
     For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
   terminal_title: |
     Here are the steps to resolve this issue.
+
+      **Warning:** Before you disable password authentication, make sure that you have [generated and installed](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-1604) your SSH keys on the remote server. Failure to do so will result in that you will be locked out of your server.
+
   terminal_code: |
     $ sudo wott-agent patch openssh-password-auth
 
-    **Warning:** Before you disable password authentication, make sure that you have [generated and installed](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-1604) your SSH keys on the remote server. Failure to do so will result in that you will be locked out of your server.
-    
 - title: Root login enabled for OpenSSH
   id: 2002
   short: |
