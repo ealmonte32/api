@@ -79,12 +79,13 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         resolved_count = ra_resolved_this_week.count()
         if resolved_count < settings.MAX_WEEKLY_RA:
             ra_unresolved = sorted(ra_unresolved,
-                                   key=lambda v: ActionMeta.get_class(v['ra__action_class']).severity(v['ra__action_param']).value[2],
+                                   key=lambda v: ActionMeta.get_class(v['ra__action_class']).severity(
+                                       v['ra__action_param']).value[2],
                                    reverse=True)
             for a in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 affected_devices = Device.objects.filter(owner=self.request.user,
                     recommendedactionstatus__in=RecommendedActionStatus.objects.filter(
-                    RecommendedAction.get_affected_query(),
+                    RecommendedActionStatus.get_affected_query(),
                         ra__action_class=a['ra__action_class'], ra__action_param=a['ra__action_param']
                     )).distinct()
                 a = ActionMeta.get_class(a['ra__action_class']).action(affected_devices, a['ra__action_param'])
@@ -566,7 +567,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 actions_qs = RecommendedActionStatus.objects.filter(device__owner=self.request.user).order_by('device__pk')
 
             # Select all RAs for all user's devices which are not snoozed
-            active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
+            active_actions = actions_qs.filter(RecommendedActionStatus.get_affected_query())
 
             # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
             actions_by_id = defaultdict(list)

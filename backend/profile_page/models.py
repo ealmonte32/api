@@ -2,10 +2,9 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.db.models import Q, Avg, Max, Window, Count, Value
-from django.db.models.functions import Coalesce, Concat
+from django.db.models import Q, Avg, Max, Window, Count
+from django.db.models.functions import Coalesce
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -17,7 +16,6 @@ from phonenumber_field.modelfields import PhoneNumberField
 from device_registry.models import RecommendedAction, RecommendedActionStatus, \
     Device, HistoryRecord, Vulnerability, PairingKey
 from device_registry.celery_tasks import github
-from device_registry.recommended_actions import ActionMeta
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +51,7 @@ class Profile(models.Model):
     @property
     def actions_count(self):
         return RecommendedActionStatus.objects.filter(
-            Q(device__owner=self.user) & RecommendedAction.get_affected_query()) \
+            Q(device__owner=self.user) & RecommendedActionStatus.get_affected_query()) \
             .values('ra__action_class', 'ra__action_param').distinct().count()
 
     @property
@@ -78,11 +76,12 @@ class Profile(models.Model):
 
         exclude_condition = Q()
         for a in ra_unresolved:
-            exclude_condition.add(Q(ra__action_class=a['ra__action_class'], ra__action_param=a['ra__action_param']), Q.OR)
+            exclude_condition.add(Q(ra__action_class=a['ra__action_class'],
+                                    ra__action_param=a['ra__action_param']), Q.OR)
         ra_resolved_this_week = ra_maybe_resolved_this_week \
             .exclude(exclude_condition)\
             .distinct()
-        return ra_unresolved.filter(RecommendedAction.get_affected_query()), ra_resolved_this_week
+        return ra_unresolved.filter(RecommendedActionStatus.get_affected_query()), ra_resolved_this_week
 
     @property
     def actions_resolved_since_monday(self):

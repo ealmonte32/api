@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
-from typing import NamedTuple, List, Union
+from typing import NamedTuple, List
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -169,14 +169,14 @@ class BaseAction:
         Select all devices which are affected by this recommended action.
         This method is to be used during migration when a new RA is added. It is supposed to be optimized for quick
         selection of devices, preferably with a single request. However the default implementation provided here is
-        suboptimal because it calls is_affected() for every device.
+        suboptimal because it calls affected_params() for every device.
         :param qs: QuerySet of Device which will be additionally filtered.
         :return: QuerySet
         """
         raise NotImplementedError
 
     @classmethod
-    def is_affected(cls, device) -> List[ParamStatus]:
+    def affected_params(cls, device) -> List[ParamStatus]:
         """
         Whether the supplied device is affected by this RA.
         :param device: a Device
@@ -288,7 +288,7 @@ class SimpleAction(BaseAction):
         return [ParamStatusQS(None, cls._affected_devices(qs))]
 
     @classmethod
-    def is_affected(cls, device) -> List[ParamStatus]:
+    def affected_params(cls, device) -> List[ParamStatus]:
         return [ParamStatus(None, cls._is_affected(device))]
 
 
@@ -313,7 +313,7 @@ class ParamAction(BaseAction):
     def affected_devices(cls, qs) -> List[ParamStatusQS]:
         result = defaultdict(list)
         for dev in qs:
-            for param, val in cls.is_affected(dev):
+            for param, val in cls.affected_params(dev):
                 if val:
                     result[param].append(dev)
         return [ParamStatusQS(param, devices) for param, devices in result.items()]
@@ -355,7 +355,7 @@ class ActionMeta(type):
             cls = e['class']
             param = e.get('param')
             if param:
-                if not cls in meta._config:
+                if cls not in meta._config:
                     meta._config[cls] = {}
                 meta._config[cls][param] = e
             else:
@@ -487,7 +487,7 @@ class PubliclyAccessibleServiceAction(ParamAction, metaclass=ActionMeta):
         return dict(service=service_name, port=port)
 
     @classmethod
-    def is_affected(cls, device):
+    def affected_params(cls, device):
         services = device.public_services
         return [ParamStatus(service, service in services if services is not None else False)
                 for service in PUBLIC_SERVICE_PORTS.keys()]
@@ -514,13 +514,13 @@ class DefaultCredentialsAction(ParamAction, metaclass=ActionMeta):
     @classmethod
     def affected_devices(cls, qs) -> List[ParamStatusQS]:
         all_users = defaultdict(list)
-        for d in qs.filter(default_password_users__isnull=False, default_password_users__len__gt=0):
+        for d in qs.filter(default_password_users__len__gt=0):
             for u in d.default_password_users:
                 all_users[u].append(d)
         return [ParamStatusQS(p, d) for p, d in all_users.items()]
 
     @classmethod
-    def is_affected(cls, device) -> List[ParamStatus]:
+    def affected_params(cls, device) -> List[ParamStatus]:
         return [ParamStatus(u, True) for u in device.default_password_users] if device.default_password_users else []
 
     @classmethod
@@ -543,11 +543,12 @@ class InsecureServicesAction(ParamAction, metaclass=ActionMeta):
                 deb_packages__name=name).distinct()) for name, _, _ in INSECURE_SERVICES]
 
     @classmethod
-    def is_affected(cls, device) -> List[ParamStatus]:
+    def affected_params(cls, device) -> List[ParamStatus]:
         return [ParamStatus(name, device.deb_packages.filter(name=name).exists()) for name, _, _ in INSECURE_SERVICES]
 
     @classmethod
     def severity(cls, param):
+        # Find an item in INSECURE_SERVICES by service name
         return next(s.severity for s in INSECURE_SERVICES if s.name == param)
 
 
@@ -560,7 +561,7 @@ class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
                     doc_url=doc_url)
 
     @classmethod
-    def is_affected(cls, device):
+    def affected_params(cls, device):
         affected = []
         for param in cls.action_config.keys():
             issues = device.sshd_issues

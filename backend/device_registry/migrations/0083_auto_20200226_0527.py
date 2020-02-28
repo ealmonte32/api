@@ -4,7 +4,6 @@ import device_registry.models
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-from django.db.models import Case, CharField, Value, When
 
 
 def convert_action_id(apps, schema_editor):
@@ -49,8 +48,6 @@ def convert_action_id(apps, schema_editor):
                                                      resolved_at=ra.resolved_at, device=ra.device, ra=newra[ra.action_id]))
     RecommendedActionStatusModel.objects.bulk_create(objs)
 
-    id_DefaultCredentialsAction = 1
-    RecommendedActionModel.objects.filter(action_id=id_DefaultCredentialsAction).delete()
     RecommendedActionModel.objects.exclude(action_id=0).delete()
 
     Profile = apps.get_model('profile_page', 'Profile')
@@ -90,7 +87,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('url', models.URLField(blank=True, null=True)),
-                ('number', models.IntegerField(default=0)),
+                ('number', models.PositiveIntegerField(default=0)),
                 ('closed', models.BooleanField(default=False)),
                 ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('ra', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='device_registry.RecommendedAction')),

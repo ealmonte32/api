@@ -1,6 +1,5 @@
 import logging
 import time
-from datetime import timedelta
 
 from django.conf import settings
 from django.db.models import Q
@@ -12,7 +11,7 @@ from agithub.base import IncompleteRequest
 from jwt import JWT, jwk_from_pem
 
 from device_registry import recommended_actions
-from device_registry.models import RecommendedActionStatus, GithubIssue, RecommendedAction
+from device_registry.models import GithubIssue, RecommendedAction
 
 HEADERS = {'Accept': 'application/vnd.github.machine-man-preview+json'}
 logger = logging.getLogger('django')
@@ -267,14 +266,12 @@ def file_issues():
             logger.exception('failed to get installation token or list issues')
             continue
 
-        ra_classes = RecommendedActionStatus.objects\
-            .filter(device__owner=profile.user)\
-            .values_list('ra__action_class', 'ra__action_param').distinct()
-        for ra_class, ra_param in ra_classes:
-            ra = RecommendedAction.objects.get(action_class=ra_class, action_param=ra_param)
+        ra_classes = RecommendedAction.objects.filter(recommendedactionstatus__device__owner=profile.user).distinct()
+        for ra in ra_classes:
+            ra = RecommendedAction.objects.get(action_class=ra.action_class, action_param=ra.action_param)
             issue, issue_created = GithubIssue.objects.get_or_create(owner=profile.user, ra=ra)
-            action_class = recommended_actions.ActionMeta.get_class(ra_class)
-            description = action_class.get_description(profile.user, ra_param)
+            action_class = recommended_actions.ActionMeta.get_class(ra.action_class)
+            description = action_class.get_description(profile.user, ra.action_param)
             try:
                 if description:
                     title, text = description

@@ -7,8 +7,7 @@ from typing import NamedTuple
 from dateutil.relativedelta import relativedelta, SU, MO
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q, Max, Window, Count, Value
-from django.db.models.functions import Concat
+from django.db.models import Q, Max, Window, Count
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
@@ -321,7 +320,7 @@ class Device(models.Model):
 
     @property
     def actions_count(self):
-        return self.recommendedactionstatus_set.filter(RecommendedAction.get_affected_query()).count()
+        return self.recommendedactionstatus_set.filter(RecommendedActionStatus.get_affected_query()).count()
 
     def _get_listening_sockets(self, port):
         return [r for r in self.portscan.scan_info if
@@ -557,7 +556,7 @@ class Device(models.Model):
         added = []
         for action_class in ActionMeta.all_classes() if classes is None else classes:
             action_class_name = action_class.__name__
-            affected_params = action_class.is_affected(self)
+            affected_params = action_class.affected_params(self)
             if action_class.has_param:
                 # if a param was removed -> counts as fixed
                 were_affected = set(p for c, p in ra_affected if c == action_class_name)
@@ -961,6 +960,7 @@ class Distro(models.Model):
 class RecommendedAction(models.Model):
     class Meta:
         unique_together = ['action_class', 'action_param']
+        models.Index(fields=['action_class', 'action_param'])
 
     class Status(IntEnum):
         AFFECTED = 0
@@ -969,12 +969,6 @@ class RecommendedAction(models.Model):
         SNOOZED_FOREVER = 3
         NOT_AFFECTED = 4
 
-    @staticmethod
-    def get_affected_query():
-        return Q(status=RecommendedAction.Status.AFFECTED) | \
-               Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
-                 snoozed_until__lt=timezone.now())
-
     action_class = models.CharField(max_length=64)
     action_param = models.CharField(max_length=128, null=True, blank=True)
 
@@ -982,12 +976,19 @@ class RecommendedAction(models.Model):
 class RecommendedActionStatus(models.Model):
     class Meta:
         unique_together = ['device', 'ra']
+
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     ra = models.ForeignKey(RecommendedAction, on_delete=models.CASCADE)
     status = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in RecommendedAction.Status],
                                               default=RecommendedAction.Status.AFFECTED.value)
     snoozed_until = models.DateTimeField(null=True, blank=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
+
+    @staticmethod
+    def get_affected_query():
+        return Q(status=RecommendedAction.Status.AFFECTED) | \
+               Q(status=RecommendedAction.Status.SNOOZED_UNTIL_TIME,
+                 snoozed_until__lt=timezone.now())
 
     @classmethod
     def update_all_devices(cls, classes=None):
@@ -1016,7 +1017,8 @@ class RecommendedActionStatus(models.Model):
                                 ra=ra,
                                 status=RecommendedAction.Status.AFFECTED)
                             for d in param_affected]
-        cls.objects.bulk_create(created)
+        if created:
+            cls.objects.bulk_create(created)
         return len(created)
 
 
@@ -1024,7 +1026,7 @@ class GithubIssue(models.Model):
     ra = models.ForeignKey(RecommendedAction, on_delete=models.CASCADE)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     url = models.URLField(blank=True, null=True)
-    number = models.IntegerField(default=0)
+    number = models.PositiveIntegerField(default=0)
     closed = models.BooleanField(default=False)
 
 

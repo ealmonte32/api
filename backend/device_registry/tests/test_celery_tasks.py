@@ -4,7 +4,7 @@ from django.test import TestCase
 from unittest import mock
 
 from device_registry.models import GithubIssue
-from device_registry.recommended_actions import SimpleAction, Severity
+from device_registry.recommended_actions import ActionMeta, SimpleAction, Severity
 from profile_page.models import *
 
 TEST_REPO_ID = 1234

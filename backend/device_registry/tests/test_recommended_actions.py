@@ -387,7 +387,7 @@ class TestsMixin:
     def test_get(self):
         # No action at the beginning.
         self.device.generate_recommended_actions()
-        affected = self.action_class.is_affected(self.device)
+        affected = self.action_class.affected_params(self.device)
         self.assertFalse(any(a.affected for a in affected))
         # self.assertFalse(self.action_class.affected_devices(self.user.devices.all()).exists())
         self.assertNoAction(self.common_actions_url)
@@ -397,7 +397,7 @@ class TestsMixin:
         # Enable the action.
         self.enable_action()
         self.device.generate_recommended_actions()
-        affected = self.action_class.is_affected(self.device)
+        affected = self.action_class.affected_params(self.device)
         self.assertIn(ParamStatus(self.param, True), affected)
         # self.assertTrue(self.action_class.affected_devices(self.user.devices.all()).exists())
         self.check_action(self.assertOneAction(self.common_actions_url))
