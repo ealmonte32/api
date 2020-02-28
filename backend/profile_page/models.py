@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from django.conf import settings
@@ -63,7 +64,8 @@ class Profile(models.Model):
         :return: a tuple of QuerySets: unresolved, resolved
         """
         now = timezone.now()
-        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
+        sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         this_monday = sunday + relativedelta(days=1)  # This week's monday
 
         ra_maybe_resolved_this_week = RecommendedActionStatus.objects.filter(device__owner=self.user,
@@ -118,7 +120,8 @@ class Profile(models.Model):
     @property
     def average_trust_score_last_week(self):
         now = timezone.now()
-        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
+        sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
         this_monday = sunday + relativedelta(days=1)  # This week's monday
         score_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,
@@ -169,7 +172,8 @@ class Profile(models.Model):
     @property
     def cve_count_last_week(self):
         now = timezone.now()
-        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
+        sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
         this_monday = sunday + relativedelta(days=1)  # This week's monday
         cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,
