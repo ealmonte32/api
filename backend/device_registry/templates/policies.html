@@ -21,6 +21,13 @@
     </tr>
     </thead>
     <tbody>
+      {% if object_list|length == 0 %}
+      <tr class="py-3">
+        <td class="p-4">
+          <h4 class="wott-blue text-center">To add your first Policy press the button bellow</h4>
+        </td>
+      </tr>
+      {% endif %}
     {% for object in object_list %}
         <tr class="row border-table">
           <td class="col-3  wott-font-light-blue  d-flex align-items-center medium-text font-weight-bold"><a href="{% url 'edit_global_policy' object.pk %}">{{ object }}</a></td>
