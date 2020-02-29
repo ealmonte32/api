@@ -1,0 +1,40 @@
+.wott-payment-card-inner-box {
+  background-color: white;
+  padding: 1.2rem 1.5rem;
+  border: 2px solid #cddef7;
+  min-height: 50px;
+}
+
+
+#id_total_sum {
+    padding-left: 25px;
+}
+
+.wott-dolar-input {
+  position: relative;
+}
+
+.wott-dolar-input:before {
+  content:"$";
+  position: absolute;
+  top: 21px;
+  left: 13px;
+  height: 30px;
+  width: 40px;
+  color: #2460c8;
+  z-index: 999;
+}
+
+.wott-payment-card-box {
+  padding: 0rem 3.5rem;
+  background-color: #f4f6fb;
+  margin-bottom: 0px;
+}
+
+
+
+.wott-payment-container {
+  border-top: 1px solid lightgray;
+  margin-top: 1rem;
+  background-color: #f4f6fb;
+}

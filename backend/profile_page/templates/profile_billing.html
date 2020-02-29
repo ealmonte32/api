@@ -67,33 +67,6 @@
     .StripeElement--complete {
         background-color: #e9f3f5 !important;
     }
-
-    .wott-payment-card-inner-box {
-    background-color: white;
-    padding: 1.2rem 1.5rem;
-    border: 2px solid #cddef7;
-    min-height: 50px;
-  }
-
-  #id_total_sum {
-      padding-left: 25px;
-  }
-
-  .wott-dolar-input {
-    position: relative;
-  }
-
-  .wott-dolar-input:before {
-    content:"$";
-    position: absolute;
-    top: 21px;
-    left: 13px;
-    height: 30px;
-    width: 40px;
-    color: #2460c8;
-    z-index: 999;
-  }
-
   </style>
 {% endblock %}
 
@@ -162,8 +135,7 @@
               if (payment_plan_id === '1') {  // Enabled standard plan.
                   $('.card-form-group').removeClass('d-none');  // Unhide card section.
                   handle_stripe_submission = true;
-                  document.getElementById('id_card_element').scrollIntoView({ behavior: 'smooth' });
-
+                  $('html, body').animate({ scrollTop: $('#id_card_element').offset().top});
               }
           } else if (new_payment_plan_id === '1') {
               $('.card-form-group').addClass('d-none');  // Hide card section.

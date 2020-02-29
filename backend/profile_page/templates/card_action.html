@@ -6,7 +6,9 @@
   <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
-<div id="id_card_errors" role="alert"></div>
+<div class="stripe-message-page d-flex flex-column align-items-center h-100 w-100 justify-content-center" role="alert">
+    <h4 class="wott-alert-full wott-border-radius-lg wott-blue p-3 w-50" id="id_card_errors"></h4>
+</div>
 <script>
     let stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
     stripe.confirmCard{% if setup %}Setup{% else %}Payment{% endif %}(
@@ -23,4 +25,36 @@
     )
 </script>
 </body>
+<style>
+
+* {
+ margin: 0;
+ padding: 0;
+}
+.stripe-message-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    justify-content: center;
+    background-color: #f7f9ff;
+}    
+.wott-alert-full {
+    white-space: normal;
+    background-color: #e9edf7;
+    width: 50%;
+    padding: .8rem;
+    font-size: 1.2rem;
+}
+
+.wott-border-radius-lg {
+  border-radius: 8px;
+}
+
+.wott-blue {
+  color: #2460c8 ;
+}
+
+</style>
 </html>
