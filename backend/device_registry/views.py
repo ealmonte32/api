@@ -84,10 +84,11 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                                    reverse=True)
             for a in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 affected_devices = Device.objects.filter(owner=self.request.user,
-                    recommendedactionstatus__in=RecommendedActionStatus.objects.filter(
-                    RecommendedActionStatus.get_affected_query(),
-                        ra__action_class=a['ra__action_class'], ra__action_param=a['ra__action_param']
-                    )).distinct()
+                                                         recommendedactionstatus__in=RecommendedActionStatus.objects
+                                                         .filter(RecommendedActionStatus.get_affected_query(),
+                                                                 ra__action_class=a['ra__action_class'],
+                                                                 ra__action_param=a['ra__action_param']))\
+                                                         .distinct()
                 a = ActionMeta.get_class(a['ra__action_class']).action(affected_devices, a['ra__action_param'])
                 actions.append(a._replace(resolved=False, id=i))
                 i += 1

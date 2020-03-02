@@ -53,7 +53,7 @@ class Profile(models.Model):
     def actions_count(self):
         return RecommendedActionStatus.objects.filter(
             Q(device__owner=self.user) & RecommendedActionStatus.get_affected_query()) \
-            .values('ra__action_class', 'ra__action_param').distinct().count()
+            .values('ra__pk').distinct().count()
 
     @property
     def actions_weekly(self):
@@ -73,17 +73,15 @@ class Profile(models.Model):
                                                                        resolved_at__gte=this_monday) \
             .values('ra__action_class', 'ra__action_param')  # resolved this week (not completely)
         ra_unresolved = RecommendedActionStatus.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
-                                                         device__owner=self.user) \
-            .values('ra__action_class', 'ra__action_param').distinct()  # unresolved (incl. snoozed)
+                                                               device__owner=self.user) \
+            .values('ra__pk').distinct()  # unresolved (incl. snoozed)
 
-        exclude_condition = Q()
-        for a in ra_unresolved:
-            exclude_condition.add(Q(ra__action_class=a['ra__action_class'],
-                                    ra__action_param=a['ra__action_param']), Q.OR)
         ra_resolved_this_week = ra_maybe_resolved_this_week \
-            .exclude(exclude_condition)\
+            .exclude(ra__in=ra_unresolved)\
             .distinct()
-        return ra_unresolved.filter(RecommendedActionStatus.get_affected_query()), ra_resolved_this_week
+        return (ra_unresolved.filter(RecommendedActionStatus.get_affected_query())
+                             .values('ra__action_class', 'ra__action_param'),
+                ra_resolved_this_week)
 
     @property
     def actions_resolved_since_monday(self):
@@ -141,7 +139,7 @@ class Profile(models.Model):
             status=RecommendedAction.Status.NOT_AFFECTED,
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
-        ).values('ra__action_class', 'ra__action_param').distinct().count()
+        ).values('ra__pk').distinct().count()
 
         cve_hi, cve_med, cve_lo = self.cve_count
         HistoryRecord.objects.create(owner=self.user,
