@@ -377,8 +377,13 @@
               selector: 'td:first-child'
           },
           language: {
-            emptyTable: `Looks like you got no nodes added. Press the <a id="inst-btn-link" href="#" onclick="show_install_msg()">Add Node</a> button to enroll your first
-                         node and get a security audit.`
+            emptyTable: `<div class="py-3">
+                         <h4 class="wott-blue">Looks like you got no nodes added</h4>
+                         <h4 class="wott-blue">Press the 'Add Node' button to enroll your first node and begin the security audit.<h4>
+                         <button type="button" class="btn btn-wott-primary wott-btn-medium mt-2" onclick="show_install_msg()" id="table-inst-btn">
+                         <span>Add Node</span>
+                         <img class="ml-3" src="{% static '/media/plus.svg' %}" alt="plus">
+                         </button></div>`
           }
         });
 
