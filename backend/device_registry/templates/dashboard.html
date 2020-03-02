@@ -38,7 +38,7 @@
           <div class="graphic-title wott-font-light-blue">Weekly Progress</div>
           <div id="week-progress-100">  
             <span id="week-progress-var-fake">
-              <p class="mb-0" id="week-progres-text">75</p>
+              <p class="mb-0" id="week-progress-text">75</p>
             </span>
           </div>
         </div>
@@ -148,7 +148,8 @@
           <div class="graphic-title">Weekly Progress</div>
           <div id="week-progress-100">  
             <span id="week-progress-var" style="width: {{ weekly_progress }}%">
-              <p class="my-0 {% if weekly_progress < 25 and weekly_progress != 0 %}graph-less-25{% elif weekly_progress == 0 %}graph-var-0{% else %}justify-content-center{% endif %}" id="week-progres-text" >{{ weekly_progress }}</p>
+              <p class="my-0 {% if weekly_progress == 0 %}graph-var-0{% elif weekly_progress < 25 %}graph-less-25{% else %}justify-content-center{% endif %}"
+                 id="week-progress-text" >{{ weekly_progress }}</p>
             </span>
           </div>
         </div>

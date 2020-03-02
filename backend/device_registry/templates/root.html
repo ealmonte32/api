@@ -579,8 +579,7 @@
           }
   
         function enableFilter(b) {
-            $('#filter-name-div,#filter-predicate-div,#filter-value-div').children().attr('disabled', !b);
-            $('#filter-value-div').find('input, select').attr('disabled', !b)
+            $('#filter-name-div,#filter-predicate-div,#filter-value-div').find('input, select').attr('disabled', !b);
         }
   
         /**
