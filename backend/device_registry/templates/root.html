@@ -80,7 +80,7 @@
           <label class="custom-control-label mt-1 wott-checkbox-label-round" for="filter-check"></label>
         </div>
         <div class="input-small" id="filter-name-div">
-          <select class="custom-select wott-filter-select" id="filter-selector" >
+          <select class="custom-select wott-filter-select wott-rounded-lg" id="filter-selector" >
           {% for filter_param in filter_params %}
             <option name="{{ filter_param.0 }}" value="{{ filter_param.2 }}">{{ filter_param.1 }}</option>
           {% endfor %}
@@ -156,7 +156,7 @@
   {% include "batch_actions_control.html" %}
 
   <template id="str_options">
-    <select class="custom-select wott-filter-select" id="filter-predicate">
+    <select class="custom-select wott-filter-select wott-rounded-lg" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="c">contains</option>
@@ -164,11 +164,11 @@
     </select>
   </template>
   <template id="str_value">
-    <input type="text" class="custom-select wott-filter-select bg-white wott-rounded-lg" placeholder="Value">
+    <input type="text" class="w-100 pl-2 wott-filter-select wott-rounded-lg" placeholder="Value">
   </template>
 
   <template id="datetime_options">
-    <select class="custom-select wott-filter-select" id="filter-predicate">
+    <select class="custom-select wott-filter-select wott-rounded-lg" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="lt">greater than</option>
@@ -178,10 +178,10 @@
   <template id="datetime_value">
     <div class="form-row">
       <div class="col">
-        <input type="number" class="custom-select wott-filter-select bg-white wott-rounded-lg" min="0">
+        <input type="number" id="filter-number-input" class="w-100 pl-2 wott-filter-select wott-rounded-lg" min="0">
       </div>
       <div class="col">
-        <select class="custom-select wott-filter-select" id="datetime-scale">
+        <select class="custom-select wott-filter-select wott-rounded-lg" id="datetime-scale">
           <option value="hours">hours</option>
           <option value="days">days</option>
         </select>
@@ -193,7 +193,7 @@
   </template>
 
   <template id="float_options">
-    <select class="custom-select wott-filter-select" id="filter-predicate">
+    <select class="custom-select wott-filter-select wott-rounded-lg" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
       <option value="gt">greater than</option>
@@ -201,24 +201,24 @@
     </select>
   </template>
   <template id="float_value">
-    <input type="number" class="custom-select wott-filter-select bg-white wott-rounded-lg" placeholder="Value" step="0.01">
+    <input type="number" class="w-100 pl-2 wott-filter-select wott-rounded-lg" placeholder="Value" step="0.01">
   </template>
 
   <template id="bool_options">
-    <select class="custom-select wott-filter-select" id="filter-predicate">
+    <select class="custom-select wott-filter-select wott-rounded-lg" id="filter-predicate">
       <option value="eq">matches</option>
       <option value="neq">not matches</option>
     </select>
   </template>
   <template id="bool_value">
-    <select class="custom-select wott-filter-select">
+    <select class="custom-select wott-filter-select wott-rounded-lg">
       <option>True</option>
       <option>False</option>
     </select>
   </template>
 
   <template id="tags_options">
-    <select class="custom-select wott-filter-select" id="filter-predicate">
+    <select class="custom-select wott-filter-select wott-rounded-lg" id="filter-predicate">
       <option value="c">contains</option>
       <option value="nc">not contains</option>
     </select>
@@ -579,7 +579,7 @@
           }
   
         function enableFilter(b) {
-            $('#filter-name-div,#filter-predicate-div,#filter-value-div').children().attr('disabled', !b)
+            $('#filter-name-div,#filter-predicate-div,#filter-value-div').find('input, select').attr('disabled', !b);
         }
   
         /**
