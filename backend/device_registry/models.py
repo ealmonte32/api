@@ -547,6 +547,8 @@ class Device(models.Model):
         :param classes: if supplied, limit the scope of this method to this list of BaseAction classes.
         :return:
         """
+        from .tasks import file_github_issues
+
         ra_all = self.recommendedactionstatus_set\
             .values_list('ra__action_class', 'ra__action_param')
         ra_affected = self.recommendedactionstatus_set\
@@ -602,6 +604,10 @@ class Device(models.Model):
             ra_status_new.append(RecommendedActionStatus(ra=ra, device=self,
                                                    status=status))
         self.recommendedactionstatus_set.bulk_create(ra_status_new)
+
+        if settings.GITHUB_IMMEDIATE_SYNC and (n_affected or n_unaffected or ra_status_new):
+            file_github_issues.delay(self.owner.profile.pk)
+
         return n_affected, n_unaffected, len(ra_status_new)
 
 
@@ -1028,6 +1034,8 @@ class GithubIssue(models.Model):
     url = models.URLField(blank=True, null=True)
     number = models.PositiveIntegerField(default=0)
     closed = models.BooleanField(default=False)
+    affected = models.ManyToManyField(Device, related_name='github_issues_affected')
+    resolved = models.ManyToManyField(Device, related_name='github_issues_resolved')
 
 
 class HistoryRecord(models.Model):

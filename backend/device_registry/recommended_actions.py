@@ -278,7 +278,10 @@ class BaseAction:
         context = cls.get_context(param)
         body_text = action_config['long']
         action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
-        return action_config['title'], action_text
+
+        resolved = [a.device for a in actions if a.status == RecommendedAction.Status.NOT_AFFECTED]
+        affected = [a.device for a in actions if a.status != RecommendedAction.Status.NOT_AFFECTED]
+        return action_config['title'], action_text, affected, resolved
 
 
 class SimpleAction(BaseAction):

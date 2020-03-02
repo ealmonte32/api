@@ -405,10 +405,11 @@ class TestsMixin:
         self.check_description()
 
     def check_description(self):
-        title, text = self.action_class.get_description(self.user, self.param)
+        title, text, affected, resolved = self.action_class.get_description(self.user, self.param)
         # Just check that title and text are not None and not empty.
         self.assertTrue(title)
         self.assertTrue(text)
+        self.assertEquals(affected[0], self.device)
 
     def check_action(self, action: Action):
         self.assertEquals(action.action_class, self.action_class.__name__)
