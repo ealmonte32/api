@@ -32,7 +32,7 @@
                   <h5 class="alert-instruction mb-0 mt-2">Affected Nodes: {{ action.devices|length }}</h5>
                 </div>
                 
-                {% with action.severity.value as action_severity %}
+                {% with action.severity_info as action_severity %}
                 <div class="badge mr-4 mb-2 text-uppercase wott-rect-badge-{{ action_severity.1 }}">
                   {{ action_severity.0 }}
                 </div>

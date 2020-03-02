@@ -80,7 +80,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         if resolved_count < settings.MAX_WEEKLY_RA:
             ra_unresolved = sorted(ra_unresolved,
                                    key=lambda v: ActionMeta.get_class(v['ra__action_class']).severity(
-                                       v['ra__action_param']).value[2],
+                                       v['ra__action_param']),
                                    reverse=True)
             for a in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 affected_devices = Device.objects.filter(owner=self.request.user,
@@ -605,7 +605,7 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             actions.append(GithubAction.action([]))
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.
-        actions.sort(key=lambda a: (a.severity.value[2], a.action_class), reverse=True)
+        actions.sort(key=lambda a: (a.severity, a.action_class), reverse=True)
 
         return device_name, actions
 

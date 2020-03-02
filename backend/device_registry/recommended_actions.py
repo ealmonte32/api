@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
-from enum import Enum
+from enum import IntEnum
 from typing import NamedTuple, List
 from urllib.parse import urljoin
 
@@ -13,10 +13,10 @@ import yaml
 import markdown
 
 
-class Severity(Enum):
-    LO = ('Low', 'secondary', 1)
-    MED = ('Medium', 'warning', 2)
-    HI = ('High', 'danger', 3)
+class Severity(IntEnum):
+    LO = 1
+    MED = 2
+    HI = 3
 
 
 class InsecureService(NamedTuple):
@@ -79,6 +79,11 @@ class Action(NamedTuple):
     issue_url: str = None
     resolved: bool = None
     id: int = 0
+    severity_dict = {
+        Severity.LO: ('Low', 'secondary'),
+        Severity.MED: ('Medium', 'warning'),
+        Severity.HI: ('High', 'danger')
+    }
 
     @property
     def short_html(self):
@@ -91,6 +96,10 @@ class Action(NamedTuple):
     @property
     def terminal_title_html(self):
         return markdown.markdown(self.terminal_title)
+
+    @property
+    def severity_info(self):
+        return self.severity_dict[self.severity]
 
 
 class ParamStatus(NamedTuple):
@@ -171,7 +180,7 @@ class BaseAction:
         selection of devices, preferably with a single request. However the default implementation provided here is
         suboptimal because it calls affected_params() for every device.
         :param qs: QuerySet of Device which will be additionally filtered.
-        :return: QuerySet
+        :return: list of ParamStatusQS (param, affected_list) for every possible param (which may be None).
         """
         raise NotImplementedError
 
@@ -180,22 +189,25 @@ class BaseAction:
         """
         Whether the supplied device is affected by this RA.
         :param device: a Device
-        :return: bool
+        :return: list of ParamStatus (param, affected) for every possible param (which may be None).
         """
         raise NotImplementedError
 
     @classmethod
     def get_context(cls, param) -> dict:
+        """
+        Get a dict with replacements for action texts (long text, short text, title, terminal_title, terminal_code).
+        Calls _get_context(), subclasses may add additional checks.
+        :return: a dict;
+        """
         return cls._get_context(param)
 
     @classmethod
     def _get_context(cls, param) -> dict:
         """
-        Method for producing a tuple of values used (as string formatting parameters)
-         for action description text rendering.
-        :param devices: list of Device model instances affected by the action;
-        :param device_pk: int/None - single affected device id;
-        :return: iterable (tuple/list);
+        Same as get_context(), but without any additional input checks.
+        :param param:
+        :return:
         """
         return {}
 
@@ -204,9 +216,9 @@ class BaseAction:
         """
         Create an Action object with title and description supplied by this class (cls), action description context,
         devices list and profile's github issue info (which can be empty).
-        :param profile: Profile
-        :param context: a format dict for action_description
+        :param context: a dict obtained by get_context()
         :param devices_list: list of Device ids
+        :param param: action param (if supported)
         :return: Action
         """
         if param is not None and param in cls.action_config:
@@ -231,10 +243,9 @@ class BaseAction:
     @classmethod
     def action(cls, devices, param=None) -> Action:
         """
-        Generate a list of Action objects for the user. Excludes snoozed actions.
-        :param user: the owner of the processed devices.
-        :param devices: a list of Device
-        :param device_pk: if given, then only one device with this pk is processed.
+        Create Action object from this action's data.
+        :param devices: a list of affected Device's
+        :param param: action param (if supported)
         :return:
         """
         context = cls.get_context(param)
@@ -252,9 +263,9 @@ class BaseAction:
         from .models import RecommendedAction, RecommendedActionStatus
         day_ago = timezone.now() - timedelta(hours=24)
         actions = RecommendedActionStatus.objects.filter(device__owner=user,
-                                                   ra__action_class=cls.__name__,
-                                                   ra__action_param=param,
-                                                   device__last_ping__gte=day_ago)\
+                                                         ra__action_class=cls.__name__,
+                                                         ra__action_param=param,
+                                                         device__last_ping__gte=day_ago)\
                                            .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]
         if not affected_devices or not any(a.status != RecommendedAction.Status.NOT_AFFECTED for a in actions):
@@ -271,6 +282,21 @@ class BaseAction:
 
 
 class SimpleAction(BaseAction):
+    """
+    An action with no params (meaning it has one param which is None). Subclasses should implement:
+    _severity field;
+    _is_affected(Device).
+    """
+
+    @classmethod
+    def _is_affected(cls, device) -> bool:
+        """
+        Tell if the provided device is affected. Subclasses should implement this method.
+        :param device: Device
+        :return: single boolean value
+        """
+        raise NotImplementedError
+
     @classmethod
     def severity(cls, param=None):
         return cls._severity
@@ -281,18 +307,35 @@ class SimpleAction(BaseAction):
 
     @classmethod
     def _affected_devices(cls, qs) -> List:
+        """
+        A simple param-less implementation which tests the supplied devices with _is_affected().
+        Subclasses may override this for a more efficient batch check.
+        :param qs: QuerySet or List
+        :return: list of affected devices
+        """
         return [dev for dev in qs if cls._is_affected(dev)]
 
     @classmethod
     def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        """
+        Simply calls _affected_devices().
+        """
         return [ParamStatusQS(None, cls._affected_devices(qs))]
 
     @classmethod
     def affected_params(cls, device) -> List[ParamStatus]:
+        """
+        Simply calls _is_affected().
+        """
         return [ParamStatus(None, cls._is_affected(device))]
 
 
 class ParamAction(BaseAction):
+    """
+    Parametrized action. Adds some checks for methods which accept param to make sure it is supplied.
+    Subclasses may override _get_context() or affected_devices().
+    """
+
     has_param = True
 
     @classmethod
@@ -311,6 +354,10 @@ class ParamAction(BaseAction):
 
     @classmethod
     def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        """
+        A simple implementation which returns all devices returned by affected_params().
+        Subclasses may override this for a more efficient batch check.
+        """
         result = defaultdict(list)
         for dev in qs:
             for param, val in cls.affected_params(dev):
