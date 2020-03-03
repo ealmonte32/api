@@ -1,7 +1,7 @@
 import json
 import sys
 from collections import defaultdict
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from dateutil.relativedelta import relativedelta, TU, SU
 from django.conf import settings
@@ -416,6 +416,7 @@ class DeviceModelTest(TestCase):
 
     def test_default_creds_fix(self):
         self.device0.default_password_users = ['one', 'two']
+        self.device0.save(update_fields=['default_password_users'])
         self.device0.generate_recommended_actions()
         ra = RecommendedActionStatus.objects.get(device=self.device0,
                                       status=RecommendedAction.Status.AFFECTED,
@@ -426,13 +427,25 @@ class DeviceModelTest(TestCase):
         self.device0.save(update_fields=['default_password_users'])
         self.device0.generate_recommended_actions()
         ra = RecommendedActionStatus.objects.get(device=self.device0,
-                                           status=RecommendedAction.Status.NOT_AFFECTED,
-                                           ra__action_class='DefaultCredentialsAction',
-                                           ra__action_param='two')
+                                                 status=RecommendedAction.Status.NOT_AFFECTED,
+                                                 ra__action_class='DefaultCredentialsAction',
+                                                 ra__action_param='two')
         ra = RecommendedActionStatus.objects.get(device=self.device0,
-                                           status=RecommendedAction.Status.AFFECTED,
-                                           ra__action_class='DefaultCredentialsAction',
-                                           ra__action_param='one')
+                                                 status=RecommendedAction.Status.AFFECTED,
+                                                 ra__action_class='DefaultCredentialsAction',
+                                                 ra__action_param='one')
+
+    @patch('device_registry.tasks.file_github_issues')
+    def test_github_sync(self, file_github_issues: Mock):
+        self.assertFalse(settings.GITHUB_IMMEDIATE_SYNC)
+        settings.GITHUB_IMMEDIATE_SYNC = True
+        profile = Profile.objects.create(user=self.user1)
+        self.device0.default_password_users = ['one', 'two']
+        self.device0.save(update_fields=['default_password_users'])
+        self.device0.generate_recommended_actions()
+        file_github_issues.delay.assert_called_with(profile.pk)
+        settings.GITHUB_IMMEDIATE_SYNC = False
+
 
 class FormsTests(TestCase):
     def setUp(self):

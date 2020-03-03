@@ -242,11 +242,16 @@ def get_device_link(device):
     return f'[{device.get_name()}]({url})'
 
 
-def file_issues():
+def file_issues(profile_pk=None):
     from profile_page.models import Profile
     counter = 0
+    logger.info(f'profile_pk: {profile_pk}')
 
-    for profile in Profile.objects.exclude(
+    profiles = Profile.objects.all()
+    if profile_pk is not None:
+        profiles = Profile.objects.filter(pk=profile_pk)
+
+    for profile in profiles.exclude(
             Q(github_repo_id__isnull=True) | Q(github_oauth_token='') | Q(user__devices__isnull=True)):
         try:
             repos = list_repos(profile.github_oauth_token)
@@ -274,19 +279,29 @@ def file_issues():
             description = action_class.get_description(profile.user, ra.action_param)
             try:
                 if description:
-                    title, text = description
+                    # RA affects some devices - create or update the issue if necessary
+                    title, text, affected, resolved = description
                     if not issue_created and issue.number in issues['open'] + issues['closed']:
-                        # Issue was opened or closed (and reopened above) by us and not locked => add comment
-                        last_updated = timezone.now().strftime('%Y-%m-%d %H:%M')
-                        github_repo.update_issue(issue.number, text +
-                                                 f"\n\n*Last updated: {last_updated} UTC*")
-                        issue.closed = False
-                        issue.save(update_fields=['closed'])
+                        # Issue was opened or closed by us and not locked => can modify
+                        if (set(affected) != set(issue.affected.all()) or
+                           set(resolved) != set(issue.resolved.all()) or
+                           (issue.number in issues['closed'])):
+                            # Only need to update if there's new data to update, like affected/resolved devices
+                            last_updated = timezone.now().strftime('%Y-%m-%d %H:%M')
+                            github_repo.update_issue(issue.number, text +
+                                                     f"\n\n*Last updated: {last_updated} UTC*")
+                            issue.closed = False
+                            issue.save(update_fields=['closed'])
                     else:
+                        # Issue was neither opened nor closed by us => create it
                         issue.number = github_repo.create_issue(title, text)
-                        issue.save(update_fields=['number'])
+                        issue.closed = False
+                        issue.save(update_fields=['number', 'closed'])
+                    issue.affected.set(affected)
+                    issue.resolved.set(resolved)
                     counter += 1
                 elif not issue_created and issue.number in issues['open']:
+                    # RA affects no devices => close the issue
                     github_repo.close_issue(issue.number)
                     issue.closed = True
                     issue.save(update_fields=['closed'])
