@@ -20,6 +20,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from device_registry.models import GithubIssue
+from device_registry.tasks import file_github_issues
 from .forms import AuthenticationForm, GithubForm, ProfileForm, RegistrationForm
 from .mixins import LoginTrackMixin
 from .models import Profile
@@ -185,8 +187,10 @@ class GithubIntegrationView(LoginRequiredMixin, View):
             if profile.github_repo_id != repo:
                 profile.github_repo_id = repo
                 profile.github_repo_url = repos[repo]['url'] if repo else ''
-                profile.github_issues = {}
                 profile.save(update_fields=['github_repo_id', 'github_repo_url', 'github_issues'])
+                GithubIssue.objects.filter(owner=request.user).delete()
+                if settings.GITHUB_IMMEDIATE_SYNC:
+                    file_github_issues.delay(profile.pk)
             return HttpResponseRedirect(reverse('github_integration'))
         return render(request, 'profile_github.html', {'form': form, 'tab_github_integration': 'active'})
 
