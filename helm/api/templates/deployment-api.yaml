@@ -60,6 +60,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.apiSecrets }}
                   key: mixpanelToken
+            - name: REDIS_HOST
+              value: {{ .Values.redisHost }}
           livenessProbe:
             httpGet:
               path: /healthz

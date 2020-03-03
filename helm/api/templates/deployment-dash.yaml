@@ -81,6 +81,8 @@ spec:
                   key: githubAppClientSecret
             - name: GITHUB_APP_REDIRECT_URL
               value: "{{ .Values.integrations.github.appRedirectUrl }}"
+            - name: REDIS_HOST
+              value: {{ .Values.redisHost }}
           livenessProbe:
             httpGet:
               path: /healthz
