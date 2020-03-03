@@ -187,7 +187,7 @@ class GithubIntegrationView(LoginRequiredMixin, View):
             if profile.github_repo_id != repo:
                 profile.github_repo_id = repo
                 profile.github_repo_url = repos[repo]['url'] if repo else ''
-                profile.save(update_fields=['github_repo_id', 'github_repo_url', 'github_issues'])
+                profile.save(update_fields=['github_repo_id', 'github_repo_url'])
                 GithubIssue.objects.filter(owner=request.user).delete()
                 if settings.GITHUB_IMMEDIATE_SYNC:
                     file_github_issues.delay(profile.pk)
