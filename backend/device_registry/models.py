@@ -961,7 +961,6 @@ class Distro(models.Model):
 class RecommendedAction(models.Model):
     class Meta:
         unique_together = ['action_class', 'action_param']
-        models.Index(fields=['action_class', 'action_param'])
 
     class Status(IntEnum):
         AFFECTED = 0

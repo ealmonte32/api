@@ -565,7 +565,8 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 actions_qs = dev.recommendedactionstatus_set.all()
             else:
                 device_name = None
-                actions_qs = RecommendedActionStatus.objects.filter(device__owner=self.request.user).order_by('device__pk')
+                actions_qs = RecommendedActionStatus.objects.filter(device__owner=self.request.user)\
+                                                            .order_by('device__pk')
 
             # Select all RAs for all user's devices which are not snoozed
             active_actions = actions_qs.filter(RecommendedActionStatus.get_affected_query())
