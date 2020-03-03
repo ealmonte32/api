@@ -266,7 +266,7 @@ class BaseAction:
                                                          ra__action_class=cls.__name__,
                                                          ra__action_param=param,
                                                          device__last_ping__gte=day_ago)\
-                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
+                                         .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]
         if not affected_devices or not any(a.status != RecommendedAction.Status.NOT_AFFECTED for a in actions):
             return
