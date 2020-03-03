@@ -605,7 +605,7 @@ class Device(models.Model):
                                                    status=status))
         self.recommendedactionstatus_set.bulk_create(ra_status_new)
 
-        if settings.GITHUB_IMMEDIATE_SYNC and (n_affected or n_unaffected or ra_status_new):
+        if settings.GITHUB_IMMEDIATE_SYNC and (n_affected or n_unaffected or ra_status_new) and self.owner:
             file_github_issues.delay(self.owner.profile.pk)
 
         return n_affected, n_unaffected, len(ra_status_new)
