@@ -182,12 +182,12 @@ class ResolvedTest(TestCase):
             """
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
-            action_id = 9999
             affected = True
             affected_device = None
             action_config = {
                 'long': '',
-                'title': ''
+                'title': '',
+                'short': ''
             }
 
             @classmethod
