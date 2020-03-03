@@ -276,12 +276,20 @@ class BaseAction:
                          for a in actions]
         resolved = '\n'.join(affected_list)
         context = cls.get_context(param)
-        body_text = action_config['long']
-        action_text = body_text.format(**context) + f"\n\n#### Resolved on: ####\n{resolved}"
+        terminal_title, terminal_code = action_config.get('terminal_title'), action_config.get('terminal_code')
+        if terminal_title is not None and terminal_code is not None:
+            terminal_block = f"{terminal_title.format(**context)}\n\n" \
+                             f"```\n{terminal_code.format(**context).strip()}\n```\n\n"
+        else:
+            terminal_block = ""
+        action_text = f"{action_config['short'].format(**context)}\n\n" \
+                      f"{terminal_block}" \
+                      f"{action_config['long'].format(**context)}\n\n" \
+                      f"#### Resolved on: ####\n{resolved}"
 
         resolved = [a.device for a in actions if a.status == RecommendedAction.Status.NOT_AFFECTED]
         affected = [a.device for a in actions if a.status != RecommendedAction.Status.NOT_AFFECTED]
-        return action_config['title'], action_text, affected, resolved
+        return action_config['title'].format(**context), action_text, affected, resolved
 
 
 class SimpleAction(BaseAction):
