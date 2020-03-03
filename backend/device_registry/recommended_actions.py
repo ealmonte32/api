@@ -285,7 +285,8 @@ class BaseAction:
         action_text = f"{action_config['short'].format(**context)}\n\n" \
                       f"{terminal_block}" \
                       f"{action_config['long'].format(**context)}\n\n" \
-                      f"#### Resolved on: ####\n{resolved}"
+                      f"#### Resolved on: ####\n{resolved}\n\n" \
+                      f"*Last modified: {timezone.datetime.now().strftime('%m-%d-%Y %H:%M')} UTC*"
 
         resolved = [a.device for a in actions if a.status == RecommendedAction.Status.NOT_AFFECTED]
         affected = [a.device for a in actions if a.status != RecommendedAction.Status.NOT_AFFECTED]
