@@ -1,8 +1,8 @@
+import datetime
 import logging
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models import Q, Avg, Max, Window, Count
 from django.db.models.functions import Coalesce
@@ -14,9 +14,9 @@ from dateutil.relativedelta import relativedelta, MO, SU
 from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
-from device_registry.models import RecommendedAction, Device, HistoryRecord, Vulnerability, PairingKey
+from device_registry.models import RecommendedAction, RecommendedActionStatus, \
+    Device, HistoryRecord, Vulnerability, PairingKey
 from device_registry.celery_tasks import github
-from device_registry.recommended_actions import ActionMeta
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +48,12 @@ class Profile(models.Model):
     github_repo_url = models.URLField(blank=True)
     github_random_state = models.CharField(blank=True, max_length=32)
     github_oauth_token = models.CharField(blank=True, max_length=64)
-    github_issues = JSONField(blank=True, default=dict)
 
     @property
     def actions_count(self):
-        return RecommendedAction.objects.filter(
-            Q(device__owner=self.user) & RecommendedAction.get_affected_query()) \
-            .values('action_id').distinct().count()
+        return RecommendedActionStatus.objects.filter(
+            Q(device__owner=self.user) & RecommendedActionStatus.get_affected_query()) \
+            .values('ra__pk').distinct().count()
 
     @property
     def actions_weekly(self):
@@ -65,21 +64,24 @@ class Profile(models.Model):
         :return: a tuple of QuerySets: unresolved, resolved
         """
         now = timezone.now()
-        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
+        sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         this_monday = sunday + relativedelta(days=1)  # This week's monday
-        all_ids = [ra.action_id for ra in ActionMeta.all_classes()]
 
-        ra_maybe_resolved_this_week = RecommendedAction.objects.filter(device__owner=self.user,
-                                                                       action_id__in=all_ids,
+        ra_maybe_resolved_this_week = RecommendedActionStatus.objects.filter(device__owner=self.user,
                                                                        status=RecommendedAction.Status.NOT_AFFECTED,
                                                                        resolved_at__gte=this_monday) \
-            .values('action_id')  # resolved this week (not completely)
-        ra_unresolved = RecommendedAction.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
-                                                         device__owner=self.user,
-                                                         action_id__in=all_ids) \
-            .values('action_id').distinct()  # unresolved (incl. snoozed)
-        ra_resolved_this_week = ra_maybe_resolved_this_week.exclude(action_id__in=ra_unresolved).distinct()
-        return ra_unresolved.filter(RecommendedAction.get_affected_query()), ra_resolved_this_week
+            .values('ra__action_class', 'ra__action_param')  # resolved this week (not completely)
+        ra_unresolved = RecommendedActionStatus.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
+                                                               device__owner=self.user) \
+            .values('ra__pk').distinct()  # unresolved (incl. snoozed)
+
+        ra_resolved_this_week = ra_maybe_resolved_this_week \
+            .exclude(ra__in=ra_unresolved)\
+            .distinct()
+        return (ra_unresolved.filter(RecommendedActionStatus.get_affected_query())
+                             .values('ra__action_class', 'ra__action_param'),
+                ra_resolved_this_week)
 
     @property
     def actions_resolved_since_monday(self):
@@ -116,7 +118,8 @@ class Profile(models.Model):
     @property
     def average_trust_score_last_week(self):
         now = timezone.now()
-        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
+        sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
         this_monday = sunday + relativedelta(days=1)  # This week's monday
         score_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,
@@ -132,11 +135,11 @@ class Profile(models.Model):
         """
         now = timezone.now()
         day_ago = now - timezone.timedelta(hours=24)
-        ra_resolved = RecommendedAction.objects.filter(
+        ra_resolved = RecommendedActionStatus.objects.filter(
             status=RecommendedAction.Status.NOT_AFFECTED,
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
-        ).values('action_id').distinct().count()
+        ).values('ra__pk').distinct().count()
 
         cve_hi, cve_med, cve_lo = self.cve_count
         HistoryRecord.objects.create(owner=self.user,
@@ -167,7 +170,8 @@ class Profile(models.Model):
     @property
     def cve_count_last_week(self):
         now = timezone.now()
-        sunday = (now + relativedelta(days=-1, weekday=SU(-1))).date()  # Last week's sunday (just before this monday)
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
+        sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
         this_monday = sunday + relativedelta(days=1)  # This week's monday
         cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,

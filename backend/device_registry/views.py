@@ -22,7 +22,7 @@ from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, Vulnerability
+    RecommendedAction, Vulnerability, RecommendedActionStatus, GithubIssue
 from .models import GlobalPolicy
 from .recommended_actions import ActionMeta, FirewallDisabledAction, EnrollAction, GithubAction
 
@@ -74,22 +74,29 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     def _actions(self):
         ra_unresolved, ra_resolved_this_week = self.request.user.profile.actions_weekly
 
-        severities = {ra.action_id: ra.severity for ra in ActionMeta.all_classes()}
         actions = []
+        i = 0
         resolved_count = ra_resolved_this_week.count()
         if resolved_count < settings.MAX_WEEKLY_RA:
-            ra_unresolved = sorted(ra_unresolved.values_list('action_id', flat=True),
-                                   key=lambda v: severities[v].value[2], reverse=True)
-            for action_id in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
+            ra_unresolved = sorted(ra_unresolved,
+                                   key=lambda v: ActionMeta.get_class(v['ra__action_class']).severity(
+                                       v['ra__action_param']),
+                                   reverse=True)
+            for a in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 affected_devices = Device.objects.filter(owner=self.request.user,
-                    recommendedaction__in=RecommendedAction.objects.filter(
-                    RecommendedAction.get_affected_query(), action_id=action_id)).distinct()
-                a = ActionMeta.get_class(action_id).action(self.request.user, affected_devices, None)
-                actions.append(a._replace(resolved=False))
+                                                         recommendedactionstatus__in=RecommendedActionStatus.objects
+                                                         .filter(RecommendedActionStatus.get_affected_query(),
+                                                                 ra__action_class=a['ra__action_class'],
+                                                                 ra__action_param=a['ra__action_param']))\
+                                                         .distinct()
+                a = ActionMeta.get_class(a['ra__action_class']).action(affected_devices, a['ra__action_param'])
+                actions.append(a._replace(resolved=False, id=i))
+                i += 1
 
-        for action_id in ra_resolved_this_week.values_list('action_id', flat=True)[:settings.MAX_WEEKLY_RA]:
-            a = ActionMeta.get_class(action_id).action(self.request.user, [], None)
-            actions.append(a._replace(resolved=True))
+        for class_param in ra_resolved_this_week[:settings.MAX_WEEKLY_RA]:
+            a = ActionMeta.get_class(class_param['ra__action_class']).action([], class_param['ra__action_param'])
+            actions.append(a._replace(resolved=True, id=i))
+            i += 1
 
         return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)
 
@@ -555,30 +562,39 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             if device_pk is not None:
                 dev = get_object_or_404(Device, pk=device_pk, owner=self.request.user)
                 device_name = dev.get_name()
-                actions_qs = dev.recommendedaction_set.all()
+                actions_qs = dev.recommendedactionstatus_set.all()
             else:
                 device_name = None
-                actions_qs = RecommendedAction.objects.filter(device__owner=self.request.user).order_by('device__pk')
+                actions_qs = RecommendedActionStatus.objects.filter(device__owner=self.request.user)\
+                                                            .order_by('device__pk')
 
             # Select all RAs for all user's devices which are not snoozed
-            active_actions = actions_qs.filter(RecommendedAction.get_affected_query())
+            active_actions = actions_qs.filter(RecommendedActionStatus.get_affected_query())
 
             # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
             actions_by_id = defaultdict(list)
             affected_devices = set()
             for ra in active_actions:
                 affected_devices.add(ra.device.pk)
-                actions_by_id[ra.action_id].append(ra.device.pk)
+                actions_by_id[(ra.ra.action_class, ra.ra.action_param)].append(ra.device.pk)
             affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
 
             # Generate Action objects to be rendered on page for every affected RA.
+            i = 0
             for ra_id, device_pks in actions_by_id.items():
                 devices = [affected_devices[d] for d in device_pks]
-                if ActionMeta.is_action_id(ra_id):
+                ra_class, ra_param = ra_id
+                if ActionMeta.is_action_class(ra_class):
                     # Make sure we have an Action class with this id.
                     # If we don't (this id is invalid or was removed) - ignore it.
-                    a = ActionMeta.get_class(ra_id).action(self.request.user, devices, device_pk)
-                    actions.append(a)
+                    issue = GithubIssue.objects.filter(ra__action_class=ra_class, ra__action_param=ra_param).first()
+                    if issue and issue.number and self.request.user.profile.github_repo_id:
+                        issue_url = f'{self.request.user.profile.github_repo_url}/issues/{issue.number}'
+                    else:
+                        issue_url = None
+                    a = ActionMeta.get_class(ra_class).action(devices, ra_param)
+                    actions.append(a._replace(id=i, issue_url=issue_url))
+                    i += 1
         else:  # User has no devices - display the special action.
             device_name = None
             actions = [EnrollAction.get_user_context(self.request.user)]
@@ -588,10 +604,10 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         if not (self.request.user.profile.github_oauth_token and
                 self.request.user.profile.github_repo_id) and \
                 device_pk is None:
-            actions.append(GithubAction.action(self.request.user, []))
+            actions.append(GithubAction.action([]))
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.
-        actions.sort(key=lambda a: (a.severity.value[2], a.action_id), reverse=True)
+        actions.sort(key=lambda a: (a.severity, a.action_class), reverse=True)
 
         return device_name, actions
 

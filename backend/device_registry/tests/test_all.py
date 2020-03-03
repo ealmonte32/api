@@ -21,10 +21,10 @@ from freezegun import freeze_time
 
 from device_registry import ca_helper
 from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
-    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord
+    GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord, RecommendedActionStatus
 from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
-from device_registry.recommended_actions import BaseAction, ActionMeta, Severity
+from device_registry.recommended_actions import ActionMeta, Severity, SimpleAction
 from device_registry.views import CVEView
 from profile_page.models import Profile
 
@@ -377,12 +377,15 @@ class DeviceModelTest(TestCase):
         now = timezone.now()
         # Last week's tuesday
         last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
-        ra0 = RecommendedAction.objects.create(device=self.device0, action_id=1,
-                                               status=RecommendedAction.Status.NOT_AFFECTED)
-        ra1 = RecommendedAction.objects.create(device=self.device0, action_id=2,
-                                               status=RecommendedAction.Status.NOT_AFFECTED)
-        ra2 = RecommendedAction.objects.create(device=self.device0, action_id=3,
-                                               status=RecommendedAction.Status.SNOOZED_UNTIL_PING)
+        ra0 = RecommendedActionStatus.objects.create(device=self.device0,
+                                                     ra=RecommendedAction.objects.create(action_class='ClassOne'),
+                                                     status=RecommendedAction.Status.NOT_AFFECTED)
+        ra1 = RecommendedActionStatus.objects.create(device=self.device0,
+                                                     ra=RecommendedAction.objects.create(action_class='ClassTwo'),
+                                                     status=RecommendedAction.Status.NOT_AFFECTED)
+        ra2 = RecommendedActionStatus.objects.create(device=self.device0,
+                                                     ra=RecommendedAction.objects.create(action_class='ClassThree'),
+                                                     status=RecommendedAction.Status.SNOOZED_UNTIL_PING)
 
         self.assertEqual(self.device0.actions_count_last_week, 0)
         self.assertEqual(self.device0.actions_count_delta['count'], 0)
@@ -410,6 +413,26 @@ class DeviceModelTest(TestCase):
         self.assertEqual(self.device0.actions_count_last_week, 2)
         self.assertEqual(self.device0.actions_count_delta['count'], 1)
         self.assertEqual(self.device0.actions_count_delta['arrow'], 'down')
+
+    def test_default_creds_fix(self):
+        self.device0.default_password_users = ['one', 'two']
+        self.device0.generate_recommended_actions()
+        ra = RecommendedActionStatus.objects.get(device=self.device0,
+                                      status=RecommendedAction.Status.AFFECTED,
+                                      ra__action_class='DefaultCredentialsAction',
+                                      ra__action_param='two')
+
+        self.device0.default_password_users = ['one']
+        self.device0.save(update_fields=['default_password_users'])
+        self.device0.generate_recommended_actions()
+        ra = RecommendedActionStatus.objects.get(device=self.device0,
+                                           status=RecommendedAction.Status.NOT_AFFECTED,
+                                           ra__action_class='DefaultCredentialsAction',
+                                           ra__action_param='two')
+        ra = RecommendedActionStatus.objects.get(device=self.device0,
+                                           status=RecommendedAction.Status.AFFECTED,
+                                           ra__action_class='DefaultCredentialsAction',
+                                           ra__action_param='one')
 
 class FormsTests(TestCase):
     def setUp(self):
@@ -886,12 +909,12 @@ class RootViewTests(TestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user,
             certificate=TEST_CERT,
-            last_ping=timezone.now() - timezone.timedelta(days=2, hours=23)
+            last_ping=timezone.now() - timezone.timedelta(days=2, hours=23),
+            default_password_users=['pi']
         )
         DeviceInfo.objects.create(
             device=self.device1,
             fqdn='SecondFqdn',
-            default_password=True,
             detected_mirai=True,
         )
         PortScan.objects.create(device=self.device0)
@@ -1315,6 +1338,8 @@ class DashboardViewTests(TestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user
         )
+        RecommendedAction.objects.bulk_create([RecommendedAction(action_class=c.__name__, action_param=None)
+                    for c in self.test_actions])
 
     @classmethod
     def setUpClass(cls):
@@ -1324,13 +1349,13 @@ class DashboardViewTests(TestCase):
                       Severity.HI, Severity.MED, Severity.MED, Severity.HI]
         cls.test_actions = []
         for i in range(len(severities)):
-            class TestActionOne(BaseAction, metaclass=ActionMeta):
+            class TestActionOne(SimpleAction, metaclass=ActionMeta):
                 """
                 A simple dummy action class with specified severity.
                 """
-                action_id = 9990 + i
-                severity = severities[i]
                 action_config = defaultdict(str)
+                action_class = 'TestActionOne' + str(i)
+                _severity = severities[i]
 
             cls.test_actions.append(TestActionOne)
 
@@ -1348,56 +1373,68 @@ class DashboardViewTests(TestCase):
 
     def test_weekly_ra(self):
         today = timezone.now()
-        RecommendedAction.objects.bulk_create([
+        RecommendedActionStatus.objects.bulk_create([
             # Both devices affected - counts as one RA.
             # This one is low severity and will be displaced by three other RAs below.
-            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device0,
-                              status=RecommendedAction.Status.AFFECTED),
-            RecommendedAction(action_id=self.test_actions[0].action_id, device=self.device1,
-                              status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[0].__name__, action_param=None),
+                              device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[0].__name__, action_param=None),
+                              device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # both devices affected - counts as one RA
-            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device0, status=RecommendedAction.Status.AFFECTED),
-            RecommendedAction(action_id=self.test_actions[1].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[1].__name__, action_param=None),
+                              device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[1].__name__, action_param=None),
+                              device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # one device is affected, second was never affected (and never fixed)
-            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
-            RecommendedAction(action_id=self.test_actions[2].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[2].__name__, action_param=None),
+                              device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[2].__name__, action_param=None),
+                              device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # one device is affected, second fixed - still not fixed
-            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[3].__name__, action_param=None),
+                              device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
-            RecommendedAction(action_id=self.test_actions[3].action_id, device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[3].__name__, action_param=None),
+                              device=self.device1, status=RecommendedAction.Status.AFFECTED),
 
             # fixed on both devices - completely fixed
-            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[4].__name__, action_param=None),
+                              device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
-            RecommendedAction(action_id=self.test_actions[4].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[4].__name__, action_param=None),
+                              device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
 
             # one never affected, another one fixed - completely fixed
-            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
-            RecommendedAction(action_id=self.test_actions[5].action_id, device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[5].__name__, action_param=None),
+                              device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED),
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[5].__name__, action_param=None),
+                              device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today),
 
             # resolved a week ago - doesn't count
-            RecommendedAction(action_id=self.test_actions[6].action_id, device=self.device1,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[6].__name__, action_param=None),
+                              device=self.device1,
                               status=RecommendedAction.Status.NOT_AFFECTED,
                               resolved_at=today - timezone.timedelta(days=7)),
 
             # snoozed - doesn't count
-            RecommendedAction(action_id=self.test_actions[7].action_id, device=self.device1,
+            RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[7].__name__, action_param=None),
+                              device=self.device1,
                               status=RecommendedAction.Status.SNOOZED_FOREVER)
         ])
         # expected result: 1, 2, 3 - unfixed, 4, 5 - fixed
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertListEqual([(a.action_id, a.resolved) for a in response.context_data['actions']],
-                             [(self.test_actions[1].action_id, False),
-                              (self.test_actions[2].action_id, False),
-                              (self.test_actions[3].action_id, False),
-                              (self.test_actions[4].action_id, True),
-                              (self.test_actions[5].action_id, True)])
+        self.assertListEqual([(a.action_class, a.resolved) for a in response.context_data['actions']],
+                             [(self.test_actions[1].__name__, False),
+                              (self.test_actions[2].__name__, False),
+                              (self.test_actions[3].__name__, False),
+                              (self.test_actions[4].__name__, True),
+                              (self.test_actions[5].__name__, True)])
         self.assertEqual(response.context_data['weekly_progress'], 40)
 
 
@@ -1456,6 +1493,55 @@ class CVEViewTests(TestCase):
     def _hyperlinks(devices):
         return [CVEView.Hyperlink(text=device.get_name(), href=reverse('device_cve', kwargs={'device_pk': device.pk}))
                 for device in devices]
+
+    def test_no_fix_available(self):
+        self.device0.deb_packages.clear()
+        vulns = [
+            Vulnerability(os_release_codename='stretch', name='CVE-2019-1', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True),
+            Vulnerability(os_release_codename='stretch', name='CVE-2019-2', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False),
+            Vulnerability(os_release_codename='bionic', name='CVE-2019-1', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=False),
+            Vulnerability(os_release_codename='bionic', name='CVE-2019-2', package='one_source', is_binary=False,
+                          other_versions=[], urgency=Vulnerability.Urgency.LOW, fix_available=True)
+        ]
+        Vulnerability.objects.bulk_create(vulns)
+
+        packages = [
+            DebPackage(name='uno_first', version='version_uno', source_name='uno_source', source_version='uno_version',
+                       arch=DebPackage.Arch.i386, os_release_codename='stretch'),
+            DebPackage(name='duo_first', version='version_uno', source_name='uno_source', source_version='uno_version',
+                       arch=DebPackage.Arch.i386, os_release_codename='stretch'),
+            DebPackage(name='uno_first', version='version_uno', source_name='uno_source', source_version='uno_version',
+                       arch=DebPackage.Arch.i386, os_release_codename='bionic'),
+            DebPackage(name='duo_first', version='version_uno', source_name='uno_source', source_version='uno_version',
+                       arch=DebPackage.Arch.i386, os_release_codename='bionic')
+        ]
+        DebPackage.objects.bulk_create(packages)
+        packages[0].vulnerabilities.add(vulns[0])
+        packages[1].vulnerabilities.add(vulns[1])
+        packages[2].vulnerabilities.add(vulns[2])
+        packages[3].vulnerabilities.add(vulns[3])
+
+        device0 = Device.objects.create(
+            device_id='device10.d.wott-dev.local',
+            owner=self.user,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'stretch'}
+        )
+        device0.deb_packages.set(packages[:2])
+
+        device1 = Device.objects.create(
+            device_id='device11.d.wott-dev.local',
+            owner=self.user,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'bionic'}
+        )
+        device1.deb_packages.set(packages[2:])
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
 
     def test_sort_package_hosts_affected(self):
         self.packages[0].vulnerabilities.set(self.vulns)

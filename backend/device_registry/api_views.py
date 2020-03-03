@@ -155,7 +155,7 @@ class MtlsPingView(APIView):
                                    'update_trust_score', 'os_release', 'auto_upgrades',
                                    'mysql_root_access', 'cpu', 'kernel_deb_package', 'default_password_users'])
         # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
-        device.recommendedaction_set.filter(status=RecommendedAction.Status.SNOOZED_UNTIL_PING) \
+        device.recommendedactionstatus_set.filter(status=RecommendedAction.Status.SNOOZED_UNTIL_PING) \
             .update(status=RecommendedAction.Status.AFFECTED)
         device.generate_recommended_actions()
 
@@ -1041,7 +1041,8 @@ class SnoozeActionView(APIView):
         serializer.is_valid(raise_exception=True)
         devices = request.user.devices.filter(pk__in=serializer.validated_data['device_ids'])
         for dev in devices:
-            action_id = serializer.validated_data['action_id']
+            action_class = serializer.validated_data['action_class']
+            action_param = serializer.validated_data['action_param']
             duration = serializer.validated_data['duration']
             if duration is None:
                 snoozed = RecommendedAction.Status.NOT_AFFECTED
@@ -1049,5 +1050,5 @@ class SnoozeActionView(APIView):
                 snoozed = RecommendedAction.Status.SNOOZED_FOREVER
             else:
                 snoozed = RecommendedAction.Status.SNOOZED_UNTIL_TIME
-            dev.snooze_action(action_id, snoozed, duration)
+            dev.snooze_action(action_class, action_param, snoozed, duration)
         return Response(status=status.HTTP_200_OK)

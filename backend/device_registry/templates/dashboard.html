@@ -160,18 +160,21 @@
           <div class="d-flex flex-column">
             <div class="round">
               <input type="checkbox"
-                     id="weekly-ra-{{action.action_id}}"
+                     id="weekly-ra-{{action.id}}"
                      {% if action.resolved %}checked{% endif %}
                      {% if action.resolved %}disabled{% endif %}
                      autocomplete="off"
-                     wott-action-id="{{ action.action_id }}"
+                     wott-action
+                     wott-action-id="{{ action.id }}"
+                     wott-action-class="{{ action.action_class }}"
+                   {% if action.action_param is not None %}wott-action-param="{{ action.action_param }}"{% endif %}
                      wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
               />
-              <label for="weekly-ra-{{action.action_id}}"></label>
+              <label for="weekly-ra-{{action.id}}"></label>
             </div>
             <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">
             {% if not action.resolved %}
-              <a class="black-link" href="{% url "actions" %}#{{ action.action_id }}">
+              <a class="black-link" href="{% url "actions" %}#{{ action.id }}">
                 {{ action.title }}
               </a>
             {% else %}
@@ -180,7 +183,7 @@
             </h3>
             <h3 class="list-subtitle mb-0">{{ action.subtitle }}</h3>
           </div>
-        {% with action.severity.value as action_severity %}
+        {% with action.severity_info as action_severity %}
           <div class="rect-badge-{{ action_severity.0|lower }}">{{ action_severity.0|upper }}</div>
         {% endwith %}
         </li>
@@ -253,11 +256,15 @@
    * @param devices - list of device ids
    */
   function snoozeAction(id, devices, duration, onSuccess) {
+    let elem = $(`[wott-action][wott-action-id=${id}]`),
+        action_class = elem.attr('wott-action-class'),
+        action_param = elem.attr('wott-action-param');
     $.ajax({
         url: '/snooze-action/',
         type:"POST",
         data: JSON.stringify({
-            action_id: id,
+            action_class,
+            action_param: action_param === undefined? null: action_param,
             device_ids: devices,
             duration: duration
         }),

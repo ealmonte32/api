@@ -233,11 +233,12 @@ class DeviceListSerializer(serializers.ModelSerializer):
 
 class SnoozeActionSerializer(serializers.Serializer):
     device_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
-    action_id = serializers.IntegerField()
+    action_class = serializers.CharField()
+    action_param = serializers.CharField(allow_null=True)
     duration = serializers.IntegerField(allow_null=True, min_value=0)
 
-    def validate_action_id(self, value):
-        if not ActionMeta.is_action_id(value):
+    def validate_action_class(self, value):
+        if not ActionMeta.is_action_class(value):
             raise serializers.ValidationError('Invalid recommended action id')
         return value
 

@@ -1,5 +1,5 @@
 - title: Permissive firewall policy detected
-  id: 2
+  class: FirewallDisabledAction
   short: |
     Permissive firewall policy detected. Permissive firewall policies permit all traffic unless otherwise specified. Note that you can have different firewall policies for incoming (ingress) and outgoing (egress) traffic, so check both. Consider changing your policy to be more restrictive, either by implementing rules to your permissive policy, or setting it to restrictive.
   long: |
@@ -13,8 +13,8 @@
 
     **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 3.6)
 
-- title: Default credentials detected
-  id: 1
+- title: Default credentials detected for user "{username}"
+  class: DefaultCredentialsAction
   short: |
     We've detected default or weak credentials, such as ones predetermined at manufacturing, or common credentials; classic examples of this include having 'password' as your password. Change your credentials to something more secure.
   long: |
@@ -23,13 +23,13 @@
     The most common devices that use default credentials are typically, but not limited to, IoT devices, such as internet modems, cameras, and PCB based technologies such as Raspberry Pis; some virtual machines appliances, and some Linux distributions with a default root or admin user. These credentials are intended to be temporary and updated by the user shortly after set up.
 
     WoTT's agent automatically scans your devices against data from Mirai and against other common credentials. We strongly recommend that you quickly resolve this issue by changing your password to a more secure one. Avoid passwords such as 123, password, and other variations of, and do not distribute your password to anyone. To be more secure, consider changing username as well. Default credentials will lower your node's Trust Score.
-#  terminal_title: None for now. Later to be replaced with a passwd command.
-#  terminal_code: |
-#    $ code one
-#    # code too
+  terminal_title: |
+    To change the password, run this command:
+  terminal_code: |
+    $ sudo passwd {username}
 
 - title: An FTP service has been detected
-  id: 7
+  class: FtpServerAction
   short: |
     We have detected an FTP service. FTP is an insecure method of transferring files, as they are unencrypted and run on
     insecure protocols. Consider switching to a more secure service such as SFTP or FTPS.
@@ -63,7 +63,7 @@
     $ sudo apt-get purge ${{FTP-PACKAGE}}
 
 - title: Insecure service found ({service})
-  id: 1000
+  class: InsecureServicesAction
   short: |
     We have detected {service} installed. This service may either be outdated or inherently insecure.
     It is recommended that you uninstall this service as soon as possible.
@@ -77,7 +77,8 @@
     $ sudo apt-get purge {service}
 
 - title: Agent forwarding enabled for OpenSSH
-  id: 2004
+  class: OpensshIssueAction
+  param: AllowAgentForwarding
   short: |
     It appears that you have Agent forwarding enabled in your OpenSSH config. If enabled, an attacker who have already compromised the server could use this to steal your SSH keys.
   long: |
@@ -98,7 +99,8 @@
     $ sudo wott-agent patch openssh-agent-forwarding
 
 - title: Password authentication enabled for OpenSSH
-  id: 2003
+  class: OpensshIssueAction
+  param: PasswordAuthentication
   short: |
     It appears that you have password authentication enabled in your OpenSSH config which may leave your entire machine vulnerable to brute-force attacks.
   long: |
@@ -126,7 +128,8 @@
     $ sudo wott-agent patch openssh-password-auth
 
 - title: Root login enabled for OpenSSH
-  id: 2002
+  class: OpensshIssueAction
+  param: PermitRootLogin
   short: |
     It appears that you have root login enabled in your OpenSSH config which increases the probability of a the node being compromised from a brute-force attack (in particular if you have not disabled password authentication).
 
@@ -151,7 +154,8 @@
     $ sudo wott-agent patch openssh-root-login
 
 - title: Empty passwords permitted for OpenSSH
-  id: 2001
+  class: OpensshIssueAction
+  param: PermitEmptyPasswords
   short: |
     It appears that you have empty passwords enabled in your OpenSSH config. If enabled, an attacker may be able to access your system without a password.
 
@@ -176,7 +180,8 @@
     $ sudo wott-agent patch openssh-empty-password
 
 - title: Insecure protocol option enabled for OpenSSH
-  id: 2005
+  class: OpensshIssueAction
+  param: Protocol
   short: |
     It appears that you have enabled protocol 1 for OpenSSH. This protocol is outdated and insecure, consider exclusively using protocol 2.
 
@@ -201,7 +206,7 @@
     $ sudo wott-agent patch openssh-protocol
 
 - title: Automatic security updates not enabled
-  id: 6
+  class: AutoUpdatesAction
   short: |
     Automatic security updates may not be enabled. By enabling this feature, your node will automatically install security updates as they become available, which reduce the attack surface of your node.
   long: |
@@ -239,7 +244,8 @@
     $ sudo dpkg-reconfigure unattended-upgrades
 
 - title: Remote access on MongoDB detected
-  id: 3001
+  class: PubliclyAccessibleServiceAction
+  param: mongod
   short: |
     We detected that a MongoDB instance may be accessible remotely. This may allow a remote attacker to gain access to your database and leak customer data. According to [Shodan](https://www.shodan.io/), there are over 70,000 publicly exposed MongoDB servers. Don't be one of them. Consider either blocking port 27017 through the WoTT firewall management tool, or reconfigure MongoDB to only listen on localhost.
   long: |
@@ -263,7 +269,8 @@
     $ service mongodb restart
 
 - title: Remote access on MySQL/MariaDB instance detected
-  id: 3002
+  class: PubliclyAccessibleServiceAction
+  param: mysqld
   short: |
     We detected that a MySQL/MariaDB instance may be accessible remotely. Consider either blocking port 3306 through the WoTT firewall management tool, or reconfigure MySQL to only listen on localhost to prevent customer data leakage.
   long: |
@@ -293,7 +300,7 @@
     $ sudo service mysql restart
 
 - title: No root password set for MySQL/MariaDB server
-  id: 10
+  class: MySQLDefaultRootPasswordAction
   short: |
     We have detected that you may have set a root password for MySQL/MariaDB. Not having a root password set makes it easy for anyone with access to the server (or the network where the server is hosted) to copy all customer data from the database. It is recommended that you set a password as soon as possible.
   long: |
@@ -308,7 +315,8 @@
     $ mysqladmin -u root password NEWPASSWORD
 
 - title: Your Memcached instance may be publicly accessible
-  id: 3003
+  class: PubliclyAccessibleServiceAction
+  param: memcached
   short: |
     Your Memcached instance may be accessible remotely. This is likely due to use of a default configuration. According to [Shodan](https://www.shodan.io/), there are over 57,000 publicly exposed Memcached servers on the internet. We recommend that you reconfigure this service to avoid leaking customer data.
   long: |
@@ -331,7 +339,7 @@
     $ sudo service memcached restart
 
 - title: System contains Meltdown and/or Spectre vulnerabilities
-  id: 12
+  class: CpuVulnerableAction
   short: |
     Your system appears to be vulnerable to the [Meltdown](https://meltdownattack.com/meltdown.pdf) and [Spectre](https://spectreattack.com/spectre.pdf) attacks. This could compromise your data by allowing unwanted access to sensitive data through bypassing hardware restrictions.
   long: |
@@ -347,7 +355,8 @@
     $ sudo apt-get upgrade
 
 - title: A Redis instance may be publicly accessible
-  id: 3004
+  class: PubliclyAccessibleServiceAction
+  param: redis-server
   short: |
     Your Redis instance may be publicly accessible. This could cause accidental customer data leakage. According to [Shodan](https://www.shodan.io/), there are over 640,000 publicly exposed Redis servers on the internet. Consider re-configuring your Redis to listen only on the localhost, or add a lock down the access to Redis using a firewall if it needs to be accessible on the network.
   long: |
@@ -376,7 +385,7 @@
 
 
 - title: Vulnerable packages found
-  id: 3
+  class: VulnerablePackagesAction
   short: |
     Vulnerable packages have been found. These packages may be exploitable by an attacker to gain access to, or escalate permissions, on your servers. Make sure packages are up to date. You can learn more about the exact packages under the [Vulnerabilities tab](/cve).
   long: |
@@ -396,7 +405,7 @@
     $ sudo apt-get upgrade
 
 - title: Enable our GitHub integration for improved workflow
-  id: -1
+  class: GithubAction
   subtitle: Streamline the remediation process and assign issues to team members.
   short: |
     You can integrate GitHub with WoTT. By doing so, GitHub Issues will automatically be generated based on your Recommended Actions. These can then be scheduled into sprints and assigned to team members.
@@ -406,7 +415,7 @@
     Your Recommended Actions will then automatically be turned into GitHub Issues as they appear. Moreover, we will also automatically update said GitHub issues as the Recommended Actions are being updated. For instance, if the Recommended Action has been resolved, the GitHub Issue will automatically get closed.
 
 - title: Install the agent on your node(s) to get started
-  id: -2
+  class: EnrollAction
   subtitle: Without any nodes, we can't provide you with any insights.
   short: |
     WoTT uses an agent to perform the security audit. Without the agent installed on any of your servers, we are unable to provide you with any insights on your security posture.
