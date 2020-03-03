@@ -248,7 +248,7 @@ def file_issues(profile_pk=None):
     logger.info(f'profile_pk: {profile_pk}')
 
     profiles = Profile.objects.all()
-    if profile_pk:
+    if profile_pk is not None:
         profiles = Profile.objects.filter(pk=profile_pk)
 
     for profile in profiles.exclude(
