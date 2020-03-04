@@ -266,7 +266,7 @@ class BaseAction:
                                                          ra__action_class=cls.__name__,
                                                          ra__action_param=param,
                                                          device__last_ping__gte=day_ago)\
-                                           .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
+                                         .exclude(status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=None)
         affected_devices = [action.device for action in actions]
         if not affected_devices or not any(a.status != RecommendedAction.Status.NOT_AFFECTED for a in actions):
             return
@@ -285,7 +285,8 @@ class BaseAction:
         action_text = f"{action_config['short'].format(**context)}\n\n" \
                       f"{terminal_block}" \
                       f"{action_config['long'].format(**context)}\n\n" \
-                      f"#### Resolved on: ####\n{resolved}"
+                      f"#### Resolved on: ####\n{resolved}\n\n" \
+                      f"*Last modified: {timezone.datetime.now().strftime('%m-%d-%Y %H:%M')} UTC*"
 
         resolved = [a.device for a in actions if a.status == RecommendedAction.Status.NOT_AFFECTED]
         affected = [a.device for a in actions if a.status != RecommendedAction.Status.NOT_AFFECTED]

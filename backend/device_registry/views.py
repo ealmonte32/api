@@ -587,7 +587,8 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 if ActionMeta.is_action_class(ra_class):
                     # Make sure we have an Action class with this id.
                     # If we don't (this id is invalid or was removed) - ignore it.
-                    issue = GithubIssue.objects.filter(ra__action_class=ra_class, ra__action_param=ra_param).first()
+                    issue = self.request.user.githubissue_set.filter(ra__action_class=ra_class,
+                                                                     ra__action_param=ra_param).first()
                     if issue and issue.number and self.request.user.profile.github_repo_id:
                         issue_url = f'{self.request.user.profile.github_repo_url}/issues/{issue.number}'
                     else:

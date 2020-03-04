@@ -273,7 +273,6 @@ def file_issues(profile_pk=None):
 
         ra_classes = RecommendedAction.objects.filter(recommendedactionstatus__device__owner=profile.user).distinct()
         for ra in ra_classes:
-            ra = RecommendedAction.objects.get(action_class=ra.action_class, action_param=ra.action_param)
             issue, issue_created = GithubIssue.objects.get_or_create(owner=profile.user, ra=ra)
             action_class = recommended_actions.ActionMeta.get_class(ra.action_class)
             description = action_class.get_description(profile.user, ra.action_param)
