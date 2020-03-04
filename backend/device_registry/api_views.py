@@ -38,6 +38,7 @@ from device_registry.serializers import DeviceListSerializer
 from device_registry.authentication import MTLSAuthentication
 from device_registry.serializers import EnrollDeviceSerializer, PairingKeyListSerializer, UpdatePairingKeySerializer
 from device_registry.serializers import SnoozeActionSerializer
+from .tasks import file_github_issues
 from .models import Device, DeviceInfo, FirewallState, PortScan, Credential, Tag, PairingKey, GlobalPolicy, DebPackage,\
     RecommendedAction
 
@@ -155,7 +156,7 @@ class MtlsPingView(APIView):
                                    'update_trust_score', 'os_release', 'auto_upgrades',
                                    'mysql_root_access', 'cpu', 'kernel_deb_package', 'default_password_users'])
         # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
-        device.recommendedaction_set.filter(status=RecommendedAction.Status.SNOOZED_UNTIL_PING) \
+        device.recommendedactionstatus_set.filter(status=RecommendedAction.Status.SNOOZED_UNTIL_PING) \
             .update(status=RecommendedAction.Status.AFFECTED)
         device.generate_recommended_actions()
 
@@ -1040,14 +1041,19 @@ class SnoozeActionView(APIView):
         serializer = SnoozeActionSerializer(data=request.data, context={'user': request.user})
         serializer.is_valid(raise_exception=True)
         devices = request.user.devices.filter(pk__in=serializer.validated_data['device_ids'])
+        have_snoozed_forever = False
         for dev in devices:
-            action_id = serializer.validated_data['action_id']
+            action_class = serializer.validated_data['action_class']
+            action_param = serializer.validated_data['action_param']
             duration = serializer.validated_data['duration']
             if duration is None:
-                snoozed = RecommendedAction.Status.SNOOZED_UNTIL_PING
+                snoozed = RecommendedAction.Status.NOT_AFFECTED
+                have_snoozed_forever = True  # at least one device has an action "resolved" -> need to update gh issue.
             elif duration == 0:
                 snoozed = RecommendedAction.Status.SNOOZED_FOREVER
             else:
                 snoozed = RecommendedAction.Status.SNOOZED_UNTIL_TIME
-            dev.snooze_action(action_id, snoozed, duration)
+            dev.snooze_action(action_class, action_param, snoozed, duration)
+        if have_snoozed_forever and settings.GITHUB_IMMEDIATE_SYNC:
+            file_github_issues.delay(request.user.profile.pk)
         return Response(status=status.HTTP_200_OK)

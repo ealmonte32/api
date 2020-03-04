@@ -92,6 +92,13 @@
               </thead>
             </div>
             <tbody>
+              {% if table_rows|length == 0 %}
+              <tr class="py-3">
+                <td class="p-4">
+                  <h4 class="wott-blue text-center">No vulnerabilities detected.</h4>
+                </td>
+              </tr>
+              {% endif %}
             {% for row in table_rows %}
             <tr class="row border-table">
               <td class="col-2 pl-3 pr-0 d-flex align-items-center medium-text font-weight-bold">

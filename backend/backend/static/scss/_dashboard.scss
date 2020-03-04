@@ -179,14 +179,19 @@
       width: 50%;
     }
   }
+  
+  #week-progress-text:after {
+    content: '%';
+  }
 
-
-  #week-progres-text {
+  #week-progress-text {
     text-align: center;
     color: #fff;
     font-size: .6rem;
     z-index: 10;
     font-weight: 800;
+    display: flex;
+    margin-left: 3px;
   }
 
   #week-progress-var p {
@@ -321,8 +326,9 @@
 
     p {
       font-size: 1.15rem;
-      margin-bottom: 0;
+      margin: 1rem;
       color: gray;
+      font-weight: 600;
     }
 
     .left-box {
@@ -341,8 +347,9 @@
   }
 
   #server-welcome-dashboard {
-    padding-top: 2rem;
+    padding-top: 5rem;
     width: 25%;
+    margin-left: 4.5rem;
 
     img {
       width: 100%;
@@ -350,6 +357,7 @@
 
     @include mQ(1250px) {
       width: 32%;
+      padding-top: 12%;
     }
   }
 

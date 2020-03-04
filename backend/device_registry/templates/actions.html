@@ -13,7 +13,7 @@
     <div class="overlay" style="display: none;"></div>
     <div class="mb-3 w-100" id="alert-container">
       {% for action in actions %}
-        <div class="wott-action" role="alert" wott-action-id="{{ action.action_id }}">
+        <div class="wott-action" role="alert" wott-action-id="{{ action.id }}">
           <div class="full-alert-box mb-3 wott-box-shadow">
             
             <div class="d-flex wott-closed-box align-items-center">
@@ -32,16 +32,16 @@
                   <h5 class="alert-instruction mb-0 mt-2">Affected Nodes: {{ action.devices|length }}</h5>
                 </div>
                 
-                {% with action.severity.value as action_severity %}
+                {% with action.severity_info as action_severity %}
                 <div class="badge mr-4 mb-2 text-uppercase wott-rect-badge-{{ action_severity.1 }}">
                   {{ action_severity.0 }}
                 </div>
                 {% endwith %}
                 
                 <div class="dropdown">
-                  <button id="toogle-ra" wott-action-id="{{ action.action_id }}" class="btn wott-btn-dropdown toggle-ra-button">
+                  <button id="toogle-ra" wott-action-id="{{ action.id }}" class="btn wott-btn-dropdown toggle-ra-button">
                     VIEW DETAILS
-                    <span><i class="ml-1 fas fa-caret-right toggle-ra-arrow" wott-action-id="{{ action.action_id }}" style="min-width:0.625em"></i></span>
+                    <span><i class="ml-1 fas fa-caret-right toggle-ra-arrow" wott-action-id="{{ action.id }}" style="min-width:0.625em"></i></span>
                   </button>
                 </div>
               </div>
@@ -49,10 +49,12 @@
               <div class="btn-group-box">
                 <div class="btn-group wott-alert-btn-group d-flex justify-content-around align-items-baseline"
                     wott-action
-                    wott-action-id="{{ action.action_id }}"
+                    wott-action-id="{{ action.id }}"
+                    wott-action-class="{{ action.action_class }}"
+                  {% if action.action_param is not None %}wott-action-param="{{ action.action_param }}"{% endif %}
                     wott-action-devices="[{% for d in action.devices %}{{ d.pk }},{% endfor %}]"
                     wott-action-title="{{ action.title }}">
-                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                  <button type="button" class="bg-white {% if action.fleet_wide %}look-disable{% endif %}"
                           data-dismiss="alert" wott-snooze wott-snooze-duration="0">
                     <span>
                       <img id="ignore-img"
@@ -65,7 +67,7 @@
                     </span>
                     <div class="btn-img-text">IGNORE</div>
                   </button>
-                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                  <button type="button" class="bg-white {% if action.fleet_wide %}look-disable{% endif %}"
                           data-toggle="dropdown">
                     <span>
                       <img id="snooze-img"
@@ -78,7 +80,7 @@
                     </span>
                     <div class="btn-img-text">SNOOZE</div>
                   </button>
-                  <button type="button" class="bg-white {% if action.action_id < 0 %}look-disable{% endif %}"
+                  <button type="button" class="bg-white {% if action.fleet_wide %}look-disable{% endif %}"
                           data-dismiss="alert" wott-snooze wott-snooze-duration="null" wott-snooze-type="Resolve">
                     <span>
                       <img id="resolved-img"
@@ -102,16 +104,16 @@
             </div>
             
             <section class="wott-open-box mb-4 d-none"
-                     wott-action-id="{{ action.action_id }}"
+                     wott-action-id="{{ action.id }}"
                      wott-action-expanded=false>
               <div class="wott-inner-open-box">
                 <div class="open-box-header d-flex align-items-center justify-content-between">
-                {% if action.action_id > 0 %}
+                {% if not action.fleet_wide %}
                   <h4 class="mb-0 open-box-header-text">Affected Nodes:</h4>
                   {% for d in action.devices|slice:":5" %}
                     <a href="{% url 'device-detail' d.pk %}" class="wott-node">{{ d.get_name }}</a>
                   {% endfor %}
-                  <button wott-action-id="{{ action.action_id }}" class="btn wott-btn-header">
+                  <button wott-action-id="{{ action.id }}" class="btn wott-btn-header">
                     VIEW ALL NODES +
                     <template>
                     {% for d in action.devices %}
@@ -127,16 +129,16 @@
                 <div class="actions-instrucions">{{ action.short_html|safe }}</div>
 
                 <span class="line-box d-flex justify-content-between align-items-center wott-learn-more"
-                      wott-action-id="{{ action.action_id }}">
+                      wott-action-id="{{ action.id }}">
                   <span class="mb-0 font-weight-bolder" style="pointer-events: none">View Details</span>
                   <button class="wott-dropdown" style="pointer-events: none">
                     <span>
                       <i class="fas fa-caret-right wott-learn-more-arrow"
-                         wott-action-id="{{ action.action_id }}"></i>
+                         wott-action-id="{{ action.id }}"></i>
                     </span>
                   </button>
                 </span>
-                <div class="learn-more-box" style="display: none" wott-action-id="{{ action.action_id }}">
+                <div class="learn-more-box" style="display: none" wott-action-id="{{ action.id }}">
                   {{ action.long_html|safe }}
                 </div>
 
@@ -447,11 +449,15 @@
      * @param devices - list of device ids
      */
     function snoozeAction(id, devices, duration) {
+      let elem = $(`[wott-action][wott-action-id=${id}]`),
+        action_class = elem.attr('wott-action-class'),
+        action_param = elem.attr('wott-action-param');
       $.ajax({
           url: '/snooze-action/',
           type:"POST",
           data: JSON.stringify({
-              action_id: id,
+              action_class,
+              action_param: action_param === undefined? null: action_param,
               device_ids: devices,
               duration: duration
           }),

@@ -9,8 +9,8 @@
 
 <div class="top-color-section d-flex">
   <div class="left-box">
-    <h2 class="node-title">{{ object.get_name }}
-    </h2>
+    <span class="node-title mb-2 pr-3">{{ object.get_name }}
+    </span>
     <div class="d-flex align-items-center">
       {%  with actions_count=object.actions_count %}
         {% if actions_count %}
@@ -78,3 +78,20 @@
   </div>
   
 </div>
+<script>
+
+let node_title = $('.node-title').text();
+
+function class_by_text_length(text) {
+  if(text.length > 35) {
+    return 'node-title-sm';
+  } if(text.length > 25) {
+      return 'node-title-md'
+  } else return 'node-title-lg'
+}
+
+$(() => {
+  $('.node-title').addClass(class_by_text_length(node_title))
+})
+
+</script>

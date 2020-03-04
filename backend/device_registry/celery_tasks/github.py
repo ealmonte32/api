@@ -1,6 +1,5 @@
 import logging
 import time
-from datetime import timedelta
 
 from django.conf import settings
 from django.db.models import Q
@@ -12,6 +11,7 @@ from agithub.base import IncompleteRequest
 from jwt import JWT, jwk_from_pem
 
 from device_registry import recommended_actions
+from device_registry.models import GithubIssue, RecommendedAction
 
 HEADERS = {'Accept': 'application/vnd.github.machine-man-preview+json'}
 logger = logging.getLogger('django')
@@ -242,13 +242,16 @@ def get_device_link(device):
     return f'[{device.get_name()}]({url})'
 
 
-def file_issues():
+def file_issues(profile_pk=None):
     from profile_page.models import Profile
-
-    day_ago = timezone.now() - timedelta(hours=24)
     counter = 0
+    logger.info(f'profile_pk: {profile_pk}')
 
-    for profile in Profile.objects.exclude(
+    profiles = Profile.objects.all()
+    if profile_pk is not None:
+        profiles = Profile.objects.filter(pk=profile_pk)
+
+    for profile in profiles.exclude(
             Q(github_repo_id__isnull=True) | Q(github_oauth_token='') | Q(user__devices__isnull=True)):
         try:
             repos = list_repos(profile.github_oauth_token)
@@ -268,34 +271,41 @@ def file_issues():
             logger.exception('failed to get installation token or list issues')
             continue
 
-        for action_class in recommended_actions.ActionMeta.all_classes():
-            logger.debug(f'action class {action_class.action_id}')
-            # top-level ints in a JSON dict are auto-converted to strings, so we have to use strings here
-            issue_number = profile.github_issues.get(str(action_class.action_id))
-            description = action_class.get_description(profile.user)
-            logger.debug(f'issue #{issue_number}')
+        ra_classes = RecommendedAction.objects.filter(recommendedactionstatus__device__owner=profile.user).distinct()
+        for ra in ra_classes:
+            issue, issue_created = GithubIssue.objects.get_or_create(owner=profile.user, ra=ra)
+            action_class = recommended_actions.ActionMeta.get_class(ra.action_class)
+            description = action_class.get_description(profile.user, ra.action_param)
             try:
                 if description:
-                    title, text = description
-                    if issue_number:
-                        # Issue was created and opened/closed by us. Cloud also be locked in which case it will be
-                        # neither in 'open' nor in 'closed' because we can't comment in a locked issue.
-                        if issue_number in issues['open'] + issues['closed']:
-                            # Issue was opened or closed (and reopened above) by us and not locked => add comment
+                    # RA affects some devices - create or update the issue if necessary
+                    title, text, affected, resolved = description
+                    if not issue_created and issue.number in issues['open'] + issues['closed']:
+                        # Issue was opened or closed by us and not locked => can modify
+                        if (set(affected) != set(issue.affected.all()) or
+                           set(resolved) != set(issue.resolved.all()) or
+                           (issue.number in issues['closed'])):
+                            # Only need to update if there's new data to update, like affected/resolved devices
                             last_updated = timezone.now().strftime('%Y-%m-%d %H:%M')
-                            github_repo.update_issue(issue_number, text +
+                            github_repo.update_issue(issue.number, text +
                                                      f"\n\n*Last updated: {last_updated} UTC*")
-                            counter += 1
+                            issue.closed = False
+                            issue.save(update_fields=['closed'])
                     else:
-                        issue_number = github_repo.create_issue(title, text)
-                        counter += 1
-                else:
-                    if issue_number in issues['open']:
-                        github_repo.close_issue(issue_number)
-                        counter += 1
+                        # Issue was neither opened nor closed by us => create it
+                        issue.number = github_repo.create_issue(title, text)
+                        issue.closed = False
+                        issue.save(update_fields=['number', 'closed'])
+                    issue.affected.set(affected)
+                    issue.resolved.set(resolved)
+                    counter += 1
+                elif not issue_created and issue.number in issues['open']:
+                    # RA affects no devices => close the issue
+                    github_repo.close_issue(issue.number)
+                    issue.closed = True
+                    issue.save(update_fields=['closed'])
+                    counter += 1
             except GithubError:
                 logger.exception('failed to process the issue')
-            else:
-                profile.github_issues[str(action_class.action_id)] = issue_number
-        profile.save(update_fields=['github_issues'])
+
     return counter
