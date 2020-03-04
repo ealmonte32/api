@@ -203,6 +203,8 @@ class Device(models.Model):
             return True
         elif self.os_release.get('distro') == 'debian' or self.os_release.get('distro_root') == 'debian':
             return self.auto_upgrades and self.deb_packages.filter(name='unattended-upgrades').exists()
+        else:
+            return self.auto_upgrades
 
     @property
     def distribution(self):
