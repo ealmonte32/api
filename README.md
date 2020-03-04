@@ -27,3 +27,4 @@ $ docker-compose -f ./docker-compose.tests.yml up
 ```
 Testing PR logic
 Testing PR logic 2
+Testing PR logic 3
