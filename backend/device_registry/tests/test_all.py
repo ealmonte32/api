@@ -249,10 +249,6 @@ class DeviceModelTest(TestCase):
         self.assertEqual(self.device_info0.get_model(), 'Model B Rev 2')
         self.device_info0.device_model = model
 
-    def test_get_hardware_type(self):
-        hw_type = self.device_info0.get_hardware_type()
-        self.assertEqual(hw_type, 'Raspberry Pi')
-
     def test_active_inactive(self):
         active_inactive = Device.get_active_inactive(self.user0)
         self.assertListEqual(active_inactive, [2, 0])
