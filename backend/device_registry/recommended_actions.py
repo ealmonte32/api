@@ -579,6 +579,16 @@ class CpuVulnerableAction(SimpleAction, metaclass=ActionMeta):
         return Severity.HI
 
 
+class AuditdNotInstalledAction(SimpleAction, metaclass=ActionMeta):
+    @classmethod
+    def _is_affected(cls, device) -> bool:
+        return not device.has_auditd_installed
+
+    @classmethod
+    def severity(cls, param=None):
+        return Severity.MED
+
+
 # --- Parameterized actions ---
 
 # Default username/password used action.

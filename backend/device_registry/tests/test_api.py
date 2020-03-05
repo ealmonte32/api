@@ -18,7 +18,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
 from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey, \
-    RecommendedAction
+    RecommendedAction, DebPackage
 from device_registry.serializers import DeviceListSerializer
 from device_registry.recommended_actions import ActionMeta, AutoUpdatesAction
 from device_registry.models import GlobalPolicy
@@ -1329,7 +1329,11 @@ class SnoozeActionViewTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local',
-                                            owner=self.user, auto_upgrades=False)
+                                            owner=self.user, auto_upgrades=False,
+                                            os_release={'codename': 'jessie'})
+        deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        self.device.deb_packages.add(deb_package)
         DeviceInfo.objects.create(device=self.device)
         PortScan.objects.create(device=self.device)
         FirewallState.objects.create(device=self.device)

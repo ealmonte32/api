@@ -64,7 +64,7 @@ class DebPackage(models.Model):
         ALL = 'all'
 
     os_release_codename = models.CharField(max_length=64, db_index=True)
-    name = models.CharField(max_length=128)
+    name = models.CharField(max_length=128, db_index=True)
     version = models.CharField(max_length=128)
     source_name = models.CharField(max_length=128, db_index=True)
     source_version = models.CharField(max_length=128)
@@ -480,6 +480,14 @@ class Device(models.Model):
         all_devices_tag = Tag.objects.get(name='Hardware: All')
         if all_devices_tag not in self.tags:
             self.tags.add(all_devices_tag)
+
+    @property
+    def has_auditd_installed(self):
+        if self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
+            package_name = 'auditd'
+        else:
+            package_name = 'audit'  # RH-based distros.
+        return self.deb_packages.filter(name=package_name).exists()
 
     @property
     def cve_count(self):

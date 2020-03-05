@@ -905,8 +905,12 @@ class RootViewTests(TestCase):
             owner=self.user,
             certificate=TEST_CERT,
             name='First',
-            last_ping=timezone.now() - timezone.timedelta(days=1, hours=1)
+            last_ping=timezone.now() - timezone.timedelta(days=1, hours=1),
+            os_release={'codename': 'jessie'}
         )
+        deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        self.device0.deb_packages.add(deb_package)
         DeviceInfo.objects.create(
             device=self.device0,
             fqdn='FirstFqdn',
@@ -919,8 +923,10 @@ class RootViewTests(TestCase):
             owner=self.user,
             certificate=TEST_CERT,
             last_ping=timezone.now() - timezone.timedelta(days=2, hours=23),
-            default_password_users=['pi']
+            default_password_users=['pi'],
+            os_release={'codename': 'jessie'}
         )
+        self.device1.deb_packages.add(deb_package)
         DeviceInfo.objects.create(
             device=self.device1,
             fqdn='SecondFqdn',
@@ -1348,7 +1354,7 @@ class DashboardViewTests(TestCase):
             owner=self.user
         )
         RecommendedAction.objects.bulk_create([RecommendedAction(action_class=c.__name__, action_param=None)
-                    for c in self.test_actions])
+                                               for c in self.test_actions])
 
     @classmethod
     def setUpClass(cls):
