@@ -347,7 +347,7 @@
     ```
     $ sudo service mariadb restart
     ```
-
+    or
     ```
     $ sudo service mysql restart
     ```
