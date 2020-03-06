@@ -60,7 +60,11 @@
   terminal_title: |
     To uninstall your FTP server, run the following command:
   terminal_code: |
+    On Debian/Ubuntu:
     $ sudo apt-get purge ${{FTP-PACKAGE}}
+
+    On Amazon Linux/CentOS/RHEL:
+    $ sudo yum remove ${{FTP-PACKAGE}}
 
 - title: Insecure service found ({service})
   class: InsecureServicesAction
@@ -74,9 +78,13 @@
   terminal_title: |
     To uninstall the insecure service, run:
   terminal_code: |
+    On Debian/Ubuntu:
     $ sudo apt-get purge {service}
 
-- title: Agent forwarding enabled for OpenSSH
+    On Amazon Linux/CentOS/RHEL:
+    $ sudo yum remove ${service}
+
+- title: OpenSSH - Agent forwarding enabled
   class: OpensshIssueAction
   param: AllowAgentForwarding
   short: |
@@ -98,7 +106,7 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-agent-forwarding
 
-- title: Password authentication enabled for OpenSSH
+- title: OpenSSH - Password authentication enabled
   class: OpensshIssueAction
   param: PasswordAuthentication
   short: |
@@ -127,7 +135,7 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-password-auth
 
-- title: Root login enabled for OpenSSH
+- title: OpenSSH - Root login enabled
   class: OpensshIssueAction
   param: PermitRootLogin
   short: |
@@ -153,7 +161,7 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-root-login
 
-- title: Empty passwords permitted for OpenSSH
+- title: OpenSSH - Empty passwords permitted
   class: OpensshIssueAction
   param: PermitEmptyPasswords
   short: |
@@ -179,7 +187,7 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-empty-password
 
-- title: Insecure protocol option enabled for OpenSSH
+- title: OpenSSH - Insecure protocol enabled
   class: OpensshIssueAction
   param: Protocol
   short: |
@@ -214,36 +222,53 @@
 
     While there is a chance that this will impact the stability of a service, it is generally considered worth the risk in order to improve the security posture.
 
-    Each Linux distribution has slightly different methods of setting up automatic security updates, however for many, including Debian and Ubuntu, you can use the `unattended-upgrades` package. To do so make sure the package is installed:
+    Each Linux distribution has slightly different methods of setting up automatic security updates.
+
+    ## Debian / Ubuntu
+    On Debian and Ubuntu, you can use the `unattended-upgrades` package. To do so make sure the package is installed:
 
     ```
-    $ sudo apt-get install unattended-upgrades apt-listchanges
+    $ sudo apt-get install unattended-upgrades
     ```
 
-    You will need to edit the default configuration file `/etc/apt/apt.conf.d/50unattended-upgrades` using your preferred editor.
+    Once installed, you can then run `sudo dpkg-reconfigure unattended-upgrades` to configure your preferences. For most installations, the defaults should be fine.
 
-    Note, the necessary changes vary by distribution. For more detail, you can see [here](https://wiki.debian.org/UnattendedUpgrades) for Debian or [here](https://help.ubuntu.com/lts/serverguide/automatic-updates.html) for Ubuntu.
+    For more detail, you can see [here](https://wiki.debian.org/UnattendedUpgrades) for Debian or [here](https://help.ubuntu.com/lts/serverguide/automatic-updates.html) for Ubuntu.
 
-    You will then need to create a `/etc/apt/apt.conf.d/20auto-upgrades` file or edit the pre-existing one, which is typically empty, to set up automatic updates.
-    Paste the following, replacing the `x` values with the frequency at which you want updates:
+    ## Amazon Linux / RedHat Enterprise Linux (RHEL) / CentOS
+
+    On RedHat derived distributions, you can use `yum-cron` to apply security updates:
 
     ```
-    APT::Periodic::Update-Package-Lists "x";
-    APT::Periodic::Download-Upgradeable-Packages "x";
-    APT::Periodic::AutocleanInterval "x";
-    APT::Periodic::Unattended-Upgrade "x";
+    $ sudo yum -y install yum-cron
     ```
-    We recommend setting most of these to `1` to get daily updates. `AutocleanInterval` can be done weekly, so set to `7`.
+
+    We want to enable automatic security updates in `yum-cron.conf`:
+    ```
+    $ sudo sed -i 's/update_cmd = default/update_cmd = security/g; s/download_updates = no/download_updates = yes/; s/apply_updates = no/apply_updates = yes/' /etc/yum/yum-cron.conf
+    ```
+
+    Finally, start and enable the service:
+    ```
+    $ sudo systemctl start yum-cron
+    $ sudo systemctl enable yum-cron
+    ```
+
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
+    On Debian/Ubuntu:
+
     Install the 'unattended-upgrades' package by running
     $ sudo apt-get install unattended-upgrades
 
     The defaults should be sufficient for most use cases, but if you want to tweak the settings, you can either use the instructions in the detailed view above, or use the TUI tool (which provides fewer options)
     $ sudo dpkg-reconfigure unattended-upgrades
 
-- title: Remote access on MongoDB detected
+    On Amazon Linux/CentOS/RHEL:
+    $ sudo yum -y install yum-cron && sudo sed -i 's/update_cmd = default/update_cmd = security/g; s/download_updates = no/download_updates = yes/; s/apply_updates = no/apply_updates = yes/' /etc/yum/yum-cron.conf && sudo systemctl start yum-cron && sudo systemctl enable yum-cron
+
+- title: MongoDB - Possible remote access detected
   class: PubliclyAccessibleServiceAction
   param: mongod
   short: |
@@ -253,22 +278,45 @@
 
     We recommend that you either reconfigure your MongoDB instance to only listen on localhost (assuming the appserver talking to MongoDB runs on the same server), or creating a firewall policy to only allow connections from your appservers to port 27017 on your node. You can do the latter using WoTT's firewall management tool. You can read more about MongoDB's ports [here](https://docs.mongodb.com/manual/reference/default-mongodb-port/).
 
+    Start by locating your MongoDB configuration file
+    ```
+    $ sudo find /etc -name mongodb.conf -o -name mongod.conf
+    ```
+
+    Open the file using your favorite editor
+    ```
+    $ sudo vim /path/to/file
+    ```
+
+    Find the line 'bind_ip' or 'bindIp' (varies by version) and modify it to say 'bind_ip = 127.0.0.1' or 'bindIp: 127.0.0.1'.
+
+    With that done, restart MongoDB to apply the changes
+
+    On Debian/Ubuntu:
+    ```
+    $ service mongod restart
+    ```
+
+    On Amazon Linux/CentOS/RHEL:
+    ```
+    $ service mongodb restart
+    ```
+
 
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
-    Start by locating your MongoDB configuration file
-    $ sudo find /etc -name mongodb.conf -o -name mongod.conf
+    $ for config_file in $(sudo find /etc -name mongodb.conf -o -name mongod.conf); do sudo cp $config_file $config_file.bak; sudo sed -i 's/bind_ip = 0.0.0.0/bind_ip = 127.0.0.1/; s/bindIp: 0.0.0.0/bindIp: 127.0.0.1/' $config_file; done
 
-    Open the file using your favorite editor
-    $ sudo vim /path/to/file
+    With that done, restart MongoDB to apply the changes.
 
-    Find the line 'bind_ip' (or add the line if it doesn't exist) and modify it to say 'bind_ip = 127.0.0.1'.
-
-    With that done, restart MongoDB to apply the changes
+    On Debian/Ubuntu:
     $ service mongodb restart
 
-- title: Remote access on MySQL/MariaDB instance detected
+    On RHEL/CentOS/Amazon Linux:
+    $ service mongod restart
+
+- title: MySQL/MariaDB - Possible remote access detected
   class: PubliclyAccessibleServiceAction
   param: mysqld
   short: |
@@ -278,28 +326,47 @@
 
     In most configurations, remote access is usually disabled. However, depending on the configuration and environment, it may be necessary to allow network access to your MySQL access (such as if you have other servers on the network talking to the server). In such instances, it is recommended that you configure a locked down firewall policy that only allows access from these servers. Failure to do so, may expose your MySQL server to the rogue actors on the internet, which may cause leakage of customer data.
 
-    WoTT's firewall management tool has a feature that allows you to block the port 3306, which is the port used by MySQL for remote access. If no network access is needed, we recommend that you can reconfigure the MySQL configuration file to only listen on localhost. To do so, find your configuration file usually located at `/etc/mysql/my.cnf` (but varies between distributions) and add or edit the following line:
+    WoTT's firewall management tool has a feature that allows you to block the port 3306, which is the port used by MySQL for remote access. If no network access is needed, we recommend that you can reconfigure the MySQL configuration file to only listen on localhost.
+
+    To do so, we first need to locate the MySQL configuration file. Depending on your distribution, the location of this file will vary. In most distributions, this file is located in the `/etc` directory. (either `my.cnf` directly, or under `/etc/mysql/`). In some distributions, it may also be "included" from another location in this file, such as `/etc/my.cnf.d/server.cnf` on Amazon Linux.
+
+    In most configurations, you'll find a "bind-address" line, but if it is not present under the "[mysqld]" block, you may need to add it yourself.
+
+    With the line identified, modify it such that it looks as follows:
 
     ```
     bind-address=127.0.0.1
     ```
 
-    Please remember to restart your MySQL instance as this will not take effect until you do so.
+    Please remember to restart your MySQL/MariaDB instance as this will not take effect until you do so. Depending on your distribution and configuration, it's usually one of the following:
+
+    ```
+    $ sudo service mysqld restart
+    ```
+    or
+    ```
+    $ sudo service mariadb restart
+    ```
+    or
+    ```
+    $ sudo service mysql restart
+    ```
 
   terminal_title: |
     To update the disable remote/network access on your MySQL/MariaDB instance, take the following steps
   terminal_code: |
     Find your file MySQL/MariDB configuration file
-    $ sudo find /etc -name my.cnf -o -name mysqld.cnf -o -name 50-server.cnf
+    $ sudo find /etc -name my.cnf -o -name mysqld.cnf -o -name 50-server.cnf -o -name server.cnf
 
     Once located, open the file in your favorite editor
     $ sudo vim /path/from/command/above
 
-    Once inside the file, locate line 'bind-address' and set it to 'bind-address=127.0.0.1'.
+    See the detailed text block above for how to modify the file.
+
     With that done, restart the server
     $ sudo service mysql restart
 
-- title: No root password set for MySQL/MariaDB server
+- title: MySQL/MariaDB - No root password set
   class: MySQLDefaultRootPasswordAction
   short: |
     We have detected that you may have set a root password for MySQL/MariaDB. Not having a root password set makes it easy for anyone with access to the server (or the network where the server is hosted) to copy all customer data from the database. It is recommended that you set a password as soon as possible.
@@ -314,7 +381,7 @@
   terminal_code: |
     $ mysqladmin -u root password NEWPASSWORD
 
-- title: Your Memcached instance may be publicly accessible
+- title: Memcached - Possible public access detected
   class: PubliclyAccessibleServiceAction
   param: memcached
   short: |
@@ -327,15 +394,20 @@
   terminal_title: |
     To reconfigure Memcached, run take the following steps
   terminal_code: |
+
+    On Debian/Ubuntu:
+
     Find your memcached configuration file
-    $ sudo find /etc -iname memcached.conf
-
-    Edit the file using your favorite editor
-    $ sudo vim /path/to/memcached.conf
-
-    You now need to add (or modify) two lines. Edit (or add) a line for '-l 127.0.0.1' and another one for '-U 0'.
+    $ for config in $(sudo find /etc -name memcached.conf); do sudo cp $config config.bak; sudo sed -i 's/^-l.*/-l 127.0.0.1/' $config; done
 
     When you're done, restart memcached by running
+    $ sudo service memcached restart
+
+    On Amazon Linux/CentOS/RHEL:
+
+    $ sudo cp /etc/sysconfig/memcached /etc/sysconfig/memcached.bak && sudo sed -i 's/OPTIONS=.*/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
+
+    When done, restart memcached by running:
     $ sudo service memcached restart
 
 - title: System contains Meltdown and/or Spectre vulnerabilities
@@ -351,10 +423,13 @@
   terminal_title: |
     To update your operating system, run the following commands:
   terminal_code: |
-    $ sudo apt-get update
-    $ sudo apt-get upgrade
+    On Debian/Ubuntu:
+    $ sudo apt-get -qq update && for package in $(dpkg --get-selections | grep "^linux-\(image\|headers\)-\(generic\|virtual\|aws\|gcp\).*" | awk {{'print $1'}}); do sudo apt-get install -y "$package"; done
 
-- title: A Redis instance may be publicly accessible
+    On Amazon Linux/CentOS/RHEL:
+    $ sudo yum update && sudo yum upgrade
+
+- title: Redis - Possible remote access detected
   class: PubliclyAccessibleServiceAction
   param: redis-server
   short: |
@@ -366,28 +441,25 @@
 
     If you don't need your Redis installation to be accessible over the network, we recommend that you re-configure Redis to only bind on the loopback/localhost interface to avoid this. If on the other hand you do need your Redis instance to be accessible over the network, we recommend that you create a firewall policy that only allows a select number of servers to talk to the Redis instance, while also setting a Redis password.
 
+    To configure Redis to only listen on localhost, edit `redis.conf` and change the line starting with `bind` to `bind 127.0.0.1`.
+
+    You may also want to add the line 'requirepass SuperSecretPassword' to add authentication to your Redis server. Please note that you also need to configure this in your client(s). Otherwise they will be unable to connect.
+
     If you need network access to Redis, you can create a firewall policy using the WoTT Dashboard. By default, Redis uses port 6379/tcp.
   terminal_title: |
     To reconfigure Redis, take the following steps
   terminal_code: |
     Find the Redis configuration file
-    $ sudo find /etc -iname redis.conf
+    $ for config in $(sudo find /etc -name redis.conf); do sudo cp $config config.bak; sudo sed -i 's/^bind.*/bind 127.0.0.1/g' $config; done
 
-    Open the configuration file using your favorite editor
-    $ vim /path/to/redis.conf
-
-    Locate the line 'bind' and change it to 'bind 127.0.0.1'. Do note that lines starting with '#' will be ignored.
-
-    You may also want to add the line 'requirepass SuperSecretPassword' to add authentication to your Redis server. Please note that you also need to configure this in your clients. Otherwise they will be unable to connect.
-
-    When you're done, restart Redis by running
+    When you're done, restart Redis by running:
     $ sudo service redis restart
 
 
 - title: Vulnerable packages found
   class: VulnerablePackagesAction
   short: |
-    Vulnerable packages have been found. These packages may be exploitable by an attacker to gain access to, or escalate permissions, on your servers. Make sure packages are up to date. You can learn more about the exact packages under the [Vulnerabilities tab](/cve).
+    Vulnerable packages have been found. These packages may be exploitable by an attacker to gain access to, or escalate permissions, on your servers. Make sure packages are up to date. You can learn more about the exact packages, as well as how to upgrade under the [Vulnerabilities tab](/cve)
   long: |
     Packages are a key part of most Linux based operating systems software. Typically when installing additional software onto Linux systems, it comes in pre-compiled packages. Depending on your Linux distribution, the package manager will differ (e.g. Debian/Ubuntu users `.deb` packages whereas RedHat/Fedora/Amazon uses '.rpm'. packages).
 
@@ -398,11 +470,6 @@
     WoTT can detect an out-of-date or insecure package and alert you about this. Do however note that in some instances, there is a known vulnerabilities that have been identified, but yet to be patched by the operating system vendors.
 
     Also, for those new to security, it is worth pointing out that when a security issue is reported and identified, it is reported into the Common Vulnerabilities and Exposures (CVE) database. The most common authority for this is the [mitre](https://cve.mitre.org/) CVE database.
-  terminal_title: |
-    To upgrade your packages, please run:
-  terminal_code: |
-    $ sudo apt-get update
-    $ sudo apt-get upgrade
 
 - title: Enable our GitHub integration for improved workflow
   class: GithubAction

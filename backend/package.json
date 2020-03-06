@@ -36,7 +36,7 @@
     "eslint": "5.13.0",
     "exports-loader": "^0.7.0",
     "expose-loader": "0.7.5",
-    "feather-icons": "4.17.0",
+    "feather-icons": "4.26.0",
     "file-loader": "3.0.1",
     "fullcalendar": "^3.10.0",
     "hard-source-webpack-plugin": "0.13.1",
