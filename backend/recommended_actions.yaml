@@ -84,7 +84,7 @@
     On Amazon Linux/CentOS/RHEL:
     $ sudo yum remove ${service}
 
-- title: Agent forwarding enabled for OpenSSH
+- title: OpenSSH - Agent forwarding enabled
   class: OpensshIssueAction
   param: AllowAgentForwarding
   short: |
@@ -106,7 +106,7 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-agent-forwarding
 
-- title: Password authentication enabled for OpenSSH
+- title: OpenSSH - Password authentication enabled
   class: OpensshIssueAction
   param: PasswordAuthentication
   short: |
@@ -135,7 +135,7 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-password-auth
 
-- title: Root login enabled for OpenSSH
+- title: OpenSSH - Root login enabled
   class: OpensshIssueAction
   param: PermitRootLogin
   short: |
@@ -161,7 +161,7 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-root-login
 
-- title: Empty passwords permitted for OpenSSH
+- title: OpenSSH - Empty passwords permitted
   class: OpensshIssueAction
   param: PermitEmptyPasswords
   short: |
@@ -187,7 +187,7 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-empty-password
 
-- title: Insecure protocol option enabled for OpenSSH
+- title: OpenSSH - Insecure protocol enabled
   class: OpensshIssueAction
   param: Protocol
   short: |
@@ -268,7 +268,7 @@
     On Amazon Linux/CentOS/RHEL:
     $ sudo yum -y install yum-cron && sudo sed -i 's/update_cmd = default/update_cmd = security/g; s/download_updates = no/download_updates = yes/; s/apply_updates = no/apply_updates = yes/' /etc/yum/yum-cron.conf && sudo systemctl start yum-cron && sudo systemctl enable yum-cron
 
-- title: Remote access on MongoDB detected
+- title: MongoDB - Possible remote access detected
   class: PubliclyAccessibleServiceAction
   param: mongod
   short: |
@@ -316,7 +316,7 @@
     On RHEL/CentOS/Amazon Linux:
     $ service mongod restart
 
-- title: Remote access on MySQL/MariaDB instance detected
+- title: MySQL/MariaDB - Possible remote access detected
   class: PubliclyAccessibleServiceAction
   param: mysqld
   short: |
@@ -366,7 +366,7 @@
     With that done, restart the server
     $ sudo service mysql restart
 
-- title: No root password set for MySQL/MariaDB server
+- title: MySQL/MariaDB - No root password set
   class: MySQLDefaultRootPasswordAction
   short: |
     We have detected that you may have set a root password for MySQL/MariaDB. Not having a root password set makes it easy for anyone with access to the server (or the network where the server is hosted) to copy all customer data from the database. It is recommended that you set a password as soon as possible.
@@ -381,7 +381,7 @@
   terminal_code: |
     $ mysqladmin -u root password NEWPASSWORD
 
-- title: Your Memcached instance may be publicly accessible
+- title: Memcached - Possible public access detected
   class: PubliclyAccessibleServiceAction
   param: memcached
   short: |
@@ -429,7 +429,7 @@
     On Amazon Linux/CentOS/RHEL:
     $ sudo yum update && sudo yum upgrade
 
-- title: A Redis instance may be publicly accessible
+- title: Redis - Possible remote access detected
   class: PubliclyAccessibleServiceAction
   param: redis-server
   short: |
