@@ -60,10 +60,10 @@
   terminal_title: |
     To uninstall your FTP server, run the following command:
   terminal_code: |
-    On Ubuntu/Debian
+    On Debian/Ubuntu:
     $ sudo apt-get purge ${{FTP-PACKAGE}}
 
-    On Amazon Linux/RedHat Enterprise Linux/CentoS
+    On Amazon Linux/CentOS/RHEL:
     $ sudo yum remove ${{FTP-PACKAGE}}
 
 - title: Insecure service found ({service})
@@ -78,10 +78,10 @@
   terminal_title: |
     To uninstall the insecure service, run:
   terminal_code: |
-    On Ubuntu/Debian
+    On Debian/Ubuntu:
     $ sudo apt-get purge {service}
 
-    On Amazon Linux/RedHat Enterprise Linux/CentoS
+    On Amazon Linux/CentOS/RHEL:
     $ sudo yum remove ${service}
 
 - title: Agent forwarding enabled for OpenSSH
@@ -257,7 +257,7 @@
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
-    On Ubuntu
+    On Debian/Ubuntu:
 
     Install the 'unattended-upgrades' package by running
     $ sudo apt-get install unattended-upgrades
@@ -265,7 +265,7 @@
     The defaults should be sufficient for most use cases, but if you want to tweak the settings, you can either use the instructions in the detailed view above, or use the TUI tool (which provides fewer options)
     $ sudo dpkg-reconfigure unattended-upgrades
 
-    On RHEL/CentOS/Amazon Linux:
+    On Amazon Linux/CentOS/RHEL:
     $ sudo yum -y install yum-cron && sudo sed -i 's/update_cmd = default/update_cmd = security/g; s/download_updates = no/download_updates = yes/; s/apply_updates = no/apply_updates = yes/' /etc/yum/yum-cron.conf && sudo systemctl start yum-cron && sudo systemctl enable yum-cron
 
 - title: Remote access on MongoDB detected
@@ -294,10 +294,10 @@
 
     On Debian/Ubuntu:
     ```
-    $ service mongodb restart
+    $ service mongod restart
     ```
 
-    On Debian/Ubuntu:
+    On Amazon Linux/CentOS/RHEL:
     ```
     $ service mongodb restart
     ```
@@ -403,7 +403,7 @@
     When you're done, restart memcached by running
     $ sudo service memcached restart
 
-    On RHEL/CentOS/Amazon Linux:
+    On Amazon Linux/CentOS/RHEL:
 
     $ sudo cp /etc/sysconfig/memcached /etc/sysconfig/memcached.bak && sudo sed -i 's/OPTIONS=.*/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
 
@@ -423,10 +423,10 @@
   terminal_title: |
     To update your operating system, run the following commands:
   terminal_code: |
-    On Debian / Ubuntu
-    $ sudo apt-get -qq update && for package in $(dpkg --get-selections | grep "^linux-\(image\|headers\)-\(generic\|virtual\|aws\|gcp\).*" | awk {'print $1'}); do sudo apt-get install -y "$package"; done
+    On Debian/Ubuntu:
+    $ sudo apt-get -qq update && for package in $(dpkg --get-selections | grep "^linux-\(image\|headers\)-\(generic\|virtual\|aws\|gcp\).*" | awk {{'print $1'}}); do sudo apt-get install -y "$package"; done
 
-    On RHEL/CentOS/Amazon Linux
+    On Amazon Linux/CentOS/RHEL:
     $ sudo yum update && sudo yum upgrade
 
 - title: A Redis instance may be publicly accessible
