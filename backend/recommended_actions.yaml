@@ -428,7 +428,7 @@
 
     You will now need to reboot the system. Once the system has been rebooted, you can remove older kernels using. The following command will remove older (unused) kernels. Do however proceed with caution.
 
-    $ dpkg --get-selections linux-* | grep -v -E -e deinstall -e '^linux-(firmware|base|headers|virtual|virtual-hwe.*|aws|oracle|generic|gcp|libc-dev.*|tools|initramfs-tool|kernel-headers|kernel-log-daemon)\s+install' -e '^linux-(headers|image)-(generic|virtual|aws|gcp|oracle)' -e $(uname -r | sed -E 's/-(generic|virtual|virtual-hwe|aws|gcp|oracle)//') | awk {'print $1'} | sudo xargs apt-get -y purge && sudo wott-agent
+    $ dpkg --get-selections linux-* | grep -v -E -e deinstall -e '^linux-(firmware|base|headers|virtual|virtual-hwe.*|aws|oracle|generic|gcp|libc-dev.*|tools|initramfs-tool|kernel-headers|kernel-log-daemon)\s+install' -e '^linux-(headers|image)-(generic|virtual|aws|gcp|oracle)' -e $(uname -r | sed -E 's/-(generic|virtual|virtual-hwe|aws|gcp|oracle)//') | awk {{'print $1'}} | sudo xargs apt-get -y purge && sudo wott-agent
 
     On Amazon Linux/CentOS/RHEL:
     $ sudo yum update && sudo yum upgrade
