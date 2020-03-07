@@ -33,7 +33,7 @@
     "datatables.net-responsive-bs4": "2.2.3",
     "datatables.net-select": "1.2.7",
     "dragula": "3.7.2",
-    "eslint": "5.13.0",
+    "eslint": "6.0.0",
     "exports-loader": "^0.7.0",
     "expose-loader": "0.7.5",
     "feather-icons": "4.26.0",
