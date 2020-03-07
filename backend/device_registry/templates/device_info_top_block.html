@@ -58,12 +58,18 @@
                 stroke-dasharray="{{ object.trust_score_percent }} {{ object.trust_score_minus100 }}"></circle>
         
         <g class="wott-chart-block-info">
-          <text id="trust-score-percentage" x="38%" y="46%" class="wott-chart-big-info">
-            {{ object.trust_score_percent }}
-          </text>
-          <text class="wott-chart-small-info" x="40%" y="59%">
-            OF 100
-          </text>
+          {% if object.trust_score_percent < 10 %}
+            <text id="trust-score-percentage" x="44%" y="46%" class="wott-chart-big-info">
+              {{ object.trust_score_percent }}
+            </text>
+          {% else %}
+            <text id="trust-score-percentage" x="38%" y="46%" class="wott-chart-big-info">
+              {{ object.trust_score_percent }}
+            </text>
+          {% endif %}
+            <text class="wott-chart-small-info" x="40%" y="59%">
+              OF 100
+            </text>
           <text x="40%" y="71%" class="wott-chart-small-info wott-chart-light-text">
             NEEDS
           </text>
@@ -71,7 +77,34 @@
             WORK
           </text>
         </g>
+      
+      </svg>
+      {% else %}
+      <svg width="100%" height="100%" viewbox="0 1 39 39" class="donut">
 
+        <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+        <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#417EE7" stroke-width="2"></circle>
+        <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954"
+                fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-linecap="round"
+                stroke-dashoffset="75"
+                stroke-dasharray="3 97"></circle>
+        
+        <g class="wott-chart-block-info">
+         
+            <text id="trust-score-percentage" x="44%" y="46%" class="wott-chart-big-info">
+              0
+            </text>
+            <text class="wott-chart-small-info" x="40%" y="59%">
+              OF 100
+            </text>
+          <text x="40%" y="71%" class="wott-chart-small-info wott-chart-light-text">
+            NEEDS
+          </text>
+          <text x="40%" y="79%" class="wott-chart-small-info wott-chart-light-text">
+            WORK
+          </text>
+        </g>
+      
       </svg>
       {% endif %}
     </div>
