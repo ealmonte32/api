@@ -211,7 +211,7 @@
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad2)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="4.5"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="3"></circle>
-          {% if not trust_score.current %}
+          {% if trust_score.current is None %}
             <g class="chart-text-calc">
               <text id="cve-priority" x="50%" y="55%" class="chart-number">
                 Calculating...
