@@ -11,12 +11,16 @@
         {% csrf_token %}
         <div class="form-group is-valid">
           <label class="wott-label" for="{{ form.repo.id_for_label }}">Choose your GitHub Repository</label>
-          {% render_field form.repo class+="custom-select form-control wott-form-control wott-rounded-lg" %}
+          <div class="wott-form-group d-flex pr-4">
+            {% render_field form.repo class+="custom-select form-control wott-form-control wott-rounded-lg" %}
+            <button class="btn btn-wott-primary wott-btn-small" type="button" id="refresh-repos-btn" onclick="refreshRepos()">
+              <i class="fas fa-sync"></i>
+            </button>
+          </div>
         </div>
         {% buttons %}
           <button type="submit" class="btn wott-btn btn-wott-primary mr-3">Save changes</button>
           <button type="button" class="btn wott-btn btn-wott-secondary" onclick="installGithub()">Install App</button>
-          <button type="button" class="btn wott-btn btn-wott-secondary" id="refresh-repos-btn" onclick="refreshRepos()">Refresh</button>
         {% endbuttons %}
       </form>
       {% else %}
