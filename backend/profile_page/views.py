@@ -168,6 +168,8 @@ class GithubIntegrationView(LoginRequiredMixin, View):
                     profile.github_repo_id = None  # Not saving because this is a GET
                 form = GithubForm({'repo': profile.github_repo_id},
                                   repo_choices=[(repo_id, repo['full_name']) for repo_id, repo in repos.items()])
+                if request.GET.get('partial'):
+                    return render(request, 'profile_github_partial.html', {'form': form})
                 context = {
                     'form': form,
                     'github_authorized': True,

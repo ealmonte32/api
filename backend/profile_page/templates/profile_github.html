@@ -16,6 +16,7 @@
         {% buttons %}
           <button type="submit" class="btn wott-btn btn-wott-primary mr-3">Save changes</button>
           <button type="button" class="btn wott-btn btn-wott-secondary" onclick="installGithub()">Install App</button>
+          <button type="button" class="btn wott-btn btn-wott-secondary" id="refresh-repos-btn" onclick="refreshRepos()">Refresh</button>
         {% endbuttons %}
       </form>
       {% else %}
@@ -50,6 +51,22 @@
             location.reload();
         }
     }, 100);
+  }
+
+  async function refreshRepos() {
+    let select = $('#id_repo'),
+        refresh_btn = $('#refresh-repos-btn');
+    refresh_btn.attr('disabled', true);
+    $.ajax({
+        url: './?partial=1',
+        type: 'GET',
+        success: (data) => {
+            console.log(data);
+            select.html(data);
+            refresh_btn.attr('disabled', false);
+        },
+        error: console.error
+    })
   }
   </script>
 {% endblock %}
