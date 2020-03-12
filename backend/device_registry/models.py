@@ -470,11 +470,8 @@ class Device(models.Model):
          The rest of devices - only `Hardware: All`.
         """
         all_devices_tag = Tag.objects.get(name='Hardware: All')
-        raspberry_pi_tag = Tag.objects.get(name='Hardware: Raspberry Pi')
         if all_devices_tag not in self.tags:
             self.tags.add(all_devices_tag)
-        if self.deviceinfo.get_hardware_type() == 'Raspberry Pi' and raspberry_pi_tag not in self.tags:
-            self.tags.add(raspberry_pi_tag)
 
     @property
     def vulnerable_packages(self):
@@ -642,10 +639,6 @@ class DeviceInfo(models.Model):
     def get_model(self):
         if self.device_manufacturer == 'Raspberry Pi':
             return self.device_model
-
-    def get_hardware_type(self):
-        if self.device_manufacturer == 'Raspberry Pi':
-            return 'Raspberry Pi'
 
     @property
     def beautified_logins(self):

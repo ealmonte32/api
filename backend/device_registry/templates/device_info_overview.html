@@ -24,8 +24,6 @@
                   <h4 class="d-inline-flex wott-table-title">Overview</h4>
                 </div>
                 <tr>
-                  <td class="wott-table-label-lg" scope="row">Hardware Type</td>
-                  <td width="30%" class="pl-4">{{ object.deviceinfo.get_hardware_type|default_if_none:'Unknown' }}</td>
                   <td class="wott-table-label-lg" scope="row">Last Heartbeat</td>
                   <td width="30%">{{ object.last_ping | timesince }} ago</td>
                 </tr>
