@@ -2,7 +2,7 @@ from enum import Enum, IntEnum
 import datetime
 import json
 import uuid
-from typing import NamedTuple
+from typing import NamedTuple, Tuple
 
 from dateutil.relativedelta import relativedelta, SU, MO
 from django.conf import settings
@@ -12,6 +12,8 @@ from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
 
+import apt_pkg
+import rpm
 import yaml
 import tagulous.models
 import apt_pkg
@@ -908,17 +910,61 @@ class Vulnerability(models.Model):
         def __repr__(self):
             return 'Version({})'.format(repr(self.__asString))
 
+    class DebVersion(Version):
         def __lt__(self, other):
             return apt_pkg.version_compare(self.__asString, other.__asString) < 0
 
         def __eq__(self, other):
             return apt_pkg.version_compare(self.__asString, other.__asString) == 0
 
+    class RpmVersion(Version):
+        @staticmethod
+        def stringToVersion(verstring) -> Tuple[str, str, str]:
+            # Adapted from python2 version
+            # https://github.com/rpm-software-management/yum/blob/master/rpmUtils/miscutils.py#L391
+            if verstring in [None, '']:
+                return (None, None, None)
+            i = verstring.find(':')
+            if i != -1:
+                try:
+                    epoch = str(int(verstring[:i]))
+                except ValueError:
+                    # look, garbage in the epoch field, how fun, kill it
+                    epoch = '0'  # this is our fallback, deal
+            else:
+                epoch = '0'
+            j = verstring.find('-')
+            if j != -1:
+                if verstring[i + 1:j] == '':
+                    version = None
+                else:
+                    version = verstring[i + 1:j]
+                release = verstring[j + 1:]
+            else:
+                if verstring[i + 1:] == '':
+                    version = None
+                else:
+                    version = verstring[i + 1:]
+                release = None
+            return epoch, version, release
+
+        def __init__(self, version):
+            """Creates a new Version object."""
+            super().__init__(version)
+            self._version_tuple = self.stringToVersion(version)
+
+        def __lt__(self, other):
+            return rpm.labelCompare(self._version_tuple, other._version_tuple) < 0
+
+        def __eq__(self, other):
+            return rpm.labelCompare(self._version_tuple, other._version_tuple) == 0
+
     class Urgency(IntEnum):
         NONE = 0
         LOW = 1
         MEDIUM = 2
         HIGH = 3
+        CRITICAL = 4
 
     os_release_codename = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=64)
@@ -932,17 +978,22 @@ class Vulnerability(models.Model):
     pub_date = models.DateField(null=True)
 
     def is_vulnerable(self, src_ver):
-        if self.unstable_version:
-            unstable_version = Vulnerability.Version(self.unstable_version)
-        else:
-            unstable_version = None
-        other_versions = map(Vulnerability.Version, self.other_versions)
-        src_ver = Vulnerability.Version(src_ver)
+        if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2'):
+            VersionClass = self.DebVersion if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES \
+                else self.RpmVersion
+            if self.unstable_version:
+                unstable_version = VersionClass(self.unstable_version)
+            else:
+                unstable_version = None
+            other_versions = map(VersionClass, self.other_versions)
+            src_ver = VersionClass(src_ver)
 
-        if self.unstable_version:
-            return src_ver < unstable_version and src_ver not in other_versions
+            if self.unstable_version:
+                return src_ver < unstable_version and src_ver not in other_versions
+            else:
+                return src_ver not in other_versions
         else:
-            return src_ver not in other_versions
+            return False
 
 
 class Distro(models.Model):

@@ -291,6 +291,7 @@ def fetch_vulnerabilities():
                             'low': Vulnerability.Urgency.LOW,
                             'medium': Vulnerability.Urgency.MEDIUM,
                             'high': Vulnerability.Urgency.HIGH,
+                            'critical': Vulnerability.Urgency.CRITICAL
                         }.get(header['Priority'], Vulnerability.Urgency.NONE),
                         pub_date=dateutil.parser.parse(header['PublicDate']),
                         remote=None,
