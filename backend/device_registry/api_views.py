@@ -440,9 +440,7 @@ class ClaimByLink(APIView):
             device_id=params['device-id'],
             owner__isnull=True
         )
-        device.owner = request.user
-        device.claim_token = ''
-        device.save(update_fields=['owner', 'claim_token'])
+        device.claim(request.user)
         return Response(f'Device {device.device_id} claimed!')
 
 
@@ -468,9 +466,7 @@ class DeviceEnrollView(APIView):
             device_id=serializer.validated_data['device_id'],
             owner__isnull=True
         )
-        device.owner = pair_key.owner
-        device.claim_token = ''
-        device.save(update_fields=['owner', 'claim_token'])
+        device.claim(pair_key.owner)
         device.owner.profile.track_first_device()
         return Response()
 
@@ -970,7 +966,7 @@ class DeviceListFilterMixin:
             except ValueError:
                 raise ValidationError('"since" is invalid.')
             else:
-                query = Q(created__gt=since_timestamp) & query
+                query = Q(claimed_at__gt=since_timestamp) & query
 
         return query
 

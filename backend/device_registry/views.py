@@ -251,9 +251,7 @@ def claim_device_view(request):
                 elif not device.claim_token == form.cleaned_data['claim_token']:
                     text, style = 'Invalid claim/node id pair.', 'warning'
                 else:
-                    device.owner = request.user
-                    device.claim_token = ""
-                    device.save(update_fields=['owner', 'claim_token'])
+                    device.claim(request.user)
                     text, style = \
                         f'''You've successfully claimed {device.get_name()}.
                           Learn more about the security state of the device by clicking&nbsp;
@@ -311,9 +309,7 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         form = DeviceAttrsForm(request.POST, instance=self.object)
         if form.is_valid():
             if 'revoke_button' in form.data:
-                self.object.owner = None
-                self.object.claim_token = uuid.uuid4()
-                self.object.save(update_fields=['owner', 'claim_token'])
+                self.object.claim(None, uuid.uuid4())
                 messages.add_message(request, messages.INFO, 'You have successfully revoked your device.')
                 return HttpResponseRedirect(reverse('root'))
             else:
