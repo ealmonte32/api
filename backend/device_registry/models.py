@@ -964,7 +964,6 @@ class Vulnerability(models.Model):
         LOW = 1
         MEDIUM = 2
         HIGH = 3
-        CRITICAL = 4
 
     os_release_codename = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=64)
@@ -978,7 +977,7 @@ class Vulnerability(models.Model):
     pub_date = models.DateField(null=True)
 
     def is_vulnerable(self, src_ver):
-        if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2'):
+        if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',):
             VersionClass = self.DebVersion if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES \
                 else self.RpmVersion
             if self.unstable_version:

@@ -40,7 +40,7 @@ def fetch_vulnerabilities():
                     pkg_severity = {'low': Vulnerability.Urgency.LOW,
                                     'medium': Vulnerability.Urgency.MEDIUM,
                                     'important': Vulnerability.Urgency.HIGH,
-                                    'critical': Vulnerability.Urgency.CRITICAL}[severity]
+                                    'critical': Vulnerability.Urgency.HIGH}[severity]
                     full_version = f'{pkg_epoch}:{pkg_version}-{pkg_release}'
                     print((cve, severity, pkg_name, pkg_epoch, pkg_version, pkg_release))
                     key = (cve, pkg_name)
