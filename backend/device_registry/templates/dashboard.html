@@ -9,15 +9,15 @@
 {% load static %}
 
 {% block admin_content %}
- 
+
 <div class="dashboard-tab">
   <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});
           {% if not welcome %}display: none !important;{% endif %}">
     <div class="left-box py-4">
-      <h1 class="big-text text-center">Welcome User!</h1><!--Include user first name if it exists-->
+        <h1 class="big-text text-center">Welcome, {{ user.first_name | default:"human"}}!</h1>
       <!-- <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p> -->
       <div id="did-you-know-box" class="position-relative">
-        
+
       </div>
       <p class="text-center close-text mb-3">You can start your journey by adding a node.</p>
       <button type="button" class="btn wott-btn btn-wott-primary d-block m-auto" id="inst-btn">
@@ -36,7 +36,7 @@
         <h3 class="title-left-box wott-blue">Weekly Recommended Actions</h3>
         <div class="weekly-progress">
           <div class="graphic-title wott-font-light-blue">Weekly Progress</div>
-          <div id="week-progress-100">  
+          <div id="week-progress-100">
             <span id="week-progress-var-fake">
               <p class="mb-0" id="week-progress-text">75</p>
             </span>
@@ -51,7 +51,7 @@
               <label for="weekly-ra-1"></label>
             </div>
             <h3 class="list-title mb-0 wott-blue">Default credentials detected</h3>
-            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soon as possible</h3>
           </div>
           <div class="rect-badge-high wott-bg-blue">HIGH</div>
         </li>
@@ -62,7 +62,7 @@
               <label for="weekly-ra-2"></label>
             </div>
             <h3 class="list-title mb-0 wott-blue">Default credentials detected</h3>
-            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soon as possible</h3>
           </div>
           <div class="rect-badge-high wott-bg-blue">HIGH</div>
         </li>
@@ -73,7 +73,7 @@
               <label for="weekly-ra-3"></label>
             </div>
             <h3 class="list-title mb-0 wott-blue">Permissive Firewall policy detected</h3>
-            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soon as possible</h3>
           </div>
           <div class="rect-badge-high wott-bg-blue">HIGH</div>
         </li>
@@ -84,7 +84,7 @@
               <label for="weekly-ra-4"></label>
             </div>
             <h3 class="list-title mb-0 wott-blue solved-dash">Valnerable packages found</h3>
-            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soon as possible</h3>
           </div>
           <div class="rect-badge-medium wott-bg-light-blue">MEDIUM</div>
         </li>
@@ -95,7 +95,7 @@
               <label for="weekly-ra-5"></label>
             </div>
             <h3 class="list-title mb-0 wott-blue solved-dash">Default credentials detected</h3>
-            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soom as possible</h3>
+            <h3 class="list-subtitle mb-0 wott-font-light-blue">Consider changing them as soon as possible</h3>
           </div>
           <div class="rect-badge-low wott-bg-light-blue">LOW</div>
         </li>
@@ -104,7 +104,7 @@
     <section class="right-graphic-container">
       <div class="graph-title">Your Trust Score</div>
       <div class="graph-half-moon">
-  
+
         <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
           <defs>
             <lineargradient id="grad3" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -114,11 +114,11 @@
           </defs>
           <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
-          
+
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad3)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="4.5"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#7cacff" stroke-dasharray="0.2 99.8" stroke-dashoffset="-100" stroke-width="3"></circle>
-          
+
           <g class="chart-text">
             <text id="cve-priority" x="50%" y="50%" class="chart-number">
               80
@@ -133,7 +133,7 @@
             </text>
           </g>
         </svg>
-  
+
       </div>
       <div class="graph-footer wott-font-light-blue"><i class="fas fa-sort-down"></i><span> UP</span> 5% OVER THE LAST WEEK</div>
     </section>
@@ -146,7 +146,7 @@
         <h3 class="title-left-box">Weekly Recommended Actions</h3>
         <div class="weekly-progress">
           <div class="graphic-title">Weekly Progress</div>
-          <div id="week-progress-100">  
+          <div id="week-progress-100">
             <span id="week-progress-var" style="width: {{ weekly_progress }}%">
               <p class="my-0 {% if weekly_progress == 0 %}graph-var-0{% elif weekly_progress < 25 %}graph-less-25{% else %}justify-content-center{% endif %}"
                  id="week-progress-text" >{{ weekly_progress }}</p>
@@ -193,7 +193,7 @@
     <section class="right-graphic-container">
       <div class="graph-title">Your Trust Score</div>
       <div class="graph-half-moon">
-  
+
         <svg width="100%" height="100%" viewbox="0 0 42 42" class="donut">
           <defs>
             <lineargradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -207,7 +207,7 @@
           </defs>
           <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
           <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="transparent" stroke-width="2"></circle>
-          
+
           <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="url(#grad2)" stroke-width="2" stroke-dasharray="75 25" stroke-dashoffset="63"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="white" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="4.5"></circle>
           <circle class="graphic-ball" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#007DD5" stroke-dasharray="0.2 99.8" stroke-dashoffset="{{ ball_offset }}" stroke-width="3"></circle>
@@ -232,7 +232,7 @@
               </text>
             </g>
         </svg>
-  
+
       </div>
       <div class="graph-footer">
         <i class="fas fa-sort-{{ trust_score.arrow }}"></i>
@@ -298,7 +298,7 @@
     let children_paragraph = $('#random-text-template').children();
     $('#did-you-know-box').html(random_text([...children_paragraph]));
   });
- 
-  
+
+
 </script>
 {% endblock scripts %}
