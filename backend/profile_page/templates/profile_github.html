@@ -11,7 +11,12 @@
         {% csrf_token %}
         <div class="form-group is-valid">
           <label class="wott-label" for="{{ form.repo.id_for_label }}">Choose your GitHub Repository</label>
-          {% render_field form.repo class+="custom-select form-control wott-form-control wott-rounded-lg" %}
+          <div class="wott-form-group d-flex pr-4">
+            {% render_field form.repo class+="custom-select form-control wott-form-control wott-rounded-lg" %}
+            <button class="btn btn-wott-primary wott-btn-small" type="button" id="refresh-repos-btn" onclick="refreshRepos()">
+              <i class="fas fa-sync"></i>
+            </button>
+          </div>
         </div>
         {% buttons %}
           <button type="submit" class="btn wott-btn btn-wott-primary mr-3">Save changes</button>
@@ -50,6 +55,22 @@
             location.reload();
         }
     }, 100);
+  }
+
+  async function refreshRepos() {
+    let select = $('#id_repo'),
+        refresh_btn = $('#refresh-repos-btn');
+    refresh_btn.attr('disabled', true);
+    $.ajax({
+        url: './?partial=1',
+        type: 'GET',
+        success: (data) => {
+            console.log(data);
+            select.html(data);
+            refresh_btn.attr('disabled', false);
+        },
+        error: console.error
+    })
   }
   </script>
 {% endblock %}
