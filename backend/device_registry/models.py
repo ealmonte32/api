@@ -24,7 +24,9 @@ from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARA
 apt_pkg.init()
 
 DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
-UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite names.
+UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite (16.04, 18.04) names.
+UBUNTU_KERNEL_PACKAGES_RE_PATTERN = r'linux-(?:headers|aws-headers|image|modules)-.+'
+DEBIAN_KERNEL_PACKAGES_RE_PATTERN = r'linux-image-\d+\.\d+\.\d+-\d+[.-].+'
 IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
 FTP_PORT = 21
@@ -73,6 +75,9 @@ class DebPackage(models.Model):
     class Meta:
         unique_together = ['name', 'version', 'arch', 'os_release_codename']
 
+    def __str__(self):
+        return f'{self.name}:{self.version}:{self.arch}:{self.os_release_codename}'
+
 
 class Device(models.Model):
     class SshdIssueItem(NamedTuple):
@@ -111,6 +116,8 @@ class Device(models.Model):
     deb_packages_hash = models.CharField(max_length=32, blank=True)
     cpu = JSONField(blank=True, default=dict)
     kernel_deb_package = models.ForeignKey(DebPackage, null=True, on_delete=models.SET_NULL, related_name='+')
+    kernel_meta_package = models.ForeignKey(DebPackage, null=True, blank=True,
+                                            on_delete=models.SET_NULL, related_name='+')
     audit_files = JSONField(blank=True, default=list)
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
@@ -119,6 +126,19 @@ class Device(models.Model):
 
     class Meta:
         ordering = ('created',)
+
+    @property
+    def reboot_required(self):
+        """
+        OS reboot required because the newer kernel package installed
+         but not running.
+        It's supposed that kernel image package and its meta-package always
+         have the same versions.
+        """
+        if self.kernel_deb_package and self.kernel_meta_package:
+            return apt_pkg.version_compare(self.kernel_meta_package.version,
+                                           self.kernel_deb_package.version) > 0
+        return None
 
     @property
     def default_password(self):
@@ -475,11 +495,6 @@ class Device(models.Model):
         if all_devices_tag not in self.tags:
             self.tags.add(all_devices_tag)
 
-    @property
-    def vulnerable_packages(self):
-        if self.deb_packages_hash and self.deb_packages.exists() and self.os_release and \
-                self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',):
-            return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
     @property
     def cve_count(self):
@@ -985,14 +1000,14 @@ class Vulnerability(models.Model):
         HIGH = 3
 
     os_release_codename = models.CharField(max_length=64, db_index=True)
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, db_index=True)
     package = models.CharField(max_length=64, db_index=True)
     is_binary = models.BooleanField()
     unstable_version = models.CharField(max_length=64, blank=True)
     other_versions = ArrayField(models.CharField(max_length=64), blank=True)
     urgency = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Urgency])
     remote = models.BooleanField(null=True)
-    fix_available = models.BooleanField()
+    fix_available = models.BooleanField(db_index=True)
     pub_date = models.DateField(null=True)
 
     def is_vulnerable(self, src_ver):

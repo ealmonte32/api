@@ -6,10 +6,10 @@ from django.utils import timezone
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
     GlobalPolicy, RecommendedAction, RecommendedActionStatus
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
-    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
-    FtpServerAction, CpuVulnerableAction, BaseAction, ActionMeta, Action, \
-    PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
-    SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus
+    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, FtpServerAction, CpuVulnerableAction, ActionMeta, \
+    Action, PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
+    SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus, \
+    RebootRequiredAction
 
 from freezegun import freeze_time
 
@@ -586,3 +586,16 @@ class CpuVulnerableActionTest(TestsMixin, TestCase):
         pkg.save()
         self.device.cpu = {'vendor': 'GenuineIntel'}
         self.device.save()
+
+
+class RebootRequiredActionTest(TestsMixin, TestCase):
+    action_class = RebootRequiredAction
+
+    def enable_action(self):
+        self.device.kernel_deb_package = DebPackage.objects.create(
+            os_release_codename='buster', name='linux', version='5.0.0', source_name='linux', source_version='5.0.0',
+            arch=DebPackage.Arch.i386)
+        self.device.kernel_meta_package = DebPackage.objects.create(
+            os_release_codename='buster', name='linux-meta', version='5.0.1', source_name='linux',
+            source_version='5.0.1', arch=DebPackage.Arch.i386)
+        self.device.save(update_fields=['kernel_deb_package', 'kernel_meta_package'])

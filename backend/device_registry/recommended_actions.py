@@ -497,6 +497,15 @@ class VulnerablePackagesAction(SimpleAction, metaclass=ActionMeta):
         return Severity.MED
 
 
+# OS reboot required action.
+class RebootRequiredAction(SimpleAction, metaclass=ActionMeta):
+    _severity = Severity.MED
+
+    @classmethod
+    def _is_affected(cls, device) -> bool:
+        return device.reboot_required is True
+
+
 # Automatic security update disabled action.
 class AutoUpdatesAction(SimpleAction, metaclass=ActionMeta):
     @classmethod

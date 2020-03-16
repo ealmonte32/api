@@ -503,3 +503,19 @@
   terminal_code: |
     $ export CLAIM_TOKEN="{key}"
     $ curl -sL https://install.wott.io | sudo -E bash
+
+- title: Reboot required
+  class: RebootRequiredAction
+  subtitle: To boot updated kernel please reboot the node.
+  short: |
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  long: |
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare diam odio, eu dictum dui molestie eu. Ut sit amet nulla fermentum, condimentum erat sed, iaculis lectus.
+
+    Phasellus mollis lobortis mauris ut posuere. Sed dapibus facilisis lectus vitae molestie. Vivamus congue tellus vitae libero pellentesque fermentum. Pellentesque vel vulputate odio.
+
+    Aenean sem justo, suscipit a sapien vitae, hendrerit semper neque. Praesent a elit venenatis tortor semper lacinia nec at enim. Nunc a orci sit amet leo cursus tincidunt id vel magna.
+  terminal_title: |
+    To reboot the node, run the following command:
+  terminal_code: |
+    $ sudo shutdown -r now

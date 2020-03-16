@@ -697,7 +697,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         vuln_names = Vulnerability.objects.filter(vuln_query)\
                                           .values('name').distinct()
         vuln_pub_dates_qs = Vulnerability.objects.filter(name__in=vuln_names) \
-                                                 .values('name').annotate(pubdate=Max('pub_date')).distinct()
+                                                 .values('name').distinct().annotate(pubdate=Max('pub_date'))
         # Build a lookup dictionary for CVE publication dates.
         vuln_pub_dates = {v['name']: v['pubdate'] for v in vuln_pub_dates_qs}
 
