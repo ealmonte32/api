@@ -32,6 +32,11 @@ class Migration(migrations.Migration):
             name='kernel_meta_package',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='device_registry.DebPackage'),
         ),
+        migrations.AddField(
+            model_name='device',
+            name='reboot_required',
+            field=models.BooleanField(blank=True, db_index=True, null=True),
+        ),
         migrations.AlterField(
             model_name='vulnerability',
             name='name',

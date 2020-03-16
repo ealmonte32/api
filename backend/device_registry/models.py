@@ -118,6 +118,7 @@ class Device(models.Model):
     kernel_deb_package = models.ForeignKey(DebPackage, null=True, on_delete=models.SET_NULL, related_name='+')
     kernel_meta_package = models.ForeignKey(DebPackage, null=True, blank=True,
                                             on_delete=models.SET_NULL, related_name='+')
+    reboot_required = models.BooleanField(null=True, blank=True, db_index=True)
     audit_files = JSONField(blank=True, default=list)
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
@@ -126,19 +127,6 @@ class Device(models.Model):
 
     class Meta:
         ordering = ('created',)
-
-    @property
-    def reboot_required(self):
-        """
-        OS reboot required because the newer kernel package installed
-         but not running.
-        It's supposed that kernel image package and its meta-package always
-         have the same versions.
-        """
-        if self.kernel_deb_package and self.kernel_meta_package:
-            return apt_pkg.version_compare(self.kernel_meta_package.version,
-                                           self.kernel_deb_package.version) > 0
-        return None
 
     @property
     def default_password(self):
@@ -494,7 +482,6 @@ class Device(models.Model):
         all_devices_tag = Tag.objects.get(name='Hardware: All')
         if all_devices_tag not in self.tags:
             self.tags.add(all_devices_tag)
-
 
     @property
     def cve_count(self):

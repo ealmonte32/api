@@ -502,6 +502,10 @@ class RebootRequiredAction(SimpleAction, metaclass=ActionMeta):
     _severity = Severity.MED
 
     @classmethod
+    def _affected_devices(cls, qs):
+        return qs.filter(reboot_required=True)
+
+    @classmethod
     def _is_affected(cls, device) -> bool:
         return device.reboot_required is True
 

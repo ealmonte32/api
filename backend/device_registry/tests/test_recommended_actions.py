@@ -592,10 +592,5 @@ class RebootRequiredActionTest(TestsMixin, TestCase):
     action_class = RebootRequiredAction
 
     def enable_action(self):
-        self.device.kernel_deb_package = DebPackage.objects.create(
-            os_release_codename='buster', name='linux', version='5.0.0', source_name='linux', source_version='5.0.0',
-            arch=DebPackage.Arch.i386)
-        self.device.kernel_meta_package = DebPackage.objects.create(
-            os_release_codename='buster', name='linux-meta', version='5.0.1', source_name='linux',
-            source_version='5.0.1', arch=DebPackage.Arch.i386)
-        self.device.save(update_fields=['kernel_deb_package', 'kernel_meta_package'])
+        self.device.reboot_required = True
+        self.device.save(update_fields=['reboot_required'])

@@ -506,7 +506,6 @@
 
 - title: Reboot required
   class: RebootRequiredAction
-  subtitle: To boot updated kernel please reboot the node.
   short: |
     Lorem ipsum dolor sit amet, consectetur adipiscing elit.
   long: |
