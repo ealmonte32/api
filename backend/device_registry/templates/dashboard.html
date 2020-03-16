@@ -14,7 +14,7 @@
   <div id="onboard-container" style="background-image: url({% static 'media/login-bg.png' %});
           {% if not welcome %}display: none !important;{% endif %}">
     <div class="left-box py-4">
-        <h1 class="big-text text-center">Welcome {{ user.first_name | default:"human"}}!</h1>
+        <h1 class="big-text text-center">Welcome, {{ user.first_name | default:"human"}}!</h1>
       <!-- <p class="text-center close-text">Looks like you are<span class="bold wott-blue"> new around here</span></p> -->
       <div id="did-you-know-box" class="position-relative">
 
