@@ -457,8 +457,17 @@
 
         let anchor = document.location.hash;
         if(anchor) {
-          let action_id = anchor.slice(1);
-          toggleRA(action_id, true);
+          let action_desc = anchor.slice(1);
+          let u = new URLSearchParams(action_desc),
+              action_class = u.get('class'),
+              action_param = u.get('param');
+          if(action_class) {
+              let param = (action_param==null? '': `[wott-action-param="${action_param}"]`),
+                  e = $(`[wott-action-class=${action_class}]${param}[wott-action-id]`),
+                  action_id = e.attr('wott-action-id');
+              console.log(`${action_class} ${action_param}: ${action_id}`);
+              toggleRA(action_id, true);
+          }
         }
     });
 
