@@ -20,7 +20,7 @@
     "babel-eslint": "10.0.3",
     "babel-loader": "8.0.5",
     "bootstrap": "^4.3.1",
-    "bootstrap-daterangepicker": "3.0.3",
+    "bootstrap-daterangepicker": "3.0.5",
     "chart.js": "2.9.3",
     "clipboard-polyfill": "^2.8.6",
     "cross-env": "5.2.0",
