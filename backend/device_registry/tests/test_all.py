@@ -344,15 +344,15 @@ class DeviceModelTest(TestCase):
                                         source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
         self.device0.kernel_deb_package = pkg
 
-        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': True}
+        self.device0.cpu = {'vendor': 'GenuineIntel'}
         self.device0.save()
-        self.assertTrue(self.device0.cpu_vulnerable)
+        self.assertFalse(self.device0.cpu_vulnerable)
 
         self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': False}
         self.device0.save()
         self.assertFalse(self.device0.cpu_vulnerable)
 
-        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': None, 'mitigations_disabled': True}
+        self.device0.cpu = {'vendor': 'GenuineIntel', 'mitigations_disabled': True}
         self.device0.save()
         self.assertTrue(self.device0.cpu_vulnerable)
 
@@ -361,7 +361,7 @@ class DeviceModelTest(TestCase):
                                             fix_available=True)
         pkg.vulnerabilities.add(vuln)
         pkg.save()
-        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': None, 'mitigations_disabled': False}
+        self.device0.cpu = {'vendor': 'GenuineIntel', 'mitigations_disabled': False}
         self.device0.save()
         self.assertTrue(self.device0.cpu_vulnerable)
 
