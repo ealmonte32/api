@@ -2,7 +2,7 @@ from enum import Enum, IntEnum
 import datetime
 import json
 import uuid
-from typing import NamedTuple, Tuple
+from typing import NamedTuple, Tuple, Optional
 
 from dateutil.relativedelta import relativedelta, SU, MO
 from django.conf import settings
@@ -16,7 +16,6 @@ import apt_pkg
 import rpm
 import yaml
 import tagulous.models
-import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
 from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, PUBLIC_SERVICE_PORTS, \
@@ -897,10 +896,11 @@ class Vulnerability(models.Model):
         unique_together = ['os_release_codename', 'name', 'package']
 
     class Version:
-        """Version class which uses the original APT comparison algorithm."""
-
+        """
+        Version comparator to be used for comparing package versions.
+        Subclasses should define __eq__() and __lt__().
+        """
         def __init__(self, version):
-            """Creates a new Version object."""
             assert version != ""
             self.__asString = version
 
@@ -911,6 +911,9 @@ class Vulnerability(models.Model):
             return 'Version({})'.format(repr(self.__asString))
 
     class DebVersion(Version):
+        """
+        Version comparator for deb packages. Uses python-apt which in turn uses native code to compare versions.
+        """
         def __lt__(self, other):
             return apt_pkg.version_compare(self.__asString, other.__asString) < 0
 
@@ -918,10 +921,17 @@ class Vulnerability(models.Model):
             return apt_pkg.version_compare(self.__asString, other.__asString) == 0
 
     class RpmVersion(Version):
+        """
+        Version comparator for rpm packages. Uses python-rpm which in turn uses native code to compare version.
+        """
         @staticmethod
-        def stringToVersion(verstring) -> Tuple[str, str, str]:
-            # Adapted from python2 version
-            # https://github.com/rpm-software-management/yum/blob/master/rpmUtils/miscutils.py#L391
+        def stringToVersion(verstring) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+            """
+            Adapted from python2 version. Produces a tuple which can be used in rpm.labelCompare().
+            https://github.com/rpm-software-management/yum/blob/master/rpmUtils/miscutils.py#L391
+            :param verstring: A full version string [epoch:]<version>[.release]
+            :return: (epoch, version, release), any of those may be None
+            """
             if verstring in [None, '']:
                 return (None, None, None)
             i = verstring.find(':')
@@ -949,7 +959,6 @@ class Vulnerability(models.Model):
             return epoch, version, release
 
         def __init__(self, version):
-            """Creates a new Version object."""
             super().__init__(version)
             self._version_tuple = self.stringToVersion(version)
 
