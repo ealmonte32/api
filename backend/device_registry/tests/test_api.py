@@ -1220,14 +1220,18 @@ class DeviceListAjaxViewTest(APITestCase):
 
     def test_since(self):
         self.client.login(username='test', password='123')
-        self.device0.created = timezone.now() - datetime.timedelta(days=1)
-        self.device0.save(update_fields=['created'])
+        self.device0.claimed_at = timezone.now() - datetime.timedelta(minutes=1)
+        self.device1.claimed_at = timezone.now() - datetime.timedelta(minutes=5)
+        self.device2.claimed_at = timezone.now() - datetime.timedelta(minutes=10)
+        self.device0.save(update_fields=['claimed_at'])
+        self.device1.save(update_fields=['claimed_at'])
+        self.device2.save(update_fields=['claimed_at'])
         url = reverse('ajax_device_list') + '?' + urlencode({
-            'since': str((timezone.now() - timezone.timedelta(hours=1)))})
+            'since': str((timezone.now() - timezone.timedelta(minutes=2)))})
 
-        with freeze_time(timezone.now() - datetime.timedelta(minutes=1)):
+        with freeze_time(timezone.now()):
             response = self.client.get(url)
-            self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
     def test_filter_date(self):
         self.client.login(username='test', password='123')

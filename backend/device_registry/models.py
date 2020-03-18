@@ -94,6 +94,7 @@ class Device(models.Model):
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
+    claimed_at = models.DateTimeField(blank=True, null=True, db_index=True)
     last_ping = models.DateTimeField(blank=True, null=True)
     certificate = models.TextField(blank=True, null=True)
     certificate_csr = models.TextField(blank=True, null=True)
@@ -169,6 +170,15 @@ class Device(models.Model):
         'CVE-2019-11091',
         'CVE-2019-1125'
     ]
+
+    def claim(self, user, claim_token=''):
+        self.owner = user
+        self.claim_token = claim_token
+        fields = ['owner', 'claim_token']
+        if user is not None:
+            self.claimed_at = timezone.now()
+            fields.append('claimed_at')
+        self.save(update_fields=fields)
 
     @property
     def cpu_vulnerable(self):
@@ -915,10 +925,10 @@ class Vulnerability(models.Model):
         Version comparator for deb packages. Uses python-apt which in turn uses native code to compare versions.
         """
         def __lt__(self, other):
-            return apt_pkg.version_compare(self.__asString, other.__asString) < 0
+            return apt_pkg.version_compare(str(self), str(other)) < 0
 
         def __eq__(self, other):
-            return apt_pkg.version_compare(self.__asString, other.__asString) == 0
+            return apt_pkg.version_compare(str(self), str(other)) == 0
 
     class RpmVersion(Version):
         """
