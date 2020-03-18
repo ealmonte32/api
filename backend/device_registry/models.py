@@ -26,7 +26,6 @@ apt_pkg.init()
 DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
 UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite (16.04, 18.04) names.
 UBUNTU_KERNEL_PACKAGES_RE_PATTERN = r'linux-(?:headers|aws-headers|image|modules)-.+'
-DEBIAN_KERNEL_PACKAGES_RE_PATTERN = r'linux-image-\d+\.\d+\.\d+-\d+[.-].+'
 IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
 FTP_PORT = 21
@@ -116,8 +115,6 @@ class Device(models.Model):
     deb_packages_hash = models.CharField(max_length=32, blank=True)
     cpu = JSONField(blank=True, default=dict)
     kernel_deb_package = models.ForeignKey(DebPackage, null=True, on_delete=models.SET_NULL, related_name='+')
-    kernel_meta_package = models.ForeignKey(DebPackage, null=True, blank=True,
-                                            on_delete=models.SET_NULL, related_name='+')
     reboot_required = models.BooleanField(null=True, blank=True, db_index=True)
     audit_files = JSONField(blank=True, default=list)
     os_release = JSONField(blank=True, default=dict)

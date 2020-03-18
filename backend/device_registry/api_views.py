@@ -108,16 +108,7 @@ class MtlsPingView(APIView):
                                                                 os_release_codename=os_release['codename'])
         else:
             device.kernel_deb_package = None
-        kernel_meta_package = data.get('kernel_meta_package')
-        if kernel_meta_package:
-            device.kernel_meta_package = device.deb_packages.get(name=kernel_meta_package['name'],
-                                                                 version=kernel_meta_package['version'],
-                                                                 arch=kernel_meta_package['arch'],
-                                                                 os_release_codename=os_release['codename'])
-            device.reboot_required = kernel_meta_package['reboot_required']
-        else:
-            device.kernel_meta_package = None
-            device.reboot_required = None
+        device.reboot_required = data.get('reboot_required')
         device.cpu = data.get('cpu', {})
         device.os_release = os_release
         device.mysql_root_access = data.get('mysql_root_access')
@@ -164,8 +155,8 @@ class MtlsPingView(APIView):
         device.update_trust_score = True
         device.save(update_fields=['last_ping', 'agent_version', 'audit_files', 'deb_packages_hash',
                                    'update_trust_score', 'os_release', 'auto_upgrades',
-                                   'mysql_root_access', 'cpu', 'kernel_deb_package', 'kernel_meta_package',
-                                   'reboot_required', 'default_password_users'])
+                                   'mysql_root_access', 'cpu', 'kernel_deb_package', 'reboot_required',
+                                   'default_password_users'])
         # Un-snooze recommended actions which were "Fixed" (i.e. snoozed until next ping)
         device.recommendedactionstatus_set.filter(status=RecommendedAction.Status.SNOOZED_UNTIL_PING) \
             .update(status=RecommendedAction.Status.AFFECTED)
