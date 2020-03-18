@@ -87,7 +87,7 @@ def send_packages_to_vulns_update(task):
         # In case of success set the lock's timeout to 2.5m.
         with redis_conn.lock('vulns_lock', timeout=60 * 2.5, blocking_timeout=3):
             logger.info('lock acquired.')
-            distro_suites = DEBIAN_SUITES + UBUNTU_SUITES
+            distro_suites = DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',)
             package_ids = list(DebPackage.objects.filter(
                 processed=False, os_release_codename__in=distro_suites).order_by(
                 'os_release_codename', 'source_name').values_list('id', flat=True))
