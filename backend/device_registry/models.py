@@ -2,7 +2,7 @@ from enum import Enum, IntEnum
 import datetime
 import json
 import uuid
-from typing import NamedTuple
+from typing import NamedTuple, Tuple, Optional
 
 from dateutil.relativedelta import relativedelta, SU, MO
 from django.conf import settings
@@ -12,9 +12,10 @@ from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
 
+import apt_pkg
+import rpm
 import yaml
 import tagulous.models
-import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
 from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, PUBLIC_SERVICE_PORTS, \
@@ -895,10 +896,11 @@ class Vulnerability(models.Model):
         unique_together = ['os_release_codename', 'name', 'package']
 
     class Version:
-        """Version class which uses the original APT comparison algorithm."""
-
+        """
+        Version comparator to be used for comparing package versions.
+        Subclasses should define __eq__() and __lt__().
+        """
         def __init__(self, version):
-            """Creates a new Version object."""
             assert version != ""
             self.__asString = version
 
@@ -908,11 +910,63 @@ class Vulnerability(models.Model):
         def __repr__(self):
             return 'Version({})'.format(repr(self.__asString))
 
+    class DebVersion(Version):
+        """
+        Version comparator for deb packages. Uses python-apt which in turn uses native code to compare versions.
+        """
         def __lt__(self, other):
             return apt_pkg.version_compare(self.__asString, other.__asString) < 0
 
         def __eq__(self, other):
             return apt_pkg.version_compare(self.__asString, other.__asString) == 0
+
+    class RpmVersion(Version):
+        """
+        Version comparator for rpm packages. Uses python-rpm which in turn uses native code to compare version.
+        """
+        @staticmethod
+        def stringToVersion(verstring) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+            """
+            Adapted from python2 version. Produces a tuple which can be used in rpm.labelCompare().
+            https://github.com/rpm-software-management/yum/blob/master/rpmUtils/miscutils.py#L391
+            :param verstring: A full version string [epoch:]<version>[.release]
+            :return: (epoch, version, release), any of those may be None
+            """
+            if verstring in [None, '']:
+                return (None, None, None)
+            i = verstring.find(':')
+            if i != -1:
+                try:
+                    epoch = str(int(verstring[:i]))
+                except ValueError:
+                    # look, garbage in the epoch field, how fun, kill it
+                    epoch = '0'  # this is our fallback, deal
+            else:
+                epoch = '0'
+            j = verstring.find('-')
+            if j != -1:
+                if verstring[i + 1:j] == '':
+                    version = None
+                else:
+                    version = verstring[i + 1:j]
+                release = verstring[j + 1:]
+            else:
+                if verstring[i + 1:] == '':
+                    version = None
+                else:
+                    version = verstring[i + 1:]
+                release = None
+            return epoch, version, release
+
+        def __init__(self, version):
+            super().__init__(version)
+            self._version_tuple = self.stringToVersion(version)
+
+        def __lt__(self, other):
+            return rpm.labelCompare(self._version_tuple, other._version_tuple) < 0
+
+        def __eq__(self, other):
+            return rpm.labelCompare(self._version_tuple, other._version_tuple) == 0
 
     class Urgency(IntEnum):
         NONE = 0
@@ -932,17 +986,22 @@ class Vulnerability(models.Model):
     pub_date = models.DateField(null=True)
 
     def is_vulnerable(self, src_ver):
-        if self.unstable_version:
-            unstable_version = Vulnerability.Version(self.unstable_version)
-        else:
-            unstable_version = None
-        other_versions = map(Vulnerability.Version, self.other_versions)
-        src_ver = Vulnerability.Version(src_ver)
+        if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',):
+            VersionClass = self.DebVersion if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES \
+                else self.RpmVersion
+            if self.unstable_version:
+                unstable_version = VersionClass(self.unstable_version)
+            else:
+                unstable_version = None
+            other_versions = map(VersionClass, self.other_versions)
+            src_ver = VersionClass(src_ver)
 
-        if self.unstable_version:
-            return src_ver < unstable_version and src_ver not in other_versions
+            if self.unstable_version:
+                return src_ver < unstable_version and src_ver not in other_versions
+            else:
+                return src_ver not in other_versions
         else:
-            return src_ver not in other_versions
+            return False
 
 
 class Distro(models.Model):

@@ -255,6 +255,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'device_registry.tasks.fetch_vulnerabilities_debian',
         'schedule': crontab(hour=15, minute=0)  # Execute once a day at 3PM.
     },
+    'fetch_vulnerabilities_amazon': {
+        'task': 'device_registry.tasks.fetch_vulnerabilities_amazon',
+        'schedule': crontab(hour=16, minute=30)  # Execute once a day at 4:30PM.
+    },
     'fetch_vulnerabilities_ubuntu': {
         'task': 'device_registry.tasks.fetch_vulnerabilities_ubuntu',
         'schedule': crontab(hour=16, minute=0)  # Execute once a day at 4PM.
