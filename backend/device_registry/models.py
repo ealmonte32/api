@@ -925,10 +925,10 @@ class Vulnerability(models.Model):
         Version comparator for deb packages. Uses python-apt which in turn uses native code to compare versions.
         """
         def __lt__(self, other):
-            return apt_pkg.version_compare(self.__asString, other.__asString) < 0
+            return apt_pkg.version_compare(str(self), str(other)) < 0
 
         def __eq__(self, other):
-            return apt_pkg.version_compare(self.__asString, other.__asString) == 0
+            return apt_pkg.version_compare(str(self), str(other)) == 0
 
     class RpmVersion(Version):
         """
