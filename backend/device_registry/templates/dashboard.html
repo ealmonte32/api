@@ -174,7 +174,7 @@
             </div>
             <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">
             {% if not action.resolved %}
-              <a class="black-link" href="{% url "actions" %}#{{ action.id }}">
+              <a class="black-link" href="{% url "actions" %}#class={{ action.action_class }}{% if action.action_param is not None %}&param={{ action.action_param|urlencode }}{% endif %}">
                 {{ action.title }}
               </a>
             {% else %}
