@@ -579,5 +579,10 @@ class CpuVulnerableActionTest(TestsMixin, TestCase):
         pkg = DebPackage.objects.create(os_release_codename='buster', name='linux', version='5.0.0',
                                         source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
         self.device.kernel_deb_package = pkg
-        self.device.cpu = {'vendor': 'GenuineIntel', 'vulnerable': True}
+        vuln = Vulnerability.objects.create(os_release_codename='buster', name='CVE-2017-5753', package='linux',
+                                            other_versions=[], is_binary=False, urgency=Vulnerability.Urgency.HIGH,
+                                            fix_available=True)
+        pkg.vulnerabilities.add(vuln)
+        pkg.save()
+        self.device.cpu = {'vendor': 'GenuineIntel'}
         self.device.save()
