@@ -94,7 +94,7 @@ class Device(models.Model):
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
-    claimed_at = models.DateTimeField(blank=True, null=True)
+    claimed_at = models.DateTimeField(blank=True, null=True, db_index=True)
     last_ping = models.DateTimeField(blank=True, null=True)
     certificate = models.TextField(blank=True, null=True)
     certificate_csr = models.TextField(blank=True, null=True)
