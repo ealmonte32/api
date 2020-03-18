@@ -478,7 +478,7 @@ class Device(models.Model):
     @property
     def vulnerable_packages(self):
         if self.deb_packages_hash and self.deb_packages.exists() and self.os_release and \
-                self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
+                self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',):
             return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
 
     @property
@@ -490,7 +490,7 @@ class Device(models.Model):
 
         # We have no vulnerability data for OS other than Debian and Ubuntu flavors.
         if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
-               and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
+               and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',)):
             return
 
         # For every CVE name detected for this device, find its maximal urgency among the whole CVE database.
