@@ -503,3 +503,14 @@
   terminal_code: |
     $ export CLAIM_TOKEN="{key}"
     $ curl -sL https://install.wott.io | sudo -E bash
+
+- title: Reboot required
+  class: RebootRequiredAction
+  short: |
+    Reboot required for kernel upgrade to complete.
+  long: |
+    You have recently installed a new Linux kernel, but the system is currently running an older version. In order to apply the kernel upgrade, you need to reboot your system.
+  terminal_title: |
+    To reboot the node, run the following command:
+  terminal_code: |
+    $ sudo shutdown -r now

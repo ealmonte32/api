@@ -6,10 +6,10 @@ from django.utils import timezone
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
     GlobalPolicy, RecommendedAction, RecommendedActionStatus
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
-    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
-    FtpServerAction, CpuVulnerableAction, BaseAction, ActionMeta, Action, \
-    PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
-    SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus
+    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, FtpServerAction, CpuVulnerableAction, ActionMeta, \
+    Action, PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
+    SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus, \
+    RebootRequiredAction
 
 from freezegun import freeze_time
 
@@ -586,3 +586,11 @@ class CpuVulnerableActionTest(TestsMixin, TestCase):
         pkg.save()
         self.device.cpu = {'vendor': 'GenuineIntel'}
         self.device.save()
+
+
+class RebootRequiredActionTest(TestsMixin, TestCase):
+    action_class = RebootRequiredAction
+
+    def enable_action(self):
+        self.device.reboot_required = True
+        self.device.save(update_fields=['reboot_required'])

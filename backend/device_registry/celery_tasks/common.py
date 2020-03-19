@@ -7,6 +7,7 @@ from django.db.models import Q
 import redis
 
 from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
+from device_registry.models import UBUNTU_KERNEL_PACKAGES_RE_PATTERN
 from profile_page.models import Profile
 
 logger = logging.getLogger('django')
@@ -72,6 +73,7 @@ def update_packages_vulnerabilities(batch):
             if vuln.is_vulnerable(package.source_version) and vuln.fix_available:
                 relations.append(Relation(debpackage_id=package.id, vulnerability_id=vuln.id))
         counter += 1
+    # TODO: Execute ORM requests below in one transaction.
     Relation.objects.filter(debpackage_id__in=package_ids).delete()
     Relation.objects.bulk_create(relations, batch_size=10000, ignore_conflicts=True)
     logger.info('finished')
@@ -87,10 +89,11 @@ def send_packages_to_vulns_update(task):
         # In case of success set the lock's timeout to 2.5m.
         with redis_conn.lock('vulns_lock', timeout=60 * 2.5, blocking_timeout=3):
             logger.info('lock acquired.')
-            distro_suites = DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',)
-            package_ids = list(DebPackage.objects.filter(
-                processed=False, os_release_codename__in=distro_suites).order_by(
-                'os_release_codename', 'source_name').values_list('id', flat=True))
+            package_ids = list((DebPackage.objects.filter(
+                processed=False, os_release_codename__in=DEBIAN_SUITES + ('amzn2',)) |
+                                DebPackage.objects.filter(processed=False, os_release_codename__in=UBUNTU_SUITES
+                                                          ).exclude(name__regex=UBUNTU_KERNEL_PACKAGES_RE_PATTERN)
+                                ).order_by('os_release_codename', 'source_name').values_list('id', flat=True))
             logger.info('%d packages to process found.' % len(package_ids))
             batch_size = 500
             position = 0
