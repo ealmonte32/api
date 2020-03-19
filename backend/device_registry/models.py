@@ -25,7 +25,8 @@ apt_pkg.init()
 
 DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
 UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite (16.04, 18.04) names.
-UBUNTU_KERNEL_PACKAGES_RE_PATTERN = r'linux-(?:headers|aws-headers|image|modules)-.+'
+UBUNTU_KERNEL_PACKAGES_RE_PATTERN = r'linux-(?:(?:|aws-|oem-|gcp-|kvm-|oracle-|azure-|raspi2-|gke-|oem-osp1-)headers|' \
+                                    r'image|modules)-.+'
 IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
 FTP_PORT = 21
