@@ -27,10 +27,9 @@ def dicts_to_ds_entities(element, task_key=None):
      we need the `task_key` added only to the top level object.
     """
     if isinstance(element, dict):
-        keys = tuple(element.keys())
-        for key in keys:
-            element[key] = dicts_to_ds_entities(element[key])
-        entity = datastore.Entity(key=task_key, exclude_from_indexes=keys)
-        entity.update(element)
+        entity = datastore.Entity(key=task_key, exclude_from_indexes=tuple(element.keys()))
+        entity.update({key: dicts_to_ds_entities(value) for key, value in element.items()})
         return entity
+    elif isinstance(element, list):
+        return [dicts_to_ds_entities(e) for e in element]
     return element
