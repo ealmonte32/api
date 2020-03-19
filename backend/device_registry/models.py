@@ -534,8 +534,16 @@ class Device(models.Model):
         return {'count': abs(count), 'arrow': 'up' if count >= 0 else 'down'}
 
     def sample_history(self):
+        count = self.cve_count
+        if count is None:
+            high, med, low = 0, 0, 0
+        else:
+            high, med, low = (count[k] for k in ('high', 'med', 'low'))
         DeviceHistoryRecord.objects.create(device=self,
-                                           recommended_actions_count=self.actions_count)
+                                           recommended_actions_count=self.actions_count,
+                                           cve_high_count=high,
+                                           cve_medium_count=med,
+                                           cve_low_count=low)
 
     def generate_recommended_actions(self, classes=None):
         """
@@ -1140,3 +1148,6 @@ class DeviceHistoryRecord(models.Model):
     device = models.ForeignKey(Device, on_delete=models.CASCADE)
     recommended_actions_count = models.IntegerField(null=True)
     sampled_at = models.DateTimeField(auto_now_add=True)
+    cve_high_count = models.IntegerField(null=True)
+    cve_medium_count = models.IntegerField(null=True)
+    cve_low_count = models.IntegerField(null=True)

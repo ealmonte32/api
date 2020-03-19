@@ -16,7 +16,7 @@ from mixpanel import Mixpanel, MixpanelException
 from phonenumber_field.modelfields import PhoneNumberField
 
 from device_registry.models import RecommendedAction, RecommendedActionStatus, \
-    Device, HistoryRecord, Vulnerability, PairingKey
+    Device, HistoryRecord, Vulnerability, PairingKey, DeviceHistoryRecord
 from device_registry.celery_tasks import github
 
 logger = logging.getLogger(__name__)
@@ -232,15 +232,18 @@ class Profile(models.Model):
                                                                   Vulnerability.Urgency.MEDIUM,
                                                                   Vulnerability.Urgency.LOW])
 
-    @property
-    def cve_count_last_week(self):
+    def cve_count_last_week(self, device=None):
         now = timezone.now()
         sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
         sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         last_monday = sunday + relativedelta(weekday=MO(-1))  # Last week's monday
         this_monday = sunday + relativedelta(days=1)  # This week's monday
-        cve_history = HistoryRecord.objects.filter(owner=self.user, sampled_at__date__gte=last_monday,
-                                                   sampled_at__date__lt=this_monday)\
+        if device:
+            history = DeviceHistoryRecord.objects.filter(device=device)
+        else:
+            history = HistoryRecord.objects.filter(owner=self.user)
+        cve_history = history.filter(sampled_at__date__gte=last_monday,
+                                     sampled_at__date__lt=this_monday)\
             .values('cve_high_count', 'cve_medium_count', 'cve_low_count')\
             .annotate(cve_high=Coalesce(Max('cve_high_count'), 0),
                       cve_med=Coalesce(Max('cve_medium_count'), 0),

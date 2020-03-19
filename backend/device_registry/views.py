@@ -793,7 +793,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         cve_hi, cve_med, cve_lo = (len(vulns_by_urgency[Vulnerability.Urgency.HIGH]),
                                    len(vulns_by_urgency[Vulnerability.Urgency.MEDIUM]),
                                    len(vulns_by_urgency[Vulnerability.Urgency.LOW]))
-        cve_hi_last, cve_med_last, cve_lo_last = self.request.user.profile.cve_count_last_week
+        cve_hi_last, cve_med_last, cve_lo_last = self.request.user.profile.cve_count_last_week(device)
 
         context.update({
             'radius': "15.91549430918954",

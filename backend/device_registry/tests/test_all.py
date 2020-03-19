@@ -267,6 +267,7 @@ class DeviceModelTest(TestCase):
         self.assertIsNone(avg_score)
 
     def test_trust_score(self):
+        Profile.objects.create(user=self.user0)
         self.device0.update_trust_score_now()
         self.device1.update_trust_score_now()
         all_good_except_port_score = sum(Device.COEFFICIENTS.values()) - Device.COEFFICIENTS['port_score']
@@ -278,6 +279,7 @@ class DeviceModelTest(TestCase):
                          sum(Device.COEFFICIENTS.values()))
 
     def test_cve_trust_score(self):
+        Profile.objects.create(user=self.user0)
         # Reset port_score to 1,0 for simplicity.
         self.portscan0.scan_info = []
         self.portscan0.save()
@@ -370,6 +372,10 @@ class DeviceModelTest(TestCase):
         self.assertFalse(self.device0.cpu_vulnerable)
 
     def test_ra_last_week(self):
+        Profile.objects.create(user=self.user0)
+        Profile.objects.create(user=self.user1)
+        Profile.objects.create(user=self.user4)
+
         now = timezone.now()
         # Last week's tuesday
         last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
@@ -1664,9 +1670,10 @@ class CVECountTests(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        self.user_unrelated = User.objects.create_user('unrelated')
+        self.user1 = User.objects.create_user('unrelated')
         self.client.login(username='test', password='123')
         self.profile = Profile.objects.create(user=self.user)
+        self.profile1 = Profile.objects.create(user=self.user1)
 
         self.device0 = Device.objects.create(
             device_id='device0.d.wott-dev.local',
@@ -1674,9 +1681,17 @@ class CVECountTests(TestCase):
             deb_packages_hash='abcd',
             os_release={'codename': 'stretch'}
         )
-        self.device_unrelated = Device.objects.create(
-            device_id='device-unrelated.d.wott-dev.local',
-            owner=self.user_unrelated
+        self.device01 = Device.objects.create(
+            device_id='device01.d.wott-dev.local',
+            owner=self.user,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'stretch'}
+        )
+        self.device1 = Device.objects.create(
+            device_id='device1.d.wott-dev.local',
+            owner=self.user1,
+            deb_packages_hash='abcd',
+            os_release={'codename': 'stretch'}
         )
         self.url = reverse('cve')
         self.device_url = reverse('device_cve', kwargs={'device_pk': self.device0.pk})
@@ -1692,7 +1707,13 @@ class CVECountTests(TestCase):
             DebPackage(name='two_second', version='version_two', source_name='two_source', source_version='two_version',
                        arch=DebPackage.Arch.i386),
         ]
-        DebPackage.objects.bulk_create(self.packages)
+        self.packages_no_vulns = [
+            DebPackage(name='two_first', version='version_one', source_name='two_source', source_version='two_version',
+                       arch=DebPackage.Arch.i386),
+            DebPackage(name='two_second', version='version_one', source_name='two_source', source_version='two_version',
+                       arch=DebPackage.Arch.i386),
+        ]
+        DebPackage.objects.bulk_create(self.packages+self.packages_no_vulns)
         self.vulns = [
             Vulnerability(os_release_codename='stretch', name='CVE-2018-1', package='', is_binary=False,
                           other_versions=[], urgency=Vulnerability.Urgency.HIGH, fix_available=True),
@@ -1716,7 +1737,7 @@ class CVECountTests(TestCase):
         self.packages[1].vulnerabilities.set(self.vulns)
 
         self.device0.deb_packages.set(self.packages)
-        self.device_unrelated.deb_packages.set(self.packages)
+        self.device1.deb_packages.set(self.packages)
 
     def test_cve_count(self):
         self.assertDictEqual(self.device0.cve_count, {'high': 1, 'med': 2, 'low': 3})
@@ -1743,11 +1764,11 @@ class CVECountTests(TestCase):
                                      cve_medium_count=None,
                                      cve_low_count=None)
         # Make sure it's not (None, None, None)
-        self.assertTupleEqual(self.profile.cve_count_last_week, (0, 0, 0))
+        self.assertTupleEqual(self.profile.cve_count_last_week(), (0, 0, 0))
 
     def test_cve_count_last_week(self):
         # No history -> all CVE counts should be 0
-        self.assertTupleEqual(self.profile.cve_count_last_week, (0, 0, 0))
+        self.assertTupleEqual(self.profile.cve_count_last_week(), (0, 0, 0))
 
         now = timezone.now()
         # Last week's tuesday
@@ -1758,4 +1779,30 @@ class CVECountTests(TestCase):
         with freeze_time(last_tuesday + timezone.timedelta(days=1)):
             self.profile.sample_history()
 
-        self.assertTupleEqual(self.profile.cve_count_last_week, (1, 2, 3))
+        self.assertTupleEqual(self.profile.cve_count_last_week(), (1, 2, 3))
+
+    def test_cve_count_last_week_device(self):
+        self.device01.deb_packages.set(self.packages_no_vulns)
+        self.device1.deb_packages.set(self.packages_no_vulns)
+        # No history -> all CVE counts should be 0
+        self.assertTupleEqual(self.profile.cve_count_last_week(self.device0), (0, 0, 0))
+        self.assertTupleEqual(self.profile.cve_count_last_week(self.device01), (0, 0, 0))
+        self.assertTupleEqual(self.profile.cve_count_last_week(self.device1), (0, 0, 0))
+
+        now = timezone.now()
+        # Last week's tuesday
+        last_tuesday = (now + relativedelta(days=-1, weekday=SU(-1)) + relativedelta(weekday=TU(-1))).date()
+
+        with freeze_time(last_tuesday):
+            self.profile.sample_history()
+            self.profile1.sample_history()
+        with freeze_time(last_tuesday + timezone.timedelta(days=1)):
+            self.profile.sample_history()
+            self.profile1.sample_history()
+
+        self.assertTupleEqual(self.profile.cve_count_last_week(), (1, 2, 3))
+        self.assertTupleEqual(self.profile1.cve_count_last_week(), (0, 0, 0))
+        self.assertTupleEqual(self.profile.cve_count_last_week(self.device0), (1, 2, 3))
+        self.assertTupleEqual(self.profile.cve_count_last_week(self.device01), (0, 0, 0))
+        self.assertTupleEqual(self.profile1.cve_count_last_week(self.device1), (0, 0, 0))
+
