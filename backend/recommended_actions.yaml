@@ -507,13 +507,9 @@
 - title: Reboot required
   class: RebootRequiredAction
   short: |
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    Reboot required for kernel upgrade to complete.
   long: |
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare diam odio, eu dictum dui molestie eu. Ut sit amet nulla fermentum, condimentum erat sed, iaculis lectus.
-
-    Phasellus mollis lobortis mauris ut posuere. Sed dapibus facilisis lectus vitae molestie. Vivamus congue tellus vitae libero pellentesque fermentum. Pellentesque vel vulputate odio.
-
-    Aenean sem justo, suscipit a sapien vitae, hendrerit semper neque. Praesent a elit venenatis tortor semper lacinia nec at enim. Nunc a orci sit amet leo cursus tincidunt id vel magna.
+    You have recently installed a new Linux kernel, but the system is currently running an older version. In order to apply the kernel upgrade, you need to reboot your system.
   terminal_title: |
     To reboot the node, run the following command:
   terminal_code: |
