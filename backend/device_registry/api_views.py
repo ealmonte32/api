@@ -163,6 +163,11 @@ class MtlsPingView(APIView):
         device.generate_recommended_actions()
 
         if datastore_client:
+            # logins may have empty string as a key. DataStore doesn't accept that.
+            logins = data.get('logins', [])
+            if type(logins) is dict:
+                logins = [{'username': k, 'failed': v['failed'], 'success': v['success']} for k, v in logins.items()]
+            data['logins'] = logins
             task_key = datastore_client.key('Ping')
             entity = google_cloud_helper.dicts_to_ds_entities(data, task_key)
             entity['device_id'] = device.device_id  # Will be indexed.
