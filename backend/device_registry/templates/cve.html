@@ -129,26 +129,23 @@
               </td>
               {% endif %}
               <td id="solve-cel" class="col-2 small-text">
-                {% for p in row.packages %}
-                  <a href="#" class="wott-popover">
-                    Instructions
-                    <template title="Instructions" data-type="instructions"> 
-                      <div class="instructions-box mb-4">
-                        <div class="instructions-header">
-                          <h5>Terminal</h5>
-                        </div>
-                        <div class="instructions-body">
-                          <div class="instructions-text">
-                            <div class="instructions-instructions">
-                              <p>{{ p.upgrade_command }}</p>
-                            </div>
+                <a href="#" class="wott-popover">
+                  Instructions
+                  <template title="Instructions" data-type="instructions">
+                    <div class="instructions-box mb-4">
+                      <div class="instructions-header">
+                        <h5>Terminal</h5>
+                      </div>
+                      <div class="instructions-body">
+                        <div class="instructions-text">
+                          <div class="instructions-instructions">
+                            <p>{{ row.upgrade_command }}</p>
                           </div>
                         </div>
-                      </div>      
-                    </template>
-                  </a>
-                  <br>
-                {% endfor %}
+                      </div>
+                    </div>
+                  </template>
+                </a>
               </td>
             </tr>
             {% endfor %}
