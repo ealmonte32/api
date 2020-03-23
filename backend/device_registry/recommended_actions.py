@@ -597,7 +597,7 @@ class AuditdNotInstalledAction(SimpleAction, metaclass=ActionMeta):
         return qs.filter(
             (Q(os_release__codename__in=DEBIAN_SUITES + UBUNTU_SUITES) & ~Q(deb_packages__name='auditd')) |
             (Q(os_release__codename='amzn2') & ~Q(deb_packages__name='audit'))
-        )
+        ).distinct()
 
 
 # --- Parameterized actions ---
