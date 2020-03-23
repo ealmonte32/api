@@ -153,6 +153,7 @@ EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.getenv('SMTP_PASSWORD')
 EMAIL_PORT = 2525
+DEFAULT_FROM_EMAIL = '"WoTT Team" <hey@wott.io>'
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
