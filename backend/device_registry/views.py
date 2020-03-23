@@ -631,10 +631,6 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         devices_count: int
         devices: List[NamedTuple]
 
-        @property
-        def upgrade_command(self):
-            return f'$ apt-get update && apt-get install -y {self.name} && apt-get autoremove'
-
     class TableRow(NamedTuple):
         cve_name: str
         urgency: Vulnerability.Urgency
@@ -660,6 +656,11 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         @property
         def cve_link(self):
             return CVEView.Hyperlink(self.cve_name, 'http://cve.mitre.org/cgi-bin/cvename.cgi?name=' + self.cve_name)
+
+        @property
+        def upgrade_command(self):
+            packages = ' '.join([p.name for p in self.packages])
+            return f'$ sudo wott-agent upgrade {packages}'
 
     @staticmethod
     def delta(current, last):

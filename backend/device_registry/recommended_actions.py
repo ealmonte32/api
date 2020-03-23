@@ -87,15 +87,15 @@ class Action(NamedTuple):
 
     @property
     def short_html(self):
-        return markdown.markdown(self.short)
+        return markdown.markdown(self.short, extensions=['attr_list'])
 
     @property
     def long_html(self):
-        return markdown.markdown(self.long)
+        return markdown.markdown(self.long, extensions=['attr_list'])
 
     @property
     def terminal_title_html(self):
-        return markdown.markdown(self.terminal_title)
+        return markdown.markdown(self.terminal_title, extensions=['attr_list'])
 
     @property
     def severity_info(self):
