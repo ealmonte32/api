@@ -579,6 +579,27 @@ class CpuVulnerableAction(SimpleAction, metaclass=ActionMeta):
         return Severity.HI
 
 
+class AuditdNotInstalledAction(SimpleAction, metaclass=ActionMeta):
+    _severity = Severity.MED
+
+    @classmethod
+    def _is_affected(cls, device) -> bool:
+        from .models import DEBIAN_SUITES, UBUNTU_SUITES
+        if device.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
+            return not device.deb_packages.filter(name='auditd').exists()
+        elif device.os_release.get('codename') == 'amzn2':
+            return not device.deb_packages.filter(name='audit').exists()
+        return False
+
+    @classmethod
+    def _affected_devices(cls, qs):
+        from .models import DEBIAN_SUITES, UBUNTU_SUITES
+        return qs.filter(
+            (Q(os_release__codename__in=DEBIAN_SUITES + UBUNTU_SUITES) & ~Q(deb_packages__name='auditd')) |
+            (Q(os_release__codename='amzn2') & ~Q(deb_packages__name='audit'))
+        ).distinct()
+
+
 # --- Parameterized actions ---
 
 # Default username/password used action.

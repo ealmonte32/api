@@ -6,10 +6,10 @@ from django.utils import timezone
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
     GlobalPolicy, RecommendedAction, RecommendedActionStatus
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
-    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, FtpServerAction, CpuVulnerableAction, ActionMeta, \
+    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, FtpServerAction, CpuVulnerableAction, ActionMeta,\
     Action, PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
     SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus, \
-    RebootRequiredAction
+    AuditdNotInstalledAction, RebootRequiredAction
 
 from freezegun import freeze_time
 
@@ -289,9 +289,13 @@ class SnoozeTest(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
+        Profile.objects.create(user=self.user, github_repo_id=1234, github_oauth_token='abcd')
         self.client.login(username='test', password='123')
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
+                                            os_release={'codename': 'jessie'})
+        deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        self.device.deb_packages.add(deb_package)
         self.device.generate_recommended_actions()
         self.common_actions_url = reverse('actions')
         self.snooze_url = reverse('snooze_action')
@@ -361,7 +365,8 @@ class TestsMixin:
         self.user.set_password('123')
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, auto_upgrades=True,
-                                            mysql_root_access=False, last_ping=timezone.now())
+                                            mysql_root_access=False, last_ping=timezone.now(),
+                                            os_release={'codename': 'jessie'})
         FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         PortScan.objects.create(device=self.device)
         DeviceInfo.objects.create(device=self.device, default_password=False)
@@ -370,6 +375,9 @@ class TestsMixin:
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
         self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
+        deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        self.device.deb_packages.add(deb_package)
 
     def assertOneAction(self, url):
         self.assertEqual(self.device.actions_count, 1)
@@ -594,3 +602,10 @@ class RebootRequiredActionTest(TestsMixin, TestCase):
     def enable_action(self):
         self.device.reboot_required = True
         self.device.save(update_fields=['reboot_required'])
+
+
+class AuditdNotInstalledActionTest(TestsMixin, TestCase):
+    action_class = AuditdNotInstalledAction
+
+    def enable_action(self):
+        self.device.deb_packages.clear()

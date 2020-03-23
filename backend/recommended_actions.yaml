@@ -531,3 +531,22 @@
     To reboot the node, run the following command:
   terminal_code: |
     $ sudo shutdown -r now
+
+- title: Consider installing auditd for improved security logs
+  class: AuditdNotInstalledAction
+  short: |
+    `auditd` is part of the Linux Auditing System and is used in a lot of security minded organizations to ensure proper audit logs. While `auditd` by itself is very useful, it is particularly useful in conjunction with a central logging to ensure an attacker cannot clean up the logs.
+  long: |
+    In most compliance environments, `auditd` (and the Linux Auditing System) plays an important role to ensure there are proper audit trails on the servers. Out-of-box, `auditd` provides good logging for system events, and it is possible to expand it further with custom rules.
+
+    You can see the result of `auditd` both in the system logs and using the `aureport` command. To learn more, see the [man pages](https://linux.die.net/man/8/auditd).
+
+    Please note that if you are using `auditd`, it is strongly advised that you also set up remote logging using something like 'rsyslog' or 'syslog-ng`
+  terminal_title: |
+    To install auditd, run the following command:
+  terminal_code: |
+    On Debian/Ubuntu:
+    $ sudo apt-get install auditd
+
+    On Amazon Linux/CentOS/RHEL:
+    $ sudo yum install audit
