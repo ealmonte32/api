@@ -58,7 +58,7 @@ def fetch_vulnerabilities():
                     if v.urgency < pkg_severity:
                         v.urgency = pkg_severity
                     if Vulnerability.RpmVersion(v.unstable_version) < Vulnerability.RpmVersion(full_version):
-                        logger.error(f'{alas} {pkg_name}: {v.unstable_version} < {full_version}')
+                        logger.info(f'{alas} {pkg_name}: {v.unstable_version} < {full_version}')
                         v.unstable_version = full_version
                 else:
                     vulnerabilities[key] = Vulnerability(
