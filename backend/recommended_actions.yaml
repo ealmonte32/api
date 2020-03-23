@@ -528,4 +528,8 @@
   terminal_title: |
     To install auditd, run the following command:
   terminal_code: |
+    On Debian/Ubuntu:
     $ sudo apt-get install auditd
+
+    On Amazon Linux/CentOS/RHEL:
+    $ sudo yum install audit
