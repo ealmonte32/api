@@ -103,7 +103,7 @@
             <tr class="row border-table">
               <td class="col-2 pl-3 pr-0 d-flex align-items-center medium-text font-weight-bold">
                 <span class="pr-3 bullet-lg {{ row.severity }} pb-1">&#8226</span>
-                <a href="{{ row.cve_link.href }}">{{ row.cve_link.text }}</a>
+                <a href="{{ row.cve_link.href }}" target="_blank">{{ row.cve_link.text }}</a>
               </td>
               <td class="col-2 d-flex align-items-center justify-content-center px-0 medium-text">{{ row.cve_date|date:"Y-m-d"|default:"N/A" }}</td>
               <td class="col-1 d-flex align-items-center font-strong {{ row.severity }} medium-text px-0">{{ row.severity }}</td>
