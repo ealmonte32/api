@@ -136,6 +136,13 @@
                       <div class="instructions-header">
                         <h5>Terminal</h5>
                       </div>
+                      <button type="button" class="btn wott-btn-inside-bash" aria-label="Left Align" btn_id="bash">
+                        <span class="wott-left-title-btn">Copy to clipboard</span>
+                        <span class="fas fa-copy" aria-hidden="true" data-toggle="popover"
+                              data-placement="top" title="Copy to clipboard."></span>
+                      </button>
+                      {# Strip the "$ " from the command copied to the clipboard. #}
+                      <textarea hidden id="bash-clipboard">{{ row.upgrade_command|slice:"2:" }}</textarea>
                       <div class="instructions-body">
                         <div class="instructions-text">
                           <div class="instructions-instructions">
@@ -153,7 +160,7 @@
           </table>
     </section>
 
-    <div class="popover-box"> <!--use wott-scroll-y for nodelist and wott-scroll-x for instructions-->
+    <div class="popover-box wott-modal-container"> <!--use wott-scroll-y for nodelist and wott-scroll-x for instructions-->
       <div class="wott-popover-header">
         <div class="wott-popover-header-box">
           <h1 class="mb-0" id="wott-popover-title">TEXT GO HERE</h1>
@@ -218,6 +225,7 @@
       $('.popover-box').toggleClass('wott-scroll-x', box_scroll_x).toggleClass('wott-scroll-y', box_scroll_y);
       $('.wott-popover-body').html(html).toggleClass('w-100', body_w100).toggleClass('w-auto', !body_w100);
       $('#wott-popover-title').text(title);
+      $("button[btn_id='bash']").on("click", copy_bash);
   }
 
   /*
