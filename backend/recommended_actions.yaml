@@ -221,6 +221,177 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-protocol
 
+- title: OpenSSH - ClientAliveInterval
+  class: OpensshIssueAction
+  param: ClientAliveInterval
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    ClientAliveInterval 300
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-client-alive-interval
+
+- title: OpenSSH - ClientAliveCountMax
+  class: OpensshIssueAction
+  param: ClientAliveCountMax
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    ClientAliveCountMax 3
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-client-alive-count-max
+
+- title: OpenSSH - HostbasedAuthentication
+  class: OpensshIssueAction
+  param: HostbasedAuthentication
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    HostbasedAuthentication no
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-host-based-auth
+
+- title: OpenSSH - IgnoreRhosts
+  class: OpensshIssueAction
+  param: IgnoreRhosts
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    IgnoreRhosts yes
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-ignore-rhosts
+
+- title: OpenSSH - LogLevel
+  class: OpensshIssueAction
+  param: LogLevel
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    LogLevel INFO
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-log-level
+
+- title: OpenSSH - LoginGraceTime
+  class: OpensshIssueAction
+  param: LoginGraceTime
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    LoginGraceTime 60
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-login-grace-time
+
+- title: OpenSSH - MaxAuthTries
+  class: OpensshIssueAction
+  param: MaxAuthTries
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    MaxAuthTries 4
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-max-auth-tries
+
+- title: OpenSSH - PermitUserEnvironment
+  class: OpensshIssueAction
+  param: PermitUserEnvironment
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    PermitUserEnvironment no
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-permit-user-env
+
+- title: OpenSSH - X11Forwarding
+  class: OpensshIssueAction
+  param: X11Forwarding
+  short: |
+    ...
+  long: |
+    ...
+
+    ```
+    X11Forwarding no
+    ```
+
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-x11-forwarding
+
 - title: Automatic security updates not enabled
   class: AutoUpdatesAction
   short: |
