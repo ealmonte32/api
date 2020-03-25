@@ -471,18 +471,15 @@ class FirewallDisabledAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
     def _affected_devices(cls, qs):
         from .models import FirewallState, GlobalPolicy
-        return qs.exclude(
-            (Q(firewallstate__global_policy=None) & Q(firewallstate__policy=FirewallState.POLICY_ENABLED_BLOCK)) |
-            Q(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK))
+        return qs.exclude(firewallstate__global_policy__policy=GlobalPolicy.POLICY_BLOCK)
 
     @classmethod
     def _is_affected(cls, device) -> bool:
         from .models import FirewallState, GlobalPolicy
         firewallstate = getattr(device, 'firewallstate', None)
-        return firewallstate is not None and \
-               (firewallstate.policy != FirewallState.POLICY_ENABLED_BLOCK
-                if firewallstate.global_policy is None
-                else firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
+        return firewallstate is not None \
+            and (firewallstate.global_policy is None
+            or firewallstate.global_policy.policy != GlobalPolicy.POLICY_BLOCK)
 
     @classmethod
     def severity(cls, param=None):

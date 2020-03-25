@@ -78,10 +78,10 @@ class MtlsPingView(APIView):
             policy_string = firewallstate_object.global_policy.policy_string
             ports_field_name = firewallstate_object.global_policy.ports_field_name
         else:  # User's per-device security settings.
-            block_networks = portscan_object.block_networks.copy()
-            block_ports = portscan_object.block_ports
-            policy_string = firewallstate_object.policy_string
-            ports_field_name = firewallstate_object.ports_field_name
+            block_networks = []
+            block_ports = []
+            policy_string = 'allow'
+            ports_field_name = 'block_ports'
         block_networks.extend(settings.SPAM_NETWORKS)
         return Response({
             'policy': policy_string, ports_field_name: block_ports, 'block_networks': block_networks,

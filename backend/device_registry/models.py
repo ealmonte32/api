@@ -440,7 +440,8 @@ class Device(models.Model):
 
         return self.calculate_trust_score(
             app_armor_enabled=zero_if_none(self.deviceinfo.app_armor_enabled),
-            firewall_enabled=self.firewallstate.policy == FirewallState.POLICY_ENABLED_BLOCK,
+            firewall_enabled=(self.firewallstate.global_policy is not None
+                              and self.firewallstate.global_policy.policy == GlobalPolicy.POLICY_BLOCK),
             selinux_enabled=selinux.get('enabled', False),
             selinux_enforcing=(selinux.get('mode') == 'enforcing'),
             failed_logins=failed_logins,
@@ -794,26 +795,7 @@ class FirewallState(models.Model):
     device = models.OneToOneField(Device, on_delete=models.CASCADE)
     scan_date = models.DateTimeField(null=True, auto_now_add=True)
     rules = JSONField(blank=True, default=dict)
-    policy = models.PositiveSmallIntegerField(choices=POLICY_CHOICES, default=POLICY_ENABLED_ALLOW)
     global_policy = models.ForeignKey('GlobalPolicy', on_delete=models.SET_NULL, blank=True, null=True)
-
-    @property
-    def policy_string(self):
-        if self.policy == self.POLICY_ENABLED_ALLOW:
-            return 'allow'
-        elif self.policy == self.POLICY_ENABLED_BLOCK:
-            return 'block'
-        else:
-            raise NotImplementedError
-
-    @property
-    def ports_field_name(self):
-        if self.policy == self.POLICY_ENABLED_ALLOW:
-            return 'block_ports'
-        elif self.policy == self.POLICY_ENABLED_BLOCK:
-            return 'allow_ports'
-        else:
-            raise NotImplementedError
 
     @property
     def beautified_rules(self):

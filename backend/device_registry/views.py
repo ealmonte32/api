@@ -19,7 +19,7 @@ from django.views.generic import DetailView, ListView, TemplateView, View, Updat
 
 from profile_page.mixins import LoginTrackMixin
 from .api_views import DeviceListFilterMixin
-from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
+from .forms import ClaimDeviceForm, DeviceAttrsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
 from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, Vulnerability
 from .models import GlobalPolicy, RecommendedActionStatus
@@ -176,18 +176,6 @@ class GlobalPolicyCreateView(LoginRequiredMixin, LoginTrackMixin, CreateView, Co
         self.object.ports = self.dicts_to_lists(form.cleaned_data['ports'])
         self.object.save()
         return HttpResponseRedirect(self.get_success_url())
-
-    def get(self, request, *args, **kwargs):
-        if 'pk' in kwargs:
-            device = get_object_or_404(Device, owner=self.request.user, pk=kwargs['pk'])
-            portscan_object, _ = PortScan.objects.get_or_create(device=device)
-            firewallstate_object, _ = FirewallState.objects.get_or_create(device=device)
-            if firewallstate_object.global_policy:
-                return HttpResponseForbidden()
-            # TODO: pass networks when we enable this field support.
-            self.initial = {'policy': firewallstate_object.policy,
-                            'ports': self.lists_to_dicts(portscan_object.block_ports)}
-        return super().get(request, *args, **kwargs)
 
 
 class GlobalPolicyEditView(LoginRequiredMixin, LoginTrackMixin, UpdateView, ConvertPortsInfoMixin):
@@ -375,7 +363,6 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         # TODO: handle missing portscan and firewallstate instances.
-        portscan = self.object.portscan
         firewallstate = self.object.firewallstate
 
         # Submitted the `FirewallStateGlobalPolicyForm` form.
@@ -385,7 +372,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 # TODO: check isn't it enough to do `form.save()` here.
                 firewallstate.global_policy = form.cleaned_data["global_policy"]
                 firewallstate.save(update_fields=['global_policy'])
-        # Submitted the `PortsForm` form.
+        # Submitted the removed `PortsForm` form.
         elif 'is_ports_form' in request.POST or 'is_connections_form' in request.POST:
             return HttpResponseForbidden()
 

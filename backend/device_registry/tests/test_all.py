@@ -22,7 +22,7 @@ from freezegun import freeze_time
 from device_registry import ca_helper
 from device_registry.models import DebPackage, Device, DeviceInfo, FirewallState, PortScan, \
     GlobalPolicy, PairingKey, Vulnerability, RecommendedAction, HistoryRecord, RecommendedActionStatus
-from device_registry.forms import DeviceAttrsForm, PortsForm, ConnectionsForm, FirewallStateGlobalPolicyForm
+from device_registry.forms import DeviceAttrsForm, FirewallStateGlobalPolicyForm
 from device_registry.forms import GlobalPolicyForm
 from device_registry.recommended_actions import ActionMeta, Severity, SimpleAction
 from device_registry.views import CVEView
@@ -201,8 +201,9 @@ class DeviceModelTest(TestCase):
         self.portscan0 = PortScan.objects.create(device=self.device0, scan_info=portscan0)
         self.portscan1 = PortScan.objects.create(device=self.device1, scan_info=portscan1)
 
-        self.firewall0 = FirewallState.objects.create(device=self.device0, policy=FirewallState.POLICY_ENABLED_BLOCK)
-        self.firewall1 = FirewallState.objects.create(device=self.device1, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        gp = GlobalPolicy.objects.create(name='gp', owner=self.user1, policy=GlobalPolicy.POLICY_BLOCK)
+        self.firewall0 = FirewallState.objects.create(device=self.device0, global_policy=gp)
+        self.firewall1 = FirewallState.objects.create(device=self.device1, global_policy=gp)
 
         self.user4 = User.objects.create_user('test-fixing-issues')
         self.device4 = Device.objects.create(
@@ -225,7 +226,7 @@ class DeviceModelTest(TestCase):
             {"host": "0.0.0.0", "port": 80, "proto": "tcp", "state": "open", "ip_version": 4},
             {"host": "::", "port": 80, "proto": "tcp", "state": "open", "ip_version": 6},
         ])
-        self.firewall4 = FirewallState.objects.create(device=self.device4, policy=FirewallState.POLICY_ENABLED_ALLOW)
+        self.firewall4 = FirewallState.objects.create(device=self.device4)
 
     def test_ftp_public_no_portscan(self):
         self.assertIsNone(self.device3.is_ftp_public)
@@ -234,8 +235,8 @@ class DeviceModelTest(TestCase):
         self.device4.update_trust_score_now()
         # initial state: firewall disabled, default password found - trust score low
         self.assertLess(self.device4.trust_score_percent(), 66)
-        self.firewall4.policy = FirewallState.POLICY_ENABLED_BLOCK
-        self.firewall4.save()
+        self.firewall4.global_policy = GlobalPolicy.objects.create(name='gp', owner=self.device4.owner,
+                                                                   policy=GlobalPolicy.POLICY_BLOCK)
         self.device_info4.default_password = False
         self.device_info4.save()
         self.device4.update_trust_score_now()
@@ -467,18 +468,6 @@ class FormsTests(TestCase):
         form = DeviceAttrsForm(data=form_data, instance=self.device)
         self.assertTrue(form.is_valid())
 
-    def test_ports_form(self):
-        ports_form_data = self.portscan.ports_form_data()
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewallstate.policy}
-        form = PortsForm(data=form_data, ports_choices=ports_form_data[0])
-        self.assertTrue(form.is_valid())
-
-    def test_networks_form(self):
-        connections_form_data = self.portscan.connections_form_data()
-        form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
-        form = ConnectionsForm(data=form_data, open_connections_choices=connections_form_data[0])
-        self.assertTrue(form.is_valid())
-
     def test_global_policy_form(self):
         gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
         form_data = {'global_policy': str(gp.pk)}
@@ -507,7 +496,7 @@ class DeviceDetailViewTests(TestCase):
         )
         self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
                                                 netstat=OPEN_CONNECTIONS_INFO)
-        self.firewall = FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        self.firewall = FirewallState.objects.create(device=self.device)
         self.url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.url2 = reverse('device-detail-security', kwargs={'pk': self.device.pk})
         self.url3 = reverse('device-detail-metadata', kwargs={'pk': self.device.pk})
@@ -631,61 +620,13 @@ class DeviceDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'My device 1')
 
-    def test_open_ports(self):
-        self.client.login(username='test', password='123')
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
-        self.client.post(self.url2, form_data)
-        portscan = PortScan.objects.get(pk=self.portscan.pk)
-        self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22, False]])
-        response = self.client.get(self.url2)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Firewall Ports Policy')
-        self.assertInHTML('<span class="pl-1" id="ports-table-column-1">Allowed</span>', response.rendered_content)
-
-    def test_open_ports_global_policy(self):
-        self.client.login(username='test', password='123')
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
-        self.client.post(self.url2, form_data)
-        portscan = PortScan.objects.get(pk=self.portscan.pk)
-        self.assertListEqual(portscan.block_ports, [['192.168.1.178', 'tcp', 22, False]])
-        self.firewall.global_policy = self.gp
-        self.firewall.save(update_fields=['global_policy'])
-        response = self.client.get(self.url2)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Open Ports')
-        self.assertNotContains(response, '<th scope="col" width="5%"><span\n                                      '
-                                         'id="ports-table-column-1">Allowed</span></th>')
-
     def test_open_ports_forbidden(self):
         self.client.login(username='test', password='123')
         self.firewall.global_policy = self.gp
         self.firewall.save(update_fields=['global_policy'])
-        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': self.firewall.policy}
+        form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': 1}
         response = self.client.post(self.url2, form_data)
         self.assertEqual(response.status_code, 403)
-
-    def test_open_connections(self):
-        self.client.login(username='test', password='123')
-        form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
-        self.client.post(self.url2, form_data)
-        portscan = PortScan.objects.get(pk=self.portscan.pk)
-        self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
-        response = self.client.get(self.url2)
-        self.assertEqual(response.status_code, 200)
-        self.assertInHTML('<input type="checkbox" value="0" id="connections-check-all">Blocked',
-                          response.rendered_content)
-
-    def test_open_connections_global_policy(self):
-        self.client.login(username='test', password='123')
-        form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
-        self.client.post(self.url2, form_data)
-        portscan = PortScan.objects.get(pk=self.portscan.pk)
-        self.assertListEqual(portscan.block_networks, [['192.168.1.177', False]])
-        self.firewall.global_policy = self.gp
-        self.firewall.save(update_fields=['global_policy'])
-        response = self.client.get(self.url2)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, '<th scope="col" width="5%">Blocked</th>')
 
     def test_open_connections_forbidden(self):
         self.client.login(username='test', password='123')
@@ -1056,39 +997,6 @@ class RootViewTests(TestCase):
         self.assertInHTML('<div class="badge wott-badge-pill">'
                           '<span id="actions-sidebar" class="wott-badge-text">0</span></div>',
                           response.rendered_content, count=0)  # check that there is NO badge
-
-
-class SaveDeviceSettingsAsPolicyViewTests(TestCase):
-    def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user(username='test', password='123')
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
-        self.portscan = PortScan.objects.create(device=self.device, scan_info=OPEN_PORTS_INFO,
-                                                netstat=OPEN_CONNECTIONS_INFO)
-        self.firewallstate = FirewallState.objects.create(device=self.device)
-        self.url = reverse('save_as_policy', kwargs={'pk': self.device.pk})
-
-    def test_not_logged_in(self):
-        response = self.client.get(self.url)
-        self.assertRedirects(response, f'/accounts/login/?next=/devices/{self.device.pk}/security/save-as-policy/')
-
-    def test_get(self):
-        self.assertEqual(GlobalPolicy.objects.count(), 0)
-        self.client.login(username='test', password='123')
-        response = self.client.get(self.url)
-        self.assertEqual(GlobalPolicy.objects.count(), 0)
-        # TODO: check page content.
-
-    def test_get_forbidden(self):
-        self.assertEqual(GlobalPolicy.objects.count(), 0)
-        self.client.login(username='test', password='123')
-        gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_ALLOW)
-        self.assertEqual(GlobalPolicy.objects.count(), 1)
-        self.firewallstate.global_policy = gp
-        self.firewallstate.save(update_fields=['global_policy'])
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(GlobalPolicy.objects.count(), 1)
 
 
 class GlobalPolicyDeleteViewTests(TestCase):

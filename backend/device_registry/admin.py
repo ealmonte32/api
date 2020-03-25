@@ -57,7 +57,6 @@ class FirewallStateAdmin(admin.ModelAdmin):
     list_display = [
         'device',
         'scan_date',
-        'policy'
     ]
 
     ordering = ('scan_date',)

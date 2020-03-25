@@ -39,32 +39,6 @@ class DeviceAttrsForm(forms.ModelForm):
         }
 
 
-class PortsForm(forms.Form):
-    policy = forms.ChoiceField(choices=FirewallState.POLICY_CHOICES,
-                               widget=forms.Select(attrs={'class': 'wott-form-control custom-select'}))
-    open_ports = forms.MultipleChoiceField(
-        required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'list-unstyled'}))
-    is_ports_form = forms.CharField(widget=forms.HiddenInput, initial='true')
-
-    def __init__(self, *args, **kwargs):
-        ports_choices = kwargs.pop('ports_choices')
-        super().__init__(*args, **kwargs)
-        self.fields['open_ports'].choices = ports_choices
-
-
-class ConnectionsForm(forms.Form):
-    open_connections = forms.MultipleChoiceField(
-        required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'list-unstyled'}))
-    is_connections_form = forms.CharField(widget=forms.HiddenInput, initial='true')
-
-    def __init__(self, *args, **kwargs):
-        open_connections_choices = kwargs.pop('open_connections_choices')
-        super().__init__(*args, **kwargs)
-        self.fields['open_connections'].choices = open_connections_choices
-
-
 class FirewallStateGlobalPolicyForm(forms.ModelForm):
     class Meta:
         model = FirewallState

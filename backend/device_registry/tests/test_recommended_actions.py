@@ -371,7 +371,9 @@ class TestsMixin:
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, auto_upgrades=True,
                                             mysql_root_access=False, last_ping=timezone.now(),
                                             os_release={'codename': 'jessie'})
-        FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
+        gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_BLOCK,
+                                         ports=[], networks=[])
+        FirewallState.objects.create(device=self.device, global_policy=gp)
         PortScan.objects.create(device=self.device)
         DeviceInfo.objects.create(device=self.device, default_password=False)
         self.client.login(username='test', password='123')
@@ -443,8 +445,8 @@ class FirewallDisabledActionTest(TestsMixin, TestCase):
     action_class = FirewallDisabledAction
 
     def enable_action(self):
-        self.device.firewallstate.policy = FirewallState.POLICY_ENABLED_ALLOW
-        self.device.firewallstate.save(update_fields=['policy'])
+        self.device.firewallstate.global_policy.policy = GlobalPolicy.POLICY_ALLOW
+        self.device.firewallstate.global_policy.save(update_fields=['policy'])
 
 
 class FirewallPolicyActionTest(FirewallDisabledActionTest):

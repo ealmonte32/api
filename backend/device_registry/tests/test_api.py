@@ -714,7 +714,7 @@ class MtlsPingViewTest(APITestCase):
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
-            'policy': self.device.firewallstate.policy_string,
+            'policy': 'allow',
             'block_ports': [], 'block_networks': settings.SPAM_NETWORKS,
             'deb_packages_hash': ''
         })
@@ -735,22 +735,21 @@ class MtlsPingViewTest(APITestCase):
         self.assertDictEqual(response.data, {
             'block_ports': [],
             'block_networks': settings.SPAM_NETWORKS,
-            'policy': self.device.firewallstate.policy_string,
+            'policy': 'allow',
             'deb_packages_hash': ''
         })
         # 2nd request
-        self.device.portscan.block_ports = [['192.168.1.178', 'tcp', 22, False]]
-        self.device.portscan.block_networks = [['192.168.1.177', False]]
-        self.device.portscan.save(update_fields=['block_ports', 'block_networks'])
+        self.device.firewallstate.global_policy = self.gp
+        self.device.firewallstate.save(update_fields=['global_policy'])
         response = self.client.post(self.url, self.ping_payload, **self.headers)
         self.assertEqual(response.status_code, 200)
         # 3rd request
         response = self.client.get(self.url, **self.headers)
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.data, {
-            'policy': self.device.firewallstate.policy_string,
-            'block_ports': [['192.168.1.178', 'tcp', 22, False]],
-            'block_networks': [['192.168.1.177', False]] + settings.SPAM_NETWORKS,
+            'policy': self.gp.policy_string,
+            'block_ports': self.gp.ports,
+            'block_networks': self.gp.networks + settings.SPAM_NETWORKS,
             'deb_packages_hash': ''
         })
 
@@ -856,7 +855,7 @@ class MtlsPingViewTest(APITestCase):
         self.assertDictEqual(response.data, {
             'block_ports': [],
             'block_networks': settings.SPAM_NETWORKS,
-            'policy': self.device.firewallstate.policy_string,
+            'policy': 'allow',
             'deb_packages_hash': 'abcdef'
         })
         self.device.refresh_from_db()
