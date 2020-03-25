@@ -358,7 +358,6 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        has_global_policy = False
 
         try:
             context['firewall'] = self.object.firewallstate
@@ -366,25 +365,11 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
             context['firewall'] = None
         else:
             context['global_policy_form'] = FirewallStateGlobalPolicyForm(instance=self.object.firewallstate)
-            has_global_policy = bool(self.object.firewallstate.global_policy)
-            context['has_global_policy'] = has_global_policy
 
         try:
             context['portscan'] = self.object.portscan
         except PortScan.DoesNotExist:
             context['portscan'] = None
-        else:
-            if not has_global_policy:
-                ports_form_data = self.object.portscan.ports_form_data()
-                context['ports_choices'] = bool(ports_form_data[0])
-                context['choices_extra_data'] = ports_form_data[3]
-                context['ports_form'] = PortsForm(ports_choices=ports_form_data[0],
-                                                  initial={'open_ports': ports_form_data[1],
-                                                           'policy': self.object.firewallstate.policy})
-                connections_form_data = self.object.portscan.connections_form_data()
-                context['connections_choices'] = bool(connections_form_data[0])
-                context['connections_form'] = ConnectionsForm(open_connections_choices=connections_form_data[0],
-                                                              initial={'open_connections': connections_form_data[1]})
         return context
 
     def post(self, request, *args, **kwargs):
@@ -401,38 +386,8 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 firewallstate.global_policy = form.cleaned_data["global_policy"]
                 firewallstate.save(update_fields=['global_policy'])
         # Submitted the `PortsForm` form.
-        elif 'is_ports_form' in request.POST:
-            if firewallstate.global_policy:
-                # If some global policy applied to the device - you can't manage its ports.
-                return HttpResponseForbidden()
-            ports_form_data = self.object.portscan.ports_form_data()
-            form = PortsForm(request.POST, ports_choices=ports_form_data[0])
-            if form.is_valid():
-                out_data = []
-                for element in form.cleaned_data['open_ports']:
-                    port_record_index = int(element)
-                    out_data.append(ports_form_data[2][port_record_index])
-                portscan.block_ports = out_data
-                firewallstate.policy = form.cleaned_data['policy']
-                with transaction.atomic():
-                    portscan.save(update_fields=['block_ports'])
-                    firewallstate.save(update_fields=['policy'])
-                    self.object.update_trust_score = True
-                    self.object.save(update_fields=['update_trust_score'])
-        # Submitted the `ConnectionsForm` form.
-        elif 'is_connections_form' in request.POST:
-            if firewallstate.global_policy:
-                # If some global policy applied to the device - you can't manage its connections.
-                return HttpResponseForbidden()
-            connections_form_data = self.object.portscan.connections_form_data()
-            form = ConnectionsForm(request.POST, open_connections_choices=connections_form_data[0])
-            if form.is_valid():
-                out_data = []
-                for element in form.cleaned_data['open_connections']:
-                    connection_record_index = int(element)
-                    out_data.append(connections_form_data[2][connection_record_index])
-                portscan.block_networks = out_data
-                portscan.save(update_fields=['block_networks'])
+        elif 'is_ports_form' in request.POST or 'is_connections_form' in request.POST:
+            return HttpResponseForbidden()
 
         self.object.refresh_from_db()
         self.object.generate_recommended_actions(classes=[FirewallDisabledAction])

@@ -307,22 +307,13 @@
                   </tr>
 
                   <tr class="pb-4">
-                    {% if has_global_policy %}
                       <th class="wott-table-label pb-0" scope="row">
                         Open Ports
                       </th>
-                    {% else %}
-                      <th class="wott-table-label pb-0" scope="row">
-                        Firewall Ports Policy
-                        <a href="https://wott.io/documentation/faq#what-is-firewall-policy"
-                           target="_blank">{% include "badge.html" with icon="question-circle" color="primary" %}</a>
-                      </th>
-                    {% endif %}
                   </tr>
 
                   <tr class="border-top-0 pt-0">
                     <td class="inner-table mb-4">
-                      {% if has_global_policy %}
                         <table id="firewall-ports-table" class="wott-table wott-box-shadow">
                           <thead class="">
                           <tr class="row">
@@ -351,59 +342,6 @@
                             </tr>
                           {% endfor %}
                         </table>
-                      {% else %}
-                        <form method="POST" action="">
-                          {% csrf_token %}
-                          <div class="form-group">
-                            {{ ports_form.policy }}
-                          </div>
-                          <div class="form-group">
-                            {% if ports_choices %}
-                              <div class="wott-table wott-box-shadow" id="ports-table">
-                                <table id="firewall-ports-table" class="wott-table wott-box-shadow">
-                                  <thead>
-                                    <tr class="inner-table mb-4 row">
-                                      <th class="col-2" scope="col" nowrap>
-                                      <input type="checkbox" value="0"  id="ports-check-all">
-                                          <span class="pl-1"
-                                          id="ports-table-column-1">{% if firewall.policy == 1 %}
-                                        Blocked{% elif firewall.policy == 2 %}Allowed{% endif %}</span></th>
-                                      <th class="col-1" scope="col">IP</th>
-                                      <th class="col-4" scope="col">Address</th>
-                                      <th class="col-2" scope="col">Port</th>
-                                      <th class="col-2" scope="col">Proto</th>
-                                      <th class="col-1" scope="col">Info</th>
-                                    </tr>
-                                  </thead>
-                                  {% for checkbox in ports_form.open_ports %}
-                                    <tr>
-                                      <td class="col-2">{{ checkbox.tag }}</td>
-                                      <td class="col-1">v{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:3 }}</td>
-                                      <td class="col-4">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:0 }}</td>
-                                      <td class="col-2">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:1 }}</td>
-                                      <td class="col-2">{{ choices_extra_data|keyvalue:checkbox.data.value|list_index:2 }}</td>
-                                      <td class="col-1">
-                                        {% with process_info=choices_extra_data|keyvalue:checkbox.data.value|list_index:4 %}
-                                          {% if process_info %}
-                                            <span class="badge badge-info" data-container="body" data-toggle="popover"
-                                                  data-placement="top" data-trigger="hover"
-                                                  data-content="{{ process_info }}">Info</span>
-                                          {% endif %}
-                                        {% endwith %}
-                                      </td>
-                                    </tr>
-                                  {% endfor %}
-                                </table>
-                              </div>
-                            {% endif %}
-                            {{ ports_form.is_ports_form }}
-                            <!-- <select type="select" class="wott-form-control d-block w-50 mb-3"><option>Allow by default</option></select> -->
-                            <div class="d-flex justify-content-end">
-                              <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
-                            </div>
-                          </div>
-                        </form>
-                      {% endif %}
                     </td>
                   </tr>
 
@@ -417,7 +355,6 @@
 
                   <tr class="border-top-0 pt-0">
                     <td class="inner-table mb-4">
-                      {% if has_global_policy %}
                         <table class="wott-table wott-box-shadow" id="connections-table">
                           <thead class="">
                           <tr class="row">
@@ -444,66 +381,8 @@
                             </tr>
                           {% endfor %}
                         </table>
-                      {% else %}
-                        {% if connections_choices %}
-                          <form method="POST" action="">
-                            {% csrf_token %}
-                            <div class="form-group">
-                              <div class="inner-table mb-4 px-0">
-                                <table class="wott-table wott-box-shadow" id="connections-table">
-                                  <thead class="">
-                                    <tr>
-                                      <th width="8%" scope="col">
-                                        <input type="checkbox" value="0"  id="connections-check-all">
-                                        Blocked
-                                      </th>
-                                      <th width="3%" class="px-0"  scope="col">IP</th>
-                                      <th width="28%" class="" scope="col">Rem addr</th>
-                                      <th width="8%"  class="" scope="col">Rem port</th>
-                                      <th width="28%" class="" scope="col">Loc addr</th>
-                                      <th width="7%"  class="" scope="col">Loc port</th>
-                                      <th width="4%" class="" scope="col">Type</th>
-                                      <th width="10%" class="" scope="col">Status</th>
-                                      <th width="4%" class="" scope="col">PID</th>
-                                    </tr>
-                                  </thead>
-                                  {% for checkbox in connections_form.open_connections %}
-                                    <tr>
-                                      <td width="8%">{{ checkbox.tag }}</td>
-                                      <td width="3%" class="px-0">v{{ checkbox.choice_label|split_index:"/,4" }}</td>
-                                      <td width="28%">{{ checkbox.choice_label|split_index:"/,0" }}</td>
-                                      <td width="8%">{{ checkbox.choice_label|split_index:"/,1" }}</td>
-                                      <td width="28%">{{ checkbox.choice_label|split_index:"/,2" }}</td>
-                                      <td width="7%">{{ checkbox.choice_label|split_index:"/,3" }}</td>
-                                      <td width="4%">{{ checkbox.choice_label|split_index:"/,5" }}</td>
-                                      <td width="10%">{{ checkbox.choice_label|split_index:"/,6" }}</td>
-                                      <td width="4%">{{ checkbox.choice_label|split_index:"/,7" }}</td>
-                                    </tr>
-                                  {% endfor %}
-                                </table>
-                              </div>
-                              {{ connections_form.is_connections_form }}
-                              <div class="d-flex justify-content-end">
-                                <button class="btn btn-wott-primary wott-btn-small" type="submit">Apply</button>
-                              </div>
-                            </div>
-                          </form>
-                        {% endif %}
-                      {% endif %}
                     </td>
                   </tr>
-
-                  {% if not has_global_policy %}
-                    <tr>
-                      <th>
-                        <a href="{% url 'save_as_policy' object.pk %}"
-                           class="btn text-white d-flex justify-content-center align-items-center wott-btn-small btn-wott-primary"
-                           role="button">
-                          Save ports/connections rules as global policy</a>
-                      </th>
-                      <td></td>
-                    </tr>
-                  {% endif %}
 
                   <tr>
                     <th class="wott-table-label" scope="row">
