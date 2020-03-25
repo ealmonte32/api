@@ -3,11 +3,6 @@
 from django.db import migrations
 
 
-def generate_recommended_actions(apps, schema_editor):
-    from device_registry.models import RecommendedAction
-    RecommendedAction.update_all_devices()
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ('device_registry', '0079_vulnerability'),
