@@ -5,7 +5,7 @@ from typing import NamedTuple, List
 from urllib.parse import urljoin
 
 from django.conf import settings
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, Max
 from django.urls import reverse
 from django.utils import timezone
 
@@ -684,7 +684,7 @@ class CVEAction(ParamAction, metaclass=ActionMeta):
         from .models import Vulnerability, DebPackage
         packages = DebPackage.objects.filter(vulnerabilities__name=param, vulnerabilities__fix_available=True)\
                                      .values_list('name', flat=True).distinct()
-        return {'packages': ' '.join(packages)}
+        return {'packages': ' '.join(packages), 'name': param}
 
     @classmethod
     def affected_devices(cls, qs) -> List[ParamStatusQS]:
@@ -700,8 +700,9 @@ class CVEAction(ParamAction, metaclass=ActionMeta):
 
     @classmethod
     def severity(cls, param):
-        # TODO: return vulnerability (name=param) severity
-        return Severity.MED
+        from .models import Vulnerability
+        max_urgency = Vulnerability.objects.filter(name=param).aggregate(Max('urgency'))['urgency__max']
+        return Severity(max_urgency or 0)
 
 # --- Fleet-wide actions ---
 
