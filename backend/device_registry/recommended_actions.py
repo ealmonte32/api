@@ -225,7 +225,7 @@ class BaseAction:
         return {}
 
     @classmethod
-    def _create_action(cls, context, devices_list, param=None) -> Action:
+    def create_action(cls, context, severity, devices_list, param=None) -> Action:
         """
         Create an Action object with title and description supplied by this class (cls), action description context,
         devices list and profile's github issue info (which can be empty).
@@ -240,7 +240,7 @@ class BaseAction:
             action_config = cls.action_config
         return Action(
             title=action_config['title'].format(**context),
-            subtitle=action_config.get('subtitle', SUBTITLES[cls.severity(param)]).format(**context),
+            subtitle=action_config.get('subtitle', SUBTITLES[severity]).format(**context),
             short=action_config['short'].format(**context),
             long=action_config['long'].format(**context),
             terminal_title=action_config.get('terminal_title', '').format(**context),
@@ -248,21 +248,10 @@ class BaseAction:
             action_class=cls.__name__,
             action_param=param,
             devices=devices_list,
-            severity=cls.severity(param),
+            severity=severity,
             doc_url=cls.doc_url,
             fleet_wide=getattr(cls, 'is_user_action', False)
         )
-
-    @classmethod
-    def action(cls, devices, param=None) -> Action:
-        """
-        Create Action object from this action's data.
-        :param devices: a list of affected Device's
-        :param param: action param (if supported)
-        :return:
-        """
-        context = cls.get_context(param)
-        return cls._create_action(context, devices, param)
 
     @classmethod
     def _get_description(cls, user, param, action_config) -> (str, str):
@@ -665,10 +654,6 @@ class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
 
 
 class CVEAction(ParamAction, metaclass=ActionMeta):
-    if settings.CVE_ACTION_CACHE:
-        pool = redis.ConnectionPool(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD,
-                                    health_check_interval=30)
-
     @staticmethod
     def _packages_string(cve_name):
         from .models import DebPackage
@@ -679,24 +664,16 @@ class CVEAction(ParamAction, metaclass=ActionMeta):
 
     @classmethod
     def _get_context(cls, param):
-        if settings.CVE_ACTION_CACHE:
-            redis_conn = redis.Redis(connection_pool=cls.pool)
-            key = f'cve:packages:{param}'
-            packages = redis_conn.get(key)
-            if packages is None:
-                packages = cls._packages_string(param)
-                with redis_conn.lock('cve_packages', blocking_timeout=1):
-                    redis_conn.set(key, packages)
-            else:
-                packages = packages.decode()
-        else:
-            packages = cls._packages_string(param)
+        from .models import DebPackage
+        packages = DebPackage.objects.filter(vulnerabilities__name=param, vulnerabilities__fix_available=True) \
+            .values_list('name', flat=True).distinct()
+        packages = ' '.join(packages)
         return {'packages': packages, 'name': param}
 
-    @classmethod
-    def affected_devices(cls, qs) -> List[ParamStatusQS]:
-        # TODO: implement
-        pass
+    # @classmethod
+    # def affected_devices(cls, qs) -> List[ParamStatusQS]:
+    #     # TODO: implement
+    #     pass
 
     @classmethod
     def affected_params(cls, device):
@@ -705,27 +682,11 @@ class CVEAction(ParamAction, metaclass=ActionMeta):
                                      .values_list('name', flat=True).distinct()
         return [ParamStatus(name, True) for name in vulns]
 
-    @staticmethod
-    def _cve_severity(cve_name):
-        from .models import Vulnerability
-        urgency = Vulnerability.objects.filter(name=cve_name).aggregate(Max('urgency'))['urgency__max']
-        return urgency or 0
-
     @classmethod
     def severity(cls, param):
-        if settings.CVE_ACTION_CACHE:
-            redis_conn = redis.Redis(connection_pool=cls.pool)
-            key = f'cve:urgency:{param}'
-            severity = redis_conn.get(key)
-            if severity is None:
-                severity = cls._cve_severity(param)
-                with redis_conn.lock('cve_urgency', blocking_timeout=1):
-                    redis_conn.set(key, severity)
-            else:
-                severity = int(severity.decode())
-        else:
-            severity = cls._cve_severity(param)
-        return Severity(severity)
+        from .models import Vulnerability
+        severity = Vulnerability.objects.filter(name=param).aggregate(Max('urgency'))['urgency__max']
+        return Severity(severity or 1)
 
 # --- Fleet-wide actions ---
 
@@ -736,14 +697,17 @@ class GithubAction(BaseAction, metaclass=ActionMeta):
     def severity(cls, param=None):
         return Severity.LO
 
+    @classmethod
+    def create_action(cls):
+        return super().create_action({}, cls.severity(), [])
 
 class EnrollAction(BaseAction, metaclass=ActionMeta):
     is_user_action = True
 
     @classmethod
-    def get_user_context(cls, user):
+    def create_action(cls, user):
         context = {'key': user.profile.pairing_key.key}
-        return EnrollAction._create_action(context, [])
+        return super().create_action(context, cls.severity(), [])
 
     @classmethod
     def severity(cls, param=None):

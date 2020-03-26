@@ -19,7 +19,7 @@ import tagulous.models
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
 from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, PUBLIC_SERVICE_PORTS, \
-    ParamStatus
+    ParamStatus, Severity
 
 apt_pkg.init()
 
@@ -600,10 +600,15 @@ class Device(models.Model):
 
         ra_status_new = []
         for action_class_name, param, is_affected in added:
-            ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class_name, action_param=param)
+            ra = RecommendedAction.objects.filter(action_class=action_class_name, action_param=param)
+            if ra.exists():
+                ra = ra.first()
+            else:
+                ra = RecommendedAction.objects.create(
+                    action_class=action_class_name, action_param=param,
+                    action_context=ActionMeta.get_class(action_class_name).get_context(param))
             status = (RecommendedAction.Status.AFFECTED if is_affected else RecommendedAction.Status.NOT_AFFECTED)
-            ra_status_new.append(RecommendedActionStatus(ra=ra, device=self,
-                                                   status=status))
+            ra_status_new.append(RecommendedActionStatus(ra=ra, device=self, status=status))
         self.recommendedactionstatus_set.bulk_create(ra_status_new)
 
         if settings.GITHUB_IMMEDIATE_SYNC and (n_affected or n_unaffected or ra_status_new) and self.owner:
@@ -1032,6 +1037,8 @@ class RecommendedAction(models.Model):
 
     action_class = models.CharField(max_length=64)
     action_param = models.CharField(max_length=128, null=True, blank=True)
+    action_context = JSONField(blank=True, default=dict)
+    action_severity = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Severity])
 
 
 class RecommendedActionStatus(models.Model):
@@ -1072,7 +1079,18 @@ class RecommendedActionStatus(models.Model):
                 continue
             affected = action_class.affected_devices(qs)
             for param, param_affected in affected:
-                ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class.__name__, action_param=param)
+                ra = RecommendedAction.objects.filter(action_class=action_class.__name__,
+                                                      action_param=param)
+                if not ra.exists():
+                    ra = RecommendedAction.objects.create(action_class=action_class.__name__,
+                                                          action_param=param,
+                                                          action_context=action_class.get_context(param),
+                                                          action_severity=action_class.severity(param))
+                else:
+                    ra = ra.first()
+                    ra.action_context = action_class.get_context(param)
+                    ra.action_severity = action_class.severity(param)
+                    ra.save(update_fields=['action_context', 'action_severity'])
                 param_affected = set(param_affected)
                 created += [cls(device=d,
                                 ra=ra,
