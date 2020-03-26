@@ -296,3 +296,4 @@ GITHUB_APP_REDIRECT_URL = os.getenv('GITHUB_APP_REDIRECT_URL')    # Github App R
 GITHUB_IMMEDIATE_SYNC = False
 
 MAX_WEEKLY_RA = 5  # The number of RAs for the user to resolve in a week (starting this Monday)
+CVE_ACTION_CACHE = False

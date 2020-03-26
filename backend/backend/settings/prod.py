@@ -56,3 +56,4 @@ COMMON_NAME_PREFIX = 'd.wott.local'
 STATIC_URL = 'https://static.wott.io/'
 
 GITHUB_IMMEDIATE_SYNC = True
+CVE_ACTION_CACHE = True

@@ -4,6 +4,7 @@ from enum import IntEnum
 from typing import NamedTuple, List
 from urllib.parse import urljoin
 
+import redis
 from django.conf import settings
 from django.db.models import Q, QuerySet, Max
 from django.urls import reverse
@@ -494,21 +495,6 @@ class FirewallDisabledAction(SimpleAction, metaclass=ActionMeta):
         return Severity.MED
 
 
-# Vulnerable packages found action.
-class VulnerablePackagesAction(SimpleAction, metaclass=ActionMeta):
-    @classmethod
-    def _affected_devices(cls, qs):
-        return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
-
-    @classmethod
-    def _is_affected(cls, device) -> bool:
-        return device.deb_packages.filter(vulnerabilities__isnull=False).exists()
-
-    @classmethod
-    def severity(cls, param=None):
-        return Severity.MED
-
-
 # OS reboot required action.
 class RebootRequiredAction(SimpleAction, metaclass=ActionMeta):
     _severity = Severity.MED
@@ -679,12 +665,33 @@ class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
 
 
 class CVEAction(ParamAction, metaclass=ActionMeta):
+    if settings.CVE_ACTION_CACHE:
+        pool = redis.ConnectionPool(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD,
+                                    health_check_interval=30)
+
+    @staticmethod
+    def _packages_string(cve_name):
+        from .models import DebPackage
+        packages = DebPackage.objects.filter(vulnerabilities__name=cve_name, vulnerabilities__fix_available=True) \
+            .values_list('name', flat=True).distinct()
+        packages = ' '.join(packages)
+        return packages
+
     @classmethod
     def _get_context(cls, param):
-        from .models import Vulnerability, DebPackage
-        packages = DebPackage.objects.filter(vulnerabilities__name=param, vulnerabilities__fix_available=True)\
-                                     .values_list('name', flat=True).distinct()
-        return {'packages': ' '.join(packages), 'name': param}
+        if settings.CVE_ACTION_CACHE:
+            redis_conn = redis.Redis(connection_pool=cls.pool)
+            key = f'cve:packages:{param}'
+            packages = redis_conn.get(key)
+            if packages is None:
+                packages = cls._packages_string(param)
+                with redis_conn.lock('cve_packages', blocking_timeout=1):
+                    redis_conn.set(key, packages)
+            else:
+                packages = packages.decode()
+        else:
+            packages = cls._packages_string(param)
+        return {'packages': packages, 'name': param}
 
     @classmethod
     def affected_devices(cls, qs) -> List[ParamStatusQS]:
@@ -698,11 +705,27 @@ class CVEAction(ParamAction, metaclass=ActionMeta):
                                      .values_list('name', flat=True).distinct()
         return [ParamStatus(name, True) for name in vulns]
 
+    @staticmethod
+    def _cve_severity(cve_name):
+        from .models import Vulnerability
+        urgency = Vulnerability.objects.filter(name=cve_name).aggregate(Max('urgency'))['urgency__max']
+        return urgency or 0
+
     @classmethod
     def severity(cls, param):
-        from .models import Vulnerability
-        max_urgency = Vulnerability.objects.filter(name=param).aggregate(Max('urgency'))['urgency__max']
-        return Severity(max_urgency or 0)
+        if settings.CVE_ACTION_CACHE:
+            redis_conn = redis.Redis(connection_pool=cls.pool)
+            key = f'cve:urgency:{param}'
+            severity = redis_conn.get(key)
+            if severity is None:
+                severity = cls._cve_severity(param)
+                with redis_conn.lock('cve_urgency', blocking_timeout=1):
+                    redis_conn.set(key, severity)
+            else:
+                severity = int(severity.decode())
+        else:
+            severity = cls._cve_severity(param)
+        return Severity(severity)
 
 # --- Fleet-wide actions ---
 
