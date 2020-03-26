@@ -150,7 +150,7 @@ class Device(models.Model):
         return eol_info_dict
 
     def snooze_action(self, action_class, action_param, snoozed, duration=None):
-        ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class, action_param=action_param)
+        ra = RecommendedAction.objects.get(action_class=action_class, action_param=action_param)
         action, _ = RecommendedActionStatus.objects.get_or_create(device=self, ra=ra)
         action.status = snoozed
         if snoozed == RecommendedAction.Status.SNOOZED_UNTIL_TIME:
@@ -604,9 +604,11 @@ class Device(models.Model):
             if ra.exists():
                 ra = ra.first()
             else:
+                action_class = ActionMeta.get_class(action_class_name)
                 ra = RecommendedAction.objects.create(
                     action_class=action_class_name, action_param=param,
-                    action_context=ActionMeta.get_class(action_class_name).get_context(param))
+                    action_context=action_class.get_context(param),
+                    action_severity=action_class.severity(param))
             status = (RecommendedAction.Status.AFFECTED if is_affected else RecommendedAction.Status.NOT_AFFECTED)
             ra_status_new.append(RecommendedActionStatus(ra=ra, device=self, status=status))
         self.recommendedactionstatus_set.bulk_create(ra_status_new)
@@ -1038,7 +1040,8 @@ class RecommendedAction(models.Model):
     action_class = models.CharField(max_length=64)
     action_param = models.CharField(max_length=128, null=True, blank=True)
     action_context = JSONField(blank=True, default=dict)
-    action_severity = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Severity])
+    action_severity = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Severity],
+                                                       default=Severity.LO.value)
 
 
 class RecommendedActionStatus(models.Model):

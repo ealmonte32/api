@@ -120,6 +120,4 @@ class Migration(migrations.Migration):
             name='device',
             field=models.ForeignKey(to='device_registry.Device', on_delete=models.CASCADE, null=True)
         ),
-
-        migrations.RunPython(convert_action_id)
     ]

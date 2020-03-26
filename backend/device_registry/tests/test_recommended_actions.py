@@ -89,6 +89,7 @@ class GenerateActionsTest(TestCase):
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             affected = False
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
@@ -99,6 +100,7 @@ class GenerateActionsTest(TestCase):
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             affected = False
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
@@ -146,6 +148,7 @@ class GenerateActionsTest(TestCase):
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
 
     def test_snooze(self):
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
         self.TestActionOne.affected = True
         self.TestActionTwo.affected = True
         self.device.snooze_action(self.TestActionOne.__name__, None, RecommendedAction.Status.SNOOZED_UNTIL_PING)
@@ -189,6 +192,7 @@ class ResolvedTest(TestCase):
                 'title': '',
                 'short': ''
             }
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
