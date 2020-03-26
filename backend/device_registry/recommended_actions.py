@@ -678,6 +678,31 @@ class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
         return SSHD_CONFIG_PARAMS_INFO[param].severity
 
 
+class CVEAction(ParamAction, metaclass=ActionMeta):
+    @classmethod
+    def _get_context(cls, param):
+        from .models import Vulnerability, DebPackage
+        packages = DebPackage.objects.filter(vulnerabilities__name=param, vulnerabilities__fix_available=True)\
+                                     .values_list('name', flat=True).distinct()
+        return {'packages': ' '.join(packages)}
+
+    @classmethod
+    def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        # TODO: implement
+        pass
+
+    @classmethod
+    def affected_params(cls, device):
+        from .models import Vulnerability, DebPackage
+        vulns = Vulnerability.objects.filter(debpackage__device=device, fix_available=True)\
+                                     .values_list('name', flat=True).distinct()
+        return [ParamStatus(name, True) for name in vulns]
+
+    @classmethod
+    def severity(cls, param):
+        # TODO: return vulnerability (name=param) severity
+        return Severity.MED
+
 # --- Fleet-wide actions ---
 
 class GithubAction(BaseAction, metaclass=ActionMeta):

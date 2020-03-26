@@ -634,7 +634,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
     class TableRow(NamedTuple):
         cve_name: str
         urgency: Vulnerability.Urgency
-        packages: List[NamedTuple]  # Actually it's List[AffectedPackage]
+        packages: List['CVEView.AffectedPackage']
         cve_url: str
         cve_date: timezone.datetime = None
 

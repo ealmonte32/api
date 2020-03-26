@@ -753,3 +753,13 @@
 
     On Amazon Linux/CentOS/RHEL:
     $ sudo yum install audit
+- title: CVE detected
+  class: CVEAction
+  short: |
+    CVE detected - short text
+  long: |
+    CVE detected - long text
+  terminal_title: |
+    CVE detected - terminal title:
+  terminal_text:
+    $ sudo wott-agent upgrade {packages}
