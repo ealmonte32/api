@@ -517,7 +517,16 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
                   'AllowAgentForwarding': 'yes',
                   'PasswordAuthentication': 'yes',
                   'PermitEmptyPasswords': 'yes',
-                  'Protocol': '1'}
+                  'Protocol': '1',
+                  'ClientAliveInterval': '0',
+                  'ClientAliveCountMax': '4',
+                  'HostbasedAuthentication': 'yes',
+                  'IgnoreRhosts': 'no',
+                  'LogLevel': 'WARN',
+                  'LoginGraceTime': '120',
+                  'MaxAuthTries': '6',
+                  'PermitUserEnvironment': 'yes',
+                  'X11Forwarding': 'yes'}
 
     def setUp(self):
         super().setUp()

@@ -221,6 +221,209 @@
   terminal_code: |
     $ sudo wott-agent patch openssh-protocol
 
+- title: OpenSSH - Idle Timeout Interval needs to be changed
+  class: OpensshIssueAction
+  param: ClientAliveInterval
+  short: |
+    Setting a timeout improves security in cases where a user forgets to lock his/her workstation.
+  long: |
+    It is possible that a user walks away from his/her workstation without locking it. By setting a timeout, the session will automatically be terminated automatically during inactivity.
+
+    The recommended value from the CIS Security Benchmark is to set it to 5 minutes (300s).
+
+    The relevant configuration section in `sshd_config` looks as follows:
+
+    ```
+    ClientAliveInterval 300
+    ```
+
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#ClientAliveInterval){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.12)
+
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-client-alive-interval
+
+- title: OpenSSH - Reduce the amount of KeepAlive packages before timeout
+  class: OpensshIssueAction
+  param: ClientAliveCountMax
+  short: |
+    Setting a KeepAliveCountMax value improves security in cases where a user forgets to lock his/her workstation.
+  long: |
+    KeepAliveCount Max sets the number of alive messages which are sent back to the client before the session is terminated. This, together with `ClientAliveInterval` can help provide improved security when a workstation is left unattended by
+    automatically terminating the session.
+
+    The recommended value from the CIS Security Benchmark is to set it to 3 or less.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+
+    ```
+    ClientAliveCountMax 3
+    ```
+
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#ClientAliveCountMax){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.12)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-client-alive-count-max
+
+- title: OpenSSH - Please disable HostbasedAuthentication
+  class: OpensshIssueAction
+  param: HostbasedAuthentication
+  short: |
+    HostbasedAuthentication allows for authentication for trusted hosts via `rhosts` or `/etc/hosts.equiv`. This is considered insecure.
+  long: |
+    Host-based authentication is an alternative form of authentication, using `rhosts` or `/etc/hosts.equiv`. The CIS Benchmarks advice against this configuration.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+
+    ```
+    HostbasedAuthentication no
+    ```
+
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#HostbasedAuthentication){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.7)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-host-based-auth
+
+- title: OpenSSH - Reconfigure IgnoreRhosts
+  class: OpensshIssueAction
+  param: IgnoreRhosts
+  short: |
+    Specifies that `.rhosts` and `.shosts` files will not be used in `HostbasedAuthentication`.
+  long: |
+    Setting IgnoreRhosts to `yes` tell OpenSSH to explicitly ignore using `.rhosts` and `.shosts` with `HostbasedAuthentication`.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    IgnoreRhosts yes
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#IgnoreRhosts){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.6)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-ignore-rhosts
+
+- title: OpenSSH - Change the LogLevel
+  class: OpensshIssueAction
+  param: LogLevel
+  short: |
+    Setting the right log level can help identify relevant security events
+  long: |
+    OpenSSH provides several logging levels. If you're setting a log level too high (e.g. DEBUG), you may overload the system with too much activities, whereas setting it too low can lead you to miss important security events.
+
+    Setting the LogLevel to INFO allows for a good balance between the two, which can help you narrow down activities in the system.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    LogLevel INFO
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#LogLevel){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.3)
+
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-log-level
+
+- title: OpenSSH - Reconfigure LoginGraceTime to make brute force attacks harder
+  class: OpensshIssueAction
+  param: LoginGraceTime
+  short: |
+    Setting LoginGraceTime to less than a minute makes it harder to perform a brute force attack against the server.
+  long: |
+    LoginGraceTime is the time allowed for a successful authentication to the OpenSSH server. If the value is 0, there is no time limit, which gives an attacker a longer time period to try to brute force the server.
+
+    The CIS Benchmarks recommends setting this value to 60 seconds or less.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    LoginGraceTime 60
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#LoginGraceTime){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.13)
+
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-login-grace-time
+
+- title: OpenSSH - Set MaxAuthTries to 4 or less
+  class: OpensshIssueAction
+  param: MaxAuthTries
+  short: |
+    MaxAuthTries specifies the maximum amount of authentication attempts permitted per connection.
+  long: |
+    Setting MaxAuthTries to 4 will help prevent brute force attacks. Once half of this number has been reached (e.g. 2), additional failures will be logged.
+
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    MaxAuthTries 4
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#MaxAuthTries){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.5)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-max-auth-tries
+
+- title: OpenSSH - Disable User Environment
+  class: OpensshIssueAction
+  param: PermitUserEnvironment
+  short: |
+    Allowing user environments to be set by the client could bypass security controls.
+  long: |
+    By allowing users to set environment variables in `~/.ssh/environment` or using the `environment=` options in `~/.ssh/authorized_keys` could lead to security controls being bypassed.
+
+    For instance, by overriding the `PATH`, users could cause a compromised binary to be executed.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    PermitUserEnvironment no
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#PermitUserEnvironment){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.10)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-permit-user-env
+
+- title: OpenSSH - Disable X11Forwarding
+  class: OpensshIssueAction
+  param: X11Forwarding
+  short: |
+    Disable X11 Forwarding, unless there's an operational requirement for it.
+  long: |
+    The X Window System (also known as X11 and X) is a graphical user interface for UNIX and Linux. OpenSSH allows for X11 Forwarding, meaning that you can forward run the application on the server and forward the Graphical User Interface (GUI) to the client.
+
+    The CIS Benchmark suggest disabling this functionality, as it could potentially create a security issue.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    X11Forwarding no
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#X11Forwarding){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.4)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-x11-forwarding
+
 - title: Automatic security updates not enabled
   class: AutoUpdatesAction
   short: |

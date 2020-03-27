@@ -22,11 +22,9 @@ class Severity(IntEnum):
 class InsecureService(NamedTuple):
     """
     name: Process name (e.g. fingerd, tftpd).
-    sub_id: Action subclass id starting with 1. Should be unique across all InsecureService's.
     severity: Action severity.
     """
     name: str
-    sub_id: int
     severity: Severity
 
 
@@ -34,12 +32,10 @@ class OpenSSHConfigParam(NamedTuple):
     """
     safe_value: The value of the config parameter which is considered safe.
     doc_url: "Learn More" URL or None.
-    sub_id: Action subclass id starting with 1. Should be unique across all OpenSSHConfigParam's.
     severity: Action severity.
     """
     safe_value: str
     doc_url: str
-    sub_id: int
     severity: Severity
 
 
@@ -47,11 +43,9 @@ class PubliclyAccessiblePort(NamedTuple):
     """
     port: TCP port number. Should ideally be a valid port number, i.e. in [0, 65535].
     name: Display name of the service listening on this port.
-    sub_id: Action subclass id starting with 1. Should be unique across all PubliclyAccessiblePort's.
     """
     port: int
     name: str
-    sub_id: int
 
 
 class Action(NamedTuple):
@@ -113,36 +107,54 @@ class ParamStatusQS(NamedTuple):
 
 
 INSECURE_SERVICES = [
-    InsecureService('fingerd', 1, Severity.MED),
-    InsecureService('tftpd', 2, Severity.MED),
-    InsecureService('telnetd', 3, Severity.HI),
-    InsecureService('snmpd', 4, Severity.MED),
-    InsecureService('xinetd', 5, Severity.MED),
-    InsecureService('nis', 6, Severity.MED),
-    InsecureService('atftpd', 7, Severity.MED),
-    InsecureService('tftpd-hpa', 8, Severity.MED),
-    InsecureService('rsh-server', 9, Severity.HI),
-    InsecureService('rsh-redone-server', 10, Severity.HI)
+    InsecureService('fingerd', Severity.MED),
+    InsecureService('tftpd', Severity.MED),
+    InsecureService('telnetd', Severity.HI),
+    InsecureService('snmpd', Severity.MED),
+    InsecureService('xinetd', Severity.MED),
+    InsecureService('nis', Severity.MED),
+    InsecureService('atftpd', Severity.MED),
+    InsecureService('tftpd-hpa', Severity.MED),
+    InsecureService('rsh-server', Severity.HI),
+    InsecureService('rsh-redone-server', Severity.HI)
 ]
 
 SSHD_CONFIG_PARAMS_INFO = {
     'PermitEmptyPasswords': OpenSSHConfigParam(
-        'no', '', 1, Severity.HI),
+        'no', '', Severity.HI),
     'PermitRootLogin': OpenSSHConfigParam(
-        'no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', 2, Severity.MED),
+        'no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', Severity.MED),
     'PasswordAuthentication': OpenSSHConfigParam(
-        'no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', 3, Severity.HI),
+        'no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', Severity.HI),
     'AllowAgentForwarding': OpenSSHConfigParam(
-        'no', 'https://wott.io/documentation/faq#openssh-allowagentforwarding', 4, Severity.MED),
+        'no', 'https://wott.io/documentation/faq#openssh-allowagentforwarding', Severity.MED),
     'Protocol': OpenSSHConfigParam(
-        '2', '', 5, Severity.HI)
+        '2', '', Severity.HI),
+    'ClientAliveInterval': OpenSSHConfigParam(
+        '300', '', Severity.MED),
+    'ClientAliveCountMax': OpenSSHConfigParam(
+        '3', '', Severity.MED),
+    'HostbasedAuthentication': OpenSSHConfigParam(
+        'no', '', Severity.MED),
+    'IgnoreRhosts': OpenSSHConfigParam(
+        'yes', '', Severity.MED),
+    'LogLevel': OpenSSHConfigParam(
+        'INFO', '', Severity.MED),
+    'LoginGraceTime': OpenSSHConfigParam(
+        '60', '', Severity.MED),
+    'MaxAuthTries': OpenSSHConfigParam(
+        '4', '', Severity.MED),
+    'PermitUserEnvironment': OpenSSHConfigParam(
+        'no', '', Severity.MED),
+    'X11Forwarding': OpenSSHConfigParam(
+        'no', '', Severity.MED)
 }
 
 PUBLIC_SERVICE_PORTS = {
-    'mongod': PubliclyAccessiblePort(27017, 'MongoDB', 1),
-    'mysqld': PubliclyAccessiblePort(3306, 'MySQL/MariaDB', 2),
-    'memcached': PubliclyAccessiblePort(11211, 'Memcached', 3),
-    'redis-server': PubliclyAccessiblePort(6379, 'Redis', 4)
+    'mongod': PubliclyAccessiblePort(27017, 'MongoDB'),
+    'mysqld': PubliclyAccessiblePort(3306, 'MySQL/MariaDB'),
+    'memcached': PubliclyAccessiblePort(11211, 'Memcached'),
+    'redis-server': PubliclyAccessiblePort(6379, 'Redis')
 }
 
 SUBTITLES = {
@@ -555,7 +567,7 @@ class PubliclyAccessibleServiceAction(ParamAction, metaclass=ActionMeta):
     @classmethod
     def _get_context(cls, param):
         service_info = PUBLIC_SERVICE_PORTS[param]
-        port, service_name, sub_id = service_info
+        port, service_name = service_info
         return dict(service=service_name, port=port)
 
     @classmethod
@@ -633,11 +645,11 @@ class InsecureServicesAction(ParamAction, metaclass=ActionMeta):
     @classmethod
     def affected_devices(cls, qs):
         return [ParamStatusQS(name, qs.exclude(deb_packages_hash='').filter(
-                deb_packages__name=name).distinct()) for name, _, _ in INSECURE_SERVICES]
+                deb_packages__name=name).distinct()) for name, _  in INSECURE_SERVICES]
 
     @classmethod
     def affected_params(cls, device) -> List[ParamStatus]:
-        return [ParamStatus(name, device.deb_packages.filter(name=name).exists()) for name, _, _ in INSECURE_SERVICES]
+        return [ParamStatus(name, device.deb_packages.filter(name=name).exists()) for name, _ in INSECURE_SERVICES]
 
     @classmethod
     def severity(cls, param):
@@ -648,7 +660,7 @@ class InsecureServicesAction(ParamAction, metaclass=ActionMeta):
 class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
     @classmethod
     def _get_context(cls, param):
-        safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[param]
+        safe_value, doc_url, _ = SSHD_CONFIG_PARAMS_INFO[param]
         return dict(param_name=param,
                     safe_value=safe_value,
                     doc_url=doc_url)
