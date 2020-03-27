@@ -736,12 +736,20 @@
 
     On Amazon Linux/CentOS/RHEL:
     $ sudo yum install audit
-- title: Vulnerabiltiy {name} detected
+- title: Vulnerability {cve_name} discovered
   class: CVEAction
   short: |
-    CVE detected - short text
+    Vulnerability in {short_packages_list} discovered.
   long: |
-    CVE detected - long text
+    We've discovered that you are affected by {cve_name}.
+
+    This vulnerability affects:
+
+    {packages_list}
+
+    It is recommended that you resolve this issue as soon as possible.
+
+    [Learn more]({cve_link}){{: target="_blank"}}
   terminal_title: |
     CVE detected - terminal title:
   terminal_code:

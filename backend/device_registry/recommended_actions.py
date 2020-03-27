@@ -654,30 +654,38 @@ class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
 
 
 class CVEAction(ParamAction, metaclass=ActionMeta):
-    @staticmethod
-    def _packages_string(cve_name):
-        from .models import DebPackage
-        packages = DebPackage.objects.filter(vulnerabilities__name=cve_name, vulnerabilities__fix_available=True) \
-            .values_list('name', flat=True).distinct()
-        packages = ' '.join(packages)
-        return packages
-
     @classmethod
     def _get_context(cls, param):
         from .models import DebPackage
         packages = DebPackage.objects.filter(vulnerabilities__name=param, vulnerabilities__fix_available=True) \
-            .values_list('name', flat=True).distinct()
-        packages = ' '.join(packages)
-        return {'packages': packages, 'name': param}
+            .values_list('name', flat=True).distinct().order_by('name')
+        packages_spaced = ' '.join(packages)
+        packages_list = '\n'.join(f'* {p}' for p in packages)
+        n = len(packages)
+        if n == 0:
+            raise RuntimeError
+        if n == 1:
+            short_packages_list = f'package {packages[0]}'
+        elif n == 2:
+            short_packages_list = f'packages {packages[0]} and {packages[1]}'
+        elif n == 3:
+            short_packages_list = f'packages {packages[0]}, {packages[1]} and  {packages[2]}'
+        else:
+            short_packages_list = f'packages {packages[0]}, {packages[1]}, {packages[2]} and more'
+        return {'packages': packages_spaced,
+                'packages_list': packages_list,
+                'short_packages_list': short_packages_list,
+                'cve_name': param,
+                'cve_link': 'http://cve.mitre.org/cgi-bin/cvename.cgi?name='+param}
 
-    # @classmethod
-    # def affected_devices(cls, qs) -> List[ParamStatusQS]:
-    #     # TODO: implement
-    #     pass
+    @classmethod
+    def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        # TODO: implement
+        return super().affected_devices(qs)
 
     @classmethod
     def affected_params(cls, device):
-        from .models import Vulnerability, DebPackage
+        from .models import Vulnerability
         vulns = Vulnerability.objects.filter(debpackage__device=device, fix_available=True)\
                                      .values_list('name', flat=True).distinct()
         return [ParamStatus(name, True) for name in vulns]

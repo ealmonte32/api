@@ -32,8 +32,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='recommendedaction',
             name='action_severity',
-            field=models.PositiveSmallIntegerField(choices=[(device_registry.recommended_actions.Severity(1), 1), (device_registry.recommended_actions.Severity(2), 2), (device_registry.recommended_actions.Severity(3), 3)], default=1),
-            preserve_default=False,
+            field=models.PositiveSmallIntegerField(choices=[(device_registry.recommended_actions.Severity(1), 1), (device_registry.recommended_actions.Severity(2), 2), (device_registry.recommended_actions.Severity(3), 3)], default=1)
         ),
         migrations.RunPython(update_ra)
     ]
