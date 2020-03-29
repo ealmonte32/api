@@ -143,7 +143,7 @@
   <section class="top-section pt-2 {% if welcome %}d-none{% endif %}">
     <div class="weekly-card-container card mb-0 wott-box-shadow">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="title-left-box">Weekly Recommended Actions</h3>
+        <h3 class="title-left-box mb-0">Weekly Recommended Actions</h3>
         <div class="weekly-progress">
           <div class="graphic-title">Weekly Progress</div>
           <div id="week-progress-100">
@@ -241,6 +241,112 @@
         OVER THE LAST WEEK
       </div>
       {% endif %}
+    </section>
+  </section>
+  <section class="top-section pt-2 {% if welcome %}d-none{% endif %}">
+    <div class="weekly-card-container">
+      <div class="d-flex justify-content-between my-4 ">
+        <div class="card mb-0 wott-box-shadow wott-mini-card-size">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="wott-title-mini-card">Weekly<br>Streak</h3>
+            <h1 class="wott-value-mini-card">1</h1><!--HARDCODE-->
+          </div>      
+        </div>
+        <div class="card mb-0 wott-box-shadow wott-mini-card-size">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="wott-title-mini-card">Weekly<br>Progress</h3>
+            <h1 class="wott-value-mini-card">2</h1><!--HARDCODE-->
+          </div>       
+        </div>
+      </div>
+      
+      <div style="position: relative;"><!-- Remove div after feature realease -->
+        <div style="position:absolute; top: 55%; left: 35%; z-index: 99;"> <!-- Remove div after feature realease -->
+          <h1 style="font-size: 1.45rem; font-weight:800">Coming Soon...</h1>
+        </div>
+        <div class="card wott-box-shadow" style="margin-top: 30px; opacity: 0.3;" > <!-- Remove Opaicty after release feature-->
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="title-left-box mb-0">Average Time to Remediation</h3>
+          </div>
+          <div class="d-flex justify-content-between px-5 py-4">
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="wott-top-mini-card High font-strong">HIGH</span>
+              <h1>18h</h1><!--HARDCODE-->
+              <p class="wott-mini-card-legend">
+                <span style="vertical-align: -0.4em; font-size: 1.2rem">
+                  <i class="fas fa-sort-up"></i>
+                </span><!--HARDCODE-->
+                40% LAST WEEK
+              </p>
+            </div>
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="wott-top-mini-card Medium font-strong">MEDIUM</span>
+              <h1>4h</h1><!--HARDCODE-->
+              <p class="wott-mini-card-legend">
+                <span style="vertical-align: -0.4em; font-size: 1.2rem">
+                  <i class="fas fa-sort-up"></i>
+                </span><!--HARDCODE-->
+                40% LAST WEEK
+              </p>          </div>
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="wott-top-mini-card Low font-strong">LOW</span>
+              <h1>14h</h1><!--HARDCODE-->
+              <p class="wott-mini-card-legend">
+                <span style="vertical-align: -0.4em; font-size: 1.2rem">
+                  <i class="fas fa-sort-up"></i>
+                </span><!--HARDCODE-->
+                40% LAST WEEK
+              </p>
+            </div>
+  
+          </div>      
+        </div>
+
+      </div>
+      
+    </div>
+    <section class="right-graphic-container mt-4">
+      <div class="graph-title">Quarterly Target</div>
+      <div class="right-card w-50">
+        <div class="graph-half-moon" style="padding-bottom: 40px;">
+          <svg width="185%" height="185%" viewbox="0 1 39 39" class="donut">
+            <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+            <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#417EE7" stroke-width="2"></circle>
+            {% if object.variable is not None %}<!--Example: change object.variable for a real one-->
+            <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954"
+                    fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-linecap="round"
+                    stroke-dashoffset="75"
+                    stroke-dasharray="object.variable objetc.variable_minu100"><!--Example: change object.variable for a real one-->
+            </circle>
+            <g class="wott-chart-block-info">
+              {% if object.variable < 10 %}
+                <text id="trust-score-percentage" x="45%" y="55%" class="wott-chart-big-info">
+                  {{ object.variable }}<!--Example: change object.variable for a real one-->
+                </text>
+              {% else %}
+                <text id="trust-score-percentage" x="38%" y="55%" class="wott-chart-big-info">
+                  {{ object.variable }}<!--Example: change object.variable for a real one-->
+                </text>
+              {% endif %}
+            {% else %}
+            <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954"
+                    fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-linecap="round"
+                    stroke-dashoffset="75"
+                    stroke-dasharray="3 97">
+            </circle> 
+            <g class="wott-chart-block-info"> 
+              <text id="trust-score-percentage" x="45%" y="55%" class="wott-chart-big-info">
+                0
+              </text>
+            {% endif %}
+              <text class="wott-chart-small-info" x="43%" y="68%">
+                OF 60
+              </text>
+            </g> 
+          </svg>
+        </div>
+      
+    </div>
     </section>
   </section>
 </div>

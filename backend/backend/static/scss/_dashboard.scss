@@ -169,6 +169,39 @@
     text-decoration-line: line-through;
   }
 
+
+  .wott-title-mini-card {
+    padding: .7rem 0; 
+    width: 80%;
+    font-size: 1.2rem;
+    font-weight: 600;
+    @include mQ(1200px) {
+      font-size: .9rem;
+    }
+  }
+
+  .wott-value-mini-card {
+    width:20%;
+    color: #2460c8;
+    font-size: 3rem;
+    font-weight: 600;
+  }
+
+  .wott-mini-card-size {
+    width: 40%;
+  }
+
+  .wott-mini-card-legend {
+    color:#2460c8;
+    font-size: .75em; 
+    margin-bottom:0
+  }
+
+  .wott-top-mini-card {
+    font-size: .75em;
+    font-weight: 800;
+  }
+
   /* SMALL GRAPH WEEKLY PROGRESS */
 
   .weekly-progress {
