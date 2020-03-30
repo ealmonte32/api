@@ -6,7 +6,9 @@ from django.db.models import Q
 
 import redis
 
-from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
+from device_registry.models import DebPackage, Device, RecommendedAction, RecommendedActionStatus, Vulnerability, \
+    DEBIAN_SUITES, UBUNTU_SUITES
+from device_registry.recommended_actions import CVEAction
 from device_registry.models import UBUNTU_KERNEL_PACKAGES_RE_PATTERN
 from profile_page.models import Profile
 
@@ -80,6 +82,23 @@ def update_packages_vulnerabilities(batch):
     return counter, len(relations)
 
 
+def update_cve_ra():
+    """
+    Some packages may have new vulnerabilties, or new packages may have been added.
+    Create new CVEAction's if needed.
+    Update contexts of all existing CVEAction's to contain the correct list of affected packages and severity.
+    :return: None
+    """
+    logger.info('updating CVEAction')
+    RecommendedActionStatus.update_all_devices([CVEAction])
+    ras = RecommendedAction.objects.filter(action_class='CVEAction')
+    for ra in ras:
+        ra.action_context = CVEAction.get_context(ra.action_param)
+        ra.action_severity = CVEAction.severity(ra.action_param)
+    RecommendedAction.objects.bulk_update(ras, ['action_context', 'action_severity'])
+    logger.info('done.')
+
+
 def send_packages_to_vulns_update(task):
     logger.info('started.')
     redis_conn = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD)
@@ -106,7 +125,10 @@ def send_packages_to_vulns_update(task):
                 logger.info('%d packages batch sent to the queue.' % len(batch))
                 position += batch_size
             logger.info('finished.')
-            return len(package_ids)
+            n_ids = len(package_ids)
+            if n_ids:
+                update_cve_ra()
+            return n_ids
     except redis.exceptions.LockError:
         logger.info('lock NOT acquired.')
         # Did not managed to acquire the lock within 3s - that means it's acquired by

@@ -1085,22 +1085,23 @@ class RecommendedActionStatus(models.Model):
                 ra = RecommendedAction.objects.filter(action_class=action_class.__name__,
                                                       action_param=param)
                 if not ra.exists():
-                    ra = RecommendedAction.objects.create(action_class=action_class.__name__,
-                                                          action_param=param,
-                                                          action_context=action_class.get_context(param),
-                                                          action_severity=action_class.severity(param))
+                    # This is a new RA.
+                    ra = RecommendedAction(action_class=action_class.__name__,
+                                           action_param=param,
+                                           action_context=action_class.get_context(param),
+                                           action_severity=action_class.severity(param))
                 else:
+                    # This RA already exists, but it needs status update.
                     ra = ra.first()
-                    ra.action_context = action_class.get_context(param)
-                    ra.action_severity = action_class.severity(param)
-                    ra.save(update_fields=['action_context', 'action_severity'])
                 param_affected = set(param_affected)
-                created += [cls(device=d,
-                                ra=ra,
-                                status=RecommendedAction.Status.AFFECTED)
-                            for d in param_affected]
+                created.append((ra, [(d, RecommendedAction.Status.AFFECTED) for d in param_affected]))
         if created:
-            cls.objects.bulk_create(created)
+            created_ras = RecommendedAction.objects.bulk_create([ra for ra, _ in created])
+            ra_stats = []
+            for ra_statuses, new_ra in zip(created, created_ras):
+                ra, statuses = ra_statuses
+                ra_stats += [RecommendedActionStatus(ra=new_ra, device=d, status=s) for d, s in statuses]
+            cls.objects.bulk_create(ra_stats)
         return len(created)
 
 

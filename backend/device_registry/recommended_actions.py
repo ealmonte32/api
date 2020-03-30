@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 
 import redis
 from django.conf import settings
-from django.db.models import Q, QuerySet, Max
+from django.db.models import Q, QuerySet, Max, F
 from django.urls import reverse
 from django.utils import timezone
 
@@ -680,14 +680,35 @@ class CVEAction(ParamAction, metaclass=ActionMeta):
 
     @classmethod
     def affected_devices(cls, qs) -> List[ParamStatusQS]:
-        # TODO: implement
-        return super().affected_devices(qs)
+        from .models import Vulnerability, Device
+        severity_none = Vulnerability.objects.values('name').annotate(max_urgency=Max('urgency')) \
+            .filter(max_urgency=Vulnerability.Urgency.NONE).values('name')
+        vv = Vulnerability.objects.filter(debpackage__device__in=qs, fix_available=True)\
+                                  .annotate(device=F('debpackage__device'))\
+                                  .values('name', 'device').distinct()\
+                                  .exclude(name__in=severity_none)\
+                                  .order_by('name')
+        name = None
+        devices = []
+        result = []
+        for v in vv:
+            devices.append(v['device'])
+            if name != v['name']:
+                if name is not None:
+                    result.append(ParamStatusQS(v['name'], Device.objects.filter(pk__in=devices)))
+                    devices = []
+                name = v['name']
+
+        return result
 
     @classmethod
     def affected_params(cls, device):
         from .models import Vulnerability
+        severity_none = Vulnerability.objects.values('name').annotate(max_urgency=Max('urgency'))\
+            .filter(max_urgency=Vulnerability.Urgency.NONE).values('name')
         vulns = Vulnerability.objects.filter(debpackage__device=device, fix_available=True)\
-                                     .values_list('name', flat=True).distinct()
+                                     .values_list('name', flat=True).distinct()\
+                                     .exclude(name__in=severity_none)
         return [ParamStatus(name, True) for name in vulns]
 
     @classmethod

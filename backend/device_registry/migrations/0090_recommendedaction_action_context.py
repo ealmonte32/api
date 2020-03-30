@@ -8,12 +8,13 @@ from django.db import migrations, models
 def update_ra(apps, schema_editor):
     from device_registry.models import RecommendedAction, RecommendedActionStatus
     RecommendedAction.objects.filter(action_class='VulnerablePackagesAction').delete()
-    for ra in RecommendedAction.objects.all():
+    ras = RecommendedAction.objects.all()
+    for ra in ras:
         action_class = device_registry.recommended_actions.ActionMeta.get_class(ra.action_class)
         param = ra.action_param
         ra.action_context = action_class.get_context(param)
         ra.action_severity = action_class.severity(param)
-        ra.save(update_fields=['action_context', 'action_severity'])
+    RecommendedAction.objects.bulk_update(ras, ['action_context', 'action_severity'])
     RecommendedActionStatus.update_all_devices([device_registry.recommended_actions.CVEAction])
 
 
