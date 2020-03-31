@@ -101,7 +101,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             actions.append(a._replace(resolved=True, id=i))
             i += 1
 
-        return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)
+        return actions, resolved_count
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -121,9 +121,16 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                     'arrow': 'up' if score - last_week_score >= 0 else 'down',
                 },
             )
+        actions_resolved_this_quarter = self.request.user.profile.actions_resolved_this_quarter
+        # 60 is the quarterly resolved RAs target (see https://github.com/WoTTsecurity/api/issues/819)
+        actions_resolved_this_quarter_part_of_100 = actions_resolved_this_quarter / 60 * 100
         context.update(
             actions=actions,
-            weekly_progress=round(resolved_count * 100 / settings.MAX_WEEKLY_RA)
+            weekly_progress=resolved_count,
+            weekly_progress_percent=round(min(resolved_count, settings.MAX_WEEKLY_RA) * 100 / settings.MAX_WEEKLY_RA),
+            actions_resolved_this_quarter=(actions_resolved_this_quarter, actions_resolved_this_quarter_part_of_100,
+                                           100 - actions_resolved_this_quarter_part_of_100),
+            current_weekly_streak=self.request.user.profile.current_weekly_streak
         )
         return context
 

@@ -1384,7 +1384,7 @@ class DashboardViewTests(TestCase):
     def test_empty(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context_data['weekly_progress'], 0)
+        self.assertEqual(response.context_data['weekly_progress_percent'], 0)
         self.assertListEqual(response.context_data['actions'], [])
 
     def test_weekly_ra(self):
@@ -1451,7 +1451,7 @@ class DashboardViewTests(TestCase):
                               (self.test_actions[3].__name__, False),
                               (self.test_actions[4].__name__, True),
                               (self.test_actions[5].__name__, True)])
-        self.assertEqual(response.context_data['weekly_progress'], 40)
+        self.assertEqual(response.context_data['weekly_progress_percent'], 40)
 
 
 class CVEViewTests(TestCase):
