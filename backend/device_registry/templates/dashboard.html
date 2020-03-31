@@ -147,9 +147,9 @@
         <div class="weekly-progress">
           <div class="graphic-title">Weekly Progress</div>
           <div id="week-progress-100">
-            <span id="week-progress-var" style="width: {{ weekly_progress }}%">
-              <p class="my-0 {% if weekly_progress == 0 %}graph-var-0{% elif weekly_progress < 25 %}graph-less-25{% else %}justify-content-center{% endif %}"
-                 id="week-progress-text" >{{ weekly_progress }}</p>
+            <span id="week-progress-var" style="width: {{ weekly_progress_percent }}%">
+              <p class="my-0 {% if weekly_progress_percent == 0 %}graph-var-0{% elif weekly_progress_percent < 25 %}graph-less-25{% else %}justify-content-center{% endif %}"
+                 id="week-progress-text" >{{ weekly_progress_percent }}</p>
             </span>
           </div>
         </div>
@@ -223,13 +223,13 @@
                 {{ trust_score.current }}
               </text>
               <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
-                of 100 <!--HARDCODE-->
+                of 100
               </text>
               <text x="50%" y="50%" class="chart-label2">
               </text>
-              <text x="50%" y="50%" class="chart-label3">
-                good <!--HARCODE-->
-              </text>
+{#              <text x="50%" y="50%" class="chart-label3">#}
+{#                good <!--HARDCODE-->#}
+{#              </text>#}
             </g>
         </svg>
 
@@ -249,13 +249,13 @@
         <div class="card mb-0 wott-box-shadow wott-mini-card-size">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="wott-title-mini-card">Weekly<br>Streak</h3>
-            <h1 class="wott-value-mini-card">1</h1><!--HARDCODE-->
+            <h1 class="wott-value-mini-card">{{ current_weekly_streak }}</h1>
           </div>      
         </div>
         <div class="card mb-0 wott-box-shadow wott-mini-card-size">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h3 class="wott-title-mini-card">Weekly<br>Progress</h3>
-            <h1 class="wott-value-mini-card">2</h1><!--HARDCODE-->
+            <h3 class="wott-title-mini-card">Weekly<br>Completed Actions</h3>
+            <h1 class="wott-value-mini-card">{{ weekly_progress }}</h1>
           </div>       
         </div>
       </div>
@@ -271,7 +271,7 @@
           <div class="d-flex justify-content-between px-5 py-4">
             <div class="mini-card wott-rounded-lg d-flex flex-column">
               <span class="wott-top-mini-card High font-strong">HIGH</span>
-              <h1>18h</h1><!--HARDCODE-->
+              <h1>1.5 day</h1><!--HARDCODE-->
               <p class="wott-mini-card-legend">
                 <span style="vertical-align: -0.4em; font-size: 1.2rem">
                   <i class="fas fa-sort-up"></i>
@@ -281,7 +281,7 @@
             </div>
             <div class="mini-card wott-rounded-lg d-flex flex-column">
               <span class="wott-top-mini-card Medium font-strong">MEDIUM</span>
-              <h1>4h</h1><!--HARDCODE-->
+              <h1>0.5 day</h1><!--HARDCODE-->
               <p class="wott-mini-card-legend">
                 <span style="vertical-align: -0.4em; font-size: 1.2rem">
                   <i class="fas fa-sort-up"></i>
@@ -290,7 +290,7 @@
               </p>          </div>
             <div class="mini-card wott-rounded-lg d-flex flex-column">
               <span class="wott-top-mini-card Low font-strong">LOW</span>
-              <h1>14h</h1><!--HARDCODE-->
+              <h1>2.5 day</h1><!--HARDCODE-->
               <p class="wott-mini-card-legend">
                 <span style="vertical-align: -0.4em; font-size: 1.2rem">
                   <i class="fas fa-sort-up"></i>
@@ -311,38 +311,27 @@
         <div class="graph-half-moon" style="padding-bottom: 40px;">
           <svg width="185%" height="185%" viewbox="0 1 39 39" class="donut">
             <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
-            <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#417EE7" stroke-width="2"></circle>
-            {% if object.variable is not None %}<!--Example: change object.variable for a real one-->
+            <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#417EE7"
+                    stroke-width="2"></circle>
             <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954"
                     fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-linecap="round"
                     stroke-dashoffset="75"
-                    stroke-dasharray="object.variable objetc.variable_minu100"><!--Example: change object.variable for a real one-->
+                    stroke-dasharray="{{ actions_resolved_this_quarter.1 }} {{ actions_resolved_this_quarter.2 }}">
             </circle>
             <g class="wott-chart-block-info">
-              {% if object.variable < 10 %}
+              {% if actions_resolved_this_quarter.0 < 10 %}
                 <text id="trust-score-percentage" x="45%" y="55%" class="wott-chart-big-info">
-                  {{ object.variable }}<!--Example: change object.variable for a real one-->
+                  {{ actions_resolved_this_quarter.0 }}
                 </text>
               {% else %}
                 <text id="trust-score-percentage" x="38%" y="55%" class="wott-chart-big-info">
-                  {{ object.variable }}<!--Example: change object.variable for a real one-->
+                  {{ actions_resolved_this_quarter.0 }}
                 </text>
               {% endif %}
-            {% else %}
-            <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954"
-                    fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-linecap="round"
-                    stroke-dashoffset="75"
-                    stroke-dasharray="3 97">
-            </circle> 
-            <g class="wott-chart-block-info"> 
-              <text id="trust-score-percentage" x="45%" y="55%" class="wott-chart-big-info">
-                0
-              </text>
-            {% endif %}
               <text class="wott-chart-small-info" x="43%" y="68%">
                 OF 60
               </text>
-            </g> 
+            </g>
           </svg>
         </div>
       

@@ -1117,7 +1117,7 @@ class GithubIssue(models.Model):
 
 class HistoryRecord(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='history_records', on_delete=models.CASCADE)
-    sampled_at = models.DateTimeField(auto_now_add=True)
+    sampled_at = models.DateTimeField(auto_now_add=True, db_index=True)
     recommended_actions_resolved = models.IntegerField(null=True)
     average_trust_score = models.FloatField(null=True)
     cve_high_count = models.IntegerField(null=True)
