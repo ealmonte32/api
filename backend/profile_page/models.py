@@ -90,7 +90,11 @@ class Profile(models.Model):
 
     @property
     def actions_resolved_this_quarter(self):
+        """
+        Return number of RAs resolved during current quarter.
+        """
         now = timezone.now()
+        # Timestamp for the very beginning of the current quarter.
         quarter_start_ts = timezone.datetime(now.year, (now.month - 1) // 3 * 3 + 1, 1, tzinfo=now.tzinfo)
         return self.user.history_records.filter(
             sampled_at__gt=quarter_start_ts).aggregate(Sum('recommended_actions_resolved')
@@ -98,6 +102,10 @@ class Profile(models.Model):
 
     @property
     def current_weekly_streak(self):
+        """
+        Return the number of weeks in a row (starting from the current one) when
+        the number of resolved RAs was equal or greater than MAX_WEEKLY_RA (5).
+        """
         streak = 0
         current_week = True
         now = timezone.now()

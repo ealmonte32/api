@@ -122,6 +122,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 },
             )
         actions_resolved_this_quarter = self.request.user.profile.actions_resolved_this_quarter
+        # 60 is the quarterly resolved RAs target (see https://github.com/WoTTsecurity/api/issues/819)
         actions_resolved_this_quarter_part_of_100 = actions_resolved_this_quarter / 60 * 100
         context.update(
             actions=actions,
