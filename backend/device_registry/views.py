@@ -88,13 +88,15 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                                                                  ra__action_class=a['ra__action_class'],
                                                                  ra__action_param=a['ra__action_param']))\
                                                          .distinct()
-                a = ActionMeta.get_class(a['ra__action_class']).create_action(a['ra__action_context'], a['ra__action_severity'],
+                a = ActionMeta.get_class(a['ra__action_class']).create_action(a['ra__action_context'],
+                                                                              a['ra__action_severity'],
                                                                               affected_devices, a['ra__action_param'])
                 actions.append(a._replace(resolved=False, id=i))
                 i += 1
 
         for class_param in ra_resolved_this_week[:settings.MAX_WEEKLY_RA]:
-            a = ActionMeta.get_class(class_param['ra__action_class']).create_action({}, class_param['ra__action_severity'],
+            a = ActionMeta.get_class(class_param['ra__action_class']).create_action(class_param['ra__action_context'],
+                                                                                    class_param['ra__action_severity'],
                                                                                     [], class_param['ra__action_param'])
             actions.append(a._replace(resolved=True, id=i))
             i += 1
