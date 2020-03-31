@@ -71,7 +71,7 @@ class Profile(models.Model):
         ra_maybe_resolved_this_week = RecommendedActionStatus.objects.filter(device__owner=self.user,
                                                                        status=RecommendedAction.Status.NOT_AFFECTED,
                                                                        resolved_at__gte=this_monday) \
-            .values('ra__action_class', 'ra__action_param')  # resolved this week (not completely)
+            .values('ra__action_class', 'ra__action_param', 'ra__action_context', 'ra__action_severity')  # resolved this week (not completely)
         ra_unresolved = RecommendedActionStatus.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
                                                                device__owner=self.user) \
             .values('ra__pk').distinct()  # unresolved (incl. snoozed)
@@ -80,7 +80,7 @@ class Profile(models.Model):
             .exclude(ra__in=ra_unresolved)\
             .distinct()
         return (ra_unresolved.filter(RecommendedActionStatus.get_affected_query())
-                             .values('ra__action_class', 'ra__action_param'),
+                             .values('ra__action_class', 'ra__action_param', 'ra__action_context', 'ra__action_severity'),
                 ra_resolved_this_week)
 
     @property

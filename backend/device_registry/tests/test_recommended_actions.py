@@ -6,10 +6,10 @@ from django.utils import timezone
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
     GlobalPolicy, RecommendedAction, RecommendedActionStatus
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
-    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, FtpServerAction, CpuVulnerableAction, ActionMeta,\
+    MySQLDefaultRootPasswordAction, FtpServerAction, CpuVulnerableAction, ActionMeta, \
     Action, PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
     SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus, \
-    AuditdNotInstalledAction, RebootRequiredAction
+    AuditdNotInstalledAction, RebootRequiredAction, CVEAction
 
 from freezegun import freeze_time
 
@@ -89,6 +89,7 @@ class GenerateActionsTest(TestCase):
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             affected = False
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
@@ -99,6 +100,7 @@ class GenerateActionsTest(TestCase):
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             affected = False
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
@@ -146,6 +148,7 @@ class GenerateActionsTest(TestCase):
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
 
     def test_snooze(self):
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
         self.TestActionOne.affected = True
         self.TestActionTwo.affected = True
         self.device.snooze_action(self.TestActionOne.__name__, None, RecommendedAction.Status.SNOOZED_UNTIL_PING)
@@ -189,6 +192,7 @@ class ResolvedTest(TestCase):
                 'title': '',
                 'short': ''
             }
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
@@ -455,15 +459,16 @@ class FirewallPolicyActionTest(FirewallDisabledActionTest):
         self.policy.save()
 
 
-class VulnerablePackagesActionTest(TestsMixin, TestCase):
-    action_class = VulnerablePackagesAction
+class CVEActionTest(TestsMixin, TestCase):
+    action_class = CVEAction
+    param = 'CVE'
 
     def enable_action(self):
         self.device.deb_packages_hash = 'abcd'
         self.device.save(update_fields=['deb_packages_hash'])
         deb_package = DebPackage.objects.create(name='package', version='version1', source_name='package',
                                                 source_version='sversion1', arch='amd64', os_release_codename='jessie')
-        vulnerability = Vulnerability.objects.create(name='name', package='package', is_binary=True, other_versions=[],
+        vulnerability = Vulnerability.objects.create(name=self.param, package='package', is_binary=True, other_versions=[],
                                                      urgency=Vulnerability.Urgency.LOW, fix_available=True,
                                                      os_release_codename='jessie')
         deb_package.vulnerabilities.add(vulnerability)

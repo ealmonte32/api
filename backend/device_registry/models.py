@@ -19,7 +19,7 @@ import tagulous.models
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
 from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, PUBLIC_SERVICE_PORTS, \
-    ParamStatus
+    ParamStatus, Severity
 
 apt_pkg.init()
 
@@ -150,7 +150,7 @@ class Device(models.Model):
         return eol_info_dict
 
     def snooze_action(self, action_class, action_param, snoozed, duration=None):
-        ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class, action_param=action_param)
+        ra = RecommendedAction.objects.get(action_class=action_class, action_param=action_param)
         action, _ = RecommendedActionStatus.objects.get_or_create(device=self, ra=ra)
         action.status = snoozed
         if snoozed == RecommendedAction.Status.SNOOZED_UNTIL_TIME:
@@ -600,10 +600,17 @@ class Device(models.Model):
 
         ra_status_new = []
         for action_class_name, param, is_affected in added:
-            ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class_name, action_param=param)
+            ra = RecommendedAction.objects.filter(action_class=action_class_name, action_param=param)
+            if ra.exists():
+                ra = ra.first()
+            else:
+                action_class = ActionMeta.get_class(action_class_name)
+                ra = RecommendedAction.objects.create(
+                    action_class=action_class_name, action_param=param,
+                    action_context=action_class.get_context(param),
+                    action_severity=action_class.severity(param))
             status = (RecommendedAction.Status.AFFECTED if is_affected else RecommendedAction.Status.NOT_AFFECTED)
-            ra_status_new.append(RecommendedActionStatus(ra=ra, device=self,
-                                                   status=status))
+            ra_status_new.append(RecommendedActionStatus(ra=ra, device=self, status=status))
         self.recommendedactionstatus_set.bulk_create(ra_status_new)
 
         if settings.GITHUB_IMMEDIATE_SYNC and (n_affected or n_unaffected or ra_status_new) and self.owner:
@@ -1032,6 +1039,9 @@ class RecommendedAction(models.Model):
 
     action_class = models.CharField(max_length=64)
     action_param = models.CharField(max_length=128, null=True, blank=True)
+    action_context = JSONField(blank=True, default=dict)
+    action_severity = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Severity],
+                                                       default=Severity.LO.value)
 
 
 class RecommendedActionStatus(models.Model):
@@ -1072,14 +1082,26 @@ class RecommendedActionStatus(models.Model):
                 continue
             affected = action_class.affected_devices(qs)
             for param, param_affected in affected:
-                ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class.__name__, action_param=param)
+                ra = RecommendedAction.objects.filter(action_class=action_class.__name__,
+                                                      action_param=param)
+                if not ra.exists():
+                    # This is a new RA.
+                    ra = RecommendedAction(action_class=action_class.__name__,
+                                           action_param=param,
+                                           action_context=action_class.get_context(param),
+                                           action_severity=action_class.severity(param))
+                else:
+                    # This RA already exists, but it needs status update.
+                    ra = ra.first()
                 param_affected = set(param_affected)
-                created += [cls(device=d,
-                                ra=ra,
-                                status=RecommendedAction.Status.AFFECTED)
-                            for d in param_affected]
+                created.append((ra, [(d, RecommendedAction.Status.AFFECTED) for d in param_affected]))
         if created:
-            cls.objects.bulk_create(created)
+            created_ras = RecommendedAction.objects.bulk_create([ra for ra, _ in created])
+            ra_stats = []
+            for ra_statuses, new_ra in zip(created, created_ras):
+                ra, statuses = ra_statuses
+                ra_stats += [RecommendedActionStatus(ra=new_ra, device=d, status=s) for d, s in statuses]
+            cls.objects.bulk_create(ra_stats)
         return len(created)
 
 

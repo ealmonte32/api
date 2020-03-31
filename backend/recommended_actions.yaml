@@ -677,23 +677,6 @@
     When you're done, restart Redis by running:
     $ sudo service redis restart
 
-
-- title: Vulnerable packages found
-  class: VulnerablePackagesAction
-  short: |
-    Vulnerable packages have been found. These packages may be exploitable by an attacker to gain access to, or escalate permissions, on your servers. Make sure packages are up to date. You can learn more about the exact packages, as well as how to upgrade under the [Vulnerabilities tab](/cve)
-  long: |
-    Packages are a key part of most Linux based operating systems software. Typically when installing additional software onto Linux systems, it comes in pre-compiled packages. Depending on your Linux distribution, the package manager will differ (e.g. Debian/Ubuntu users `.deb` packages whereas RedHat/Fedora/Amazon uses '.rpm'. packages).
-
-    Over time, if not updated, these packages often become vulnerable to security risks leaving them open to exploitation from external attackers. These operating system packages can then be used by an attacker to gain access to your server, or to escalate permission them.
-
-    Assuming you using a Linux distribution that is still maintained (you can check the End-of-Life date under the "software" tab on each node), there should be security updates available.
-
-    WoTT can detect an out-of-date or insecure package and alert you about this. Do however note that in some instances, there is a known vulnerabilities that have been identified, but yet to be patched by the operating system vendors.
-
-    Also, for those new to security, it is worth pointing out that when a security issue is reported and identified, it is reported into the Common Vulnerabilities and Exposures (CVE) database. The most common authority for this is the
-    [mitre](https://cve.mitre.org/){{: target="_blank"}} CVE database.
-
 - title: Enable our GitHub integration for improved workflow
   class: GithubAction
   subtitle: Streamline the remediation process and assign issues to team members.
@@ -753,3 +736,21 @@
 
     On Amazon Linux/CentOS/RHEL:
     $ sudo yum install audit
+- title: Vulnerability {cve_name} discovered
+  class: CVEAction
+  short: |
+    Vulnerability in {short_packages_list} discovered.
+  long: |
+    We've discovered that you are affected by {cve_name}.
+
+    This vulnerability affects:
+
+    {packages_list}
+
+    It is recommended that you resolve this issue as soon as possible.
+
+    [Learn more]({cve_link}){{: target="_blank"}}
+  terminal_title: |
+    CVE detected - terminal title:
+  terminal_code:
+    $ sudo wott-agent upgrade {packages}

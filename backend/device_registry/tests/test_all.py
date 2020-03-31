@@ -1353,7 +1353,8 @@ class DashboardViewTests(TestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user
         )
-        RecommendedAction.objects.bulk_create([RecommendedAction(action_class=c.__name__, action_param=None)
+        RecommendedAction.objects.bulk_create([RecommendedAction(action_class=c.__name__,
+                                                                 action_param=None, action_severity=c.severity())
                                                for c in self.test_actions])
 
     @classmethod

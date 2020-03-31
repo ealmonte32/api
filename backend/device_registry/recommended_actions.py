@@ -4,8 +4,9 @@ from enum import IntEnum
 from typing import NamedTuple, List
 from urllib.parse import urljoin
 
+import redis
 from django.conf import settings
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, Max, F
 from django.urls import reverse
 from django.utils import timezone
 
@@ -224,7 +225,7 @@ class BaseAction:
         return {}
 
     @classmethod
-    def _create_action(cls, context, devices_list, param=None) -> Action:
+    def create_action(cls, context, severity, devices_list, param=None) -> Action:
         """
         Create an Action object with title and description supplied by this class (cls), action description context,
         devices list and profile's github issue info (which can be empty).
@@ -239,7 +240,7 @@ class BaseAction:
             action_config = cls.action_config
         return Action(
             title=action_config['title'].format(**context),
-            subtitle=action_config.get('subtitle', SUBTITLES[cls.severity(param)]).format(**context),
+            subtitle=action_config.get('subtitle', SUBTITLES[severity]).format(**context),
             short=action_config['short'].format(**context),
             long=action_config['long'].format(**context),
             terminal_title=action_config.get('terminal_title', '').format(**context),
@@ -247,21 +248,10 @@ class BaseAction:
             action_class=cls.__name__,
             action_param=param,
             devices=devices_list,
-            severity=cls.severity(param),
+            severity=severity,
             doc_url=cls.doc_url,
             fleet_wide=getattr(cls, 'is_user_action', False)
         )
-
-    @classmethod
-    def action(cls, devices, param=None) -> Action:
-        """
-        Create Action object from this action's data.
-        :param devices: a list of affected Device's
-        :param param: action param (if supported)
-        :return:
-        """
-        context = cls.get_context(param)
-        return cls._create_action(context, devices, param)
 
     @classmethod
     def _get_description(cls, user, param, action_config) -> (str, str):
@@ -494,21 +484,6 @@ class FirewallDisabledAction(SimpleAction, metaclass=ActionMeta):
         return Severity.MED
 
 
-# Vulnerable packages found action.
-class VulnerablePackagesAction(SimpleAction, metaclass=ActionMeta):
-    @classmethod
-    def _affected_devices(cls, qs):
-        return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
-
-    @classmethod
-    def _is_affected(cls, device) -> bool:
-        return device.deb_packages.filter(vulnerabilities__isnull=False).exists()
-
-    @classmethod
-    def severity(cls, param=None):
-        return Severity.MED
-
-
 # OS reboot required action.
 class RebootRequiredAction(SimpleAction, metaclass=ActionMeta):
     _severity = Severity.MED
@@ -678,6 +653,70 @@ class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
         return SSHD_CONFIG_PARAMS_INFO[param].severity
 
 
+class CVEAction(ParamAction, metaclass=ActionMeta):
+    @classmethod
+    def _get_context(cls, param):
+        from .models import DebPackage
+        packages = DebPackage.objects.filter(vulnerabilities__name=param, vulnerabilities__fix_available=True) \
+            .values_list('name', flat=True).distinct().order_by('name')
+        packages_spaced = ' '.join(packages)
+        packages_list = '\n'.join(f'* {p}' for p in packages)
+        n = len(packages)
+        if n == 0:
+            raise RuntimeError
+        if n == 1:
+            short_packages_list = f'package {packages[0]}'
+        elif n == 2:
+            short_packages_list = f'packages {packages[0]} and {packages[1]}'
+        elif n == 3:
+            short_packages_list = f'packages {packages[0]}, {packages[1]} and  {packages[2]}'
+        else:
+            short_packages_list = f'packages {packages[0]}, {packages[1]}, {packages[2]} and more'
+        return {'packages': packages_spaced,
+                'packages_list': packages_list,
+                'short_packages_list': short_packages_list,
+                'cve_name': param,
+                'cve_link': 'http://cve.mitre.org/cgi-bin/cvename.cgi?name='+param}
+
+    @classmethod
+    def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        from .models import Vulnerability, Device
+        severity_none = Vulnerability.objects.values('name').annotate(max_urgency=Max('urgency')) \
+            .filter(max_urgency=Vulnerability.Urgency.NONE).values('name')
+        vv = Vulnerability.objects.filter(debpackage__device__in=qs, fix_available=True)\
+                                  .annotate(device=F('debpackage__device'))\
+                                  .values('name', 'device').distinct()\
+                                  .exclude(name__in=severity_none)\
+                                  .order_by('name')
+        name = None
+        devices = []
+        result = []
+        for v in vv:
+            devices.append(v['device'])
+            if name != v['name']:
+                if name is not None:
+                    result.append(ParamStatusQS(v['name'], Device.objects.filter(pk__in=devices)))
+                    devices = []
+                name = v['name']
+
+        return result
+
+    @classmethod
+    def affected_params(cls, device):
+        from .models import Vulnerability
+        severity_none = Vulnerability.objects.values('name').annotate(max_urgency=Max('urgency'))\
+            .filter(max_urgency=Vulnerability.Urgency.NONE).values('name')
+        vulns = Vulnerability.objects.filter(debpackage__device=device, fix_available=True)\
+                                     .values_list('name', flat=True).distinct()\
+                                     .exclude(name__in=severity_none)
+        return [ParamStatus(name, True) for name in vulns]
+
+    @classmethod
+    def severity(cls, param):
+        from .models import Vulnerability
+        severity = Vulnerability.objects.filter(name=param).aggregate(Max('urgency'))['urgency__max']
+        return Severity(severity or 1)
+
 # --- Fleet-wide actions ---
 
 class GithubAction(BaseAction, metaclass=ActionMeta):
@@ -687,14 +726,17 @@ class GithubAction(BaseAction, metaclass=ActionMeta):
     def severity(cls, param=None):
         return Severity.LO
 
+    @classmethod
+    def create_action(cls):
+        return super().create_action({}, cls.severity(), [])
 
 class EnrollAction(BaseAction, metaclass=ActionMeta):
     is_user_action = True
 
     @classmethod
-    def get_user_context(cls, user):
+    def create_action(cls, user):
         context = {'key': user.profile.pairing_key.key}
-        return EnrollAction._create_action(context, [])
+        return super().create_action(context, cls.severity(), [])
 
     @classmethod
     def severity(cls, param=None):
