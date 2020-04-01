@@ -323,8 +323,12 @@
                 <text id="trust-score-percentage" x="45%" y="55%" class="wott-chart-big-info">
                   {{ actions_resolved_this_quarter.0 }}
                 </text>
-              {% else %}
+              {% elif actions_resolved_this_quarter.0 < 100 %}
                 <text id="trust-score-percentage" x="38%" y="55%" class="wott-chart-big-info">
+                  {{ actions_resolved_this_quarter.0 }}
+                </text>
+              {% else %}
+                <text id="trust-score-percentage" x="31%" y="55%" class="wott-chart-big-info">
                   {{ actions_resolved_this_quarter.0 }}
                 </text>
               {% endif %}
