@@ -2,8 +2,13 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
+from django.conf import settings
+
+from freezegun import freeze_time
 
 from profile_page.forms import RegistrationForm
+from profile_page.models import Profile
+from device_registry.models import Device, HistoryRecord, RecommendedActionStatus, RecommendedAction
 
 
 class ProfileViewsTest(TestCase):
@@ -158,3 +163,73 @@ class LoginViewTest(TestCase):
         response = self.client.get(reverse('profile'))
         self.assertFalse('signed_up' in response.context)
         self.assertFalse('signed_in' in response.context)
+
+
+class ProfileModelTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user('user@gmail.com')
+        self.user.save()
+        Profile.objects.create(user=self.user)
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+
+    @freeze_time("2020-04-01 10:00:00", tz_offset=4)
+    def test_actions_resolved_today(self):
+        now = timezone.now()
+        # Take resolved RAs info from RecommendedActionStatus model.
+        RecommendedActionStatus.objects.create(
+            device=self.device, ra=RecommendedAction.objects.create(action_class='ClassOne'),
+            status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=now)
+        RecommendedActionStatus.objects.create(
+            device=self.device, ra=RecommendedAction.objects.create(action_class='ClassTwo'),
+            status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=now)
+        self.assertEqual(self.user.profile.actions_resolved_today, 2)
+        # Return 0 because the today's history record exists.
+        HistoryRecord.objects.create(owner=self.user, recommended_actions_resolved=5)
+        self.assertEqual(self.user.profile.actions_resolved_today, 0)
+
+    def test_actions_resolved_this_quarter(self):
+        # 2 days ago (previous quarter). this history record should not be counted.
+        with freeze_time("2020-03-31 10:00:00", tz_offset=4):
+            HistoryRecord.objects.create(owner=self.user, recommended_actions_resolved=5)
+        # 1 day ago (current quarter), should be counted.
+        with freeze_time("2020-04-01 10:00:00", tz_offset=4):
+            HistoryRecord.objects.create(owner=self.user, recommended_actions_resolved=6)
+        with freeze_time("2020-04-02 10:00:00", tz_offset=4):
+            self.assertEqual(self.user.profile.actions_resolved_this_quarter, 6)
+            # Add a RA resolved today, not yet reflected in history records.
+            RecommendedActionStatus.objects.create(
+                device=self.device, ra=RecommendedAction.objects.create(action_class='ClassTwo'),
+                status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=timezone.now() - timezone.timedelta(hours=1))
+            self.assertEqual(self.user.profile.actions_resolved_this_quarter, 7)
+
+    def test_current_weekly_streak(self):
+        # 1 week ago.
+        with freeze_time("2020-03-25 10:00:00", tz_offset=4):
+            HistoryRecord.objects.create(owner=self.user, recommended_actions_resolved=settings.MAX_WEEKLY_RA)
+        # 2 weeks ago.
+        with freeze_time("2020-03-18 10:00:00", tz_offset=4):
+            hr = HistoryRecord.objects.create(owner=self.user, recommended_actions_resolved=settings.MAX_WEEKLY_RA)
+        # 3 weeks ago.
+        with freeze_time("2020-03-11 10:00:00", tz_offset=4):
+            HistoryRecord.objects.create(owner=self.user, recommended_actions_resolved=settings.MAX_WEEKLY_RA)
+        # Today.
+        with freeze_time("2020-04-02 10:00:00", tz_offset=4):
+            self.assertEqual(self.user.profile.current_weekly_streak, 3)
+            # Reduce the number of resolved RAs 2 weeks ago below the threshold.
+            hr.recommended_actions_resolved = settings.MAX_WEEKLY_RA - 1
+            hr.save(update_fields=['recommended_actions_resolved'])
+            self.assertEqual(self.user.profile.current_weekly_streak, 1)
+            # Increase the number of resolved RAs 2 weeks ago above the threshold.
+            hr.recommended_actions_resolved = settings.MAX_WEEKLY_RA + 1
+            hr.save(update_fields=['recommended_actions_resolved'])
+            self.assertEqual(self.user.profile.current_weekly_streak, 3)
+            # Delete the history record for 2 weeks ago.
+            hr.delete()
+            self.assertEqual(self.user.profile.current_weekly_streak, 1)
+        # Yesterday (current week).
+        with freeze_time("2020-04-01 10:00:00", tz_offset=4):
+            HistoryRecord.objects.create(owner=self.user, recommended_actions_resolved=settings.MAX_WEEKLY_RA)
+        # Today.
+        with freeze_time("2020-04-02 10:00:00", tz_offset=4):
+            self.assertEqual(self.user.profile.current_weekly_streak, 2)
