@@ -93,7 +93,7 @@
     SSH (Secure Shell) is a method to remote login to a server. SSH is usually secure, however if used with the default settings, can be vulnerable to attacks from unwanted parties. By default, the SSH config file is preset with some values allowing for new developers to get used to setting up SSH servers. However, this often exposes vulnerabilities by not being restrictive enough.
 
     We've detected that `AllowAgentForwarding` is enabled. This means that you can SSH into one host and from there to a different host using the SSH key on your local machine. This might be the case if you cannot directly access the final host (for instance if you're using a
-    [Bastion host](https://en.wikipedia.org/wiki/Bastion_host)){{: target="_blank"}}. However, doing so leaves a socket open on the server, which then can be attacked.
+    [Bastion host](https://en.wikipedia.org/wiki/Bastion_host){{: target="_blank"}}. However, doing so leaves a socket open on the server, which then can be attacked.
 
     Unless you need this feature, we recommend you disable this feature by edit the `/etc/ssh/sshd_config` file like so:
 
