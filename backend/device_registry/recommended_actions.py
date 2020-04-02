@@ -80,17 +80,21 @@ class Action(NamedTuple):
         Severity.HI: ('High', 'danger')
     }
 
+    @staticmethod
+    def _html(md: str):
+        return markdown.markdown(md, extensions=['attr_list'])
+
     @property
     def short_html(self):
-        return markdown.markdown(self.short, extensions=['attr_list'])
+        return self._html(self.short)
 
     @property
     def long_html(self):
-        return markdown.markdown(self.long, extensions=['attr_list'])
+        return self._html(self.long)
 
     @property
     def terminal_title_html(self):
-        return markdown.markdown(self.terminal_title, extensions=['attr_list'])
+        return self._html(self.terminal_title)
 
     @property
     def severity_info(self):
@@ -289,6 +293,7 @@ class BaseAction:
                       f"{action_config['long'].format(**context)}\n\n" \
                       f"#### Resolved on: ####\n{resolved}\n\n" \
                       f"*Last modified: {timezone.datetime.now().strftime('%m-%d-%Y %H:%M')} UTC*"
+        action_text = action_text.replace('{: target="_blank"}', '')
 
         resolved = [a.device for a in actions if a.status == RecommendedAction.Status.NOT_AFFECTED]
         affected = [a.device for a in actions if a.status != RecommendedAction.Status.NOT_AFFECTED]
