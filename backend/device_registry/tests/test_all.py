@@ -1357,6 +1357,13 @@ class DashboardViewTests(TestCase):
                                                                  action_param=None, action_severity=c.severity())
                                                for c in self.test_actions])
 
+        RecommendedAction.objects.create(action_class='CVEAction', action_param='CVE-1',
+                                         action_context=defaultdict(str),
+                                         action_severity=Severity.HI)
+        RecommendedAction.objects.create(action_class='CVEAction', action_param='CVE-2',
+                                         action_context=defaultdict(str),
+                                         action_severity=Severity.HI)
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -1440,7 +1447,21 @@ class DashboardViewTests(TestCase):
             # snoozed - doesn't count
             RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[7].__name__, action_param=None),
                               device=self.device1,
-                              status=RecommendedAction.Status.SNOOZED_FOREVER)
+                              status=RecommendedAction.Status.SNOOZED_FOREVER),
+
+            # CVE actions - should be excluded from the view
+            RecommendedActionStatus(
+                ra=RecommendedAction.objects.get(action_class='CVEAction', action_param='CVE-1'),
+                device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(
+                ra=RecommendedAction.objects.get(action_class='CVEAction', action_param='CVE-1'),
+                device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(
+                ra=RecommendedAction.objects.get(action_class='CVEAction', action_param='CVE-2'),
+                device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=today),
+            RecommendedActionStatus(
+                ra=RecommendedAction.objects.get(action_class='CVEAction', action_param='CVE-2'),
+                device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=today),
         ])
         # expected result: 1, 2, 3 - unfixed, 4, 5 - fixed
         response = self.client.get(self.url)
@@ -1452,6 +1473,10 @@ class DashboardViewTests(TestCase):
                               (self.test_actions[4].__name__, True),
                               (self.test_actions[5].__name__, True)])
         self.assertEqual(response.context_data['weekly_progress_percent'], 40)
+
+        self.profile.sample_history()
+        hr = HistoryRecord.objects.get()
+        self.assertEqual(hr.recommended_actions_resolved, 3)
 
 
 class CVEViewTests(TestCase):

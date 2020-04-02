@@ -68,11 +68,11 @@ class Profile(models.Model):
         sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         this_monday = sunday + relativedelta(days=1)  # This week's monday
 
-        ra_maybe_resolved_this_week = RecommendedActionStatus.objects.filter(device__owner=self.user,
-                                                                       status=RecommendedAction.Status.NOT_AFFECTED,
-                                                                       resolved_at__gte=this_monday) \
+        ra_maybe_resolved_this_week = RecommendedActionStatus.objects.exclude(ra__action_class='CVEAction').filter(
+            device__owner=self.user, status=RecommendedAction.Status.NOT_AFFECTED, resolved_at__gte=this_monday) \
             .values('ra__action_class', 'ra__action_param', 'ra__action_context', 'ra__action_severity')  # resolved this week (not completely)
         ra_unresolved = RecommendedActionStatus.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
+                                                               ~Q(ra__action_class='CVEAction'),
                                                                device__owner=self.user) \
             .values('ra__pk').distinct()  # unresolved (incl. snoozed)
 
@@ -174,7 +174,7 @@ class Profile(models.Model):
         """
         now = timezone.now()
         day_ago = now - timezone.timedelta(hours=24)
-        ra_resolved = RecommendedActionStatus.objects.filter(
+        ra_resolved = RecommendedActionStatus.objects.exclude(ra__action_class='CVEAction').filter(
             status=RecommendedAction.Status.NOT_AFFECTED,
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user
