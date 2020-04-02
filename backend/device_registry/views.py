@@ -122,14 +122,14 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 },
             )
         actions_resolved_this_quarter = self.request.user.profile.actions_resolved_this_quarter
-        # 60 is the quarterly resolved RAs target (see https://github.com/WoTTsecurity/api/issues/819)
-        actions_resolved_this_quarter_part_of_100 = actions_resolved_this_quarter / 60 * 100
         context.update(
             actions=actions,
             weekly_progress=resolved_count,
             weekly_progress_percent=round(min(resolved_count, settings.MAX_WEEKLY_RA) * 100 / settings.MAX_WEEKLY_RA),
-            actions_resolved_this_quarter=(actions_resolved_this_quarter, actions_resolved_this_quarter_part_of_100,
-                                           100 - actions_resolved_this_quarter_part_of_100),
+            actions_resolved_this_quarter=actions_resolved_this_quarter,
+            # 60 is the quarterly resolved RAs target (see https://github.com/WoTTsecurity/api/issues/819)
+            actions_resolved_this_quarter_part_of_100=actions_resolved_this_quarter / 60 * 100,
+            actions_resolved_this_quarter_left_for_100=100 - actions_resolved_this_quarter / 60 * 100,
             current_weekly_streak=self.request.user.profile.current_weekly_streak
         )
         return context

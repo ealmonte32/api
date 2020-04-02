@@ -316,20 +316,20 @@
             <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954"
                     fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-linecap="round"
                     stroke-dashoffset="75"
-                    stroke-dasharray="{{ actions_resolved_this_quarter.1 }} {{ actions_resolved_this_quarter.2 }}">
+                    stroke-dasharray="{{ actions_resolved_this_quarter_part_of_100 }} {{ actions_resolved_this_quarter_left_for_100 }}">
             </circle>
             <g class="wott-chart-block-info">
-              {% if actions_resolved_this_quarter.0 < 10 %}
+              {% if actions_resolved_this_quarter < 10 %}
                 <text id="trust-score-percentage" x="45%" y="55%" class="wott-chart-big-info">
-                  {{ actions_resolved_this_quarter.0 }}
+                  {{ actions_resolved_this_quarter }}
                 </text>
-              {% elif actions_resolved_this_quarter.0 < 100 %}
+              {% elif actions_resolved_this_quarter < 100 %}
                 <text id="trust-score-percentage" x="38%" y="55%" class="wott-chart-big-info">
-                  {{ actions_resolved_this_quarter.0 }}
+                  {{ actions_resolved_this_quarter }}
                 </text>
               {% else %}
                 <text id="trust-score-percentage" x="31%" y="55%" class="wott-chart-big-info">
-                  {{ actions_resolved_this_quarter.0 }}
+                  {{ actions_resolved_this_quarter }}
                 </text>
               {% endif %}
               <text class="wott-chart-small-info" x="43%" y="68%">

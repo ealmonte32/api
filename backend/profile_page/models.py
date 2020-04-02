@@ -104,7 +104,7 @@ class Profile(models.Model):
             try:
                 yesterday_history_record = self.user.history_records.get(sampled_at__date=day_ago.date())
             except ObjectDoesNotExist:
-                day_ago = day_ago.replace(hour=17, minute=0, second=0, microsecond=0)  # Yesterday 5PM.
+                day_ago = day_ago.replace(hour=settings.SAMPLE_HISTORY_AT, minute=0, second=0, microsecond=0)
             else:
                 day_ago = yesterday_history_record.sampled_at
             return RecommendedActionStatus.objects.filter(
