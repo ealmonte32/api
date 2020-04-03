@@ -21,9 +21,8 @@ from profile_page.mixins import LoginTrackMixin
 from .api_views import DeviceListFilterMixin
 from .forms import ClaimDeviceForm, DeviceAttrsForm, PortsForm, ConnectionsForm, DeviceMetadataForm
 from .forms import FirewallStateGlobalPolicyForm, GlobalPolicyForm
-from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, \
-    RecommendedAction, Vulnerability, RecommendedActionStatus, GithubIssue
-from .models import GlobalPolicy
+from .models import Device, PortScan, FirewallState, get_bootstrap_color, PairingKey, Vulnerability
+from .models import GlobalPolicy, RecommendedActionStatus
 from .recommended_actions import ActionMeta, FirewallDisabledAction, EnrollAction, GithubAction
 
 
@@ -122,14 +121,14 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                 },
             )
         actions_resolved_this_quarter = self.request.user.profile.actions_resolved_this_quarter
-        # 60 is the quarterly resolved RAs target (see https://github.com/WoTTsecurity/api/issues/819)
-        actions_resolved_this_quarter_part_of_100 = actions_resolved_this_quarter / 60 * 100
         context.update(
             actions=actions,
             weekly_progress=resolved_count,
             weekly_progress_percent=round(min(resolved_count, settings.MAX_WEEKLY_RA) * 100 / settings.MAX_WEEKLY_RA),
-            actions_resolved_this_quarter=(actions_resolved_this_quarter, actions_resolved_this_quarter_part_of_100,
-                                           100 - actions_resolved_this_quarter_part_of_100),
+            actions_resolved_this_quarter=actions_resolved_this_quarter,
+            # 60 is the quarterly resolved RAs target (see https://github.com/WoTTsecurity/api/issues/819)
+            actions_resolved_this_quarter_part_of_100=actions_resolved_this_quarter / 60 * 100,
+            actions_resolved_this_quarter_left_for_100=100 - actions_resolved_this_quarter / 60 * 100,
             current_weekly_streak=self.request.user.profile.current_weekly_streak
         )
         return context

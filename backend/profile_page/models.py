@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import Q, Avg, Max, Window, Count, Sum
 from django.db.models.functions import Coalesce
 from django.db.models.signals import pre_save
+from django.core.exceptions import ObjectDoesNotExist
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -89,6 +90,28 @@ class Profile(models.Model):
         return min(resolved.count(), settings.MAX_WEEKLY_RA)
 
     @property
+    def actions_resolved_today(self):
+        """
+        A method for finding the number of RAs resolved today that are not reflected in a history record.
+        If no history record for today - return the number of RAs resolved today.
+        Otherwise - return 0.
+        """
+        now = timezone.now()
+        day_ago = now - timezone.timedelta(hours=24)
+        if self.user.history_records.filter(sampled_at__date=now.date()).exists():
+            return 0
+        else:
+            try:
+                yesterday_history_record = self.user.history_records.get(sampled_at__date=day_ago.date())
+            except ObjectDoesNotExist:
+                day_ago = day_ago.replace(hour=settings.SAMPLE_HISTORY_AT, minute=0, second=0, microsecond=0)
+            else:
+                day_ago = yesterday_history_record.sampled_at
+            return RecommendedActionStatus.objects.filter(
+                status=RecommendedAction.Status.NOT_AFFECTED, resolved_at__gt=day_ago, resolved_at__lte=now,
+                device__owner=self.user).exclude(ra__action_class='CVEAction').values('ra__pk').distinct().count()
+
+    @property
     def actions_resolved_this_quarter(self):
         """
         Return number of RAs resolved during current quarter.
@@ -96,9 +119,10 @@ class Profile(models.Model):
         now = timezone.now()
         # Timestamp for the very beginning of the current quarter.
         quarter_start_ts = timezone.datetime(now.year, (now.month - 1) // 3 * 3 + 1, 1, tzinfo=now.tzinfo)
-        return self.user.history_records.filter(
+        actions_number_from_history = self.user.history_records.filter(
             sampled_at__gt=quarter_start_ts).aggregate(Sum('recommended_actions_resolved')
                                                        )['recommended_actions_resolved__sum'] or 0
+        return actions_number_from_history + self.actions_resolved_today
 
     @property
     def current_weekly_streak(self):
@@ -116,8 +140,10 @@ class Profile(models.Model):
         while True:
             actions_resolved = self.user.history_records.filter(
                 sampled_at__gt=monday, sampled_at__lt=end_ts).aggregate(Sum('recommended_actions_resolved')
-                                                                        )['recommended_actions_resolved__sum']
-            if actions_resolved and actions_resolved >= settings.MAX_WEEKLY_RA:
+                                                                        )['recommended_actions_resolved__sum'] or 0
+            if current_week:
+                actions_resolved += self.actions_resolved_today
+            if actions_resolved >= settings.MAX_WEEKLY_RA:
                 streak += 1
             else:
                 if not current_week:

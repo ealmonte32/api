@@ -139,7 +139,7 @@ def send_packages_to_vulns_update(task):
 
 def sample_history():
     logger.info('started.')
-    profiles = Profile.objects.filter(user__devices__isnull=False).only('user')
+    profiles = Profile.objects.filter(user__devices__isnull=False).distinct().only('user')
     for profile in profiles:
         profile.sample_history()
     logger.info('finished.')
