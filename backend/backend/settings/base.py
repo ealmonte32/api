@@ -243,7 +243,6 @@ CELERY_BROKER_URL = 'redis://%s%s:%i/0' % (
     int(os.getenv('REDIS_PORT', '6379'))
 )
 
-SAMPLE_HISTORY_AT = 17
 CELERY_BEAT_SCHEDULE = {
     'update_celery_pulse_timestamp': {
         'task': 'monitoring.tasks.update_celery_pulse_timestamp',
@@ -275,7 +274,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     'sample_history': {
         'task': 'device_registry.tasks.sample_history',
-        'schedule': crontab(hour=SAMPLE_HISTORY_AT, minute=0)  # Execute once a day at 5PM.
+        'schedule': crontab(hour=17, minute=0)  # Execute once a day at 5PM.
     }
 }
 
