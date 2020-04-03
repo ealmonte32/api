@@ -6,10 +6,10 @@ from django.utils import timezone
 from device_registry.models import Device, DeviceInfo, FirewallState, PortScan, DebPackage, Vulnerability, \
     GlobalPolicy, RecommendedAction, RecommendedActionStatus
 from device_registry.recommended_actions import DefaultCredentialsAction, FirewallDisabledAction, AutoUpdatesAction, \
-    VulnerablePackagesAction, MySQLDefaultRootPasswordAction, \
-    FtpServerAction, CpuVulnerableAction, BaseAction, ActionMeta, Action, \
-    PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
-    SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus
+    MySQLDefaultRootPasswordAction, FtpServerAction, CpuVulnerableAction, ActionMeta, \
+    Action, PUBLIC_SERVICE_PORTS, GithubAction, EnrollAction, INSECURE_SERVICES, InsecureServicesAction, \
+    SSHD_CONFIG_PARAMS_INFO, OpensshIssueAction, PubliclyAccessibleServiceAction, Severity, SimpleAction, ParamStatus, \
+    AuditdNotInstalledAction, RebootRequiredAction, CVEAction
 
 from freezegun import freeze_time
 
@@ -89,6 +89,7 @@ class GenerateActionsTest(TestCase):
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             affected = False
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
@@ -99,6 +100,7 @@ class GenerateActionsTest(TestCase):
             A simple dummy subclass of BaseAction which always reports devices as affected and has a hopefully unique id.
             """
             affected = False
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
@@ -146,6 +148,7 @@ class GenerateActionsTest(TestCase):
         self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.AFFECTED)
 
     def test_snooze(self):
+        self.check_actions_status(RecommendedAction.Status.NOT_AFFECTED, RecommendedAction.Status.NOT_AFFECTED)
         self.TestActionOne.affected = True
         self.TestActionTwo.affected = True
         self.device.snooze_action(self.TestActionOne.__name__, None, RecommendedAction.Status.SNOOZED_UNTIL_PING)
@@ -189,6 +192,7 @@ class ResolvedTest(TestCase):
                 'title': '',
                 'short': ''
             }
+            _severity = Severity.LO
 
             @classmethod
             def _is_affected(cls, device) -> bool:
@@ -289,9 +293,13 @@ class SnoozeTest(TestCase):
         self.user = User.objects.create_user('test')
         self.user.set_password('123')
         self.user.save()
-        Profile.objects.create(user=self.user, github_repo_id = 1234, github_oauth_token = 'abcd')
+        Profile.objects.create(user=self.user, github_repo_id=1234, github_oauth_token='abcd')
         self.client.login(username='test', password='123')
-        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user)
+        self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
+                                            os_release={'codename': 'jessie'})
+        deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        self.device.deb_packages.add(deb_package)
         self.device.generate_recommended_actions()
         self.common_actions_url = reverse('actions')
         self.snooze_url = reverse('snooze_action')
@@ -361,7 +369,8 @@ class TestsMixin:
         self.user.set_password('123')
         self.user.save()
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user, auto_upgrades=True,
-                                            mysql_root_access=False, last_ping=timezone.now())
+                                            mysql_root_access=False, last_ping=timezone.now(),
+                                            os_release={'codename': 'jessie'})
         FirewallState.objects.create(device=self.device, policy=FirewallState.POLICY_ENABLED_BLOCK)
         PortScan.objects.create(device=self.device)
         DeviceInfo.objects.create(device=self.device, default_password=False)
@@ -370,6 +379,9 @@ class TestsMixin:
         self.device_page_url = reverse('device-detail', kwargs={'pk': self.device.pk})
         self.common_actions_url = reverse('actions')
         self.device_actions_url = reverse('device_actions', kwargs={'device_pk': self.device.pk})
+        deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        self.device.deb_packages.add(deb_package)
 
     def assertOneAction(self, url):
         self.assertEqual(self.device.actions_count, 1)
@@ -447,15 +459,16 @@ class FirewallPolicyActionTest(FirewallDisabledActionTest):
         self.policy.save()
 
 
-class VulnerablePackagesActionTest(TestsMixin, TestCase):
-    action_class = VulnerablePackagesAction
+class CVEActionTest(TestsMixin, TestCase):
+    action_class = CVEAction
+    param = 'CVE'
 
     def enable_action(self):
         self.device.deb_packages_hash = 'abcd'
         self.device.save(update_fields=['deb_packages_hash'])
         deb_package = DebPackage.objects.create(name='package', version='version1', source_name='package',
                                                 source_version='sversion1', arch='amd64', os_release_codename='jessie')
-        vulnerability = Vulnerability.objects.create(name='name', package='package', is_binary=True, other_versions=[],
+        vulnerability = Vulnerability.objects.create(name=self.param, package='package', is_binary=True, other_versions=[],
                                                      urgency=Vulnerability.Urgency.LOW, fix_available=True,
                                                      os_release_codename='jessie')
         deb_package.vulnerabilities.add(vulnerability)
@@ -509,7 +522,16 @@ class OpensshIssueActionTest(TestsMixin, TestCase):
                   'AllowAgentForwarding': 'yes',
                   'PasswordAuthentication': 'yes',
                   'PermitEmptyPasswords': 'yes',
-                  'Protocol': '1'}
+                  'Protocol': '1',
+                  'ClientAliveInterval': '0',
+                  'ClientAliveCountMax': '4',
+                  'HostbasedAuthentication': 'yes',
+                  'IgnoreRhosts': 'no',
+                  'LogLevel': 'WARN',
+                  'LoginGraceTime': '120',
+                  'MaxAuthTries': '6',
+                  'PermitUserEnvironment': 'yes',
+                  'X11Forwarding': 'yes'}
 
     def setUp(self):
         super().setUp()
@@ -579,5 +601,25 @@ class CpuVulnerableActionTest(TestsMixin, TestCase):
         pkg = DebPackage.objects.create(os_release_codename='buster', name='linux', version='5.0.0',
                                         source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
         self.device.kernel_deb_package = pkg
-        self.device.cpu = {'vendor': 'GenuineIntel', 'vulnerable': True}
+        vuln = Vulnerability.objects.create(os_release_codename='buster', name='CVE-2017-5753', package='linux',
+                                            other_versions=[], is_binary=False, urgency=Vulnerability.Urgency.HIGH,
+                                            fix_available=True)
+        pkg.vulnerabilities.add(vuln)
+        pkg.save()
+        self.device.cpu = {'vendor': 'GenuineIntel'}
         self.device.save()
+
+
+class RebootRequiredActionTest(TestsMixin, TestCase):
+    action_class = RebootRequiredAction
+
+    def enable_action(self):
+        self.device.reboot_required = True
+        self.device.save(update_fields=['reboot_required'])
+
+
+class AuditdNotInstalledActionTest(TestsMixin, TestCase):
+    action_class = AuditdNotInstalledAction
+
+    def enable_action(self):
+        self.device.deb_packages.clear()

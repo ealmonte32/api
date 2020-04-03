@@ -344,15 +344,15 @@ class DeviceModelTest(TestCase):
                                         source_name='linux', source_version='5.0.0', arch=DebPackage.Arch.i386)
         self.device0.kernel_deb_package = pkg
 
-        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': True}
+        self.device0.cpu = {'vendor': 'GenuineIntel'}
         self.device0.save()
-        self.assertTrue(self.device0.cpu_vulnerable)
+        self.assertFalse(self.device0.cpu_vulnerable)
 
         self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': False}
         self.device0.save()
         self.assertFalse(self.device0.cpu_vulnerable)
 
-        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': None, 'mitigations_disabled': True}
+        self.device0.cpu = {'vendor': 'GenuineIntel', 'mitigations_disabled': True}
         self.device0.save()
         self.assertTrue(self.device0.cpu_vulnerable)
 
@@ -361,7 +361,7 @@ class DeviceModelTest(TestCase):
                                             fix_available=True)
         pkg.vulnerabilities.add(vuln)
         pkg.save()
-        self.device0.cpu = {'vendor': 'GenuineIntel', 'vulnerable': None, 'mitigations_disabled': False}
+        self.device0.cpu = {'vendor': 'GenuineIntel', 'mitigations_disabled': False}
         self.device0.save()
         self.assertTrue(self.device0.cpu_vulnerable)
 
@@ -905,8 +905,12 @@ class RootViewTests(TestCase):
             owner=self.user,
             certificate=TEST_CERT,
             name='First',
-            last_ping=timezone.now() - timezone.timedelta(days=1, hours=1)
+            last_ping=timezone.now() - timezone.timedelta(days=1, hours=1),
+            os_release={'codename': 'jessie'}
         )
+        deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        self.device0.deb_packages.add(deb_package)
         DeviceInfo.objects.create(
             device=self.device0,
             fqdn='FirstFqdn',
@@ -919,8 +923,10 @@ class RootViewTests(TestCase):
             owner=self.user,
             certificate=TEST_CERT,
             last_ping=timezone.now() - timezone.timedelta(days=2, hours=23),
-            default_password_users=['pi']
+            default_password_users=['pi'],
+            os_release={'codename': 'jessie'}
         )
+        self.device1.deb_packages.add(deb_package)
         DeviceInfo.objects.create(
             device=self.device1,
             fqdn='SecondFqdn',
@@ -1347,8 +1353,16 @@ class DashboardViewTests(TestCase):
             device_id='device1.d.wott-dev.local',
             owner=self.user
         )
-        RecommendedAction.objects.bulk_create([RecommendedAction(action_class=c.__name__, action_param=None)
-                    for c in self.test_actions])
+        RecommendedAction.objects.bulk_create([RecommendedAction(action_class=c.__name__,
+                                                                 action_param=None, action_severity=c.severity())
+                                               for c in self.test_actions])
+
+        RecommendedAction.objects.create(action_class='CVEAction', action_param='CVE-1',
+                                         action_context=defaultdict(str),
+                                         action_severity=Severity.HI)
+        RecommendedAction.objects.create(action_class='CVEAction', action_param='CVE-2',
+                                         action_context=defaultdict(str),
+                                         action_severity=Severity.HI)
 
     @classmethod
     def setUpClass(cls):
@@ -1377,7 +1391,7 @@ class DashboardViewTests(TestCase):
     def test_empty(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context_data['weekly_progress'], 0)
+        self.assertEqual(response.context_data['weekly_progress_percent'], 0)
         self.assertListEqual(response.context_data['actions'], [])
 
     def test_weekly_ra(self):
@@ -1433,7 +1447,21 @@ class DashboardViewTests(TestCase):
             # snoozed - doesn't count
             RecommendedActionStatus(ra=RecommendedAction.objects.get(action_class=self.test_actions[7].__name__, action_param=None),
                               device=self.device1,
-                              status=RecommendedAction.Status.SNOOZED_FOREVER)
+                              status=RecommendedAction.Status.SNOOZED_FOREVER),
+
+            # CVE actions - should be excluded from the view
+            RecommendedActionStatus(
+                ra=RecommendedAction.objects.get(action_class='CVEAction', action_param='CVE-1'),
+                device=self.device0, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(
+                ra=RecommendedAction.objects.get(action_class='CVEAction', action_param='CVE-1'),
+                device=self.device1, status=RecommendedAction.Status.AFFECTED),
+            RecommendedActionStatus(
+                ra=RecommendedAction.objects.get(action_class='CVEAction', action_param='CVE-2'),
+                device=self.device0, status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=today),
+            RecommendedActionStatus(
+                ra=RecommendedAction.objects.get(action_class='CVEAction', action_param='CVE-2'),
+                device=self.device1, status=RecommendedAction.Status.NOT_AFFECTED, resolved_at=today),
         ])
         # expected result: 1, 2, 3 - unfixed, 4, 5 - fixed
         response = self.client.get(self.url)
@@ -1444,7 +1472,11 @@ class DashboardViewTests(TestCase):
                               (self.test_actions[3].__name__, False),
                               (self.test_actions[4].__name__, True),
                               (self.test_actions[5].__name__, True)])
-        self.assertEqual(response.context_data['weekly_progress'], 40)
+        self.assertEqual(response.context_data['weekly_progress_percent'], 40)
+
+        self.profile.sample_history()
+        hr = HistoryRecord.objects.get()
+        self.assertEqual(hr.recommended_actions_resolved, 3)
 
 
 class CVEViewTests(TestCase):

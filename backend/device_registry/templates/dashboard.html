@@ -143,13 +143,13 @@
   <section class="top-section pt-2 {% if welcome %}d-none{% endif %}">
     <div class="weekly-card-container card mb-0 wott-box-shadow">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="title-left-box">Weekly Recommended Actions</h3>
+        <h3 class="title-left-box mb-0">Weekly Recommended Actions</h3>
         <div class="weekly-progress">
           <div class="graphic-title">Weekly Progress</div>
           <div id="week-progress-100">
-            <span id="week-progress-var" style="width: {{ weekly_progress }}%">
-              <p class="my-0 {% if weekly_progress == 0 %}graph-var-0{% elif weekly_progress < 25 %}graph-less-25{% else %}justify-content-center{% endif %}"
-                 id="week-progress-text" >{{ weekly_progress }}</p>
+            <span id="week-progress-var" style="width: {{ weekly_progress_percent }}%">
+              <p class="my-0 {% if weekly_progress_percent == 0 %}graph-var-0{% elif weekly_progress_percent < 25 %}graph-less-25{% else %}justify-content-center{% endif %}"
+                 id="week-progress-text" >{{ weekly_progress_percent }}</p>
             </span>
           </div>
         </div>
@@ -174,7 +174,7 @@
             </div>
             <h3 class="list-title mb-0 {% if action.resolved %}solved-dash{% endif %}">
             {% if not action.resolved %}
-              <a class="black-link" href="{% url "actions" %}#{{ action.id }}">
+              <a class="black-link" href="{% url "actions" %}#class={{ action.action_class }}{% if action.action_param is not None %}&param={{ action.action_param|urlencode }}{% endif %}">
                 {{ action.title }}
               </a>
             {% else %}
@@ -223,13 +223,13 @@
                 {{ trust_score.current }}
               </text>
               <text id="severity-inner-text" x="50%" y="50%" class="chart-label">
-                of 100 <!--HARDCODE-->
+                of 100
               </text>
               <text x="50%" y="50%" class="chart-label2">
               </text>
-              <text x="50%" y="50%" class="chart-label3">
-                good <!--HARCODE-->
-              </text>
+{#              <text x="50%" y="50%" class="chart-label3">#}
+{#                good <!--HARDCODE-->#}
+{#              </text>#}
             </g>
         </svg>
 
@@ -243,13 +243,108 @@
       {% endif %}
     </section>
   </section>
+  <section class="top-section pt-2 {% if welcome %}d-none{% endif %}">
+    <div class="weekly-card-container">
+      <div class="d-flex justify-content-between my-4 ">
+        <div class="card mb-0 wott-box-shadow wott-mini-card-size">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="wott-title-mini-card">Weekly<br>Streak</h3>
+            <h1 class="wott-value-mini-card">{{ current_weekly_streak }}</h1>
+          </div>      
+        </div>
+        <div class="card mb-0 wott-box-shadow wott-mini-card-size">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="wott-title-mini-card">Weekly<br>Completed Actions</h3>
+            <h1 class="wott-value-mini-card">{{ weekly_progress }}</h1>
+          </div>       
+        </div>
+      </div>
+      
+      <div style="position: relative;"><!-- Remove div after feature realease -->
+        <div style="position:absolute; top: 55%; left: 35%; z-index: 99;"> <!-- Remove div after feature realease -->
+          <h1 style="font-size: 1.45rem; font-weight:800">Coming Soon...</h1>
+        </div>
+        <div class="card wott-box-shadow" style="margin-top: 30px; opacity: 0.3;" > <!-- Remove Opaicty after release feature-->
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="title-left-box mb-0">Average Time to Remediation</h3>
+          </div>
+          <div class="d-flex justify-content-between px-5 py-4">
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="wott-top-mini-card High font-strong">HIGH</span>
+              <h1>1.5 day</h1><!--HARDCODE-->
+              <p class="wott-mini-card-legend">
+                <span style="vertical-align: -0.4em; font-size: 1.2rem">
+                  <i class="fas fa-sort-up"></i>
+                </span><!--HARDCODE-->
+                40% LAST WEEK
+              </p>
+            </div>
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="wott-top-mini-card Medium font-strong">MEDIUM</span>
+              <h1>0.5 day</h1><!--HARDCODE-->
+              <p class="wott-mini-card-legend">
+                <span style="vertical-align: -0.4em; font-size: 1.2rem">
+                  <i class="fas fa-sort-up"></i>
+                </span><!--HARDCODE-->
+                40% LAST WEEK
+              </p>          </div>
+            <div class="mini-card wott-rounded-lg d-flex flex-column">
+              <span class="wott-top-mini-card Low font-strong">LOW</span>
+              <h1>2.5 day</h1><!--HARDCODE-->
+              <p class="wott-mini-card-legend">
+                <span style="vertical-align: -0.4em; font-size: 1.2rem">
+                  <i class="fas fa-sort-up"></i>
+                </span><!--HARDCODE-->
+                40% LAST WEEK
+              </p>
+            </div>
+  
+          </div>      
+        </div>
+
+      </div>
+      
+    </div>
+    <section class="right-graphic-container mt-4">
+      <div class="graph-title">Quarterly Target</div>
+      <div class="right-card w-50">
+        <div class="graph-half-moon" style="padding-bottom: 40px;">
+          <svg width="185%" height="185%" viewbox="0 1 39 39" class="donut">
+            <circle class="donut-hole gradient" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+            <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#417EE7"
+                    stroke-width="2"></circle>
+            <circle id="trust-score-circle-segment" class="donut-segment" cx="21" cy="21" r="15.91549430918954"
+                    fill="transparent" stroke="#33D3EC" stroke-width="2" stroke-linecap="round"
+                    stroke-dashoffset="75"
+                    stroke-dasharray="{{ actions_resolved_this_quarter.1 }} {{ actions_resolved_this_quarter.2 }}">
+            </circle>
+            <g class="wott-chart-block-info">
+              {% if actions_resolved_this_quarter.0 < 10 %}
+                <text id="trust-score-percentage" x="45%" y="55%" class="wott-chart-big-info">
+                  {{ actions_resolved_this_quarter.0 }}
+                </text>
+              {% else %}
+                <text id="trust-score-percentage" x="38%" y="55%" class="wott-chart-big-info">
+                  {{ actions_resolved_this_quarter.0 }}
+                </text>
+              {% endif %}
+              <text class="wott-chart-small-info" x="43%" y="68%">
+                OF 60
+              </text>
+            </g>
+          </svg>
+        </div>
+      
+    </div>
+    </section>
+  </section>
 </div>
 
 <!-- HTML Obj with texts for Did you know box -->
 <div style="display:none" id="random-text-template">
-  <p class="wott-warn-box">Did you know that there are over 70,000 publicly exposed MongoDB servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? Many, if not most, of these don't even require a password. <strong>Don't let this be you.</strong></p>
-  <p class="wott-warn-box">Did you know that there are over 57,000 publicly exposed Memcached servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don't let this be you.</strong></p>
-  <p class="wott-warn-box">Did you know that there are over 640,000 publicly exposed Redis servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don't let this be you.</strong></p>
+  <p class="wott-warn-box">Did you know that there are over 70,000 publicly exposed MongoDB servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/" target="_blank"> Shodan</a>? Many, if not most, of these don't even require a password. <strong>Don't let this be you.</strong></p>
+  <p class="wott-warn-box">Did you know that there are over 57,000 publicly exposed Memcached servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/" target="_blank"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don't let this be you.</strong></p>
+  <p class="wott-warn-box">Did you know that there are over 640,000 publicly exposed Redis servers on the internet according to<a class="font-weight-bolder wott-blue" href="https://www.shodan.io/" target="_blank"> Shodan</a>? These servers can include lots of sensitive data. <strong>Don't let this be you.</strong></p>
 </div>
 
 {% endblock admin_content %}

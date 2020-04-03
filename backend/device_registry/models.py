@@ -2,7 +2,7 @@ from enum import Enum, IntEnum
 import datetime
 import json
 import uuid
-from typing import NamedTuple
+from typing import NamedTuple, Tuple, Optional
 
 from dateutil.relativedelta import relativedelta, SU, MO
 from django.conf import settings
@@ -12,18 +12,21 @@ from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.core.exceptions import ObjectDoesNotExist
 
+import apt_pkg
+import rpm
 import yaml
 import tagulous.models
-import apt_pkg
 
 from .validators import UnicodeNameValidator, LinuxUserNameValidator
 from .recommended_actions import ActionMeta, INSECURE_SERVICES, SSHD_CONFIG_PARAMS_INFO, PUBLIC_SERVICE_PORTS, \
-    ParamStatus
+    ParamStatus, Severity
 
 apt_pkg.init()
 
 DEBIAN_SUITES = ('jessie', 'stretch', 'buster')  # Supported Debian suite names.
-UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite names.
+UBUNTU_SUITES = ('xenial', 'bionic')  # Supported Ubuntu suite (16.04, 18.04) names.
+UBUNTU_KERNEL_PACKAGES_RE_PATTERN = r'linux-(?:(?:|aws-|oem-|gcp-|kvm-|oracle-|azure-|raspi2-|gke-|oem-osp1-)headers|' \
+                                    r'image|modules)-.+'
 IPV4_ANY = '0.0.0.0'
 IPV6_ANY = '::'
 FTP_PORT = 21
@@ -61,7 +64,7 @@ class DebPackage(models.Model):
         ALL = 'all'
 
     os_release_codename = models.CharField(max_length=64, db_index=True)
-    name = models.CharField(max_length=128)
+    name = models.CharField(max_length=128, db_index=True)
     version = models.CharField(max_length=128)
     source_name = models.CharField(max_length=128, db_index=True)
     source_version = models.CharField(max_length=128)
@@ -71,6 +74,9 @@ class DebPackage(models.Model):
 
     class Meta:
         unique_together = ['name', 'version', 'arch', 'os_release_codename']
+
+    def __str__(self):
+        return f'{self.name}:{self.version}:{self.arch}:{self.os_release_codename}'
 
 
 class Device(models.Model):
@@ -93,6 +99,7 @@ class Device(models.Model):
         null=True,
     )
     created = models.DateTimeField(auto_now_add=True)
+    claimed_at = models.DateTimeField(blank=True, null=True, db_index=True)
     last_ping = models.DateTimeField(blank=True, null=True)
     certificate = models.TextField(blank=True, null=True)
     certificate_csr = models.TextField(blank=True, null=True)
@@ -109,6 +116,7 @@ class Device(models.Model):
     deb_packages_hash = models.CharField(max_length=32, blank=True)
     cpu = JSONField(blank=True, default=dict)
     kernel_deb_package = models.ForeignKey(DebPackage, null=True, on_delete=models.SET_NULL, related_name='+')
+    reboot_required = models.BooleanField(null=True, blank=True, db_index=True)
     audit_files = JSONField(blank=True, default=list)
     os_release = JSONField(blank=True, default=dict)
     auto_upgrades = models.BooleanField(null=True, blank=True)
@@ -142,7 +150,7 @@ class Device(models.Model):
         return eol_info_dict
 
     def snooze_action(self, action_class, action_param, snoozed, duration=None):
-        ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class, action_param=action_param)
+        ra = RecommendedAction.objects.get(action_class=action_class, action_param=action_param)
         action, _ = RecommendedActionStatus.objects.get_or_create(device=self, ra=ra)
         action.status = snoozed
         if snoozed == RecommendedAction.Status.SNOOZED_UNTIL_TIME:
@@ -169,6 +177,15 @@ class Device(models.Model):
         'CVE-2019-1125'
     ]
 
+    def claim(self, user, claim_token=''):
+        self.owner = user
+        self.claim_token = claim_token
+        fields = ['owner', 'claim_token']
+        if user is not None:
+            self.claimed_at = timezone.now()
+            fields.append('claimed_at')
+        self.save(update_fields=fields)
+
     @property
     def cpu_vulnerable(self):
         if not self.cpu or not self.kernel_deb_package:
@@ -178,17 +195,8 @@ class Device(models.Model):
             # AMD and ARM CPUs, being theoretically vulnerable, were not shown to be vulnerable in practice.
             return False
 
-        is_vulnerable = self.cpu.get('vulnerable')
-        if is_vulnerable is None:
-            # Agent couldn't confidently tell whether the kernel has mitigations compiled in -
-            # meaning we need additional checks. If the kernel package is affected by any of the listed CVEs
-            # then it's vulnerable. If the kernel is not affected by any of these CVEs - this means it has
-            # mitigations compiled in. But if any of them are disabled at boot time (in kernel cmdline) then
-            # the kernel is again vulnerable.
-            return self.kernel_deb_package.vulnerabilities.filter(name__in=self.KERNEL_CPU_CVES).exists() or \
-                   self.cpu.get('mitigations_disabled')
-        else:
-            return is_vulnerable
+        return self.kernel_deb_package.vulnerabilities.filter(name__in=self.KERNEL_CPU_CVES).exists() or \
+            self.cpu.get('mitigations_disabled', False)
 
     @property
     def heartbleed_vulnerable(self):
@@ -474,12 +482,6 @@ class Device(models.Model):
             self.tags.add(all_devices_tag)
 
     @property
-    def vulnerable_packages(self):
-        if self.deb_packages_hash and self.deb_packages.exists() and self.os_release and \
-                self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
-            return self.deb_packages.filter(vulnerabilities__isnull=False).distinct().order_by('name')
-
-    @property
     def cve_count(self):
         """
         Count the number of high, medium and low severity CVEs for the device.
@@ -488,7 +490,7 @@ class Device(models.Model):
 
         # We have no vulnerability data for OS other than Debian and Ubuntu flavors.
         if not(self.deb_packages_hash and self.deb_packages.exists() and self.os_release
-               and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES):
+               and self.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',)):
             return
 
         # For every CVE name detected for this device, find its maximal urgency among the whole CVE database.
@@ -598,10 +600,17 @@ class Device(models.Model):
 
         ra_status_new = []
         for action_class_name, param, is_affected in added:
-            ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class_name, action_param=param)
+            ra = RecommendedAction.objects.filter(action_class=action_class_name, action_param=param)
+            if ra.exists():
+                ra = ra.first()
+            else:
+                action_class = ActionMeta.get_class(action_class_name)
+                ra = RecommendedAction.objects.create(
+                    action_class=action_class_name, action_param=param,
+                    action_context=action_class.get_context(param),
+                    action_severity=action_class.severity(param))
             status = (RecommendedAction.Status.AFFECTED if is_affected else RecommendedAction.Status.NOT_AFFECTED)
-            ra_status_new.append(RecommendedActionStatus(ra=ra, device=self,
-                                                   status=status))
+            ra_status_new.append(RecommendedActionStatus(ra=ra, device=self, status=status))
         self.recommendedactionstatus_set.bulk_create(ra_status_new)
 
         if settings.GITHUB_IMMEDIATE_SYNC and (n_affected or n_unaffected or ra_status_new) and self.owner:
@@ -904,10 +913,11 @@ class Vulnerability(models.Model):
         unique_together = ['os_release_codename', 'name', 'package']
 
     class Version:
-        """Version class which uses the original APT comparison algorithm."""
-
+        """
+        Version comparator to be used for comparing package versions.
+        Subclasses should define __eq__() and __lt__().
+        """
         def __init__(self, version):
-            """Creates a new Version object."""
             assert version != ""
             self.__asString = version
 
@@ -917,11 +927,63 @@ class Vulnerability(models.Model):
         def __repr__(self):
             return 'Version({})'.format(repr(self.__asString))
 
+    class DebVersion(Version):
+        """
+        Version comparator for deb packages. Uses python-apt which in turn uses native code to compare versions.
+        """
         def __lt__(self, other):
-            return apt_pkg.version_compare(self.__asString, other.__asString) < 0
+            return apt_pkg.version_compare(str(self), str(other)) < 0
 
         def __eq__(self, other):
-            return apt_pkg.version_compare(self.__asString, other.__asString) == 0
+            return apt_pkg.version_compare(str(self), str(other)) == 0
+
+    class RpmVersion(Version):
+        """
+        Version comparator for rpm packages. Uses python-rpm which in turn uses native code to compare version.
+        """
+        @staticmethod
+        def stringToVersion(verstring) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+            """
+            Adapted from python2 version. Produces a tuple which can be used in rpm.labelCompare().
+            https://github.com/rpm-software-management/yum/blob/master/rpmUtils/miscutils.py#L391
+            :param verstring: A full version string [epoch:]<version>[.release]
+            :return: (epoch, version, release), any of those may be None
+            """
+            if verstring in [None, '']:
+                return (None, None, None)
+            i = verstring.find(':')
+            if i != -1:
+                try:
+                    epoch = str(int(verstring[:i]))
+                except ValueError:
+                    # look, garbage in the epoch field, how fun, kill it
+                    epoch = '0'  # this is our fallback, deal
+            else:
+                epoch = '0'
+            j = verstring.find('-')
+            if j != -1:
+                if verstring[i + 1:j] == '':
+                    version = None
+                else:
+                    version = verstring[i + 1:j]
+                release = verstring[j + 1:]
+            else:
+                if verstring[i + 1:] == '':
+                    version = None
+                else:
+                    version = verstring[i + 1:]
+                release = None
+            return epoch, version, release
+
+        def __init__(self, version):
+            super().__init__(version)
+            self._version_tuple = self.stringToVersion(version)
+
+        def __lt__(self, other):
+            return rpm.labelCompare(self._version_tuple, other._version_tuple) < 0
+
+        def __eq__(self, other):
+            return rpm.labelCompare(self._version_tuple, other._version_tuple) == 0
 
     class Urgency(IntEnum):
         NONE = 0
@@ -930,28 +992,33 @@ class Vulnerability(models.Model):
         HIGH = 3
 
     os_release_codename = models.CharField(max_length=64, db_index=True)
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=64, db_index=True)
     package = models.CharField(max_length=64, db_index=True)
     is_binary = models.BooleanField()
     unstable_version = models.CharField(max_length=64, blank=True)
     other_versions = ArrayField(models.CharField(max_length=64), blank=True)
     urgency = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Urgency])
     remote = models.BooleanField(null=True)
-    fix_available = models.BooleanField()
+    fix_available = models.BooleanField(db_index=True)
     pub_date = models.DateField(null=True)
 
     def is_vulnerable(self, src_ver):
-        if self.unstable_version:
-            unstable_version = Vulnerability.Version(self.unstable_version)
-        else:
-            unstable_version = None
-        other_versions = map(Vulnerability.Version, self.other_versions)
-        src_ver = Vulnerability.Version(src_ver)
+        if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES + ('amzn2',):
+            VersionClass = self.DebVersion if self.os_release_codename in DEBIAN_SUITES + UBUNTU_SUITES \
+                else self.RpmVersion
+            if self.unstable_version:
+                unstable_version = VersionClass(self.unstable_version)
+            else:
+                unstable_version = None
+            other_versions = map(VersionClass, self.other_versions)
+            src_ver = VersionClass(src_ver)
 
-        if self.unstable_version:
-            return src_ver < unstable_version and src_ver not in other_versions
+            if self.unstable_version:
+                return src_ver < unstable_version and src_ver not in other_versions
+            else:
+                return src_ver not in other_versions
         else:
-            return src_ver not in other_versions
+            return False
 
 
 class Distro(models.Model):
@@ -972,6 +1039,9 @@ class RecommendedAction(models.Model):
 
     action_class = models.CharField(max_length=64)
     action_param = models.CharField(max_length=128, null=True, blank=True)
+    action_context = JSONField(blank=True, default=dict)
+    action_severity = models.PositiveSmallIntegerField(choices=[(tag, tag.value) for tag in Severity],
+                                                       default=Severity.LO.value)
 
 
 class RecommendedActionStatus(models.Model):
@@ -1002,25 +1072,47 @@ class RecommendedActionStatus(models.Model):
         :return: a number of new RecommendedAction objects created.
         """
         created = []
+        updated = []
         if classes is None:
             classes = ActionMeta.all_classes()
         for action_class in classes:
             # Select devices which were not yet processed with this RA.
-            qs = Device.objects.exclude(Q(recommendedactionstatus__ra__action_class=action_class.__name__) |
-                                        Q(owner__isnull=True)).only('pk')
+            qs = Device.objects.exclude(Q(owner__isnull=True)).only('pk')
             if not qs.exists():
                 continue
             affected = action_class.affected_devices(qs)
-            for param, param_affected in affected:
-                ra, _ = RecommendedAction.objects.get_or_create(action_class=action_class.__name__, action_param=param)
-                param_affected = set(param_affected)
-                created += [cls(device=d,
-                                ra=ra,
-                                status=RecommendedAction.Status.AFFECTED)
-                            for d in param_affected]
+            for param, devices in affected:
+                ra = RecommendedAction.objects.filter(action_class=action_class.__name__,
+                                                      action_param=param)
+                if not ra.exists():
+                    # This is a new RA.
+                    ra = RecommendedAction(action_class=action_class.__name__,
+                                           action_param=param,
+                                           action_context=action_class.get_context(param),
+                                           action_severity=action_class.severity(param))
+                    created.append((ra, [d for d in set(devices)]))
+                else:
+                    # This RA already exists, but it needs status update.
+                    ra = ra.first()
+                    ra.action_context = action_class.get_context(param)
+                    ra.action_severity = action_class.severity(param)
+                    updated.append((ra, devices))
+
+        statuses = []
         if created:
-            cls.objects.bulk_create(created)
-        return len(created)
+            created_ras = RecommendedAction.objects.bulk_create([ra for ra, _ in created])
+            statuses += [(new_ra, ra_devices[1]) for new_ra, ra_devices in zip(created_ras, created)]
+        if updated:
+            RecommendedAction.objects.bulk_update([u[0] for u in updated], fields=['action_context', 'action_severity'])
+            statuses += [(ra, devices) for ra, devices in updated]
+        if statuses:
+            ra_statuses = [[RecommendedActionStatus(ra=ra, device=d, status=RecommendedAction.Status.AFFECTED)
+                            for d in devices] for ra, devices in statuses]
+            ra_statuses = sum(ra_statuses, [])  # Flatten the list
+            cls.objects.bulk_create(ra_statuses, ignore_conflicts=True)
+            return len(ra_statuses), len(created), len(updated)
+        else:
+            return 0
 
 
 class GithubIssue(models.Model):
@@ -1035,7 +1127,7 @@ class GithubIssue(models.Model):
 
 class HistoryRecord(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='history_records', on_delete=models.CASCADE)
-    sampled_at = models.DateTimeField(auto_now_add=True)
+    sampled_at = models.DateTimeField(auto_now_add=True, db_index=True)
     recommended_actions_resolved = models.IntegerField(null=True)
     average_trust_score = models.FloatField(null=True)
     cve_high_count = models.IntegerField(null=True)

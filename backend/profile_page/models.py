@@ -4,7 +4,7 @@ import logging
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Q, Avg, Max, Window, Count
+from django.db.models import Q, Avg, Max, Window, Count, Sum
 from django.db.models.functions import Coalesce
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -68,11 +68,11 @@ class Profile(models.Model):
         sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
         this_monday = sunday + relativedelta(days=1)  # This week's monday
 
-        ra_maybe_resolved_this_week = RecommendedActionStatus.objects.filter(device__owner=self.user,
-                                                                       status=RecommendedAction.Status.NOT_AFFECTED,
-                                                                       resolved_at__gte=this_monday) \
-            .values('ra__action_class', 'ra__action_param')  # resolved this week (not completely)
+        ra_maybe_resolved_this_week = RecommendedActionStatus.objects.exclude(ra__action_class='CVEAction').filter(
+            device__owner=self.user, status=RecommendedAction.Status.NOT_AFFECTED, resolved_at__gte=this_monday) \
+            .values('ra__action_class', 'ra__action_param', 'ra__action_context', 'ra__action_severity')  # resolved this week (not completely)
         ra_unresolved = RecommendedActionStatus.objects.filter(~Q(status=RecommendedAction.Status.NOT_AFFECTED),
+                                                               ~Q(ra__action_class='CVEAction'),
                                                                device__owner=self.user) \
             .values('ra__pk').distinct()  # unresolved (incl. snoozed)
 
@@ -80,13 +80,52 @@ class Profile(models.Model):
             .exclude(ra__in=ra_unresolved)\
             .distinct()
         return (ra_unresolved.filter(RecommendedActionStatus.get_affected_query())
-                             .values('ra__action_class', 'ra__action_param'),
+                             .values('ra__action_class', 'ra__action_param', 'ra__action_context', 'ra__action_severity'),
                 ra_resolved_this_week)
 
     @property
     def actions_resolved_since_monday(self):
         resolved = self.actions_weekly[1]
         return min(resolved.count(), settings.MAX_WEEKLY_RA)
+
+    @property
+    def actions_resolved_this_quarter(self):
+        """
+        Return number of RAs resolved during current quarter.
+        """
+        now = timezone.now()
+        # Timestamp for the very beginning of the current quarter.
+        quarter_start_ts = timezone.datetime(now.year, (now.month - 1) // 3 * 3 + 1, 1, tzinfo=now.tzinfo)
+        return self.user.history_records.filter(
+            sampled_at__gt=quarter_start_ts).aggregate(Sum('recommended_actions_resolved')
+                                                       )['recommended_actions_resolved__sum'] or 0
+
+    @property
+    def current_weekly_streak(self):
+        """
+        Return the number of weeks in a row (starting from the current one) when
+        the number of resolved RAs was equal or greater than MAX_WEEKLY_RA (5).
+        """
+        streak = 0
+        current_week = True
+        now = timezone.now()
+        sunday = (now + relativedelta(days=-1, weekday=SU(-1)))  # Last week's sunday (just before this monday)
+        sunday = sunday.combine(sunday, datetime.time(0), sunday.tzinfo)  # Reset time to midnight
+        monday = sunday + timezone.timedelta(days=1)  # This week's monday
+        end_ts = now
+        while True:
+            actions_resolved = self.user.history_records.filter(
+                sampled_at__gt=monday, sampled_at__lt=end_ts).aggregate(Sum('recommended_actions_resolved')
+                                                                        )['recommended_actions_resolved__sum']
+            if actions_resolved and actions_resolved >= settings.MAX_WEEKLY_RA:
+                streak += 1
+            else:
+                if not current_week:
+                    break
+            current_week = False
+            end_ts = monday
+            monday = monday - timezone.timedelta(days=7)
+        return streak
 
     @property
     def github_repos(self):
@@ -135,7 +174,7 @@ class Profile(models.Model):
         """
         now = timezone.now()
         day_ago = now - timezone.timedelta(hours=24)
-        ra_resolved = RecommendedActionStatus.objects.filter(
+        ra_resolved = RecommendedActionStatus.objects.exclude(ra__action_class='CVEAction').filter(
             status=RecommendedAction.Status.NOT_AFFECTED,
             resolved_at__gt=day_ago, resolved_at__lte=now,
             device__owner=self.user

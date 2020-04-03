@@ -6,7 +6,10 @@ from django.db.models import Q
 
 import redis
 
-from device_registry.models import Device, Vulnerability, DebPackage, DEBIAN_SUITES, UBUNTU_SUITES
+from device_registry.models import DebPackage, Device, RecommendedAction, RecommendedActionStatus, Vulnerability, \
+    DEBIAN_SUITES, UBUNTU_SUITES
+from device_registry.recommended_actions import CVEAction
+from device_registry.models import UBUNTU_KERNEL_PACKAGES_RE_PATTERN
 from profile_page.models import Profile
 
 logger = logging.getLogger('django')
@@ -72,10 +75,28 @@ def update_packages_vulnerabilities(batch):
             if vuln.is_vulnerable(package.source_version) and vuln.fix_available:
                 relations.append(Relation(debpackage_id=package.id, vulnerability_id=vuln.id))
         counter += 1
+    # TODO: Execute ORM requests below in one transaction.
     Relation.objects.filter(debpackage_id__in=package_ids).delete()
     Relation.objects.bulk_create(relations, batch_size=10000, ignore_conflicts=True)
     logger.info('finished')
     return counter, len(relations)
+
+
+def update_cve_ra():
+    """
+    Some packages may have new vulnerabilties, or new packages may have been added.
+    Create new CVEAction's if needed.
+    Update contexts of all existing CVEAction's to contain the correct list of affected packages and severity.
+    :return: None
+    """
+    logger.info('updating CVEAction')
+    RecommendedActionStatus.update_all_devices([CVEAction])
+    ras = RecommendedAction.objects.filter(action_class='CVEAction')
+    for ra in ras:
+        ra.action_context = CVEAction.get_context(ra.action_param)
+        ra.action_severity = CVEAction.severity(ra.action_param)
+    RecommendedAction.objects.bulk_update(ras, ['action_context', 'action_severity'])
+    logger.info('done.')
 
 
 def send_packages_to_vulns_update(task):
@@ -87,10 +108,11 @@ def send_packages_to_vulns_update(task):
         # In case of success set the lock's timeout to 2.5m.
         with redis_conn.lock('vulns_lock', timeout=60 * 2.5, blocking_timeout=3):
             logger.info('lock acquired.')
-            distro_suites = DEBIAN_SUITES + UBUNTU_SUITES
-            package_ids = list(DebPackage.objects.filter(
-                processed=False, os_release_codename__in=distro_suites).order_by(
-                'os_release_codename', 'source_name').values_list('id', flat=True))
+            package_ids = list((DebPackage.objects.filter(
+                processed=False, os_release_codename__in=DEBIAN_SUITES + ('amzn2',)) |
+                                DebPackage.objects.filter(processed=False, os_release_codename__in=UBUNTU_SUITES
+                                                          ).exclude(name__regex=UBUNTU_KERNEL_PACKAGES_RE_PATTERN)
+                                ).order_by('os_release_codename', 'source_name').values_list('id', flat=True))
             logger.info('%d packages to process found.' % len(package_ids))
             batch_size = 500
             position = 0
@@ -103,7 +125,10 @@ def send_packages_to_vulns_update(task):
                 logger.info('%d packages batch sent to the queue.' % len(batch))
                 position += batch_size
             logger.info('finished.')
-            return len(package_ids)
+            n_ids = len(package_ids)
+            if n_ids:
+                update_cve_ra()
+            return n_ids
     except redis.exceptions.LockError:
         logger.info('lock NOT acquired.')
         # Did not managed to acquire the lock within 3s - that means it's acquired by

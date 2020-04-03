@@ -18,7 +18,7 @@ from rest_framework.exceptions import ErrorDetail
 from rest_framework.authtoken.models import Token
 
 from device_registry.models import Credential, Device, DeviceInfo, Tag, FirewallState, PortScan, PairingKey, \
-    RecommendedAction
+    RecommendedAction, DebPackage
 from device_registry.serializers import DeviceListSerializer
 from device_registry.recommended_actions import ActionMeta, AutoUpdatesAction
 from device_registry.models import GlobalPolicy
@@ -1220,14 +1220,18 @@ class DeviceListAjaxViewTest(APITestCase):
 
     def test_since(self):
         self.client.login(username='test', password='123')
-        self.device0.created = timezone.now() - datetime.timedelta(days=1)
-        self.device0.save(update_fields=['created'])
+        self.device0.claimed_at = timezone.now() - datetime.timedelta(minutes=1)
+        self.device1.claimed_at = timezone.now() - datetime.timedelta(minutes=5)
+        self.device2.claimed_at = timezone.now() - datetime.timedelta(minutes=10)
+        self.device0.save(update_fields=['claimed_at'])
+        self.device1.save(update_fields=['claimed_at'])
+        self.device2.save(update_fields=['claimed_at'])
         url = reverse('ajax_device_list') + '?' + urlencode({
-            'since': str((timezone.now() - timezone.timedelta(hours=1)))})
+            'since': str((timezone.now() - timezone.timedelta(minutes=2)))})
 
-        with freeze_time(timezone.now() - datetime.timedelta(minutes=1)):
+        with freeze_time(timezone.now()):
             response = self.client.get(url)
-            self.assertDictEqual(response.data, self._dev_list_data([self.device1, self.device2]))
+            self.assertDictEqual(response.data, self._dev_list_data([self.device0]))
 
     def test_filter_date(self):
         self.client.login(username='test', password='123')
@@ -1325,7 +1329,11 @@ class SnoozeActionViewTest(APITestCase):
         User = get_user_model()
         self.user = User.objects.create_user('test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local',
-                                            owner=self.user, auto_upgrades=False)
+                                            owner=self.user, auto_upgrades=False,
+                                            os_release={'codename': 'jessie'})
+        deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
+                                                source_version='sversion1', arch='amd64', os_release_codename='jessie')
+        self.device.deb_packages.add(deb_package)
         DeviceInfo.objects.create(device=self.device)
         PortScan.objects.create(device=self.device)
         FirewallState.objects.create(device=self.device)

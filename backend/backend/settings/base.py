@@ -153,6 +153,7 @@ EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.getenv('SMTP_PASSWORD')
 EMAIL_PORT = 2525
+DEFAULT_FROM_EMAIL = '"WoTT Team" <hey@wott.io>'
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
@@ -254,6 +255,10 @@ CELERY_BEAT_SCHEDULE = {
     'fetch_vulnerabilities_debian': {
         'task': 'device_registry.tasks.fetch_vulnerabilities_debian',
         'schedule': crontab(hour=15, minute=0)  # Execute once a day at 3PM.
+    },
+    'fetch_vulnerabilities_amazon': {
+        'task': 'device_registry.tasks.fetch_vulnerabilities_amazon',
+        'schedule': crontab(hour=16, minute=30)  # Execute once a day at 4:30PM.
     },
     'fetch_vulnerabilities_ubuntu': {
         'task': 'device_registry.tasks.fetch_vulnerabilities_ubuntu',

@@ -49,14 +49,14 @@
 
     * FTPS uses certificates to encrypt communication (similar to public key authentication). Certain tools allow certificates to be requested and created.
     * When a trusted certificate authority signs these certificates, it acts as an ensurer that the client is being connected to a trusted and secure server. This can prevent a Man-in-the-Middle attack.
-    * Learn more about FTPS [here](https://www.serv-u.com/solutions/what-is-file-transfer-protocol-secure).
+    * Learn more about FTPS [here](https://www.serv-u.com/solutions/what-is-file-transfer-protocol-secure){{: target="_blank"}}.
 
     We do recommend SFTP as that is the easiest to setup and has a decent level of security. Depending on the size of your organisation and resources it can offer, FTPS can be a formidable line of defense to protect your data.
 
     Two of the tried and tested services that we recommend are:
 
-    [proftpd](http://proftpd.org)
-    [vsftpd](https://help.ubuntu.com/community/vsftpd)
+    [proftpd](http://proftpd.org){{: target="_blank"}}
+    [vsftpd](https://help.ubuntu.com/community/vsftpd){{: target="_blank"}}
   terminal_title: |
     To uninstall your FTP server, run the following command:
   terminal_code: |
@@ -92,7 +92,8 @@
   long: |
     SSH (Secure Shell) is a method to remote login to a server. SSH is usually secure, however if used with the default settings, can be vulnerable to attacks from unwanted parties. By default, the SSH config file is preset with some values allowing for new developers to get used to setting up SSH servers. However, this often exposes vulnerabilities by not being restrictive enough.
 
-    We've detected that `AllowAgentForwarding` is enabled. This means that you can SSH into one host and from there to a different host using the SSH key on your local machine. This might be the case if you cannot directly access the final host (for instance if you're using a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host)). However, doing so leaves a socket open on the server, which then can be attacked.
+    We've detected that `AllowAgentForwarding` is enabled. This means that you can SSH into one host and from there to a different host using the SSH key on your local machine. This might be the case if you cannot directly access the final host (for instance if you're using a
+    [Bastion host](https://en.wikipedia.org/wiki/Bastion_host){{: target="_blank"}}. However, doing so leaves a socket open on the server, which then can be attacked.
 
     Unless you need this feature, we recommend you disable this feature by edit the `/etc/ssh/sshd_config` file like so:
 
@@ -100,7 +101,8 @@
     AllowAgentForwarding no
     ```
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
   terminal_title: |
     Here are the steps to resolve this issue.
   terminal_code: |
@@ -126,11 +128,14 @@
 
     Once you've updated the configuration, make sure to restart the SSH server using `sudo service ssh restart`.
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
   terminal_title: |
     Here are the steps to resolve this issue.
 
-      **Warning:** Before you disable password authentication, make sure that you have [generated and installed](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-1604) your SSH keys on the remote server. Failure to do so will result in that you will be locked out of your server.
+      **Warning:** Before you disable password authentication, make sure that you have
+      [generated and installed](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-1604){{: target="_blank"}}
+      your SSH keys on the remote server. Failure to do so will result in that you will be locked out of your server.
 
   terminal_code: |
     $ sudo wott-agent patch openssh-password-auth
@@ -152,7 +157,8 @@
 
     Once you've updated the configuration, make sure to restart the SSH server using `sudo service ssh restart`.
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
 
     **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.8)
 
@@ -178,7 +184,8 @@
     PermitEmptyPasswords no
     ```
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
 
     **Reference**: CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.9)
 
@@ -204,7 +211,8 @@
     Protocol 2
     ```
 
-    For more information on how to secure OpenSSH, see our larger tutorial [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security).
+    For more information on how to secure OpenSSH, see our larger tutorial
+    [here](https://wott.io/blog/tutorials/2019/10/25/audit-openssh-security){{: target="_blank"}}.
 
     **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.2)
 
@@ -212,6 +220,209 @@
     Here are the steps to resolve this issue.
   terminal_code: |
     $ sudo wott-agent patch openssh-protocol
+
+- title: OpenSSH - Idle Timeout Interval needs to be changed
+  class: OpensshIssueAction
+  param: ClientAliveInterval
+  short: |
+    Setting a timeout improves security in cases where a user forgets to lock his/her workstation.
+  long: |
+    It is possible that a user walks away from his/her workstation without locking it. By setting a timeout, the session will automatically be terminated automatically during inactivity.
+
+    The recommended value from the CIS Security Benchmark is to set it to 5 minutes (300s).
+
+    The relevant configuration section in `sshd_config` looks as follows:
+
+    ```
+    ClientAliveInterval 300
+    ```
+
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#ClientAliveInterval){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.12)
+
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-client-alive-interval
+
+- title: OpenSSH - Reduce the amount of KeepAlive packages before timeout
+  class: OpensshIssueAction
+  param: ClientAliveCountMax
+  short: |
+    Setting a KeepAliveCountMax value improves security in cases where a user forgets to lock his/her workstation.
+  long: |
+    KeepAliveCount Max sets the number of alive messages which are sent back to the client before the session is terminated. This, together with `ClientAliveInterval` can help provide improved security when a workstation is left unattended by
+    automatically terminating the session.
+
+    The recommended value from the CIS Security Benchmark is to set it to 3 or less.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+
+    ```
+    ClientAliveCountMax 3
+    ```
+
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#ClientAliveCountMax){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.12)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-client-alive-count-max
+
+- title: OpenSSH - Please disable HostbasedAuthentication
+  class: OpensshIssueAction
+  param: HostbasedAuthentication
+  short: |
+    HostbasedAuthentication allows for authentication for trusted hosts via `rhosts` or `/etc/hosts.equiv`. This is considered insecure.
+  long: |
+    Host-based authentication is an alternative form of authentication, using `rhosts` or `/etc/hosts.equiv`. The CIS Benchmarks advice against this configuration.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+
+    ```
+    HostbasedAuthentication no
+    ```
+
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#HostbasedAuthentication){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.7)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-host-based-auth
+
+- title: OpenSSH - Reconfigure IgnoreRhosts
+  class: OpensshIssueAction
+  param: IgnoreRhosts
+  short: |
+    Specifies that `.rhosts` and `.shosts` files will not be used in `HostbasedAuthentication`.
+  long: |
+    Setting IgnoreRhosts to `yes` tell OpenSSH to explicitly ignore using `.rhosts` and `.shosts` with `HostbasedAuthentication`.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    IgnoreRhosts yes
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#IgnoreRhosts){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.6)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-ignore-rhosts
+
+- title: OpenSSH - Change the LogLevel
+  class: OpensshIssueAction
+  param: LogLevel
+  short: |
+    Setting the right log level can help identify relevant security events
+  long: |
+    OpenSSH provides several logging levels. If you're setting a log level too high (e.g. DEBUG), you may overload the system with too much activities, whereas setting it too low can lead you to miss important security events.
+
+    Setting the LogLevel to INFO allows for a good balance between the two, which can help you narrow down activities in the system.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    LogLevel INFO
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#LogLevel){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.3)
+
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-log-level
+
+- title: OpenSSH - Reconfigure LoginGraceTime to make brute force attacks harder
+  class: OpensshIssueAction
+  param: LoginGraceTime
+  short: |
+    Setting LoginGraceTime to less than a minute makes it harder to perform a brute force attack against the server.
+  long: |
+    LoginGraceTime is the time allowed for a successful authentication to the OpenSSH server. If the value is 0, there is no time limit, which gives an attacker a longer time period to try to brute force the server.
+
+    The CIS Benchmarks recommends setting this value to 60 seconds or less.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    LoginGraceTime 60
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#LoginGraceTime){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.13)
+
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-login-grace-time
+
+- title: OpenSSH - Set MaxAuthTries to 4 or less
+  class: OpensshIssueAction
+  param: MaxAuthTries
+  short: |
+    MaxAuthTries specifies the maximum amount of authentication attempts permitted per connection.
+  long: |
+    Setting MaxAuthTries to 4 will help prevent brute force attacks. Once half of this number has been reached (e.g. 2), additional failures will be logged.
+
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    MaxAuthTries 4
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#MaxAuthTries){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.5)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-max-auth-tries
+
+- title: OpenSSH - Disable User Environment
+  class: OpensshIssueAction
+  param: PermitUserEnvironment
+  short: |
+    Allowing user environments to be set by the client could bypass security controls.
+  long: |
+    By allowing users to set environment variables in `~/.ssh/environment` or using the `environment=` options in `~/.ssh/authorized_keys` could lead to security controls being bypassed.
+
+    For instance, by overriding the `PATH`, users could cause a compromised binary to be executed.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    PermitUserEnvironment no
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#PermitUserEnvironment){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.10)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-permit-user-env
+
+- title: OpenSSH - Disable X11Forwarding
+  class: OpensshIssueAction
+  param: X11Forwarding
+  short: |
+    Disable X11 Forwarding, unless there's an operational requirement for it.
+  long: |
+    The X Window System (also known as X11 and X) is a graphical user interface for UNIX and Linux. OpenSSH allows for X11 Forwarding, meaning that you can forward run the application on the server and forward the Graphical User Interface (GUI) to the client.
+
+    The CIS Benchmark suggest disabling this functionality, as it could potentially create a security issue.
+
+    The relevant configuration section in `sshd_config` looks as follows:
+    ```
+    X11Forwarding no
+    ```
+    You can learn more about this setting [here](https://man.openbsd.org/sshd_config#X11Forwarding){{: target="_blank"}}.
+
+    **Reference:** CIS Ubuntu 16.04 LTS Benchmarks v1.1.0 (section 5.2.4)
+  terminal_title: |
+    Here are the steps to resolve this issue.
+  terminal_code: |
+    $ sudo wott-agent patch openssh-x11-forwarding
 
 - title: Automatic security updates not enabled
   class: AutoUpdatesAction
@@ -233,7 +444,8 @@
 
     Once installed, you can then run `sudo dpkg-reconfigure unattended-upgrades` to configure your preferences. For most installations, the defaults should be fine.
 
-    For more detail, you can see [here](https://wiki.debian.org/UnattendedUpgrades) for Debian or [here](https://help.ubuntu.com/lts/serverguide/automatic-updates.html) for Ubuntu.
+    For more detail, you can see [here](https://wiki.debian.org/UnattendedUpgrades){{: target="_blank"}}
+    for Debian or [here](https://help.ubuntu.com/lts/serverguide/automatic-updates.html){{: target="_blank"}} for Ubuntu.
 
     ## Amazon Linux / RedHat Enterprise Linux (RHEL) / CentOS
 
@@ -272,11 +484,13 @@
   class: PubliclyAccessibleServiceAction
   param: mongod
   short: |
-    We detected that a MongoDB instance may be accessible remotely. This may allow a remote attacker to gain access to your database and leak customer data. According to [Shodan](https://www.shodan.io/), there are over 70,000 publicly exposed MongoDB servers. Don't be one of them. Consider either blocking port 27017 through the WoTT firewall management tool, or reconfigure MongoDB to only listen on localhost.
+    We detected that a MongoDB instance may be accessible remotely. This may allow a remote attacker to gain access to your database and leak customer data. According to
+    [Shodan](https://www.shodan.io/){{: target="_blank"}}, there are over 70,000 publicly exposed MongoDB servers. Don't be one of them. Consider either blocking port 27017 through the WoTT firewall management tool, or reconfigure MongoDB to only listen on localhost.
   long: |
     MongoDB is a widely used NoSQL database. Unfortunately, the default configuration in MongoDB until relatively recently was to bind on all public interfaces (rather than just localhost). Because of this, many MongoDB servers were made publicly accessible. To make matters worse, by default, MongoDB does not require any authentication, meaning that the potential attacker only needed to know the public IP of the server in order to connect and access your customer data.
 
-    We recommend that you either reconfigure your MongoDB instance to only listen on localhost (assuming the appserver talking to MongoDB runs on the same server), or creating a firewall policy to only allow connections from your appservers to port 27017 on your node. You can do the latter using WoTT's firewall management tool. You can read more about MongoDB's ports [here](https://docs.mongodb.com/manual/reference/default-mongodb-port/).
+    We recommend that you either reconfigure your MongoDB instance to only listen on localhost (assuming the appserver talking to MongoDB runs on the same server), or creating a firewall policy to only allow connections from your appservers to port 27017 on your node. You can do the latter using WoTT's firewall management tool. You can read more about MongoDB's ports
+    [here](https://docs.mongodb.com/manual/reference/default-mongodb-port/){{: target="_blank"}}.
 
     Start by locating your MongoDB configuration file
     ```
@@ -385,7 +599,8 @@
   class: PubliclyAccessibleServiceAction
   param: memcached
   short: |
-    Your Memcached instance may be accessible remotely. This is likely due to use of a default configuration. According to [Shodan](https://www.shodan.io/), there are over 57,000 publicly exposed Memcached servers on the internet. We recommend that you reconfigure this service to avoid leaking customer data.
+    Your Memcached instance may be accessible remotely. This is likely due to use of a default configuration. According to
+    [Shodan](https://www.shodan.io/){{: target="_blank"}}, there are over 57,000 publicly exposed Memcached servers on the internet. We recommend that you reconfigure this service to avoid leaking customer data.
   long: |
     Memcached is a popular caching server. By default, many Memcached configurations will listen on all interfaces. This may be desirable in some configurations (e.g. when you have other services on the network that needs to talk to Memcached). In that case, we recommend that you create a firewall policy that only allows these servers to access Memcached. If however you only use Memcached locally, we recommend that you reconfigure Memcached to only listen on the loopback (localhost) interface.
 
@@ -413,9 +628,11 @@
 - title: System contains Meltdown and/or Spectre vulnerabilities
   class: CpuVulnerableAction
   short: |
-    Your system appears to be vulnerable to the [Meltdown](https://meltdownattack.com/meltdown.pdf) and [Spectre](https://spectreattack.com/spectre.pdf) attacks. This could compromise your data by allowing unwanted access to sensitive data through bypassing hardware restrictions.
+    Your system appears to be vulnerable to the [Meltdown](https://meltdownattack.com/meltdown.pdf){{: target="_blank"}}
+    and [Spectre](https://spectreattack.com/spectre.pdf){{: target="_blank"}} attacks. This could compromise your data by allowing unwanted access to sensitive data through bypassing hardware restrictions.
   long: |
-    [Meltdown](https://meltdownattack.com/meltdown.pdf) and [Spectre](https://spectreattack.com/spectre.pdf) vulnerabilities were found in 2018, effectively affecting every computer-based hardware manufactured in the last 20 years. There are 3 common vulnerabilities, 2 encompass what is known as Spectre; the other is Meltdown. If exploited, these vulnerabilities could allow for access to what was previously thought of as protected data.
+    [Meltdown](https://meltdownattack.com/meltdown.pdf){{: target="_blank"}} and
+    [Spectre](https://spectreattack.com/spectre.pdf){{: target="_blank"}} vulnerabilities were found in 2018, effectively affecting every computer-based hardware manufactured in the last 20 years. There are 3 common vulnerabilities, 2 encompass what is known as Spectre; the other is Meltdown. If exploited, these vulnerabilities could allow for access to what was previously thought of as protected data.
 
     Meltdown bypasses hardware security boundaries between applications and the operating systems and uses this to gain access to memory based on 'out of order' sequencing. Intel chips manufactured since 2010 were reported to be vulnerable to these issues. Spectre also acts at a hardware level by essentially 'tricking' a program into executing a sequence it wouldn't normally by exploiting the speculative logic systems in a chip.
 
@@ -437,7 +654,8 @@
   class: PubliclyAccessibleServiceAction
   param: redis-server
   short: |
-    Your Redis instance may be publicly accessible. This could cause accidental customer data leakage. According to [Shodan](https://www.shodan.io/), there are over 640,000 publicly exposed Redis servers on the internet. Consider re-configuring your Redis to listen only on the localhost, or add a lock down the access to Redis using a firewall if it needs to be accessible on the network.
+    Your Redis instance may be publicly accessible. This could cause accidental customer data leakage. According to
+    [Shodan](https://www.shodan.io/){{: target="_blank"}}, there are over 640,000 publicly exposed Redis servers on the internet. Consider re-configuring your Redis to listen only on the localhost, or add a lock down the access to Redis using a firewall if it needs to be accessible on the network.
   long: |
     Redis is an open-source data store with several uses, but most often used for caching. Unfortunately, Redis does not have any robust security features of its own, and is intended for use by trusted clients in a trusted network. It is therefore not recommended to have a Redis instance exposed over the internet.
 
@@ -459,22 +677,6 @@
     When you're done, restart Redis by running:
     $ sudo service redis restart
 
-
-- title: Vulnerable packages found
-  class: VulnerablePackagesAction
-  short: |
-    Vulnerable packages have been found. These packages may be exploitable by an attacker to gain access to, or escalate permissions, on your servers. Make sure packages are up to date. You can learn more about the exact packages, as well as how to upgrade under the [Vulnerabilities tab](/cve)
-  long: |
-    Packages are a key part of most Linux based operating systems software. Typically when installing additional software onto Linux systems, it comes in pre-compiled packages. Depending on your Linux distribution, the package manager will differ (e.g. Debian/Ubuntu users `.deb` packages whereas RedHat/Fedora/Amazon uses '.rpm'. packages).
-
-    Over time, if not updated, these packages often become vulnerable to security risks leaving them open to exploitation from external attackers. These operating system packages can then be used by an attacker to gain access to your server, or to escalate permission them.
-
-    Assuming you using a Linux distribution that is still maintained (you can check the End-of-Life date under the "software" tab on each node), there should be security updates available.
-
-    WoTT can detect an out-of-date or insecure package and alert you about this. Do however note that in some instances, there is a known vulnerabilities that have been identified, but yet to be patched by the operating system vendors.
-
-    Also, for those new to security, it is worth pointing out that when a security issue is reported and identified, it is reported into the Common Vulnerabilities and Exposures (CVE) database. The most common authority for this is the [mitre](https://cve.mitre.org/) CVE database.
-
 - title: Enable our GitHub integration for improved workflow
   class: GithubAction
   subtitle: Streamline the remediation process and assign issues to team members.
@@ -491,15 +693,64 @@
   short: |
     WoTT uses an agent to perform the security audit. Without the agent installed on any of your servers, we are unable to provide you with any insights on your security posture.
   long: |
-    To get started, you need to install our [agent](https://github.com/WoTTsecurity/agent) on your servers. The agent performs a security audit, which is then sent to our back-end for processing. With this data, we are able to provide you with tailored recommendations for how to improve your security posture.
+    To get started, you need to install our [agent](https://github.com/WoTTsecurity/agent){{: target="_blank"}} on your servers. The agent performs a security audit, which is then sent to our back-end for processing. With this data, we are able to provide you with tailored recommendations for how to improve your security posture.
 
     For the security minded people, we are happy to let you know that the agent is fully open source, so you can inspect the code base before you install it if you so desire.
 
-    While the installation instructions below are useful for installing on small number of hosts, we also have an [Ansible Playbook](https://github.com/WoTTsecurity/examples/tree/master/ansible) if you want to deploy the agent to a larger fleet of servers.
+    While the installation instructions below are useful for installing on small number of hosts, we also have an
+    [Ansible Playbook](https://github.com/WoTTsecurity/examples/tree/master/ansible){{: target="_blank"}} if you want to deploy the agent to a larger fleet of servers.
   terminal_title: |
     To install the agent, run the following command:
 
-    [Supported Operating Systems](https://github.com/WoTTsecurity/agent#supported-operating-systems)
+    [Supported Operating Systems](https://github.com/WoTTsecurity/agent#supported-operating-systems){{: target="_blank"}}
   terminal_code: |
     $ export CLAIM_TOKEN="{key}"
     $ curl -sL https://install.wott.io | sudo -E bash
+
+- title: Reboot required
+  class: RebootRequiredAction
+  short: |
+    Reboot required for kernel upgrade to complete.
+  long: |
+    You have recently installed a new Linux kernel, but the system is currently running an older version. In order to apply the kernel upgrade, you need to reboot your system.
+  terminal_title: |
+    To reboot the node, run the following command:
+  terminal_code: |
+    $ sudo shutdown -r now
+
+- title: Consider installing auditd for improved security logs
+  class: AuditdNotInstalledAction
+  short: |
+    `auditd` is part of the Linux Auditing System and is used in a lot of security minded organizations to ensure proper audit logs. While `auditd` by itself is very useful, it is particularly useful in conjunction with a central logging to ensure an attacker cannot clean up the logs.
+  long: |
+    In most compliance environments, `auditd` (and the Linux Auditing System) plays an important role to ensure there are proper audit trails on the servers. Out-of-box, `auditd` provides good logging for system events, and it is possible to expand it further with custom rules.
+
+    You can see the result of `auditd` both in the system logs and using the `aureport` command. To learn more, see the [man pages](https://linux.die.net/man/8/auditd).
+
+    Please note that if you are using `auditd`, it is strongly advised that you also set up remote logging using something like 'rsyslog' or 'syslog-ng`
+  terminal_title: |
+    To install auditd, run the following command:
+  terminal_code: |
+    On Debian/Ubuntu:
+    $ sudo apt-get install auditd
+
+    On Amazon Linux/CentOS/RHEL:
+    $ sudo yum install audit
+- title: Vulnerability {cve_name} discovered
+  class: CVEAction
+  short: |
+    Vulnerability in {short_packages_list} discovered.
+  long: |
+    We've discovered that you are affected by {cve_name}.
+
+    This vulnerability affects:
+
+    {packages_list}
+
+    It is recommended that you resolve this issue as soon as possible.
+
+    [Learn more]({cve_link}){{: target="_blank"}}
+  terminal_title: |
+    CVE detected - terminal title:
+  terminal_code:
+    $ sudo wott-agent upgrade {packages}

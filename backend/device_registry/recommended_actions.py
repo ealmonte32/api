@@ -4,8 +4,9 @@ from enum import IntEnum
 from typing import NamedTuple, List
 from urllib.parse import urljoin
 
+import redis
 from django.conf import settings
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, Max, F
 from django.urls import reverse
 from django.utils import timezone
 
@@ -22,11 +23,9 @@ class Severity(IntEnum):
 class InsecureService(NamedTuple):
     """
     name: Process name (e.g. fingerd, tftpd).
-    sub_id: Action subclass id starting with 1. Should be unique across all InsecureService's.
     severity: Action severity.
     """
     name: str
-    sub_id: int
     severity: Severity
 
 
@@ -34,12 +33,10 @@ class OpenSSHConfigParam(NamedTuple):
     """
     safe_value: The value of the config parameter which is considered safe.
     doc_url: "Learn More" URL or None.
-    sub_id: Action subclass id starting with 1. Should be unique across all OpenSSHConfigParam's.
     severity: Action severity.
     """
     safe_value: str
     doc_url: str
-    sub_id: int
     severity: Severity
 
 
@@ -47,11 +44,9 @@ class PubliclyAccessiblePort(NamedTuple):
     """
     port: TCP port number. Should ideally be a valid port number, i.e. in [0, 65535].
     name: Display name of the service listening on this port.
-    sub_id: Action subclass id starting with 1. Should be unique across all PubliclyAccessiblePort's.
     """
     port: int
     name: str
-    sub_id: int
 
 
 class Action(NamedTuple):
@@ -85,17 +80,21 @@ class Action(NamedTuple):
         Severity.HI: ('High', 'danger')
     }
 
+    @staticmethod
+    def _html(md: str):
+        return markdown.markdown(md, extensions=['attr_list'])
+
     @property
     def short_html(self):
-        return markdown.markdown(self.short)
+        return self._html(self.short)
 
     @property
     def long_html(self):
-        return markdown.markdown(self.long)
+        return self._html(self.long)
 
     @property
     def terminal_title_html(self):
-        return markdown.markdown(self.terminal_title)
+        return self._html(self.terminal_title)
 
     @property
     def severity_info(self):
@@ -113,36 +112,54 @@ class ParamStatusQS(NamedTuple):
 
 
 INSECURE_SERVICES = [
-    InsecureService('fingerd', 1, Severity.MED),
-    InsecureService('tftpd', 2, Severity.MED),
-    InsecureService('telnetd', 3, Severity.HI),
-    InsecureService('snmpd', 4, Severity.MED),
-    InsecureService('xinetd', 5, Severity.MED),
-    InsecureService('nis', 6, Severity.MED),
-    InsecureService('atftpd', 7, Severity.MED),
-    InsecureService('tftpd-hpa', 8, Severity.MED),
-    InsecureService('rsh-server', 9, Severity.HI),
-    InsecureService('rsh-redone-server', 10, Severity.HI)
+    InsecureService('fingerd', Severity.MED),
+    InsecureService('tftpd', Severity.MED),
+    InsecureService('telnetd', Severity.HI),
+    InsecureService('snmpd', Severity.MED),
+    InsecureService('xinetd', Severity.MED),
+    InsecureService('nis', Severity.MED),
+    InsecureService('atftpd', Severity.MED),
+    InsecureService('tftpd-hpa', Severity.MED),
+    InsecureService('rsh-server', Severity.HI),
+    InsecureService('rsh-redone-server', Severity.HI)
 ]
 
 SSHD_CONFIG_PARAMS_INFO = {
     'PermitEmptyPasswords': OpenSSHConfigParam(
-        'no', '', 1, Severity.HI),
+        'no', '', Severity.HI),
     'PermitRootLogin': OpenSSHConfigParam(
-        'no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', 2, Severity.MED),
+        'no', 'https://wott.io/documentation/faq#openssh-perminrootlogin', Severity.MED),
     'PasswordAuthentication': OpenSSHConfigParam(
-        'no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', 3, Severity.HI),
+        'no', 'https://wott.io/documentation/faq#openssh-passwordauthentication', Severity.HI),
     'AllowAgentForwarding': OpenSSHConfigParam(
-        'no', 'https://wott.io/documentation/faq#openssh-allowagentforwarding', 4, Severity.MED),
+        'no', 'https://wott.io/documentation/faq#openssh-allowagentforwarding', Severity.MED),
     'Protocol': OpenSSHConfigParam(
-        '2', '', 5, Severity.HI)
+        '2', '', Severity.HI),
+    'ClientAliveInterval': OpenSSHConfigParam(
+        '300', '', Severity.MED),
+    'ClientAliveCountMax': OpenSSHConfigParam(
+        '3', '', Severity.MED),
+    'HostbasedAuthentication': OpenSSHConfigParam(
+        'no', '', Severity.MED),
+    'IgnoreRhosts': OpenSSHConfigParam(
+        'yes', '', Severity.MED),
+    'LogLevel': OpenSSHConfigParam(
+        'INFO', '', Severity.MED),
+    'LoginGraceTime': OpenSSHConfigParam(
+        '60', '', Severity.MED),
+    'MaxAuthTries': OpenSSHConfigParam(
+        '4', '', Severity.MED),
+    'PermitUserEnvironment': OpenSSHConfigParam(
+        'no', '', Severity.MED),
+    'X11Forwarding': OpenSSHConfigParam(
+        'no', '', Severity.MED)
 }
 
 PUBLIC_SERVICE_PORTS = {
-    'mongod': PubliclyAccessiblePort(27017, 'MongoDB', 1),
-    'mysqld': PubliclyAccessiblePort(3306, 'MySQL/MariaDB', 2),
-    'memcached': PubliclyAccessiblePort(11211, 'Memcached', 3),
-    'redis-server': PubliclyAccessiblePort(6379, 'Redis', 4)
+    'mongod': PubliclyAccessiblePort(27017, 'MongoDB'),
+    'mysqld': PubliclyAccessiblePort(3306, 'MySQL/MariaDB'),
+    'memcached': PubliclyAccessiblePort(11211, 'Memcached'),
+    'redis-server': PubliclyAccessiblePort(6379, 'Redis')
 }
 
 SUBTITLES = {
@@ -212,7 +229,7 @@ class BaseAction:
         return {}
 
     @classmethod
-    def _create_action(cls, context, devices_list, param=None) -> Action:
+    def create_action(cls, context, severity, devices_list, param=None) -> Action:
         """
         Create an Action object with title and description supplied by this class (cls), action description context,
         devices list and profile's github issue info (which can be empty).
@@ -227,7 +244,7 @@ class BaseAction:
             action_config = cls.action_config
         return Action(
             title=action_config['title'].format(**context),
-            subtitle=action_config.get('subtitle', SUBTITLES[cls.severity(param)]).format(**context),
+            subtitle=action_config.get('subtitle', SUBTITLES[severity]).format(**context),
             short=action_config['short'].format(**context),
             long=action_config['long'].format(**context),
             terminal_title=action_config.get('terminal_title', '').format(**context),
@@ -235,21 +252,10 @@ class BaseAction:
             action_class=cls.__name__,
             action_param=param,
             devices=devices_list,
-            severity=cls.severity(param),
+            severity=severity,
             doc_url=cls.doc_url,
             fleet_wide=getattr(cls, 'is_user_action', False)
         )
-
-    @classmethod
-    def action(cls, devices, param=None) -> Action:
-        """
-        Create Action object from this action's data.
-        :param devices: a list of affected Device's
-        :param param: action param (if supported)
-        :return:
-        """
-        context = cls.get_context(param)
-        return cls._create_action(context, devices, param)
 
     @classmethod
     def _get_description(cls, user, param, action_config) -> (str, str):
@@ -287,6 +293,7 @@ class BaseAction:
                       f"{action_config['long'].format(**context)}\n\n" \
                       f"#### Resolved on: ####\n{resolved}\n\n" \
                       f"*Last modified: {timezone.datetime.now().strftime('%m-%d-%Y %H:%M')} UTC*"
+        action_text = action_text.replace('{: target="_blank"}', '')
 
         resolved = [a.device for a in actions if a.status == RecommendedAction.Status.NOT_AFFECTED]
         affected = [a.device for a in actions if a.status != RecommendedAction.Status.NOT_AFFECTED]
@@ -482,19 +489,17 @@ class FirewallDisabledAction(SimpleAction, metaclass=ActionMeta):
         return Severity.MED
 
 
-# Vulnerable packages found action.
-class VulnerablePackagesAction(SimpleAction, metaclass=ActionMeta):
+# OS reboot required action.
+class RebootRequiredAction(SimpleAction, metaclass=ActionMeta):
+    _severity = Severity.MED
+
     @classmethod
     def _affected_devices(cls, qs):
-        return qs.filter(deb_packages__vulnerabilities__isnull=False).distinct()
+        return qs.filter(reboot_required=True)
 
     @classmethod
     def _is_affected(cls, device) -> bool:
-        return device.deb_packages.filter(vulnerabilities__isnull=False).exists()
-
-    @classmethod
-    def severity(cls, param=None):
-        return Severity.MED
+        return device.reboot_required is True
 
 
 # Automatic security update disabled action.
@@ -542,7 +547,7 @@ class PubliclyAccessibleServiceAction(ParamAction, metaclass=ActionMeta):
     @classmethod
     def _get_context(cls, param):
         service_info = PUBLIC_SERVICE_PORTS[param]
-        port, service_name, sub_id = service_info
+        port, service_name = service_info
         return dict(service=service_name, port=port)
 
     @classmethod
@@ -564,6 +569,27 @@ class CpuVulnerableAction(SimpleAction, metaclass=ActionMeta):
     @classmethod
     def severity(cls, param=None):
         return Severity.HI
+
+
+class AuditdNotInstalledAction(SimpleAction, metaclass=ActionMeta):
+    _severity = Severity.MED
+
+    @classmethod
+    def _is_affected(cls, device) -> bool:
+        from .models import DEBIAN_SUITES, UBUNTU_SUITES
+        if device.os_release.get('codename') in DEBIAN_SUITES + UBUNTU_SUITES:
+            return not device.deb_packages.filter(name='auditd').exists()
+        elif device.os_release.get('codename') == 'amzn2':
+            return not device.deb_packages.filter(name='audit').exists()
+        return False
+
+    @classmethod
+    def _affected_devices(cls, qs):
+        from .models import DEBIAN_SUITES, UBUNTU_SUITES
+        return qs.filter(
+            (Q(os_release__codename__in=DEBIAN_SUITES + UBUNTU_SUITES) & ~Q(deb_packages__name='auditd')) |
+            (Q(os_release__codename='amzn2') & ~Q(deb_packages__name='audit'))
+        ).distinct()
 
 
 # --- Parameterized actions ---
@@ -599,11 +625,11 @@ class InsecureServicesAction(ParamAction, metaclass=ActionMeta):
     @classmethod
     def affected_devices(cls, qs):
         return [ParamStatusQS(name, qs.exclude(deb_packages_hash='').filter(
-                deb_packages__name=name).distinct()) for name, _, _ in INSECURE_SERVICES]
+                deb_packages__name=name).distinct()) for name, _  in INSECURE_SERVICES]
 
     @classmethod
     def affected_params(cls, device) -> List[ParamStatus]:
-        return [ParamStatus(name, device.deb_packages.filter(name=name).exists()) for name, _, _ in INSECURE_SERVICES]
+        return [ParamStatus(name, device.deb_packages.filter(name=name).exists()) for name, _ in INSECURE_SERVICES]
 
     @classmethod
     def severity(cls, param):
@@ -614,7 +640,7 @@ class InsecureServicesAction(ParamAction, metaclass=ActionMeta):
 class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
     @classmethod
     def _get_context(cls, param):
-        safe_value, doc_url, _, _ = SSHD_CONFIG_PARAMS_INFO[param]
+        safe_value, doc_url, _ = SSHD_CONFIG_PARAMS_INFO[param]
         return dict(param_name=param,
                     safe_value=safe_value,
                     doc_url=doc_url)
@@ -632,6 +658,70 @@ class OpensshIssueAction(ParamAction, metaclass=ActionMeta):
         return SSHD_CONFIG_PARAMS_INFO[param].severity
 
 
+class CVEAction(ParamAction, metaclass=ActionMeta):
+    @classmethod
+    def _get_context(cls, param):
+        from .models import DebPackage
+        packages = DebPackage.objects.filter(vulnerabilities__name=param, vulnerabilities__fix_available=True) \
+            .values_list('name', flat=True).distinct().order_by('name')
+        packages_spaced = ' '.join(packages)
+        packages_list = '\n'.join(f'* {p}' for p in packages)
+        n = len(packages)
+        if n == 0:
+            raise RuntimeError
+        if n == 1:
+            short_packages_list = f'package {packages[0]}'
+        elif n == 2:
+            short_packages_list = f'packages {packages[0]} and {packages[1]}'
+        elif n == 3:
+            short_packages_list = f'packages {packages[0]}, {packages[1]} and  {packages[2]}'
+        else:
+            short_packages_list = f'packages {packages[0]}, {packages[1]}, {packages[2]} and more'
+        return {'packages': packages_spaced,
+                'packages_list': packages_list,
+                'short_packages_list': short_packages_list,
+                'cve_name': param,
+                'cve_link': 'http://cve.mitre.org/cgi-bin/cvename.cgi?name='+param}
+
+    @classmethod
+    def affected_devices(cls, qs) -> List[ParamStatusQS]:
+        from .models import Vulnerability, Device
+        severity_none = Vulnerability.objects.values('name').annotate(max_urgency=Max('urgency')) \
+            .filter(max_urgency=Vulnerability.Urgency.NONE).values('name')
+        vv = Vulnerability.objects.filter(debpackage__device__in=qs, fix_available=True)\
+                                  .annotate(device=F('debpackage__device'))\
+                                  .values('name', 'device').distinct()\
+                                  .exclude(name__in=severity_none)\
+                                  .order_by('name')
+        name = None
+        devices = []
+        result = []
+        for v in vv:
+            devices.append(v['device'])
+            if name != v['name']:
+                if name is not None:
+                    result.append(ParamStatusQS(v['name'], Device.objects.filter(pk__in=devices)))
+                    devices = []
+                name = v['name']
+
+        return result
+
+    @classmethod
+    def affected_params(cls, device):
+        from .models import Vulnerability
+        severity_none = Vulnerability.objects.values('name').annotate(max_urgency=Max('urgency'))\
+            .filter(max_urgency=Vulnerability.Urgency.NONE).values('name')
+        vulns = Vulnerability.objects.filter(debpackage__device=device, fix_available=True)\
+                                     .values_list('name', flat=True).distinct()\
+                                     .exclude(name__in=severity_none)
+        return [ParamStatus(name, True) for name in vulns]
+
+    @classmethod
+    def severity(cls, param):
+        from .models import Vulnerability
+        severity = Vulnerability.objects.filter(name=param).aggregate(Max('urgency'))['urgency__max']
+        return Severity(severity or 1)
+
 # --- Fleet-wide actions ---
 
 class GithubAction(BaseAction, metaclass=ActionMeta):
@@ -641,14 +731,17 @@ class GithubAction(BaseAction, metaclass=ActionMeta):
     def severity(cls, param=None):
         return Severity.LO
 
+    @classmethod
+    def create_action(cls):
+        return super().create_action({}, cls.severity(), [])
 
 class EnrollAction(BaseAction, metaclass=ActionMeta):
     is_user_action = True
 
     @classmethod
-    def get_user_context(cls, user):
+    def create_action(cls, user):
         context = {'key': user.profile.pairing_key.key}
-        return EnrollAction._create_action(context, [])
+        return super().create_action(context, cls.severity(), [])
 
     @classmethod
     def severity(cls, param=None):

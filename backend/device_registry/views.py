@@ -79,8 +79,7 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         resolved_count = ra_resolved_this_week.count()
         if resolved_count < settings.MAX_WEEKLY_RA:
             ra_unresolved = sorted(ra_unresolved,
-                                   key=lambda v: ActionMeta.get_class(v['ra__action_class']).severity(
-                                       v['ra__action_param']),
+                                   key=lambda v: v['ra__action_severity'],
                                    reverse=True)
             for a in ra_unresolved[:settings.MAX_WEEKLY_RA - resolved_count]:
                 affected_devices = Device.objects.filter(owner=self.request.user,
@@ -89,16 +88,20 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                                                                  ra__action_class=a['ra__action_class'],
                                                                  ra__action_param=a['ra__action_param']))\
                                                          .distinct()
-                a = ActionMeta.get_class(a['ra__action_class']).action(affected_devices, a['ra__action_param'])
+                a = ActionMeta.get_class(a['ra__action_class']).create_action(a['ra__action_context'],
+                                                                              a['ra__action_severity'],
+                                                                              affected_devices, a['ra__action_param'])
                 actions.append(a._replace(resolved=False, id=i))
                 i += 1
 
         for class_param in ra_resolved_this_week[:settings.MAX_WEEKLY_RA]:
-            a = ActionMeta.get_class(class_param['ra__action_class']).action([], class_param['ra__action_param'])
+            a = ActionMeta.get_class(class_param['ra__action_class']).create_action(class_param['ra__action_context'],
+                                                                                    class_param['ra__action_severity'],
+                                                                                    [], class_param['ra__action_param'])
             actions.append(a._replace(resolved=True, id=i))
             i += 1
 
-        return actions, min(ra_resolved_this_week.count(), settings.MAX_WEEKLY_RA)
+        return actions, resolved_count
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -118,9 +121,16 @@ class DashboardView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
                     'arrow': 'up' if score - last_week_score >= 0 else 'down',
                 },
             )
+        actions_resolved_this_quarter = self.request.user.profile.actions_resolved_this_quarter
+        # 60 is the quarterly resolved RAs target (see https://github.com/WoTTsecurity/api/issues/819)
+        actions_resolved_this_quarter_part_of_100 = actions_resolved_this_quarter / 60 * 100
         context.update(
             actions=actions,
-            weekly_progress=round(resolved_count * 100 / settings.MAX_WEEKLY_RA)
+            weekly_progress=resolved_count,
+            weekly_progress_percent=round(min(resolved_count, settings.MAX_WEEKLY_RA) * 100 / settings.MAX_WEEKLY_RA),
+            actions_resolved_this_quarter=(actions_resolved_this_quarter, actions_resolved_this_quarter_part_of_100,
+                                           100 - actions_resolved_this_quarter_part_of_100),
+            current_weekly_streak=self.request.user.profile.current_weekly_streak
         )
         return context
 
@@ -251,9 +261,7 @@ def claim_device_view(request):
                 elif not device.claim_token == form.cleaned_data['claim_token']:
                     text, style = 'Invalid claim/node id pair.', 'warning'
                 else:
-                    device.owner = request.user
-                    device.claim_token = ""
-                    device.save(update_fields=['owner', 'claim_token'])
+                    device.claim(request.user)
                     text, style = \
                         f'''You've successfully claimed {device.get_name()}.
                           Learn more about the security state of the device by clicking&nbsp;
@@ -311,9 +319,7 @@ class DeviceDetailView(LoginRequiredMixin, LoginTrackMixin, DetailView):
         form = DeviceAttrsForm(request.POST, instance=self.object)
         if form.is_valid():
             if 'revoke_button' in form.data:
-                self.object.owner = None
-                self.object.claim_token = uuid.uuid4()
-                self.object.save(update_fields=['owner', 'claim_token'])
+                self.object.claim(None, uuid.uuid4())
                 messages.add_message(request, messages.INFO, 'You have successfully revoked your device.')
                 return HttpResponseRedirect(reverse('root'))
             else:
@@ -574,38 +580,45 @@ class RecommendedActionsView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
             # Gather a dict of action_id: [device_pk] where an action with action_id affects the list of device_pk's.
             actions_by_id = defaultdict(list)
             affected_devices = set()
+            context_by_id = {}
             for ra in active_actions:
                 affected_devices.add(ra.device.pk)
                 actions_by_id[(ra.ra.action_class, ra.ra.action_param)].append(ra.device.pk)
-            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices)}
+                context_by_id[(ra.ra.action_class, ra.ra.action_param)] = (ra.ra.action_context, ra.ra.action_severity)
+            affected_devices = {d.pk: d for d in Device.objects.filter(pk__in=affected_devices).only('pk')}
 
             # Generate Action objects to be rendered on page for every affected RA.
+            github_issues = self.request.user.githubissue_set.filter(ra__in=active_actions.values('ra'))\
+                .values('ra__action_class', 'ra__action_param', 'number').distinct()
+            repo_url = self.request.user.profile.github_repo_url if self.request.user.profile.github_repo_id else None
+            github_issues_by_ra = {(v['ra__action_class'], v['ra__action_param']): v['number'] for v in github_issues}
             i = 0
             for ra_id, device_pks in actions_by_id.items():
                 devices = [affected_devices[d] for d in device_pks]
                 ra_class, ra_param = ra_id
+                ra_context, ra_severity = context_by_id[ra_id]
                 if ActionMeta.is_action_class(ra_class):
-                    # Make sure we have an Action class with this id.
+                    # Make sure we have an Action class with this name.
                     # If we don't (this id is invalid or was removed) - ignore it.
-                    issue = self.request.user.githubissue_set.filter(ra__action_class=ra_class,
-                                                                     ra__action_param=ra_param).first()
-                    if issue and issue.number and self.request.user.profile.github_repo_id:
-                        issue_url = f'{self.request.user.profile.github_repo_url}/issues/{issue.number}'
+                    issue_number = github_issues_by_ra.get((ra_class, ra_param))
+                    if issue_number and repo_url:
+                        issue_url = f'{repo_url}/issues/{issue_number}'
                     else:
                         issue_url = None
-                    a = ActionMeta.get_class(ra_class).action(devices, ra_param)
+                    action_class = ActionMeta.get_class(ra_class)
+                    a = action_class.create_action(ra_context, ra_severity, devices, ra_param)
                     actions.append(a._replace(id=i, issue_url=issue_url))
                     i += 1
         else:  # User has no devices - display the special action.
             device_name = None
-            actions = [EnrollAction.get_user_context(self.request.user)]
+            actions = [EnrollAction.create_action(self.request.user)]
 
         # Add this unsnoozable action (same as "enroll your nodes" action above) if the user has not authorized wott-bot
         # and has not set up integration with any Github repo. Only shown on common actions page.
         if not (self.request.user.profile.github_oauth_token and
                 self.request.user.profile.github_repo_id) and \
                 device_pk is None:
-            actions.append(GithubAction.action([]))
+            actions.append(GithubAction.create_action())
 
         # Sort actions by severity and then by action id, effectively grouping subclasses together.
         actions.sort(key=lambda a: (a.severity, a.action_class), reverse=True)
@@ -635,14 +648,10 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         devices_count: int
         devices: List[NamedTuple]
 
-        @property
-        def upgrade_command(self):
-            return f'$ apt-get update && apt-get install -y {self.name} && apt-get autoremove'
-
     class TableRow(NamedTuple):
         cve_name: str
         urgency: Vulnerability.Urgency
-        packages: List[NamedTuple]  # Actually it's List[AffectedPackage]
+        packages: List['CVEView.AffectedPackage']
         cve_url: str
         cve_date: timezone.datetime = None
 
@@ -664,6 +673,11 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         @property
         def cve_link(self):
             return CVEView.Hyperlink(self.cve_name, 'http://cve.mitre.org/cgi-bin/cvename.cgi?name=' + self.cve_name)
+
+        @property
+        def upgrade_command(self):
+            packages = ' '.join([p.name for p in self.packages])
+            return f'$ sudo wott-agent upgrade {packages}'
 
     @staticmethod
     def delta(current, last):
@@ -701,7 +715,7 @@ class CVEView(LoginRequiredMixin, LoginTrackMixin, TemplateView):
         vuln_names = Vulnerability.objects.filter(vuln_query)\
                                           .values('name').distinct()
         vuln_pub_dates_qs = Vulnerability.objects.filter(name__in=vuln_names) \
-                                                 .values('name').annotate(pubdate=Max('pub_date')).distinct()
+                                                 .values('name').distinct().annotate(pubdate=Max('pub_date'))
         # Build a lookup dictionary for CVE publication dates.
         vuln_pub_dates = {v['name']: v['pubdate'] for v in vuln_pub_dates_qs}
 
