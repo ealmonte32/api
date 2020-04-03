@@ -18,7 +18,7 @@
     "apexcharts": "2.5.1",
     "autoprefixer": "9.7.4",
     "babel-eslint": "10.0.3",
-    "babel-loader": "8.0.5",
+    "babel-loader": "8.0.6",
     "bootstrap": "^4.3.1",
     "bootstrap-daterangepicker": "3.0.5",
     "chart.js": "2.9.3",
