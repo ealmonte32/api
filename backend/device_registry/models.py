@@ -1072,16 +1072,16 @@ class RecommendedActionStatus(models.Model):
         :return: a number of new RecommendedAction objects created.
         """
         created = []
+        updated = []
         if classes is None:
             classes = ActionMeta.all_classes()
         for action_class in classes:
             # Select devices which were not yet processed with this RA.
-            qs = Device.objects.exclude(Q(recommendedactionstatus__ra__action_class=action_class.__name__) |
-                                        Q(owner__isnull=True)).only('pk')
+            qs = Device.objects.exclude(Q(owner__isnull=True)).only('pk')
             if not qs.exists():
                 continue
             affected = action_class.affected_devices(qs)
-            for param, param_affected in affected:
+            for param, devices in affected:
                 ra = RecommendedAction.objects.filter(action_class=action_class.__name__,
                                                       action_param=param)
                 if not ra.exists():
@@ -1090,19 +1090,29 @@ class RecommendedActionStatus(models.Model):
                                            action_param=param,
                                            action_context=action_class.get_context(param),
                                            action_severity=action_class.severity(param))
+                    created.append((ra, [d for d in set(devices)]))
                 else:
                     # This RA already exists, but it needs status update.
                     ra = ra.first()
-                param_affected = set(param_affected)
-                created.append((ra, [(d, RecommendedAction.Status.AFFECTED) for d in param_affected]))
+                    ra.action_context = action_class.get_context(param)
+                    ra.action_severity = action_class.severity(param)
+                    updated.append((ra, devices))
+
+        statuses = []
         if created:
             created_ras = RecommendedAction.objects.bulk_create([ra for ra, _ in created])
-            ra_stats = []
-            for ra_statuses, new_ra in zip(created, created_ras):
-                ra, statuses = ra_statuses
-                ra_stats += [RecommendedActionStatus(ra=new_ra, device=d, status=s) for d, s in statuses]
-            cls.objects.bulk_create(ra_stats)
-        return len(created)
+            statuses += [(new_ra, ra_devices[1]) for new_ra, ra_devices in zip(created_ras, created)]
+        if updated:
+            RecommendedAction.objects.bulk_update([u[0] for u in updated], fields=['action_context', 'action_severity'])
+            statuses += [(ra, devices) for ra, devices in updated]
+        if statuses:
+            ra_statuses = [[RecommendedActionStatus(ra=ra, device=d, status=RecommendedAction.Status.AFFECTED)
+                            for d in devices] for ra, devices in statuses]
+            ra_statuses = sum(ra_statuses, [])  # Flatten the list
+            cls.objects.bulk_create(ra_statuses, ignore_conflicts=True)
+            return len(ra_statuses), len(created), len(updated)
+        else:
+            return 0
 
 
 class GithubIssue(models.Model):
