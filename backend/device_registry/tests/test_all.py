@@ -626,7 +626,7 @@ class DeviceDetailViewTests(TestCase):
         self.firewall.save(update_fields=['global_policy'])
         form_data = {'is_ports_form': 'true', 'open_ports': ['0'], 'policy': 1}
         response = self.client.post(self.url2, form_data)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 400)
 
     def test_open_connections_forbidden(self):
         self.client.login(username='test', password='123')
@@ -634,7 +634,7 @@ class DeviceDetailViewTests(TestCase):
         self.firewall.save(update_fields=['global_policy'])
         form_data = {'is_connections_form': 'true', 'open_connections': ['0']}
         response = self.client.post(self.url2, form_data)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 400)
 
     def test_no_logins(self):
         self.client.login(username='test', password='123')

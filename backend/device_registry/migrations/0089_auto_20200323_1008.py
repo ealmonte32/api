@@ -20,6 +20,5 @@ class Migration(migrations.Migration):
             model_name='debpackage',
             name='name',
             field=models.CharField(db_index=True, max_length=128),
-        ),
-        migrations.RunPython(update_default_credentials)
+        )
     ]

@@ -1,8 +1,5 @@
-import device_registry.models
 from django.conf import settings
-from django.db import migrations, models
-import django.db.models.deletion
-from django.db.models import Case, CharField, Value, When
+from django.db import migrations
 
 
 def update_default_credentials(apps, schema_editor):
@@ -43,6 +40,5 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='recommendedaction',
             name='status',
-        ),
-        migrations.RunPython(update_default_credentials)
+        )
     ]

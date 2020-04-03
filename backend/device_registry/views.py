@@ -7,10 +7,9 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.db import transaction
 from django.db.models import Case, When, Count, Window, Value, F, Q, IntegerField, Max
 from django.db.models.functions import Round, Coalesce
-from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.urls import reverse, reverse_lazy
@@ -374,7 +373,7 @@ class DeviceDetailSecurityView(LoginRequiredMixin, LoginTrackMixin, DetailView):
                 firewallstate.save(update_fields=['global_policy'])
         # Submitted the removed `PortsForm` form.
         elif 'is_ports_form' in request.POST or 'is_connections_form' in request.POST:
-            return HttpResponseForbidden()
+            return HttpResponseBadRequest()
 
         self.object.refresh_from_db()
         self.object.generate_recommended_actions(classes=[FirewallDisabledAction])

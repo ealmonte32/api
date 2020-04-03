@@ -297,6 +297,9 @@ class SnoozeTest(TestCase):
         self.client.login(username='test', password='123')
         self.device = Device.objects.create(device_id='device0.d.wott-dev.local', owner=self.user,
                                             os_release={'codename': 'jessie'})
+        gp = GlobalPolicy.objects.create(name='gp1', owner=self.user, policy=GlobalPolicy.POLICY_BLOCK, ports=[],
+                                         networks=[])
+        FirewallState.objects.create(device=self.device, global_policy=gp)
         deb_package = DebPackage.objects.create(name='auditd', version='version1', source_name='auditd',
                                                 source_version='sversion1', arch='amd64', os_release_codename='jessie')
         self.device.deb_packages.add(deb_package)
@@ -447,18 +450,6 @@ class FirewallDisabledActionTest(TestsMixin, TestCase):
     def enable_action(self):
         self.device.firewallstate.global_policy.policy = GlobalPolicy.POLICY_ALLOW
         self.device.firewallstate.global_policy.save(update_fields=['policy'])
-
-
-class FirewallPolicyActionTest(FirewallDisabledActionTest):
-    def setUp(self):
-        super().setUp()
-        self.policy = GlobalPolicy.objects.create(name='test policy', owner=self.user, policy=GlobalPolicy.POLICY_BLOCK)
-        self.device.firewallstate.global_policy = self.policy
-        self.device.firewallstate.save()
-
-    def enable_action(self):
-        self.policy.policy = GlobalPolicy.POLICY_ALLOW
-        self.policy.save()
 
 
 class CVEActionTest(TestsMixin, TestCase):
