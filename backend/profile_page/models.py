@@ -109,7 +109,7 @@ class Profile(models.Model):
                 day_ago = yesterday_history_record.sampled_at
             return RecommendedActionStatus.objects.filter(
                 status=RecommendedAction.Status.NOT_AFFECTED, resolved_at__gt=day_ago, resolved_at__lte=now,
-                device__owner=self.user).values('ra__pk').distinct().count()
+                device__owner=self.user).exclude(ra__action_class='CVEAction').values('ra__pk').distinct().count()
 
     @property
     def actions_resolved_this_quarter(self):
