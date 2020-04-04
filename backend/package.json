@@ -23,7 +23,7 @@
     "bootstrap-daterangepicker": "3.0.5",
     "chart.js": "2.9.3",
     "clipboard-polyfill": "^2.8.6",
-    "cross-env": "5.2.0",
+    "cross-env": "5.2.1",
     "css-loader": "2.1.0",
     "datatables.net": "1.10.20",
     "datatables.net-bs4": "1.10.19",
