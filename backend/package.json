@@ -42,7 +42,7 @@
     "hard-source-webpack-plugin": "0.13.1",
     "highlight.js": "9.18.1",
     "ip-regex": "4.1.0",
-    "jquery": "^3.4.1",
+    "jquery": "^3.5.0",
     "jquery-confirm": "^3.3.4",
     "jquery-mask-plugin": "1.14.16",
     "jquery-validation": "1.19.1",
