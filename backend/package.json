@@ -71,9 +71,13 @@
     "webpack": "^4.42.0",
     "webpack-bundle-tracker": "0.4.3",
     "webpack-cli": "^3.3.9",
-    "webpack-dev-server": "3.1.14"
+    "webpack-dev-server": "3.1.14",
+    "snyk": "^1.316.1"
   },
   "scripts": {
-    "build": "webpack --config webpack.config.js --progress --colors --stats"
-  }
+    "build": "webpack --config webpack.config.js --progress --colors --stats",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
+  },
+  "snyk": true
 }
