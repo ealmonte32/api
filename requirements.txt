@@ -70,7 +70,7 @@ smmap2==2.0.5
 soupsieve==1.9.5
 sqlparse==0.3.0
 uritemplate==3.0.0
-urllib3==1.24.3
+urllib3==1.25.9
 vine==1.3.0
 whitenoise==4.1.2
 zipp==3.0.0
