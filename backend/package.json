@@ -68,9 +68,9 @@
     "terser-webpack-plugin": "^2.3.6",
     "toastr": "2.1.4",
     "url-loader": "1.1.2",
-    "webpack": "^4.42.0",
+    "webpack": "^5.1.1",
     "webpack-bundle-tracker": "0.4.3",
-    "webpack-cli": "^3.3.9",
+    "webpack-cli": "^4.0.0",
     "webpack-dev-server": "3.11.0",
     "snyk": "^1.319.0"
   },
