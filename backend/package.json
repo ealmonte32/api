@@ -40,7 +40,7 @@
     "file-loader": "3.0.1",
     "fullcalendar": "^3.10.0",
     "hard-source-webpack-plugin": "0.13.1",
-    "highlight.js": "9.18.1",
+    "highlight.js": "9.18.2",
     "ip-regex": "4.1.0",
     "jquery": "^3.5.0",
     "jquery-confirm": "^3.3.4",
